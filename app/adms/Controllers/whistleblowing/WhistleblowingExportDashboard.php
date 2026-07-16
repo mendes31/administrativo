@@ -30,7 +30,7 @@ final class WhistleblowingExportDashboard
             ['Pendentes triagem', (int) ($stats['pending'] ?? 0)],
             ['Críticas abertas', (int) ($stats['critical'] ?? 0)],
             ['Em investigação', (int) ($stats['investigation'] ?? 0)],
-            ['SLA 1ª resposta vencido (72h)', (int) ($stats['sla_overdue'] ?? 0)],
+            ['SLA 1ª resposta vencido (' . ($stats['sla_label'] ?? '72h') . ')', (int) ($stats['sla_overdue'] ?? 0)],
             ['Tempo médio 1ª resposta (h)', (float) ($stats['avg_response_hours'] ?? 0)],
             ['Tempo médio encerramento (h)', (float) ($stats['avg_closure_hours'] ?? 0)],
         ];

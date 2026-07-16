@@ -10,6 +10,7 @@ use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Models\Services\WhistleblowingUploadService;
+use App\adms\Models\Services\WhistleblowingNotificationService;
 
 /**
  * Resposta do comitê ao denunciante (ou nota interna).
@@ -86,6 +87,13 @@ class WhistleblowingReplyReport
 
         if (!$isInternal && empty($report['first_response_at'])) {
             $repo->updateReport($reportId, ['first_response_at' => date('Y-m-d H:i:s')]);
+        }
+
+        if (!$isInternal) {
+            $freshReport = $repo->getReportById($reportId);
+            if ($freshReport !== null) {
+                (new WhistleblowingNotificationService())->notifyReporterOnCommitteeReply($freshReport);
+            }
         }
 
         if ($userId > 0) {

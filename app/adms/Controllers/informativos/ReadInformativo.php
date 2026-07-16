@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\informativos;
 
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\InformativosRepository;
 
 class ReadInformativo
@@ -28,6 +29,7 @@ class ReadInformativo
         try {
             $repo = new InformativosRepository();
             $repo->upsertRead($informativoId, (int)$_SESSION['user_id']);
+            NavbarLayoutCacheHelper::clear();
             $read = $repo->getReadByUser($informativoId, (int)$_SESSION['user_id']);
             echo json_encode([
                 'success' => true,

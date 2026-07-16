@@ -37,6 +37,16 @@ require __DIR__ . '/_view_scope.php';
                 placeholder="Senha de 6 caracteres" required autocomplete="off" maxlength="12" autocapitalize="characters" spellcheck="false">
         </div>
 
+        <?php if (!empty($captcha_enabled) && !empty($captcha_site_key)): ?>
+        <div class="canal-field mb-3">
+            <?php if (($captcha_provider ?? 'hcaptcha') === 'recaptcha'): ?>
+                <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars((string)$captcha_site_key, ENT_QUOTES, 'UTF-8'); ?>"></div>
+            <?php else: ?>
+                <div class="h-captcha" data-sitekey="<?php echo htmlspecialchars((string)$captcha_site_key, ENT_QUOTES, 'UTF-8'); ?>"></div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="canal-form-actions">
             <button type="submit" class="btn btn-canal-primary">
                 <i class="fas fa-unlock me-1"></i>Consultar
@@ -45,3 +55,10 @@ require __DIR__ . '/_view_scope.php';
         </div>
     </form>
 </div>
+<?php if (!empty($captcha_enabled) && !empty($captcha_site_key)): ?>
+<?php if (($captcha_provider ?? 'hcaptcha') === 'recaptcha'): ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<?php else: ?>
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<?php endif; ?>
+<?php endif; ?>

@@ -50,6 +50,11 @@ final class WhistleblowingRetentionService
 
             $result = (new self())->run('auto');
             self::writeCache($now, $result);
+            try {
+                (new WhistleblowingSlaBreachService())->processPendingBreaches();
+            } catch (\Throwable $slaEx) {
+                error_log('WhistleblowingSlaBreachService on login: ' . $slaEx->getMessage());
+            }
         } catch (\Throwable $e) {
             error_log('WhistleblowingRetentionService::ensureUpdated error: ' . $e->getMessage());
         }

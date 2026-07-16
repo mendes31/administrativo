@@ -34,3 +34,6 @@ $password = isset($password) ? (string) $password : '';
 $report = isset($report) && is_array($report) ? $report : [];
 $messages = isset($messages) && is_array($messages) ? $messages : [];
 $attachments = isset($attachments) && is_array($attachments) ? $attachments : [];
+$captcha_enabled = !empty($captcha_enabled);
+$captcha_site_key = isset($captcha_site_key) ? (string) $captcha_site_key : '';
+$captcha_provider = isset($captcha_provider) ? (string) $captcha_provider : 'hcaptcha';

@@ -10,8 +10,10 @@ use App\adms\Models\Services\WhistleblowingAttachmentFilenameHelper;
 use App\adms\Models\Repository\WhistleblowingMessagesRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 use App\adms\Models\Services\WhistleblowingChannelSecurityService;
+use App\adms\Models\Services\WhistleblowingCaptchaService;
 use App\adms\Models\Services\WhistleblowingCommitteeNotificationService;
 use App\adms\Models\Services\WhistleblowingCategoryService;
+use App\adms\Models\Services\WhistleblowingNotificationService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
 use App\adms\Models\Services\WhistleblowingRateLimitService;
 use App\adms\Models\Services\WhistleblowingUploadService;
@@ -61,12 +63,7 @@ final class CanalDenuncia
             return;
         }
 
-        $this->render('registrar', [
-            'title' => 'Registrar denúncia',
-            'categories' => WhistleblowingCategoryService::getActiveNames(),
-            'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-            'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
-        ]);
+        $this->render('registrar', $this->registrarViewData());
     }
 
     public function enviar(): void
@@ -81,27 +78,27 @@ final class CanalDenuncia
         }
 
         if ($this->isPostTooLarge()) {
-            $this->render('registrar', [
-                'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingCategoryService::getActiveNames(),
-                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+            $this->render('registrar', $this->registrarViewData([
                 'error' => 'O(s) anexo(s) ultrapassam o limite de envio do servidor. Máximo '
                     . WhistleblowingUploadService::maxFileSizeLabel()
                     . ' por arquivo (PDF, imagem, áudio MP3/WAV ou vídeo MP4). Comprima o vídeo e tente novamente.',
                 'old' => $_POST,
-            ]);
+            ]));
             return;
         }
 
         if (!CSRFHelper::validateCSRFToken('canal_denuncia_registrar', $_POST['csrf_token'] ?? '')) {
-            $this->render('registrar', [
-                'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingCategoryService::getActiveNames(),
-                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+            $this->render('registrar', $this->registrarViewData([
                 'error' => 'Sessão expirada. Atualize a página e tente novamente.',
-            ]);
+            ]));
+            return;
+        }
+
+        if (!(new WhistleblowingCaptchaService())->verifyFromRequest()) {
+            $this->render('registrar', $this->registrarViewData([
+                'error' => 'Confirme o CAPTCHA antes de enviar a denúncia.',
+                'old' => $_POST,
+            ]));
             return;
         }
 
@@ -111,14 +108,10 @@ final class CanalDenuncia
         $involved = trim((string) ($_POST['involved'] ?? ''));
 
         if ($description === '') {
-            $this->render('registrar', [
-                'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingCategoryService::getActiveNames(),
-                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+            $this->render('registrar', $this->registrarViewData([
                 'error' => 'O relato da denúncia é obrigatório.',
                 'old' => $_POST,
-            ]);
+            ]));
             return;
         }
 
@@ -133,29 +126,21 @@ final class CanalDenuncia
         $reporterPhone = trim((string) ($_POST['reporter_phone'] ?? ''));
 
         if ($wantsIdentify && $reporterName === '' && $reporterEmail === '' && $reporterPhone === '') {
-            $this->render('registrar', [
-                'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingCategoryService::getActiveNames(),
-                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+            $this->render('registrar', $this->registrarViewData([
                 'error' => 'Informe pelo menos um campo (nome, e-mail ou telefone) ou desmarque a opção de se identificar.',
                 'old' => $_POST,
-            ]);
+            ]));
             return;
         }
 
         // Valida anexos ANTES de criar a denúncia — não registra se o arquivo for inválido.
         $uploadResult = $this->uploadService->processMultiple($_FILES['attachments'] ?? null);
         if ($uploadResult['errors'] !== []) {
-            $this->render('registrar', [
-                'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingCategoryService::getActiveNames(),
-                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+            $this->render('registrar', $this->registrarViewData([
                 'error' => 'Não foi possível enviar a denúncia por problema nos anexos: '
                     . implode(' ', $uploadResult['errors']),
                 'old' => $_POST,
-            ]);
+            ]));
             return;
         }
 
@@ -175,14 +160,10 @@ final class CanalDenuncia
             foreach ($uploadResult['uploads'] as $upload) {
                 WhistleblowingUploadService::deleteFile((string) ($upload['stored_name'] ?? ''));
             }
-            $this->render('registrar', [
-                'title' => 'Registrar denúncia',
-                'categories' => WhistleblowingCategoryService::getActiveNames(),
-                'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
-                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+            $this->render('registrar', $this->registrarViewData([
                 'error' => 'Não foi possível registrar a denúncia. Tente novamente.',
                 'old' => $_POST,
-            ]);
+            ]));
             return;
         }
 
@@ -225,10 +206,10 @@ final class CanalDenuncia
             return;
         }
 
-        $this->render('acompanhar', [
+        $this->render('acompanhar', array_merge([
             'title' => 'Acompanhar denúncia',
             'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
-        ]);
+        ], $this->captchaViewData()));
     }
 
     public function consultar(): void
@@ -247,20 +228,29 @@ final class CanalDenuncia
         if ($this->rateLimit->isBlocked($scope)) {
             $wait = $this->rateLimit->secondsUntilUnblock($scope);
             $mins = max(1, (int) ceil($wait / 60));
-            $this->render('acompanhar', [
+            $this->render('acompanhar', array_merge([
                 'title' => 'Acompanhar denúncia',
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
                 'error' => 'Muitas tentativas incorretas. Aguarde cerca de ' . $mins . ' minuto(s) e tente novamente.',
-            ]);
+            ], $this->captchaViewData()));
             return;
         }
 
         if (!CSRFHelper::validateCSRFToken('canal_denuncia_acompanhar', $_POST['csrf_token'] ?? '', false)) {
-            $this->render('acompanhar', [
+            $this->render('acompanhar', array_merge([
                 'title' => 'Acompanhar denúncia',
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
                 'error' => 'Sessão expirada. Atualize a página e tente novamente.',
-            ]);
+            ], $this->captchaViewData()));
+            return;
+        }
+
+        if (!(new WhistleblowingCaptchaService())->verifyFromRequest()) {
+            $this->render('acompanhar', array_merge([
+                'title' => 'Acompanhar denúncia',
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
+                'error' => 'Confirme o CAPTCHA antes de consultar.',
+            ], $this->captchaViewData()));
             return;
         }
 
@@ -270,11 +260,11 @@ final class CanalDenuncia
         $report = $this->reportsRepo->verifyProtocolAndPassword($protocol, $password);
         if ($report === null) {
             $this->rateLimit->recordFailedAttempt($scope);
-            $this->render('acompanhar', [
+            $this->render('acompanhar', array_merge([
                 'title' => 'Acompanhar denúncia',
                 'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
                 'error' => 'Protocolo ou senha inválidos.',
-            ]);
+            ], $this->captchaViewData()));
             return;
         }
 
@@ -285,7 +275,7 @@ final class CanalDenuncia
 
         $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
         $messages = $this->messagesRepo->getPublicMessagesByReportId($reportId);
-        $attachments = $this->messagesRepo->getAttachmentsByReportId($reportId, true);
+        $attachments = $this->messagesRepo->getPublicAttachmentsByReportId($reportId);
 
         $this->render('detalhe', [
             'title' => 'Acompanhamento — ' . $hydrated['protocol'],
@@ -330,7 +320,7 @@ final class CanalDenuncia
         if ($uploadResult['errors'] !== []) {
             $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
             $messages = $this->messagesRepo->getMessagesByReportId($reportId, true);
-            $attachments = $this->messagesRepo->getAttachmentsByReportId($reportId, true);
+            $attachments = $this->messagesRepo->getPublicAttachmentsByReportId($reportId);
             $this->render('detalhe', [
                 'title' => 'Acompanhamento — ' . $hydrated['protocol'],
                 'report' => $hydrated,
@@ -347,7 +337,7 @@ final class CanalDenuncia
         if ($message === '' && $uploadResult['uploads'] === []) {
             $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
             $messages = $this->messagesRepo->getMessagesByReportId($reportId, true);
-            $attachments = $this->messagesRepo->getAttachmentsByReportId($reportId, true);
+            $attachments = $this->messagesRepo->getPublicAttachmentsByReportId($reportId);
             $this->render('detalhe', [
                 'title' => 'Acompanhamento — ' . $hydrated['protocol'],
                 'report' => $hydrated,
@@ -374,6 +364,14 @@ final class CanalDenuncia
                 $upload['mime_type'],
                 $upload['size_bytes'],
                 'denunciante'
+            );
+        }
+
+        if ($message !== '' || $uploadResult['uploads'] !== []) {
+            (new WhistleblowingNotificationService())->notifyWhistleblowerReply(
+                $reportId,
+                (string) ($report['protocol'] ?? $protocol),
+                isset($report['committee_id']) ? (int) $report['committee_id'] : null
             );
         }
 
@@ -408,7 +406,7 @@ final class CanalDenuncia
             exit;
         }
 
-        if (($attachment['uploaded_by'] ?? '') !== 'denunciante') {
+        if (!$this->messagesRepo->isAttachmentPubliclyVisible($attachmentId)) {
             http_response_code(403);
             exit;
         }
@@ -464,6 +462,34 @@ final class CanalDenuncia
     private function publicAuthToken(string $protocol, string $password, string $uuid): string
     {
         return hash('sha256', strtoupper(trim($protocol)) . '|' . trim($password) . '|' . $uuid);
+    }
+
+    private function registrarViewData(array $extra = []): array
+    {
+        return array_merge([
+            'title' => 'Registrar denúncia',
+            'categories' => WhistleblowingCategoryService::getActiveNames(),
+            'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
+            'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
+        ], $this->captchaViewData(), $extra);
+    }
+
+    private function captchaViewData(): array
+    {
+        $captcha = new WhistleblowingCaptchaService();
+        if (!$captcha->isEnabled()) {
+            return [
+                'captcha_enabled' => false,
+                'captcha_site_key' => '',
+                'captcha_provider' => 'hcaptcha',
+            ];
+        }
+
+        return [
+            'captcha_enabled' => true,
+            'captcha_site_key' => $captcha->getSiteKey(),
+            'captcha_provider' => $captcha->getProvider(),
+        ];
     }
 
     private function ensureChannelAvailable(): bool

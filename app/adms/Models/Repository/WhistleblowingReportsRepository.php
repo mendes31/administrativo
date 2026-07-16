@@ -7,6 +7,8 @@ namespace App\adms\Models\Repository;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\WhistleblowingEncryptionService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
+use App\adms\Models\Services\WhistleblowingSlaService;
+use App\adms\Models\Repository\WhistleblowingConfigRepository;
 use PDO;
 
 class WhistleblowingReportsRepository extends DbConnection
@@ -54,16 +56,17 @@ class WhistleblowingReportsRepository extends DbConnection
         $committeesRepo = new WhistleblowingCommitteesRepository();
         $committeeId = $committeesRepo->findCommitteeIdByCategory($category);
         $assignedUserId = $committeeId !== null ? $committeesRepo->getFirstMemberUserId($committeeId) : null;
+        $slaDeadline = (new WhistleblowingSlaService())->computeDeadline($category, $riskLevel, $now);
 
         $sql = 'INSERT INTO adms_whistleblowing_reports
                 (uuid, protocol, password_hash, category, risk_level, content_encrypted,
                  is_reporter_identified, reporter_contact_encrypted, status,
-                 committee_id, assigned_user_id,
+                 committee_id, assigned_user_id, sla_response_deadline,
                  retention_archive_at, retention_delete_at, created_at, updated_at)
                 VALUES
                 (:uuid, :protocol, :password_hash, :category, :risk_level, :content_encrypted,
                  :is_reporter_identified, :reporter_contact_encrypted, :status,
-                 :committee_id, :assigned_user_id,
+                 :committee_id, :assigned_user_id, :sla_response_deadline,
                  :retention_archive_at, :retention_delete_at, :created_at, :updated_at)';
 
         $stmt = $this->getConnection()->prepare($sql);
@@ -79,6 +82,7 @@ class WhistleblowingReportsRepository extends DbConnection
             ':status' => 'Recebida',
             ':committee_id' => $committeeId,
             ':assigned_user_id' => $assignedUserId,
+            ':sla_response_deadline' => $slaDeadline,
             ':retention_archive_at' => null,
             ':retention_delete_at' => null,
             ':created_at' => $now,
@@ -175,6 +179,16 @@ class WhistleblowingReportsRepository extends DbConnection
 
         unset($row['content_encrypted'], $row['password_hash'], $row['reporter_contact_encrypted']);
 
+        $row['closure_reason'] = '';
+        if (!empty($row['closure_reason_encrypted'])) {
+            try {
+                $row['closure_reason'] = $this->encryption->decrypt((string) $row['closure_reason_encrypted']);
+            } catch (\Throwable) {
+                $row['closure_reason'] = '';
+            }
+        }
+        unset($row['closure_reason_encrypted']);
+
         return $row;
     }
 
@@ -211,7 +225,8 @@ class WhistleblowingReportsRepository extends DbConnection
         [$where, $params] = $this->buildFilters($filters);
 
         $sql = "SELECT r.id, r.uuid, r.protocol, r.category, r.risk_level, r.status,
-                       r.assigned_user_id, r.committee_id, r.first_response_at, r.closed_at, r.archived_at,
+                       r.assigned_user_id, r.committee_id, r.first_response_at, r.sla_response_deadline,
+                       r.closed_at, r.archived_at,
                        r.created_at, r.updated_at,
                        u.name AS assigned_name, c.name AS committee_name
                 FROM adms_whistleblowing_reports r
@@ -261,7 +276,10 @@ class WhistleblowingReportsRepository extends DbConnection
         $fields = [];
         $params = [':id' => $id];
 
-        $allowed = ['status', 'assigned_user_id', 'first_response_at', 'closed_at', 'risk_level', 'category'];
+        $allowed = [
+            'status', 'assigned_user_id', 'first_response_at', 'closed_at', 'risk_level', 'category',
+            'sla_response_deadline', 'sla_breach_notified_at', 'closure_outcome', 'closure_reason_encrypted',
+        ];
         foreach ($allowed as $field) {
             if (array_key_exists($field, $data)) {
                 $fields[] = "{$field} = :{$field}";
@@ -388,11 +406,46 @@ class WhistleblowingReportsRepository extends DbConnection
             $conditions[] = 'r.archived_at IS NULL';
         }
 
+        $this->appendPresetConditions((string) ($filters['preset'] ?? ''), $conditions, $params);
+
         $this->appendScopeConditions($filters, $conditions, $params);
 
         $where = $conditions !== [] ? 'WHERE ' . implode(' AND ', $conditions) : '';
 
         return [$where, $params];
+    }
+
+    /**
+     * Filtros rápidos usados pelos cards do dashboard.
+     *
+     * @param list<string> $conditions
+     * @param array<string, mixed> $params
+     */
+    private function appendPresetConditions(string $preset, array &$conditions, array &$params): void
+    {
+        switch ($preset) {
+            case 'triagem':
+                $conditions[] = "r.status IN ('Recebida', 'Em triagem')";
+                break;
+            case 'investigacao':
+                $conditions[] = "r.status IN ('Investigação', 'Comitê', 'Em análise')";
+                break;
+            case 'criticas':
+                $conditions[] = "r.risk_level = 'Crítico' AND r.status != 'Encerrada'";
+                break;
+            case 'sla-vencido':
+                $conditions[] = "r.status != 'Encerrada'
+                    AND r.first_response_at IS NULL
+                    AND (
+                        (r.sla_response_deadline IS NOT NULL AND r.sla_response_deadline < NOW())
+                        OR (
+                            r.sla_response_deadline IS NULL
+                            AND TIMESTAMPDIFF(HOUR, r.created_at, NOW()) > :preset_sla_hours
+                        )
+                    )";
+                $params[':preset_sla_hours'] = max(1, (new WhistleblowingConfigRepository())->getSlaFirstResponseHours());
+                break;
+        }
     }
 
     /**
@@ -495,6 +548,7 @@ class WhistleblowingReportsRepository extends DbConnection
             'recent' => $this->getAllReports(1, 5, $listFilters),
             'aging' => $this->getAgingReports($filters, 15),
             'sla_overdue' => $this->countSlaOverdueFirstResponse($filters),
+            'sla_label' => (new WhistleblowingSlaService())->defaultSlaLabel(),
         ];
     }
 
@@ -528,26 +582,81 @@ class WhistleblowingReportsRepository extends DbConnection
     }
 
     /**
-     * Denúncias abertas sem primeira resposta há mais de 72h (SLA padrão).
+     * Denúncias abertas sem primeira resposta após o prazo SLA.
      *
      * @param array<string, mixed> $filters
      */
-    public function countSlaOverdueFirstResponse(array $filters = [], int $slaHours = 72): int
+    public function countSlaOverdueFirstResponse(array $filters = [], ?int $slaHours = null): int
     {
         [$scopeWhere, $scopeParams] = $this->buildScopeWhereClause($filters);
         $sql = "SELECT COUNT(*) FROM adms_whistleblowing_reports r
                 WHERE r.archived_at IS NULL
                   AND r.status != 'Encerrada'
                   AND r.first_response_at IS NULL
-                  AND TIMESTAMPDIFF(HOUR, r.created_at, NOW()) > :sla_hours{$scopeWhere}";
+                  AND (
+                    (r.sla_response_deadline IS NOT NULL AND r.sla_response_deadline < NOW())
+                    OR (
+                        r.sla_response_deadline IS NULL
+                        AND TIMESTAMPDIFF(HOUR, r.created_at, NOW()) > :sla_hours
+                    )
+                  ){$scopeWhere}";
         $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':sla_hours', $slaHours, PDO::PARAM_INT);
+        $hours = $slaHours ?? (new WhistleblowingConfigRepository())->getSlaFirstResponseHours();
+        $stmt->bindValue(':sla_hours', max(1, $hours), PDO::PARAM_INT);
         foreach ($scopeParams as $key => $value) {
             $stmt->bindValue($key, $value);
         }
         $stmt->execute();
 
         return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function findReportsWithSlaBreachPendingNotification(): array
+    {
+        $sql = "SELECT r.id, r.protocol, r.committee_id
+                FROM adms_whistleblowing_reports r
+                WHERE r.archived_at IS NULL
+                  AND r.status != 'Encerrada'
+                  AND r.first_response_at IS NULL
+                  AND r.sla_breach_notified_at IS NULL
+                  AND r.sla_response_deadline IS NOT NULL
+                  AND r.sla_response_deadline < NOW()
+                ORDER BY r.sla_response_deadline ASC
+                LIMIT 50";
+
+        return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function markSlaBreachNotified(int $reportId): bool
+    {
+        return $this->updateReport($reportId, [
+            'sla_breach_notified_at' => date('Y-m-d H:i:s'),
+        ]);
+    }
+
+    public function recalculateSlaDeadline(int $reportId, string $category, string $riskLevel, string $createdAt): bool
+    {
+        $deadline = (new WhistleblowingSlaService())->computeDeadline($category, $riskLevel, $createdAt);
+
+        return $this->updateReport($reportId, [
+            'sla_response_deadline' => $deadline,
+            'sla_breach_notified_at' => null,
+        ]);
+    }
+
+    public function saveClosure(int $reportId, string $outcome, string $reason): bool
+    {
+        $reasonEncrypted = $reason !== ''
+            ? $this->encryption->encrypt($reason)
+            : null;
+
+        return $this->updateReport($reportId, [
+            'closure_outcome' => $outcome,
+            'closure_reason_encrypted' => $reasonEncrypted,
+        ]);
     }
 
     /**

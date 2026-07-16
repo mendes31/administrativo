@@ -7,6 +7,7 @@ namespace App\adms\Controllers\whistleblowing;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\WhistleblowingAccessLogRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
+use App\adms\Models\Services\WhistleblowingNotificationService;
 use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Models\Services\WhistleblowingProtocolService;
 
@@ -45,19 +46,34 @@ class WhistleblowingUpdateStatus
         $notes = trim((string) ($_POST['notes'] ?? ''));
         $assignedUserId = !empty($_POST['assigned_user_id']) ? (int) $_POST['assigned_user_id'] : null;
         $riskLevel = trim((string) ($_POST['risk_level'] ?? ''));
+        $closureOutcome = trim((string) ($_POST['closure_outcome'] ?? ''));
+        $closureReason = trim((string) ($_POST['closure_reason'] ?? ''));
+
+        if ($newStatus === 'Encerrada') {
+            if (!in_array($closureOutcome, WhistleblowingProtocolService::CLOSURE_OUTCOMES, true)) {
+                $this->redirect($reportId, 'Selecione o resultado do encerramento.');
+                return;
+            }
+            if ($closureReason === '') {
+                $this->redirect($reportId, 'Informe o motivo do encerramento.');
+                return;
+            }
+        }
 
         $updateData = [];
         $shouldScheduleRetention = false;
         $closedAtForRetention = null;
         $shouldClearRetention = false;
+        $oldStatus = (string) ($report['status'] ?? '');
+        $oldRisk = (string) ($report['risk_level'] ?? '');
 
-        if (in_array($newStatus, WhistleblowingProtocolService::STATUSES, true) && $newStatus !== ($report['status'] ?? '')) {
+        if (in_array($newStatus, WhistleblowingProtocolService::STATUSES, true) && $newStatus !== $oldStatus) {
             $updateData['status'] = $newStatus;
             if ($newStatus === 'Encerrada') {
                 $closedAtForRetention = date('Y-m-d H:i:s');
                 $updateData['closed_at'] = $closedAtForRetention;
                 $shouldScheduleRetention = true;
-            } elseif (($report['status'] ?? '') === 'Encerrada') {
+            } elseif ($oldStatus === 'Encerrada') {
                 $shouldClearRetention = true;
             }
         }
@@ -77,11 +93,25 @@ class WhistleblowingUpdateStatus
             }
         }
 
+        if ($newStatus === 'Encerrada') {
+            $repo->saveClosure($reportId, $closureOutcome, $closureReason);
+        }
+
+        $effectiveRisk = $updateData['risk_level'] ?? $oldRisk;
+        if (isset($updateData['risk_level']) && $effectiveRisk !== $oldRisk && ($updateData['status'] ?? $oldStatus) !== 'Encerrada') {
+            $repo->recalculateSlaDeadline(
+                $reportId,
+                (string) ($report['category'] ?? ''),
+                $effectiveRisk,
+                (string) ($report['created_at'] ?? date('Y-m-d H:i:s'))
+            );
+        }
+
         if (isset($updateData['status'])) {
             $userId = (int) ($_SESSION['user_id'] ?? 0);
             $repo->logStatusChange(
                 $reportId,
-                (string) ($report['status'] ?? null),
+                $oldStatus !== '' ? $oldStatus : null,
                 $updateData['status'],
                 $userId > 0 ? $userId : null,
                 $notes !== '' ? $notes : null
@@ -89,6 +119,14 @@ class WhistleblowingUpdateStatus
             if ($userId > 0) {
                 (new WhistleblowingAccessLogRepository())->log($reportId, $userId, 'status_change');
             }
+
+            (new WhistleblowingNotificationService())->notifyStatusChange(
+                $reportId,
+                (string) ($report['protocol'] ?? ''),
+                isset($report['committee_id']) ? (int) $report['committee_id'] : null,
+                $oldStatus,
+                $updateData['status']
+            );
         }
 
         $_SESSION['msg'] = 'Denúncia atualizada com sucesso.';

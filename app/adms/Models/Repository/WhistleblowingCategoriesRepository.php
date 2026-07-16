@@ -97,11 +97,12 @@ class WhistleblowingCategoriesRepository extends DbConnection
         return $ok ? (int) $this->getConnection()->lastInsertId() : null;
     }
 
-    public function update(int $id, string $name, int $sortOrder, bool $isActive, ?string $description = null): bool
+    public function update(int $id, string $name, int $sortOrder, bool $isActive, ?string $description = null, ?int $slaFirstResponseHours = null): bool
     {
         $sql = 'UPDATE adms_whistleblowing_categories
                 SET name = :name, description = :description, sort_order = :sort_order,
-                    is_active = :is_active, updated_at = :updated_at
+                    is_active = :is_active, sla_first_response_hours = :sla_first_response_hours,
+                    updated_at = :updated_at
                 WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
 
@@ -111,6 +112,9 @@ class WhistleblowingCategoriesRepository extends DbConnection
             ':description' => $description !== null && trim($description) !== '' ? trim($description) : null,
             ':sort_order' => max(0, $sortOrder),
             ':is_active' => $isActive ? 1 : 0,
+            ':sla_first_response_hours' => ($slaFirstResponseHours !== null && $slaFirstResponseHours > 0)
+                ? min(720, $slaFirstResponseHours)
+                : null,
             ':updated_at' => date('Y-m-d H:i:s'),
         ]);
     }

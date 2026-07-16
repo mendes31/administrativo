@@ -83,7 +83,8 @@ class WhistleblowingUpdateCategory
             $name,
             $sortOrder,
             $isActive,
-            $description !== '' ? $description : null
+            $description !== '' ? $description : null,
+            !empty($_POST['sla_first_response_hours']) ? (int) $_POST['sla_first_response_hours'] : null
         );
 
         $this->redirectWithMessage(

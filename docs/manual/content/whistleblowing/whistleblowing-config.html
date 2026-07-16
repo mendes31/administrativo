@@ -1,13 +1,34 @@
 <h1>Configuração — Canal de Denúncias</h1>
-<p>Chave AES, políticas LGPD, rate limit, retenção automática e rotação de chave.</p>
+<p>Chave AES, políticas LGPD, SLA, notificações, CAPTCHA, rate limit, retenção automática e rotação de chave.</p>
 <p><strong>Quem acessa:</strong> nível <em>Canal de Denúncias — Administrador</em> ou <em>WhistleblowingConfig</em>.</p>
 
 <h2>Primeira configuração</h2>
 <ol>
 <li>Gere chave: <code>php -r "echo bin2hex(random_bytes(32));"</code></li>
 <li>Salve em <strong>Chave de criptografia</strong> — libera o canal público.</li>
-<li>Ajuste políticas (arquivar/excluir, retenção automática, rate limit).</li>
+<li>Ajuste políticas (arquivar/excluir, retenção automática, rate limit, SLA, notificações).</li>
 </ol>
+
+<h2>SLA — primeira resposta</h2>
+<ul>
+<li><strong>Padrão global</strong> — horas até a 1ª resposta do comitê (ex.: 72).</li>
+<li><strong>Por risco</strong> — Crítico, Alto, Médio, Baixo (sobrescreve o padrão se a classificação não tiver SLA próprio).</li>
+<li><strong>Por classificação</strong> — em <em>Classificações</em>, campo opcional de SLA em horas.</li>
+<li>Ordem de prioridade: classificação → risco → padrão global.</li>
+<li>Alertas de SLA estourado: cron HTTP, login diário ou execução manual em Governança.</li>
+</ul>
+
+<h2>Notificações</h2>
+<ul>
+<li><strong>Comitê — nova denúncia</strong> — sempre (e-mail + sino/push internos).</li>
+<li><strong>Comitê — resposta do denunciante</strong> — opcional nas políticas.</li>
+<li><strong>Comitê — mudança de status</strong> — opcional.</li>
+<li><strong>Comitê — SLA estourado</strong> — opcional.</li>
+<li><strong>Denunciante — nova resposta</strong> — e-mail genérico só se marcou identificação voluntária com e-mail e a opção estiver ativa.</li>
+</ul>
+
+<h2>CAPTCHA</h2>
+<p>Proteção anti-bot nas telas <strong>Registrar denúncia</strong> e <strong>Acompanhar denúncia</strong> quando ativado. Suporta hCaptcha ou reCAPTCHA v2 (checkbox «não sou robô») — informe site key e secret key.</p>
 
 <h2>Retenção automática</h2>
 <p>Dispara no <strong>primeiro login do dia</strong> (máx. 1×/24 h). Não requer Agendador de Tarefas no Windows. Token HTTP/crontab é opcional (Linux).</p>
@@ -27,4 +48,6 @@
 <dt>Canal público indisponível</dt><dd>Chave não configurada ou &lt; 32 caracteres.</dd>
 <dt>Rotação falha na denúncia #N</dt><dd>Chave atual incorreta — use branco + chave legada.</dd>
 <dt>Rate limit</dt><dd>Ajuste tentativas e janela nas políticas.</dd>
+<dt>CAPTCHA inválido no acompanhamento</dt><dd>Verifique site key/secret key e provedor (hCaptcha vs reCAPTCHA).</dd>
+<dt>Denunciante não recebe e-mail de resposta</dt><dd>Ative a opção nas políticas e confirme que informou e-mail na identificação voluntária.</dd>
 </dl>

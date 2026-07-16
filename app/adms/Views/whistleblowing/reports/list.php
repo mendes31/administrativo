@@ -2,6 +2,9 @@
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
+use App\adms\Models\Services\WhistleblowingSlaService;
+
+$slaService = new WhistleblowingSlaService();
 
 $statusBadges = [
     'Recebida' => 'secondary',
@@ -19,6 +22,14 @@ $riskBadges = [
     'Alto' => 'warning',
     'Crítico' => 'danger',
 ];
+
+$presetLabels = [
+    'triagem' => 'Pendentes triagem',
+    'investigacao' => 'Em investigação',
+    'criticas' => 'Críticas abertas',
+    'sla-vencido' => 'SLA 1ª resposta vencido',
+];
+$activePreset = (string) ($this->data['filters']['preset'] ?? '');
 ?>
 
 <div class="container-fluid px-4">
@@ -45,7 +56,20 @@ $riskBadges = [
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+            <?php if ($activePreset !== '' && isset($presetLabels[$activePreset])): ?>
+                <div class="alert alert-info py-2 small d-flex align-items-center gap-2 mb-3">
+                    <i class="fas fa-filter"></i>
+                    <span>Filtro rápido do dashboard: <strong><?php echo htmlspecialchars($presetLabels[$activePreset], ENT_QUOTES, 'UTF-8'); ?></strong></span>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>denuncias" class="ms-auto btn btn-sm btn-outline-secondary">
+                        <i class="fas fa-times me-1"></i>Remover filtro
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <form method="get" class="row g-2 mb-3 align-items-end">
+                <?php if ($activePreset !== ''): ?>
+                    <input type="hidden" name="preset" value="<?php echo htmlspecialchars($activePreset, ENT_QUOTES, 'UTF-8'); ?>">
+                <?php endif; ?>
                 <div class="col-md-2">
                     <label class="form-label small">Protocolo</label>
                     <input type="text" name="search" class="form-control form-control-sm" value="<?php echo htmlspecialchars((string)($this->data['filters']['search'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
@@ -108,15 +132,17 @@ $riskBadges = [
                             <th>Risco</th>
                             <th>Status</th>
                             <th>Responsável</th>
+                            <th style="min-width: 145px;">SLA 1ª resposta</th>
                             <th>Registrada em</th>
                             <th class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
                         <?php if (empty($this->data['reports'])): ?>
-                            <tr><td colspan="8" class="text-center text-muted py-4">Nenhuma denúncia encontrada.</td></tr>
+                            <tr><td colspan="9" class="text-center text-muted py-4">Nenhuma denúncia encontrada.</td></tr>
                         <?php else: ?>
                             <?php foreach ($this->data['reports'] as $r): ?>
+                                <?php $sla = $slaService->progress($r); ?>
                                 <tr>
                                     <td class="font-monospace fw-semibold"><?php echo htmlspecialchars((string)$r['protocol'], ENT_QUOTES, 'UTF-8'); ?></td>
                                     <td><?php echo htmlspecialchars((string)$r['category'], ENT_QUOTES, 'UTF-8'); ?></td>
@@ -124,6 +150,26 @@ $riskBadges = [
                                     <td><span class="badge bg-<?php echo $riskBadges[$r['risk_level']] ?? 'secondary'; ?>"><?php echo htmlspecialchars((string)$r['risk_level'], ENT_QUOTES, 'UTF-8'); ?></span></td>
                                     <td><span class="badge bg-<?php echo $statusBadges[$r['status']] ?? 'secondary'; ?>"><?php echo htmlspecialchars((string)$r['status'], ENT_QUOTES, 'UTF-8'); ?></span></td>
                                     <td><?php echo htmlspecialchars((string)($r['assigned_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td title="<?php echo htmlspecialchars($sla['title'], ENT_QUOTES, 'UTF-8'); ?>">
+                                        <?php if ($sla['available']): ?>
+                                            <div class="small mb-1"><?php echo htmlspecialchars($sla['deadline'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                            <div class="progress position-relative" style="height: 15px;" role="progressbar"
+                                                aria-label="<?php echo htmlspecialchars($sla['label'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                aria-valuenow="<?php echo (int)$sla['percent']; ?>" aria-valuemin="0" aria-valuemax="100">
+                                                <div class="progress-bar progress-bar-striped bg-<?php echo htmlspecialchars($sla['color'], ENT_QUOTES, 'UTF-8'); ?>"
+                                                    style="width: <?php echo (int)$sla['percent']; ?>%"></div>
+                                                <span class="position-absolute w-100 text-center small fw-semibold"
+                                                    style="font-size: .68rem; line-height: 15px; color: <?php echo $sla['percent'] >= 50 ? '#fff' : '#212529'; ?>;">
+                                                    <?php echo (int)$sla['percent']; ?>%
+                                                </span>
+                                            </div>
+                                            <div class="small text-<?php echo htmlspecialchars($sla['color'], ENT_QUOTES, 'UTF-8'); ?>" style="font-size: .68rem;">
+                                                <?php echo htmlspecialchars($sla['label'], ENT_QUOTES, 'UTF-8'); ?>
+                                            </div>
+                                        <?php else: ?>
+                                            <span class="text-muted small">Não definido</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?php echo date('d/m/Y H:i', strtotime((string)$r['created_at'])); ?></td>
                                     <td class="text-center">
                                         <?php if (in_array('WhistleblowingViewReport', $this->data['buttonPermission'] ?? [])): ?>

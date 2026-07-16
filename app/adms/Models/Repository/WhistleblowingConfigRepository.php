@@ -116,6 +116,73 @@ class WhistleblowingConfigRepository extends DbConnection
         return (int) ($this->getRow()['rate_limit_window_minutes'] ?? 15);
     }
 
+    public function getSlaFirstResponseHours(): int
+    {
+        return max(1, min(720, (int) ($this->getRow()['sla_first_response_hours'] ?? 72)));
+    }
+
+    public function getSlaHoursCritico(): int
+    {
+        return max(1, min(720, (int) ($this->getRow()['sla_hours_critico'] ?? 24)));
+    }
+
+    public function getSlaHoursAlto(): int
+    {
+        return max(1, min(720, (int) ($this->getRow()['sla_hours_alto'] ?? 48)));
+    }
+
+    public function getSlaHoursMedio(): int
+    {
+        return max(1, min(720, (int) ($this->getRow()['sla_hours_medio'] ?? 72)));
+    }
+
+    public function getSlaHoursBaixo(): int
+    {
+        return max(1, min(720, (int) ($this->getRow()['sla_hours_baixo'] ?? 120)));
+    }
+
+    public function isNotifyCommitteeOnReply(): bool
+    {
+        return (int) ($this->getRow()['notify_committee_on_reply'] ?? 1) === 1;
+    }
+
+    public function isNotifyCommitteeOnStatusChange(): bool
+    {
+        return (int) ($this->getRow()['notify_committee_on_status_change'] ?? 1) === 1;
+    }
+
+    public function isNotifyCommitteeOnSlaBreach(): bool
+    {
+        return (int) ($this->getRow()['notify_committee_on_sla_breach'] ?? 1) === 1;
+    }
+
+    public function isNotifyReporterOnReply(): bool
+    {
+        return (int) ($this->getRow()['notify_reporter_on_reply'] ?? 0) === 1;
+    }
+
+    public function isCaptchaEnabled(): bool
+    {
+        return (int) ($this->getRow()['captcha_enabled'] ?? 0) === 1;
+    }
+
+    public function getCaptchaProvider(): string
+    {
+        $p = strtolower(trim((string) ($this->getRow()['captcha_provider'] ?? 'hcaptcha')));
+
+        return $p === 'recaptcha' ? 'recaptcha' : 'hcaptcha';
+    }
+
+    public function getCaptchaSiteKey(): string
+    {
+        return trim((string) ($this->getRow()['captcha_site_key'] ?? ''));
+    }
+
+    public function getCaptchaSecretKey(): string
+    {
+        return trim((string) ($this->getRow()['captcha_secret_key'] ?? ''));
+    }
+
     public function buildSuggestedCronLine(string $urlAdm): string
     {
         $token = $this->getHttpCronToken();
@@ -151,6 +218,21 @@ class WhistleblowingConfigRepository extends DbConnection
             'cron_time' => $cronTime,
             'rate_limit_max_attempts' => (string) max(3, min(20, (int) ($policies['rate_limit_max_attempts'] ?? 5))),
             'rate_limit_window_minutes' => (string) max(5, min(120, (int) ($policies['rate_limit_window_minutes'] ?? 15))),
+            'sla_first_response_hours' => (string) max(1, min(720, (int) ($policies['sla_first_response_hours'] ?? 72))),
+            'sla_hours_critico' => (string) max(1, min(720, (int) ($policies['sla_hours_critico'] ?? 24))),
+            'sla_hours_alto' => (string) max(1, min(720, (int) ($policies['sla_hours_alto'] ?? 48))),
+            'sla_hours_medio' => (string) max(1, min(720, (int) ($policies['sla_hours_medio'] ?? 72))),
+            'sla_hours_baixo' => (string) max(1, min(720, (int) ($policies['sla_hours_baixo'] ?? 120))),
+            'notify_committee_on_reply' => !empty($policies['notify_committee_on_reply']) ? '1' : '0',
+            'notify_committee_on_status_change' => !empty($policies['notify_committee_on_status_change']) ? '1' : '0',
+            'notify_committee_on_sla_breach' => !empty($policies['notify_committee_on_sla_breach']) ? '1' : '0',
+            'notify_reporter_on_reply' => !empty($policies['notify_reporter_on_reply']) ? '1' : '0',
+            'captcha_enabled' => !empty($policies['captcha_enabled']) ? '1' : '0',
+            'captcha_provider' => in_array(($policies['captcha_provider'] ?? ''), ['recaptcha', 'hcaptcha'], true)
+                ? $policies['captcha_provider']
+                : 'hcaptcha',
+            'captcha_site_key' => trim((string) ($policies['captcha_site_key'] ?? '')),
+            'captcha_secret_key' => trim((string) ($policies['captcha_secret_key'] ?? '')),
         ]);
     }
 
@@ -182,7 +264,13 @@ class WhistleblowingConfigRepository extends DbConnection
             $params = [':id' => (int) $oldData['id']];
             foreach ($fields as $col => $val) {
                 $sets[] = "{$col} = :{$col}";
-                if (in_array($col, ['retention_archive_years', 'retention_delete_years', 'cron_enabled', 'rate_limit_max_attempts', 'rate_limit_window_minutes'], true)) {
+                if (in_array($col, [
+                    'retention_archive_years', 'retention_delete_years', 'cron_enabled',
+                    'rate_limit_max_attempts', 'rate_limit_window_minutes',
+                    'sla_first_response_hours', 'sla_hours_critico', 'sla_hours_alto', 'sla_hours_medio', 'sla_hours_baixo',
+                    'notify_committee_on_reply', 'notify_committee_on_status_change', 'notify_committee_on_sla_breach',
+                    'notify_reporter_on_reply', 'captcha_enabled',
+                ], true)) {
                     $params[":{$col}"] = (int) $val;
                 } else {
                     $params[":{$col}"] = ($val === '' || $val === null) ? null : $val;
@@ -208,7 +296,13 @@ class WhistleblowingConfigRepository extends DbConnection
                     VALUES (' . implode(', ', $placeholders) . ', NOW(), NOW())';
             $stmt = $conn->prepare($sql);
             foreach ($fields as $col => $val) {
-                if (in_array($col, ['retention_archive_years', 'retention_delete_years', 'cron_enabled', 'rate_limit_max_attempts', 'rate_limit_window_minutes'], true)) {
+                if (in_array($col, [
+                    'retention_archive_years', 'retention_delete_years', 'cron_enabled',
+                    'rate_limit_max_attempts', 'rate_limit_window_minutes',
+                    'sla_first_response_hours', 'sla_hours_critico', 'sla_hours_alto', 'sla_hours_medio', 'sla_hours_baixo',
+                    'notify_committee_on_reply', 'notify_committee_on_status_change', 'notify_committee_on_sla_breach',
+                    'notify_reporter_on_reply', 'captcha_enabled',
+                ], true)) {
                     $stmt->bindValue(':' . $col, (int) $val, PDO::PARAM_INT);
                 } else {
                     $stmt->bindValue(':' . $col, ($val === '' || $val === null) ? null : $val, ($val === '' || $val === null) ? PDO::PARAM_NULL : PDO::PARAM_STR);

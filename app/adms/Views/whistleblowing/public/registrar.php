@@ -122,6 +122,16 @@ require __DIR__ . '/_view_scope.php';
             </div>
         </div>
 
+        <?php if (!empty($captcha_enabled) && !empty($captcha_site_key)): ?>
+        <div class="canal-field mb-3">
+            <?php if (($captcha_provider ?? 'hcaptcha') === 'recaptcha'): ?>
+                <div class="g-recaptcha" data-sitekey="<?php echo htmlspecialchars((string)$captcha_site_key, ENT_QUOTES, 'UTF-8'); ?>"></div>
+            <?php else: ?>
+                <div class="h-captcha" data-sitekey="<?php echo htmlspecialchars((string)$captcha_site_key, ENT_QUOTES, 'UTF-8'); ?>"></div>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+
         <div class="canal-form-actions">
             <button type="submit" class="btn btn-canal-primary">
                 <i class="fas fa-paper-plane me-1"></i>Enviar denúncia
@@ -185,3 +195,10 @@ require __DIR__ . '/_view_scope.php';
 })();
 </script>
 <?php include __DIR__ . '/_attachment_validation.php'; ?>
+<?php if (!empty($captcha_enabled) && !empty($captcha_site_key)): ?>
+<?php if (($captcha_provider ?? 'hcaptcha') === 'recaptcha'): ?>
+<script src="https://www.google.com/recaptcha/api.js" async defer></script>
+<?php else: ?>
+<script src="https://js.hcaptcha.com/1/api.js" async defer></script>
+<?php endif; ?>
+<?php endif; ?>

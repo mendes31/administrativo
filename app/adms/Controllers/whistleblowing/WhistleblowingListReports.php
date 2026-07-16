@@ -26,7 +26,14 @@ class WhistleblowingListReports
         $this->page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
         $this->perPage = isset($_GET['per_page']) ? max(1, (int) $_GET['per_page']) : 20;
 
+        $allowedPresets = ['triagem', 'investigacao', 'criticas', 'sla-vencido'];
+        $preset = (string) ($_GET['preset'] ?? '');
+        if (!in_array($preset, $allowedPresets, true)) {
+            $preset = '';
+        }
+
         $filters = WhistleblowingPermissionService::applyReportScopeFilters([
+            'preset' => $preset,
             'search' => $_GET['search'] ?? '',
             'status' => $_GET['status'] ?? '',
             'category' => $_GET['category'] ?? '',

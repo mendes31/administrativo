@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\informativos;
 
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\AdmsSessionsRepository;
 
@@ -91,6 +92,8 @@ class AcknowledgeInformativo
             $result = $informativosRepository->acknowledge($informativoId, $userId);
             
             if ($result) {
+                NavbarLayoutCacheHelper::clear();
+
                 // Log da ação
                 $logMessage = "Usuário ID {$userId} confirmou ciência do informativo ID {$informativoId}";
                 file_put_contents(__DIR__ . '/../../../logs/informativos_ack.log', 

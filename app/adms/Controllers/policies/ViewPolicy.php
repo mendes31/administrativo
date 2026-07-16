@@ -34,8 +34,11 @@ class ViewPolicy
         $returnUrl = $_ENV['URL_ADM'] . 'view-policy/' . $policyId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_policies', $policyId, $returnUrl);
 
-        // Se usuário logado, buscar status de leitura/ciência para exibir na view
+        // Se usuário logado, registrar leitura e buscar status de leitura/ciência para exibir na view
         if (!empty($_SESSION['user_id'])) {
+            $repo->upsertRead($policyId, (int)$_SESSION['user_id']);
+            // Invalida o cache do navbar para o contador refletir a leitura já nesta página
+            \App\adms\Helpers\NavbarLayoutCacheHelper::clear();
             $this->data['read_status'] = $repo->getReadByUser($policyId, (int)$_SESSION['user_id']);
         }
 

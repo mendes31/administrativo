@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\whistleblowing;
 
 use App\adms\Models\Repository\WhistleblowingConfigRepository;
+use App\adms\Models\Services\WhistleblowingSlaBreachService;
 use App\adms\Models\Services\WhistleblowingRetentionService;
 
 /**
@@ -42,8 +43,10 @@ final class WhistleblowingRetentionCron
             exit;
         }
 
+        $slaBreaches = 0;
         try {
             $result = (new WhistleblowingRetentionService())->run('cron');
+            $slaBreaches = (new WhistleblowingSlaBreachService())->processPendingBreaches();
         } catch (\Throwable $e) {
             http_response_code(500);
             header('Content-Type: text/plain; charset=utf-8');
@@ -55,6 +58,7 @@ final class WhistleblowingRetentionCron
         echo 'OK archived=' . (int) ($result['archived'] ?? 0)
             . ' deleted=' . (int) ($result['deleted'] ?? 0)
             . ' attachments=' . (int) ($result['attachments_deleted'] ?? 0)
+            . ' sla_alerts=' . (int) ($slaBreaches ?? 0)
             . ' ms=' . (int) ($result['duration_ms'] ?? 0) . "\n";
         exit;
     }

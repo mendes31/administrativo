@@ -9,8 +9,15 @@
 <ol>
 <li>Acesse <strong>Canal de Denúncias → Denúncias</strong> (<code>denuncias</code>).</li>
 <li>Filtre por status, classificação, risco ou protocolo.</li>
+<li>Consulte a coluna <strong>SLA 1ª resposta</strong>: ela mostra o prazo, o percentual consumido e a situação (<strong>Dentro do prazo</strong>, <strong>Próximo do vencimento</strong>, <strong>SLA vencido</strong> ou resposta concluída).</li>
 <li>Clique em <strong>Visualizar</strong> para abrir o detalhe.</li>
 </ol>
+
+<h2>Filtros rápidos do dashboard</h2>
+<p>Ao clicar em um card do dashboard, a listagem abre com um filtro rápido aplicado (Pendentes triagem, Críticas abertas, SLA 1ª resposta vencido ou Em investigação). Um aviso azul no topo indica o filtro ativo; use <strong>Remover filtro</strong> para ver todas. Os demais filtros do formulário podem ser combinados com o filtro rápido.</p>
+
+<h2>SLA de primeira resposta</h2>
+<p>A barra é calculada entre o registro da denúncia e o prazo configurado para a primeira resposta. Verde indica prazo normal ou resposta no prazo; amarelo indica consumo de 80% ou mais; vermelho indica vencimento ou resposta enviada fora do prazo. Após a primeira resposta, o percentual deixa de avançar.</p>
 
 <h2>Permissões relacionadas</h2>
 <ul>
@@ -23,4 +30,5 @@
 <dl>
 <dt>Lista vazia (operador)</dt><dd>Denúncia pode estar em comitê diferente; verifique classificação e membros.</dd>
 <dt>Sem botão Visualizar</dt><dd>Conceder permissão ou nível Operador/Administrador.</dd>
+<dt>SLA não definido</dt><dd>Verifique a configuração global e o prazo específico da classificação ou do risco.</dd>
 </dl>

@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\policies;
 
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\PoliciesRepository;
 
 /**
@@ -31,6 +32,7 @@ class ReadPolicy
         try {
             $repo = new PoliciesRepository();
             $repo->upsertRead($policyId, (int)$_SESSION['user_id']);
+            NavbarLayoutCacheHelper::clear();
             $read = $repo->getReadByUser($policyId, (int)$_SESSION['user_id']);
             echo json_encode([
                 'success'      => true,

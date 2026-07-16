@@ -39,6 +39,14 @@ final class WhistleblowingProtocolService
         'Encerrada',
     ];
 
+    /** @var list<string> */
+    public const CLOSURE_OUTCOMES = [
+        'Procedente',
+        'Improcedente',
+        'Parcialmente procedente',
+        'Arquivado',
+    ];
+
     public static function generateUuid(): string
     {
         $bytes = random_bytes(16);

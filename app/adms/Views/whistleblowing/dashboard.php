@@ -1,4 +1,24 @@
-<?php $stats = $this->data['stats'] ?? []; ?>
+<?php
+$stats = $this->data['stats'] ?? [];
+$canListReports = in_array('WhistleblowingListReports', $this->data['buttonPermission'] ?? []);
+
+/**
+ * Envolve o conteúdo do card em link para a listagem filtrada (quando o usuário pode listar).
+ */
+$cardLink = static function (string $query, string $inner) use ($canListReports): string {
+    if (!$canListReports) {
+        return $inner;
+    }
+    $href = $_ENV['URL_ADM'] . 'denuncias' . ($query !== '' ? '?preset=' . $query : '');
+
+    return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" class="text-decoration-none text-reset wb-card-link" title="Ver denúncias deste indicador">' . $inner . '</a>';
+};
+?>
+
+<style>
+.wb-card-link .card { transition: box-shadow .15s ease, transform .15s ease; }
+.wb-card-link:hover .card { box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important; transform: translateY(-2px); }
+</style>
 
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -20,47 +40,52 @@
 
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('', '
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-primary bg-opacity-10 p-3 me-3"><i class="fas fa-folder text-primary fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">Total ativas</h6><h3 class="mb-0 fw-bold"><?= (int)($stats['total'] ?? 0) ?></h3></div>
+                    <div><h6 class="text-muted mb-1">Total ativas</h6><h3 class="mb-0 fw-bold">' . (int)($stats['total'] ?? 0) . '</h3></div>
                 </div>
-            </div>
+            </div>'); ?>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('triagem', '
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-warning bg-opacity-10 p-3 me-3"><i class="fas fa-hourglass-half text-warning fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">Pendentes triagem</h6><h3 class="mb-0 fw-bold"><?= (int)($stats['pending'] ?? 0) ?></h3></div>
+                    <div><h6 class="text-muted mb-1">Pendentes triagem</h6><h3 class="mb-0 fw-bold">' . (int)($stats['pending'] ?? 0) . '</h3></div>
                 </div>
-            </div>
+            </div>'); ?>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('criticas', '
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3"><i class="fas fa-exclamation-triangle text-danger fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">Críticas abertas</h6><h3 class="mb-0 fw-bold"><?= (int)($stats['critical'] ?? 0) ?></h3></div>
+                    <div><h6 class="text-muted mb-1">Críticas abertas</h6><h3 class="mb-0 fw-bold">' . (int)($stats['critical'] ?? 0) . '</h3></div>
                 </div>
-            </div>
+            </div>'); ?>
         </div>
         <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('sla-vencido', '
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3"><i class="fas fa-clock text-danger fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">SLA 1ª resposta (72h)</h6><h3 class="mb-0 fw-bold text-danger"><?= (int)($stats['sla_overdue'] ?? 0) ?></h3><small class="text-muted">sem resposta</small></div>
+                    <div><h6 class="text-muted mb-1">SLA 1ª resposta (' . htmlspecialchars((string)($this->data['sla_label'] ?? '72h'), ENT_QUOTES, 'UTF-8') . ')</h6><h3 class="mb-0 fw-bold text-danger">' . (int)($stats['sla_overdue'] ?? 0) . '</h3><small class="text-muted">sem resposta</small></div>
                 </div>
-            </div>
+            </div>'); ?>
         </div>
     </div>
 
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('investigacao', '
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-info bg-opacity-10 p-3 me-3"><i class="fas fa-search text-info fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">Em investigação</h6><h3 class="mb-0 fw-bold"><?= (int)($stats['investigation'] ?? 0) ?></h3></div>
+                    <div><h6 class="text-muted mb-1">Em investigação</h6><h3 class="mb-0 fw-bold">' . (int)($stats['investigation'] ?? 0) . '</h3></div>
                 </div>
-            </div>
+            </div>'); ?>
         </div>
     </div>
 

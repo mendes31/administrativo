@@ -86,6 +86,32 @@ class WhistleblowingConfig
 
         $this->data['rate_limit_window_minutes'] = $repo->getRateLimitWindowMinutes();
 
+        $this->data['sla_first_response_hours'] = $repo->getSlaFirstResponseHours();
+
+        $this->data['sla_hours_critico'] = $repo->getSlaHoursCritico();
+
+        $this->data['sla_hours_alto'] = $repo->getSlaHoursAlto();
+
+        $this->data['sla_hours_medio'] = $repo->getSlaHoursMedio();
+
+        $this->data['sla_hours_baixo'] = $repo->getSlaHoursBaixo();
+
+        $this->data['notify_committee_on_reply'] = $repo->isNotifyCommitteeOnReply();
+
+        $this->data['notify_committee_on_status_change'] = $repo->isNotifyCommitteeOnStatusChange();
+
+        $this->data['notify_committee_on_sla_breach'] = $repo->isNotifyCommitteeOnSlaBreach();
+
+        $this->data['notify_reporter_on_reply'] = $repo->isNotifyReporterOnReply();
+
+        $this->data['captcha_enabled'] = $repo->isCaptchaEnabled();
+
+        $this->data['captcha_provider'] = $repo->getCaptchaProvider();
+
+        $this->data['captcha_site_key'] = $repo->getCaptchaSiteKey();
+
+        $this->data['captcha_secret_key'] = $repo->getCaptchaSecretKey();
+
         $this->data['cron_line'] = $repo->buildSuggestedCronLine(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/'));
 
         $this->data['public_channel_url'] = WhistleblowingPublicUrlHelper::baseUrl();
@@ -205,6 +231,32 @@ class WhistleblowingConfig
                 'rate_limit_max_attempts' => $_POST['rate_limit_max_attempts'] ?? 5,
 
                 'rate_limit_window_minutes' => $_POST['rate_limit_window_minutes'] ?? 15,
+
+                'sla_first_response_hours' => $_POST['sla_first_response_hours'] ?? 72,
+
+                'sla_hours_critico' => $_POST['sla_hours_critico'] ?? 24,
+
+                'sla_hours_alto' => $_POST['sla_hours_alto'] ?? 48,
+
+                'sla_hours_medio' => $_POST['sla_hours_medio'] ?? 72,
+
+                'sla_hours_baixo' => $_POST['sla_hours_baixo'] ?? 120,
+
+                'notify_committee_on_reply' => $_POST['notify_committee_on_reply'] ?? '',
+
+                'notify_committee_on_status_change' => $_POST['notify_committee_on_status_change'] ?? '',
+
+                'notify_committee_on_sla_breach' => $_POST['notify_committee_on_sla_breach'] ?? '',
+
+                'notify_reporter_on_reply' => $_POST['notify_reporter_on_reply'] ?? '',
+
+                'captcha_enabled' => $_POST['captcha_enabled'] ?? '',
+
+                'captcha_provider' => $_POST['captcha_provider'] ?? 'hcaptcha',
+
+                'captcha_site_key' => $_POST['captcha_site_key'] ?? '',
+
+                'captcha_secret_key' => $_POST['captcha_secret_key'] ?? '',
 
             ]);
 

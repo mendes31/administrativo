@@ -108,6 +108,58 @@ class WhistleblowingMessagesRepository extends DbConnection
     }
 
     /**
+     * Anexos visíveis ao denunciante (próprios + comitê em mensagens públicas).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getPublicAttachmentsByReportId(int $reportId): array
+    {
+        $sql = "SELECT a.*
+                FROM adms_whistleblowing_attachments a
+                LEFT JOIN adms_whistleblowing_messages m ON m.id = a.message_id
+                WHERE a.report_id = :report_id
+                  AND (
+                    a.uploaded_by = 'denunciante'
+                    OR (a.uploaded_by = 'comite' AND (m.is_internal_note = 0 OR m.id IS NULL))
+                  )
+                ORDER BY a.created_at ASC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':report_id', $reportId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        foreach ($rows as &$row) {
+            try {
+                $row['original_name'] = $this->encryption->decrypt((string) ($row['original_name_encrypted'] ?? ''));
+            } catch (\Throwable) {
+                $row['original_name'] = WhistleblowingAttachmentFilenameHelper::resolve($row);
+            }
+            unset($row['original_name_encrypted']);
+        }
+        unset($row);
+
+        return $rows;
+    }
+
+    public function isAttachmentPubliclyVisible(int $attachmentId): bool
+    {
+        $sql = "SELECT a.id
+                FROM adms_whistleblowing_attachments a
+                LEFT JOIN adms_whistleblowing_messages m ON m.id = a.message_id
+                WHERE a.id = :id
+                  AND (
+                    a.uploaded_by = 'denunciante'
+                    OR (a.uploaded_by = 'comite' AND (m.is_internal_note = 0 OR m.id IS NULL))
+                  )
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $attachmentId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     public function getAttachmentsByReportId(int $reportId, bool $denuncianteOnly = false): array

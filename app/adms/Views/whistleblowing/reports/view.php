@@ -1,5 +1,6 @@
 <?php
 $report = $this->data['report'] ?? [];
+$sla = (new \App\adms\Models\Services\WhistleblowingSlaService())->progress($report);
 $statusBadges = [
     'Recebida' => 'secondary', 'Em triagem' => 'info', 'Em análise' => 'primary',
     'Comitê' => 'warning', 'Investigação' => 'warning', 'Providências' => 'info', 'Encerrada' => 'success',
@@ -37,6 +38,26 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                         <div class="col-md-3"><strong>Comitê:</strong> <?php echo htmlspecialchars((string)($report['committee_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="col-md-3"><strong>Responsável:</strong> <?php echo htmlspecialchars((string)($report['assigned_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="col-md-3"><strong>Registrada:</strong> <?php echo date('d/m/Y H:i', strtotime((string)($report['created_at'] ?? 'now'))); ?></div>
+                        <div class="col-md-6">
+                            <strong>SLA 1ª resposta:</strong>
+                            <?php if ($sla['available']): ?>
+                                <span title="<?php echo htmlspecialchars($sla['title'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php echo htmlspecialchars($sla['deadline'], ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                                <div class="progress position-relative mt-1" style="height: 15px; max-width: 260px;" role="progressbar"
+                                    aria-label="<?php echo htmlspecialchars($sla['label'], ENT_QUOTES, 'UTF-8'); ?>"
+                                    aria-valuenow="<?php echo (int)$sla['percent']; ?>" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar progress-bar-striped bg-<?php echo htmlspecialchars($sla['color'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        style="width: <?php echo (int)$sla['percent']; ?>%"></div>
+                                    <span class="position-absolute w-100 text-center fw-semibold"
+                                        style="font-size: .68rem; line-height: 15px; color: <?php echo $sla['percent'] >= 50 ? '#fff' : '#212529'; ?>;">
+                                        <?php echo (int)$sla['percent']; ?>% — <?php echo htmlspecialchars($sla['label'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <span class="text-muted">Não definido</span>
+                            <?php endif; ?>
+                        </div>
                         <div class="col-md-3">
                             <strong>Denunciante:</strong>
                             <?php if (!empty($report['is_reporter_identified'])): ?>
@@ -164,8 +185,42 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                             <label class="form-label small">Observação (linha do tempo)</label>
                             <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
                         </div>
+                        <div id="wb-closure-fields" class="mb-2 <?= ($report['status'] ?? '') === 'Encerrada' ? '' : 'd-none' ?>">
+                            <label class="form-label small">Resultado do encerramento <span class="text-danger">*</span></label>
+                            <select name="closure_outcome" class="form-select form-select-sm mb-2">
+                                <option value="">Selecione...</option>
+                                <?php foreach (($this->data['closure_outcomes'] ?? []) as $outcome): ?>
+                                    <option value="<?php echo htmlspecialchars($outcome, ENT_QUOTES, 'UTF-8'); ?>"
+                                        <?php echo (($report['closure_outcome'] ?? '') === $outcome) ? 'selected' : ''; ?>>
+                                        <?php echo htmlspecialchars($outcome, ENT_QUOTES, 'UTF-8'); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <label class="form-label small">Motivo do encerramento <span class="text-danger">*</span></label>
+                            <textarea name="closure_reason" class="form-control form-control-sm" rows="3" placeholder="Resumo da conclusão da apuração..."><?php echo htmlspecialchars((string)($report['closure_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                        </div>
+                        <?php if (!empty($report['closure_outcome'])): ?>
+                        <div class="alert alert-secondary py-2 small mb-2">
+                            <strong>Encerramento:</strong> <?php echo htmlspecialchars((string)$report['closure_outcome'], ENT_QUOTES, 'UTF-8'); ?>
+                            <?php if (!empty($report['closure_reason'])): ?>
+                                <div class="mt-1"><?php echo nl2br(htmlspecialchars((string)$report['closure_reason'], ENT_QUOTES, 'UTF-8')); ?></div>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                         <button type="submit" class="btn btn-warning btn-sm w-100">Atualizar</button>
                     </form>
+                    <script>
+                    (function () {
+                        var statusSelect = document.querySelector('select[name="status"]');
+                        var closureBox = document.getElementById('wb-closure-fields');
+                        function toggleClosure() {
+                            if (!statusSelect || !closureBox) return;
+                            closureBox.classList.toggle('d-none', statusSelect.value !== 'Encerrada');
+                        }
+                        statusSelect?.addEventListener('change', toggleClosure);
+                        toggleClosure();
+                    })();
+                    </script>
                 </div>
             </div>
             <?php endif; ?>

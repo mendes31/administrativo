@@ -44,6 +44,16 @@ $action = $isEdit
                 </div>
 
                 <?php if ($isEdit): ?>
+                <div class="mb-3">
+                    <label class="form-label">SLA 1ª resposta (horas)</label>
+                    <input type="number" name="sla_first_response_hours" class="form-control" min="1" max="720" step="1"
+                        value="<?= htmlspecialchars((string)($category['sla_first_response_hours'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                        placeholder="Vazio = usar risco/global">
+                    <div class="form-text">Opcional. Sobrescreve o SLA por risco e o padrão global.</div>
+                </div>
+                <?php endif; ?>
+
+                <?php if ($isEdit): ?>
                 <div class="mb-3 form-check">
                     <input type="checkbox" name="is_active" class="form-check-input" id="is_active"
                         <?= !empty($category['is_active']) ? 'checked' : '' ?>>

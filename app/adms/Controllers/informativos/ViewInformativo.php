@@ -60,6 +60,8 @@ class ViewInformativo
         // Marcar leitura para o usuário logado
         if ($userId) {
             $repo->upsertRead((int)$informativo['id'], (int)$userId);
+            // Invalida o cache do navbar para o contador refletir a leitura já nesta página
+            \App\adms\Helpers\NavbarLayoutCacheHelper::clear();
         }
 
         $loadView = new LoadViewService('adms/Views/informativos/view', $this->data);

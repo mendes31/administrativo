@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\policies;
 
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\PoliciesRepository;
 
 /**
@@ -72,6 +73,7 @@ class AcknowledgePolicy
 
             $ok = $repo->acknowledge($policyId, $userId);
             if ($ok) {
+                NavbarLayoutCacheHelper::clear();
                 echo json_encode([
                     'success'   => true,
                     'message'   => 'Ciência confirmada com sucesso',

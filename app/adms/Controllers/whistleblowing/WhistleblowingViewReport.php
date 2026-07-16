@@ -63,6 +63,7 @@ class WhistleblowingViewReport
         $this->data['access_log'] = (new WhistleblowingAccessLogRepository())->getByReportId($reportId);
         $this->data['statuses'] = WhistleblowingProtocolService::STATUSES;
         $this->data['risk_levels'] = WhistleblowingProtocolService::RISK_LEVELS;
+        $this->data['closure_outcomes'] = WhistleblowingProtocolService::CLOSURE_OUTCOMES;
         $this->data['csrf_reply'] = CSRFHelper::generateCSRFToken('whistleblowing_reply');
         $this->data['csrf_status'] = CSRFHelper::generateCSRFToken('whistleblowing_status');
 

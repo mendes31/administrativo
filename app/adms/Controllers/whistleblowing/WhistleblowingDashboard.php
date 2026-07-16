@@ -7,6 +7,7 @@ namespace App\adms\Controllers\whistleblowing;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 use App\adms\Models\Services\WhistleblowingPermissionService;
+use App\adms\Models\Services\WhistleblowingSlaService;
 use App\adms\Views\Services\LoadViewService;
 
 class WhistleblowingDashboard
@@ -18,6 +19,7 @@ class WhistleblowingDashboard
         $repo = new WhistleblowingReportsRepository();
         $scopeFilters = WhistleblowingPermissionService::applyReportScopeFilters([]);
         $this->data['stats'] = $repo->getDashboardStats($scopeFilters);
+        $this->data['sla_label'] = (new WhistleblowingSlaService())->defaultSlaLabel();
 
         $pageElements = [
             'title_head' => 'Dashboard — Canal de Denúncias',

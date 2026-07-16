@@ -28,6 +28,32 @@ $rateMax = (int) ($this->data['rate_limit_max_attempts'] ?? 5);
 
 $rateWindow = (int) ($this->data['rate_limit_window_minutes'] ?? 15);
 
+$slaDefault = (int) ($this->data['sla_first_response_hours'] ?? 72);
+
+$slaCritico = (int) ($this->data['sla_hours_critico'] ?? 24);
+
+$slaAlto = (int) ($this->data['sla_hours_alto'] ?? 48);
+
+$slaMedio = (int) ($this->data['sla_hours_medio'] ?? 72);
+
+$slaBaixo = (int) ($this->data['sla_hours_baixo'] ?? 120);
+
+$notifyReply = !empty($this->data['notify_committee_on_reply']);
+
+$notifyStatus = !empty($this->data['notify_committee_on_status_change']);
+
+$notifySla = !empty($this->data['notify_committee_on_sla_breach']);
+
+$notifyReporter = !empty($this->data['notify_reporter_on_reply']);
+
+$captchaEnabled = !empty($this->data['captcha_enabled']);
+
+$captchaProvider = (string) ($this->data['captcha_provider'] ?? 'hcaptcha');
+
+$captchaSiteKey = (string) ($this->data['captcha_site_key'] ?? '');
+
+$captchaSecretKey = (string) ($this->data['captcha_secret_key'] ?? '');
+
 $cronLine = (string) ($this->data['cron_line'] ?? '');
 
 $publicUrl = (string) ($this->data['public_channel_url'] ?? '');
@@ -224,6 +250,81 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                     <input type="number" name="rate_limit_window_minutes" class="form-control form-control-sm" min="5" max="120" value="<?= $rateWindow ?>">
 
+                </div>
+
+                <div class="col-12"><hr class="my-1"><h6 class="small fw-semibold mb-0">SLA — primeira resposta (horas)</h6></div>
+
+                <div class="col-md-2">
+                    <label class="form-label small">Padrão global</label>
+                    <input type="number" name="sla_first_response_hours" class="form-control form-control-sm" min="1" max="720" value="<?= $slaDefault ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Crítico</label>
+                    <input type="number" name="sla_hours_critico" class="form-control form-control-sm" min="1" max="720" value="<?= $slaCritico ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Alto</label>
+                    <input type="number" name="sla_hours_alto" class="form-control form-control-sm" min="1" max="720" value="<?= $slaAlto ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Médio</label>
+                    <input type="number" name="sla_hours_medio" class="form-control form-control-sm" min="1" max="720" value="<?= $slaMedio ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Baixo</label>
+                    <input type="number" name="sla_hours_baixo" class="form-control form-control-sm" min="1" max="720" value="<?= $slaBaixo ?>">
+                </div>
+                <div class="col-md-4 d-flex align-items-end">
+                    <p class="small text-muted mb-2">Prioridade: SLA da classificação (se definido) → risco → padrão global.</p>
+                </div>
+
+                <div class="col-12"><hr class="my-1"><h6 class="small fw-semibold mb-0">Notificações</h6></div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input type="checkbox" name="notify_committee_on_reply" value="1" class="form-check-input" id="notify_reply" <?= $notifyReply ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="notify_reply">Comitê — resposta do denunciante</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input type="checkbox" name="notify_committee_on_status_change" value="1" class="form-check-input" id="notify_status" <?= $notifyStatus ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="notify_status">Comitê — mudança de status</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input type="checkbox" name="notify_committee_on_sla_breach" value="1" class="form-check-input" id="notify_sla" <?= $notifySla ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="notify_sla">Comitê — SLA estourado</label>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-check">
+                        <input type="checkbox" name="notify_reporter_on_reply" value="1" class="form-check-input" id="notify_reporter" <?= $notifyReporter ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="notify_reporter">Denunciante — nova resposta (e-mail voluntário)</label>
+                    </div>
+                </div>
+
+                <div class="col-12"><hr class="my-1"><h6 class="small fw-semibold mb-0">CAPTCHA no canal público</h6></div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="form-check mb-2">
+                        <input type="checkbox" name="captcha_enabled" value="1" class="form-check-input" id="captcha_enabled" <?= $captchaEnabled ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="captcha_enabled">Ativar</label>
+                    </div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small">Provedor</label>
+                    <select name="captcha_provider" class="form-select form-select-sm">
+                        <option value="hcaptcha" <?= $captchaProvider === 'hcaptcha' ? 'selected' : '' ?>>hCaptcha</option>
+                        <option value="recaptcha" <?= $captchaProvider === 'recaptcha' ? 'selected' : '' ?>>reCAPTCHA</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Site key</label>
+                    <input type="text" name="captcha_site_key" class="form-control form-control-sm" value="<?= htmlspecialchars($captchaSiteKey, ENT_QUOTES, 'UTF-8') ?>" autocomplete="off">
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small">Secret key</label>
+                    <input type="password" name="captcha_secret_key" class="form-control form-control-sm" value="<?= htmlspecialchars($captchaSecretKey, ENT_QUOTES, 'UTF-8') ?>" autocomplete="new-password">
                 </div>
 
                 <div class="col-12">
