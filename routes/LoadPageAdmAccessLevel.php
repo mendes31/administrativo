@@ -287,13 +287,8 @@ class LoadPageAdmAccessLevel
             ]);
 
             // Guardar URL de retorno para, após o login, voltar para a página que o usuário estava
-            if (!empty($requestUri)
-                && !str_contains($requestUri, 'login')
-                && (!isset($_SESSION['return_url']) || empty($_SESSION['return_url'])))
-            {
-                // Montar URL absoluta baseado em URL_ADM
-                $base = rtrim($_ENV['URL_ADM'] ?? '', '/');
-                $_SESSION['return_url'] = $base . $requestUri;
+            if (empty($_SESSION['return_url'])) {
+                \App\adms\Helpers\ReturnUrlHelper::storeFromCurrentRequest();
             }
 
             $_SESSION['error'] = "Sua sessão expirou ou você não está logado. Faça login novamente.";

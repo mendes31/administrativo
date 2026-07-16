@@ -6,7 +6,9 @@ namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\SstEquipamentoQrHelper;
 use App\adms\Models\Services\DbConnection;
+use App\adms\Models\Services\SstEquipamentoCodigoService;
 use PDO;
+use Throwable;
 
 class SstEquipamentosRepository extends DbConnection
 {
@@ -15,7 +17,9 @@ class SstEquipamentosRepository extends DbConnection
         $page = max(1, $page);
         $offset = ($page - 1) * $perPage;
         [$where, $params] = $this->buildWhere($filters);
-        $sql = "SELECT e.*, t.nome AS tipo_nome, d.name AS departamento_nome, u.name AS responsavel_nome,
+        $sql = "SELECT e.*, t.nome AS tipo_nome,
+                       t.controla_recarga, t.validade_recarga_meses,
+                       d.name AS departamento_nome, u.name AS responsavel_nome,
                        (SELECT COUNT(*) FROM adms_sst_equipamento_vistorias v
                         WHERE v.adms_sst_equipamento_id = e.id AND v.status IN ('Pendente','Em andamento','Vencida')) AS vistorias_pendentes
                 FROM adms_sst_equipamentos e
@@ -54,6 +58,7 @@ class SstEquipamentosRepository extends DbConnection
     public function getById(int $id): ?array
     {
         $sql = "SELECT e.*, t.nome AS tipo_nome, t.codigo AS tipo_codigo,
+                       t.controla_recarga, t.validade_recarga_meses, t.prefixo AS tipo_prefixo,
                        d.name AS departamento_nome, u.name AS responsavel_nome
                 FROM adms_sst_equipamentos e
                 INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
@@ -84,31 +89,59 @@ class SstEquipamentosRepository extends DbConnection
     public function create(array $data): int|false
     {
         $uid = (int) ($_SESSION['user_id'] ?? 1);
-        $sql = 'INSERT INTO adms_sst_equipamentos (
-                    codigo, patrimonio, adms_sst_equipamento_tipo_id, adms_department_id, localizacao,
-                    fabricante, modelo, numero_serie, capacidade, data_fabricacao, data_recarga, data_proxima_recarga,
-                    caracteristicas, periodicidade_meses, data_referencia_inspecao, dia_previsto_vistoria,
-                    vistoria_automatica, responsavel_adms_user_id,
-                    status, observacoes, created_by, updated_by, created_at, updated_at
-                ) VALUES (
-                    :codigo, :patrimonio, :tipo_id, :dept_id, :localizacao,
-                    :fabricante, :modelo, :numero_serie, :capacidade, :data_fabricacao, :data_recarga, :data_proxima_recarga,
-                    :caracteristicas, :periodicidade_meses, :data_referencia_inspecao, :dia_previsto_vistoria,
-                    :vistoria_automatica, :responsavel_id,
-                    :status, :observacoes, :uid, :uid, NOW(), NOW()
-                )';
-        $stmt = $this->getConnection()->prepare($sql);
-        $this->bindEquipamento($stmt, $data, $uid);
-        if (!$stmt->execute()) {
+        $tipoId = (int) ($data['adms_sst_equipamento_tipo_id'] ?? 0);
+        if ($tipoId <= 0) {
             return false;
         }
 
-        $newId = (int) $this->getConnection()->lastInsertId();
-        if ($newId > 0) {
-            $this->ensureQrToken($newId);
+        $pdo = $this->getConnection();
+        $ownsTransaction = !$pdo->inTransaction();
+        if ($ownsTransaction) {
+            $pdo->beginTransaction();
         }
 
-        return $newId;
+        try {
+            $data['codigo'] = (new SstEquipamentoCodigoService())->allocateNextCodigo($tipoId, $pdo);
+
+            $sql = 'INSERT INTO adms_sst_equipamentos (
+                        codigo, patrimonio, adms_sst_equipamento_tipo_id, adms_department_id, localizacao,
+                        fabricante, modelo, numero_serie, capacidade, data_fabricacao, data_recarga, data_proxima_recarga,
+                        caracteristicas, periodicidade_meses, data_referencia_inspecao, dia_previsto_vistoria,
+                        vistoria_automatica, responsavel_adms_user_id,
+                        status, observacoes, created_by, updated_by, created_at, updated_at
+                    ) VALUES (
+                        :codigo, :patrimonio, :tipo_id, :dept_id, :localizacao,
+                        :fabricante, :modelo, :numero_serie, :capacidade, :data_fabricacao, :data_recarga, :data_proxima_recarga,
+                        :caracteristicas, :periodicidade_meses, :data_referencia_inspecao, :dia_previsto_vistoria,
+                        :vistoria_automatica, :responsavel_id,
+                        :status, :observacoes, :uid, :uid, NOW(), NOW()
+                    )';
+            $stmt = $pdo->prepare($sql);
+            $this->bindEquipamento($stmt, $data, $uid);
+            if (!$stmt->execute()) {
+                if ($ownsTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                return false;
+            }
+
+            $newId = (int) $pdo->lastInsertId();
+            if ($ownsTransaction) {
+                $pdo->commit();
+            }
+            if ($newId > 0) {
+                $this->ensureQrToken($newId);
+            }
+
+            return $newId;
+        } catch (Throwable $e) {
+            if ($ownsTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+
+            return false;
+        }
     }
 
     public function getByQrToken(string $token): ?array
@@ -119,6 +152,7 @@ class SstEquipamentosRepository extends DbConnection
         }
 
         $sql = "SELECT e.*, t.nome AS tipo_nome, t.codigo AS tipo_codigo,
+                       t.controla_recarga, t.validade_recarga_meses, t.prefixo AS tipo_prefixo,
                        d.name AS departamento_nome, u.name AS responsavel_nome
                 FROM adms_sst_equipamentos e
                 INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
@@ -160,6 +194,13 @@ class SstEquipamentosRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $uid = (int) ($_SESSION['user_id'] ?? 1);
+        $existing = $this->getById($id);
+        if (!$existing) {
+            return false;
+        }
+        // Código é imutável após o cadastro (gerado automaticamente).
+        $data['codigo'] = (string) ($existing['codigo'] ?? '');
+
         $sql = 'UPDATE adms_sst_equipamentos SET
                     codigo = :codigo, patrimonio = :patrimonio, adms_sst_equipamento_tipo_id = :tipo_id,
                     adms_department_id = :dept_id, localizacao = :localizacao,
@@ -256,6 +297,13 @@ class SstEquipamentosRepository extends DbConnection
         if (!empty($filters['adms_department_id'])) {
             $where[] = 'e.adms_department_id = :dept_id';
             $params[':dept_id'] = (int) $filters['adms_department_id'];
+        }
+        if (!empty($filters['recarga_alerta'])) {
+            $where[] = "t.controla_recarga = 1 AND (
+                e.data_proxima_recarga IS NULL
+                OR e.data_proxima_recarga < CURDATE()
+                OR e.data_proxima_recarga <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)
+            )";
         }
 
         return [' WHERE ' . implode(' AND ', $where), $params];

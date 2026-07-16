@@ -1,6 +1,7 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
+use App\adms\Helpers\SstEquipamentoRecargaHelper;
 
 $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $context = $this->data['scan_context'] ?? [];
@@ -8,6 +9,8 @@ $equipamento = $context['equipamento'] ?? [];
 $vistoria = $context['vistoria'] ?? null;
 $code = (string) ($context['code'] ?? '');
 $message = (string) ($context['message'] ?? '');
+$recargaStatus = $context['recarga_status'] ?? null;
+$pendencias = is_array($context['pendencias'] ?? null) ? $context['pendencias'] : [];
 $perms = $this->data['buttonPermission'] ?? [];
 $eqId = (int) ($equipamento['id'] ?? 0);
 $vistoriaId = is_array($vistoria) ? (int) ($vistoria['id'] ?? 0) : 0;
@@ -16,6 +19,11 @@ $vistoriaAberta = $vistoriaId > 0 && $vistoriaStatus !== '' && $vistoriaStatus !
 $vistoriaConcluida = $vistoriaId > 0 && $vistoriaStatus === 'Concluída';
 $podeExecutar = in_array('SstExecuteEquipamentoVistoria', $perms, true)
     && !in_array($code, ['inactive', 'forbidden'], true);
+$controlaRecarga = (int) ($equipamento['controla_recarga'] ?? 0) === 1;
+$podeRecarga = $controlaRecarga
+    && in_array('SstRegisterEquipamentoRecarga', $perms, true)
+    && in_array('SstViewEquipamento', $perms, true)
+    && $eqId > 0;
 $csrfGerar = CSRFHelper::generateCSRFToken('sst_generate_equipamento_vistoria');
 $competenciaAtual = date('Y-m');
 
@@ -26,10 +34,24 @@ $alertType = match ($code) {
     'inactive', 'forbidden' => 'warning',
     default => 'secondary',
 };
+
+$vistoriaBadgeClass = match (true) {
+    $vistoriaStatus === 'Vencida' => 'bg-danger',
+    $vistoriaAberta => 'bg-primary',
+    $vistoriaConcluida => 'bg-success',
+    default => 'bg-secondary',
+};
+$vistoriaBadgeLabel = match (true) {
+    $vistoriaAberta => $vistoriaStatus !== '' ? $vistoriaStatus : 'Pendente',
+    $vistoriaConcluida => 'Concluída',
+    $code === 'no_open' => 'Sem vistoria aberta',
+    default => '—',
+};
+$tudoOk = $pendencias === [] && !in_array($code, ['inactive', 'forbidden'], true);
 ?>
 <div class="container-fluid px-3 px-md-4">
     <div class="mb-1 d-flex flex-column flex-md-row gap-2 align-items-md-center">
-        <h2 class="mt-3 mb-0"><i class="fas fa-qrcode me-2"></i>Equipamento identificado</h2>
+        <h2 class="mt-3 mb-0"><i class="fas fa-qrcode me-2"></i>Painel do equipamento</h2>
         <ol class="breadcrumb mb-3 mt-2 mt-md-3 ms-md-auto small mb-md-3">
             <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm) ?>sst-scan-equipamento">Ler QR</a></li>
             <li class="breadcrumb-item active"><?= htmlspecialchars($equipamento['codigo'] ?? 'Equipamento') ?></li>
@@ -41,19 +63,61 @@ $alertType = match ($code) {
     <div class="alert alert-<?= $alertType ?> py-2 small"><?= htmlspecialchars($message) ?></div>
     <?php endif; ?>
 
+    <?php if ($tudoOk): ?>
+    <div class="alert alert-success py-2 small d-flex align-items-center gap-2">
+        <i class="fas fa-check-circle"></i>
+        <span>Situação em dia: sem pendências de vistoria<?= $controlaRecarga ? ' ou recarga' : '' ?>.</span>
+    </div>
+    <?php elseif ($pendencias !== []): ?>
+    <div class="alert alert-warning py-2 small">
+        <div class="fw-semibold mb-1"><i class="fas fa-exclamation-triangle me-1"></i>Pendências</div>
+        <ul class="mb-0 ps-3">
+            <?php foreach ($pendencias as $p): ?>
+            <li><?= htmlspecialchars((string) $p) ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </div>
+    <?php endif; ?>
+
     <div class="row g-3">
         <div class="col-12 col-lg-7">
             <div class="card border-0 shadow-sm h-100">
-                <div class="card-header bg-white">
-                    <i class="fas fa-fire-extinguisher me-1"></i>
-                    <?= htmlspecialchars($equipamento['codigo'] ?? 'Equipamento') ?>
-                    <span class="badge bg-secondary ms-1"><?= htmlspecialchars($equipamento['status'] ?? '') ?></span>
+                <div class="card-header bg-white d-flex flex-wrap align-items-center gap-2">
+                    <span>
+                        <i class="fas fa-fire-extinguisher me-1"></i>
+                        <span class="fw-semibold"><?= htmlspecialchars($equipamento['codigo'] ?? 'Equipamento') ?></span>
+                    </span>
+                    <span class="badge bg-secondary"><?= htmlspecialchars($equipamento['status'] ?? '') ?></span>
+                    <span class="badge <?= $vistoriaBadgeClass ?>" title="Status da vistoria"><?= htmlspecialchars($vistoriaBadgeLabel) ?></span>
+                    <?php if ($recargaStatus !== null): ?>
+                    <span class="badge <?= SstEquipamentoRecargaHelper::statusBadgeClass($recargaStatus) ?>">
+                        <?= htmlspecialchars(SstEquipamentoRecargaHelper::statusLabel($recargaStatus)) ?>
+                    </span>
+                    <?php endif; ?>
                 </div>
                 <div class="card-body">
                     <div class="row g-3 small">
                         <div class="col-6 col-md-4">
+                            <div class="text-muted">Nº de série</div>
+                            <div class="fw-semibold fs-6"><?= htmlspecialchars(($equipamento['numero_serie'] ?? '') !== '' ? (string) $equipamento['numero_serie'] : '—') ?></div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-muted">Patrimônio</div>
+                            <div class="fw-semibold"><?= htmlspecialchars(($equipamento['patrimonio'] ?? '') !== '' ? (string) $equipamento['patrimonio'] : '—') ?></div>
+                        </div>
+                        <div class="col-6 col-md-4">
                             <div class="text-muted">Tipo</div>
                             <div class="fw-semibold"><?= htmlspecialchars($equipamento['tipo_nome'] ?? '—') ?></div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-muted">Fabricante / Modelo</div>
+                            <div class="fw-semibold">
+                                <?php
+                                $fab = trim((string) ($equipamento['fabricante'] ?? ''));
+                                $mod = trim((string) ($equipamento['modelo'] ?? ''));
+                                echo htmlspecialchars(($fab !== '' || $mod !== '') ? trim($fab . ($fab && $mod ? ' / ' : '') . $mod) : '—');
+                                ?>
+                            </div>
                         </div>
                         <div class="col-6 col-md-4">
                             <div class="text-muted">Localização</div>
@@ -87,20 +151,42 @@ $alertType = match ($code) {
                             <div class="fw-semibold"><?= htmlspecialchars($equipamento['capacidade']) ?></div>
                         </div>
                         <?php endif; ?>
-                        <?php if (!empty($equipamento['data_proxima_recarga'])): ?>
+                        <?php if ($controlaRecarga): ?>
+                        <div class="col-6 col-md-4">
+                            <div class="text-muted">Última recarga</div>
+                            <div class="fw-semibold">
+                                <?= !empty($equipamento['data_recarga'])
+                                    ? date('d/m/Y', strtotime((string) $equipamento['data_recarga']))
+                                    : '—' ?>
+                            </div>
+                        </div>
                         <div class="col-6 col-md-4">
                             <div class="text-muted">Próx. recarga</div>
-                            <div class="fw-semibold"><?= date('d/m/Y', strtotime((string) $equipamento['data_proxima_recarga'])) ?></div>
+                            <div class="fw-semibold">
+                                <?= !empty($equipamento['data_proxima_recarga'])
+                                    ? date('d/m/Y', strtotime((string) $equipamento['data_proxima_recarga']))
+                                    : '—' ?>
+                                <?php if ($recargaStatus !== null): ?>
+                                <span class="badge <?= SstEquipamentoRecargaHelper::statusBadgeClass($recargaStatus) ?> ms-1">
+                                    <?= htmlspecialchars(SstEquipamentoRecargaHelper::statusLabel($recargaStatus)) ?>
+                                </span>
+                                <?php endif; ?>
+                            </div>
                         </div>
                         <?php endif; ?>
                     </div>
-                    <?php if (in_array('SstViewEquipamento', $perms, true) && $eqId > 0): ?>
-                    <div class="mt-3">
+                    <div class="mt-3 d-flex flex-wrap gap-2">
+                        <?php if (in_array('SstViewEquipamento', $perms, true) && $eqId > 0): ?>
                         <a href="<?= htmlspecialchars($urlAdm) ?>sst-view-equipamento/<?= $eqId ?>" class="btn btn-outline-secondary btn-sm">
                             <i class="fas fa-external-link-alt me-1"></i>Ver ficha completa
                         </a>
+                        <?php endif; ?>
+                        <?php if ($podeRecarga): ?>
+                        <a href="<?= htmlspecialchars($urlAdm) ?>sst-view-equipamento/<?= $eqId ?>#recarga" class="btn btn-outline-warning btn-sm">
+                            <i class="fas fa-sync-alt me-1"></i>Registrar recarga
+                        </a>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
                 </div>
             </div>
         </div>
@@ -128,6 +214,16 @@ $alertType = match ($code) {
                             <i class="fas fa-play me-1"></i>
                             <?= ($vistoria['status'] ?? '') === 'Em andamento' ? 'Continuar vistoria' : 'Iniciar vistoria' ?>
                         </a>
+                    <?php elseif ($vistoriaAberta && !$podeExecutar): ?>
+                        <p class="small text-muted mb-3">Há vistoria aberta, mas você não pode executá-la neste perfil.</p>
+                        <dl class="row small mb-0">
+                            <dt class="col-5">Competência</dt>
+                            <dd class="col-7"><?= htmlspecialchars($vistoria['competencia'] ?? '—') ?></dd>
+                            <dt class="col-5">Status</dt>
+                            <dd class="col-7">
+                                <span class="badge <?= $vistoriaBadgeClass ?>"><?= htmlspecialchars($vistoriaStatus) ?></span>
+                            </dd>
+                        </dl>
                     <?php elseif ($vistoriaConcluida): ?>
                         <p class="small text-muted mb-3">Vistoria já concluída nesta competência.</p>
                         <dl class="row small mb-3">

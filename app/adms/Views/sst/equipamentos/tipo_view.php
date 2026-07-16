@@ -25,7 +25,15 @@ $id = (int)($item['id'] ?? 0);
         </div>
         <div class="card-body row">
             <div class="col-md-3"><strong>Código:</strong> <code><?= htmlspecialchars($item['codigo'] ?? '') ?></code></div>
+            <div class="col-md-3"><strong>Prefixo:</strong> <code><?= htmlspecialchars($item['prefixo'] ?? '—') ?></code>
+                <span class="text-muted small">(ex.: <?= htmlspecialchars(($item['prefixo'] ?? 'XXX') . '00001') ?>)</span>
+            </div>
             <div class="col-md-3"><strong>Status:</strong> <?= htmlspecialchars($item['status'] ?? '') ?></div>
+            <div class="col-md-3"><strong>Controla recarga:</strong> <?= !empty($item['controla_recarga']) ? 'Sim' : 'Não' ?>
+                <?php if (!empty($item['controla_recarga'])): ?>
+                <span class="text-muted small">(<?= (int)($item['validade_recarga_meses'] ?? 12) ?> meses)</span>
+                <?php endif; ?>
+            </div>
             <?php if (!empty($item['descricao'])): ?><div class="col-12 mt-2"><?= nl2br(htmlspecialchars($item['descricao'])) ?></div><?php endif; ?>
         </div>
     </div>

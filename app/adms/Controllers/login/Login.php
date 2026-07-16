@@ -6,6 +6,7 @@ use App\adms\Controllers\Services\Validation\ValidationLoginService;
 use App\adms\Controllers\Services\ValidationUserLogin;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\LogSettingsHelper;
+use App\adms\Helpers\ReturnUrlHelper;
 use App\adms\Models\Repository\LogsRepository;
 use App\adms\Models\Repository\LogAcessosRepository;
 use App\adms\Controllers\Services\RequestHelper;
@@ -42,7 +43,8 @@ class Login
             $sessionData = $sessionRepo->getSessionByUserIdAndSessionId((int)$_SESSION['user_id'], session_id());
             
             if ($sessionData && isset($sessionData['status']) && $sessionData['status'] === 'ativa') {
-                header("Location: {$_ENV['URL_ADM']}dashboard");
+                $redirect = ReturnUrlHelper::consume() ?? ReturnUrlHelper::dashboardFallback();
+                header('Location: ' . $redirect);
                 exit;
             }
             
@@ -72,9 +74,10 @@ class Login
         // Verificar se já foi processado (proteção contra duplo submit)
         if (isset($_SESSION['login_processed']) && $_SESSION['login_processed'] === true) {
             LogSettingsHelper::writeDebugLog('login_debug.log', '[index] DUPLO SUBMIT DETECTADO - REDIRECIONANDO');
-            // Limpar flag e redirecionar para dashboard
+            // Limpar flag e redirecionar (respeitando return_url, ex.: QR)
             unset($_SESSION['login_processed']);
-            header("Location: {$_ENV['URL_ADM']}dashboard");
+            $redirect = ReturnUrlHelper::consume() ?? ReturnUrlHelper::dashboardFallback();
+            header('Location: ' . $redirect);
             exit;
         }
         
@@ -123,6 +126,7 @@ class Login
         LogSettingsHelper::writeDebugLog('login_debug.log', 'Após validação: ' . json_encode($this->data['errors']));
         if (!empty($this->data['errors'])) {
             LogSettingsHelper::writeDebugLog('login_debug.log', 'Erro de validação');
+            unset($_SESSION['login_processed']);
             $this->viewLogin();
             return;
         }
@@ -264,6 +268,7 @@ class Login
             exit;
         } else {
             LogSettingsHelper::writeDebugLog('login_debug.log', 'Falha no login');
+            unset($_SESSION['login_processed']);
             $this->viewLogin();
             return;
         }
@@ -274,24 +279,7 @@ class Login
      */
     private function getRedirectUrlAfterLogin(): string
     {
-        // Verificar se há uma URL de retorno na sessão
-        if (isset($_SESSION['return_url']) && !empty($_SESSION['return_url'])) {
-            $returnUrl = $_SESSION['return_url'];
-            unset($_SESSION['return_url']); // Limpar após uso
-            return $returnUrl;
-        }
-        
-        // Verificar se há uma URL de retorno no POST
-        if (isset($_POST['return_url']) && !empty($_POST['return_url'])) {
-            return $_POST['return_url'];
-        }
-        
-        // Verificar se há uma URL específica da aba no localStorage (via JavaScript)
-        // Esta verificação será feita no frontend após o login
-        // Por enquanto, vamos para o dashboard padrão
-        
-        // Padrão: ir para dashboard
-        return $_ENV['URL_ADM'] . 'dashboard';
+        return ReturnUrlHelper::consume() ?? ReturnUrlHelper::dashboardFallback();
     }
 
 }

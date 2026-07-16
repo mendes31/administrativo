@@ -1,14 +1,25 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
+use App\adms\Helpers\SstEquipamentoRecargaHelper;
 $item = $this->data['item'] ?? [];
 $historico = $this->data['historico'] ?? [];
+$historicoRecargas = $this->data['historico_recargas'] ?? [];
 $perms = $this->data['buttonPermission'] ?? [];
-$csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
 $csrfGerarVistoria = CSRFHelper::generateCSRFToken('sst_generate_equipamento_vistoria');
+$csrfRecarga = CSRFHelper::generateCSRFToken('sst_equipamento_recarga_form');
 $competenciaAtual = date('Y-m');
 $id = (int)($item['id'] ?? 0);
 $qrScanUrl = (string)($this->data['qr_scan_url'] ?? '');
+$controlaRecarga = !empty($item['controla_recarga']);
+$recargaStatus = SstEquipamentoRecargaHelper::status(
+    $item['data_proxima_recarga'] ?? null,
+    $controlaRecarga
+);
+$validadeMeses = (int)($item['validade_recarga_meses'] ?? 12);
+if ($validadeMeses <= 0) {
+    $validadeMeses = 12;
+}
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -42,7 +53,23 @@ $qrScanUrl = (string)($this->data['qr_scan_url'] ?? '');
                 <div class="col-md-3"><strong>Vistoria automática:</strong><br><?= !empty($item['vistoria_automatica']) ? 'Sim' : 'Não' ?></div>
                 <div class="col-md-3 mt-2"><strong>Status:</strong> <?= htmlspecialchars($item['status'] ?? '') ?></div>
                 <?php if (!empty($item['capacidade'])): ?><div class="col-md-3 mt-2"><strong>Capacidade:</strong> <?= htmlspecialchars($item['capacidade']) ?></div><?php endif; ?>
-                <?php if (!empty($item['data_proxima_recarga'])): ?><div class="col-md-3 mt-2"><strong>Próx. recarga:</strong> <?= date('d/m/Y', strtotime($item['data_proxima_recarga'])) ?></div><?php endif; ?>
+                <?php if ($controlaRecarga): ?>
+                <div class="col-md-3 mt-2">
+                    <strong>Última recarga:</strong><br>
+                    <?= !empty($item['data_recarga']) ? date('d/m/Y', strtotime($item['data_recarga'])) : '—' ?>
+                </div>
+                <div class="col-md-3 mt-2">
+                    <strong>Próx. recarga:</strong><br>
+                    <?php if (!empty($item['data_proxima_recarga'])): ?>
+                        <?= date('d/m/Y', strtotime($item['data_proxima_recarga'])) ?>
+                        <span class="badge <?= SstEquipamentoRecargaHelper::statusBadgeClass($recargaStatus) ?>">
+                            <?= htmlspecialchars(SstEquipamentoRecargaHelper::statusLabel($recargaStatus)) ?>
+                        </span>
+                    <?php else: ?>
+                        <span class="badge bg-secondary">Sem data</span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -86,6 +113,76 @@ $qrScanUrl = (string)($this->data['qr_scan_url'] ?? '');
     })();
     </script>
     <?php endif; ?>
+
+    <?php if ($controlaRecarga): ?>
+    <div class="card mb-3 shadow-sm" id="recarga">
+        <div class="card-header">
+            <span><i class="fas fa-flask me-1"></i>Recargas / validade de carga</span>
+        </div>
+        <div class="card-body">
+            <?php if (in_array('SstRegisterEquipamentoRecarga', $perms, true)): ?>
+            <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-register-equipamento-recarga" class="row g-2 align-items-end border-bottom pb-3 mb-3">
+                <input type="hidden" name="csrf_token" value="<?= $csrfRecarga ?>">
+                <input type="hidden" name="adms_sst_equipamento_id" value="<?= $id ?>">
+                <div class="col-md-2">
+                    <label class="form-label small" for="tipo_evento">Tipo</label>
+                    <select name="tipo_evento" id="tipo_evento" class="form-select form-select-sm">
+                        <?php foreach (SstEquipamentoRecargaHelper::tiposEvento() as $te): ?>
+                        <option value="<?= htmlspecialchars($te) ?>" <?= $te === 'Recarga' ? 'selected' : '' ?>><?= htmlspecialchars($te) ?></option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="data_recarga_reg">Data *</label>
+                    <input type="date" name="data_recarga" id="data_recarga_reg" class="form-control form-control-sm" required value="<?= date('Y-m-d') ?>">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="data_proxima_recarga_reg">Próxima</label>
+                    <input type="date" name="data_proxima_recarga" id="data_proxima_recarga_reg" class="form-control form-control-sm">
+                    <div class="form-text">Vazio = +<?= $validadeMeses ?> meses</div>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="empresa_recarga">Empresa</label>
+                    <input type="text" name="empresa" id="empresa_recarga" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label small" for="numero_documento_recarga">NF / doc.</label>
+                    <input type="text" name="numero_documento" id="numero_documento_recarga" class="form-control form-control-sm">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-success btn-sm w-100"><i class="fas fa-save me-1"></i>Registrar</button>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small" for="observacao_recarga">Observação</label>
+                    <input type="text" name="observacao" id="observacao_recarga" class="form-control form-control-sm">
+                </div>
+            </form>
+            <?php endif; ?>
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered mb-0">
+                    <thead><tr><th>Data</th><th>Tipo</th><th>Próxima</th><th>Empresa</th><th>Documento</th><th>Obs.</th><th>Registrado por</th></tr></thead>
+                    <tbody>
+                    <?php foreach ($historicoRecargas as $hr): ?>
+                        <tr>
+                            <td><?= !empty($hr['data_recarga']) ? date('d/m/Y', strtotime($hr['data_recarga'])) : '—' ?></td>
+                            <td><?= htmlspecialchars($hr['tipo_evento'] ?? 'Recarga') ?></td>
+                            <td><?= !empty($hr['data_proxima_recarga']) ? date('d/m/Y', strtotime($hr['data_proxima_recarga'])) : '—' ?></td>
+                            <td><?= htmlspecialchars($hr['empresa'] ?? '—') ?></td>
+                            <td><?= htmlspecialchars($hr['numero_documento'] ?? '—') ?></td>
+                            <td><?= htmlspecialchars($hr['observacao'] ?? '—') ?></td>
+                            <td><?= htmlspecialchars($hr['created_by_nome'] ?? '—') ?></td>
+                        </tr>
+                    <?php endforeach; ?>
+                    <?php if ($historicoRecargas === []): ?>
+                        <tr><td colspan="7" class="text-center text-muted py-3">Nenhuma recarga registrada.</td></tr>
+                    <?php endif; ?>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
+
     <div class="card shadow-sm">
         <div class="card-header hstack gap-2 flex-wrap">
             <span>Histórico de vistorias</span>

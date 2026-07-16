@@ -50,7 +50,8 @@ class SstEquipamentoTiposRepository extends DbConnection
     /** @return list<array<string, mixed>> */
     public function getAllActiveForSelect(): array
     {
-        $sql = "SELECT id, nome, codigo FROM adms_sst_equipamento_tipos WHERE status = 'Ativo' ORDER BY nome";
+        $sql = "SELECT id, nome, codigo, prefixo, controla_recarga, validade_recarga_meses
+                FROM adms_sst_equipamento_tipos WHERE status = 'Ativo' ORDER BY nome";
         $stmt = $this->getConnection()->query($sql);
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
@@ -69,12 +70,18 @@ class SstEquipamentoTiposRepository extends DbConnection
     public function create(array $data): int|false
     {
         $sql = 'INSERT INTO adms_sst_equipamento_tipos
-                (nome, codigo, descricao, status, created_by, updated_by, created_at, updated_at)
-                VALUES (:nome, :codigo, :descricao, :status, :uid, :uid, NOW(), NOW())';
+                (nome, codigo, prefixo, controla_recarga, validade_recarga_meses, descricao, status, created_by, updated_by, created_at, updated_at)
+                VALUES (:nome, :codigo, :prefixo, :controla_recarga, :validade_meses, :descricao, :status, :uid, :uid, NOW(), NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         $uid = (int) ($_SESSION['user_id'] ?? 1);
         $stmt->bindValue(':nome', $data['nome'] ?? '');
         $stmt->bindValue(':codigo', strtoupper(trim((string) ($data['codigo'] ?? ''))));
+        $stmt->bindValue(':prefixo', \App\adms\Helpers\SstEquipamentoCodigoHelper::normalizePrefixo((string) ($data['prefixo'] ?? '')));
+        $stmt->bindValue(':controla_recarga', !empty($data['controla_recarga']) ? 1 : 0, PDO::PARAM_INT);
+        $validade = isset($data['validade_recarga_meses']) && $data['validade_recarga_meses'] !== ''
+            ? (int) $data['validade_recarga_meses']
+            : 12;
+        $stmt->bindValue(':validade_meses', max(1, $validade), PDO::PARAM_INT);
         $stmt->bindValue(':descricao', $data['descricao'] ?? null);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo');
         $stmt->bindValue(':uid', $uid, PDO::PARAM_INT);
@@ -88,7 +95,9 @@ class SstEquipamentoTiposRepository extends DbConnection
     public function update(int $id, array $data): bool
     {
         $sql = 'UPDATE adms_sst_equipamento_tipos SET
-                nome = :nome, codigo = :codigo, descricao = :descricao, status = :status,
+                nome = :nome, codigo = :codigo, prefixo = :prefixo,
+                controla_recarga = :controla_recarga, validade_recarga_meses = :validade_meses,
+                descricao = :descricao, status = :status,
                 updated_by = :uid, updated_at = NOW()
                 WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
@@ -96,11 +105,35 @@ class SstEquipamentoTiposRepository extends DbConnection
         $stmt->bindValue(':id', $id, PDO::PARAM_INT);
         $stmt->bindValue(':nome', $data['nome'] ?? '');
         $stmt->bindValue(':codigo', strtoupper(trim((string) ($data['codigo'] ?? ''))));
+        $stmt->bindValue(':prefixo', \App\adms\Helpers\SstEquipamentoCodigoHelper::normalizePrefixo((string) ($data['prefixo'] ?? '')));
+        $stmt->bindValue(':controla_recarga', !empty($data['controla_recarga']) ? 1 : 0, PDO::PARAM_INT);
+        $validade = isset($data['validade_recarga_meses']) && $data['validade_recarga_meses'] !== ''
+            ? (int) $data['validade_recarga_meses']
+            : 12;
+        $stmt->bindValue(':validade_meses', max(1, $validade), PDO::PARAM_INT);
         $stmt->bindValue(':descricao', $data['descricao'] ?? null);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo');
         $stmt->bindValue(':uid', $uid, PDO::PARAM_INT);
 
         return $stmt->execute();
+    }
+
+    public function prefixoExists(string $prefixo, ?int $excludeId = null): bool
+    {
+        $prefixo = \App\adms\Helpers\SstEquipamentoCodigoHelper::normalizePrefixo($prefixo);
+        $sql = 'SELECT id FROM adms_sst_equipamento_tipos WHERE prefixo = :prefixo';
+        if ($excludeId !== null) {
+            $sql .= ' AND id <> :id';
+        }
+        $sql .= ' LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':prefixo', $prefixo);
+        if ($excludeId !== null) {
+            $stmt->bindValue(':id', $excludeId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
     public function delete(int $id): bool
@@ -199,7 +232,7 @@ class SstEquipamentoTiposRepository extends DbConnection
         $where = ['1=1'];
         $params = [];
         if (!empty($filters['search'])) {
-            $where[] = '(t.nome LIKE :search OR t.codigo LIKE :search)';
+            $where[] = '(t.nome LIKE :search OR t.codigo LIKE :search OR t.prefixo LIKE :search)';
             $params[':search'] = '%' . $filters['search'] . '%';
         }
         if (!empty($filters['status'])) {

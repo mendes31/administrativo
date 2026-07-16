@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\SstEquipamentoSettingsRepository;
+use App\adms\Models\Repository\SstEquipamentoRecargasRepository;
 use App\adms\Models\Repository\SstEquipamentosRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -28,6 +29,7 @@ class SstViewEquipamento
         $this->data['qr_token'] = $repo->ensureQrToken($id);
         $this->data['qr_scan_url'] = \App\adms\Helpers\SstEquipamentoQrHelper::buildScanUrl((string) $this->data['qr_token']);
         $this->data['historico'] = $repo->getVistoriaHistorico($id);
+        $this->data['historico_recargas'] = (new SstEquipamentoRecargasRepository())->listByEquipamento($id);
         $this->data['settings'] = (new SstEquipamentoSettingsRepository())->get();
         $pageElements = [
             'title_head' => 'Equipamento ' . ($item['codigo'] ?? '') . ' - SST',
@@ -36,6 +38,7 @@ class SstViewEquipamento
                 'SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento',
                 'SstExecuteEquipamentoVistoria', 'SstGenerateEquipamentoVistoria',
                 'SstExportEquipamentoQr', 'SstScanEquipamento',
+                'SstRegisterEquipamentoRecarga',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

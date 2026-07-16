@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstEquipamentoCodigoHelper;
 use App\adms\Models\Repository\SstEquipamentoTiposRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -46,9 +47,29 @@ class SstUpdateEquipamentoTipo
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-equipamento-tipo/' . $id);
             exit;
         }
-        $ok = (new SstEquipamentoTiposRepository())->update($id, [
+
+        $prefixo = SstEquipamentoCodigoHelper::normalizePrefixo((string) ($_POST['prefixo'] ?? ''));
+        if (!SstEquipamentoCodigoHelper::isValidPrefixo((string) ($_POST['prefixo'] ?? ''))) {
+            $_SESSION['msg'] = 'Prefixo inválido. Informe exatamente 3 caracteres (A–Z / 0–9).';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-equipamento-tipo/' . $id);
+            exit;
+        }
+
+        $repo = new SstEquipamentoTiposRepository();
+        if ($repo->prefixoExists($prefixo, $id)) {
+            $_SESSION['msg'] = 'Já existe um tipo com o prefixo ' . $prefixo . '.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-equipamento-tipo/' . $id);
+            exit;
+        }
+
+        $ok = $repo->update($id, [
             'nome' => $_POST['nome'] ?? '',
             'codigo' => $_POST['codigo'] ?? '',
+            'prefixo' => $prefixo,
+            'controla_recarga' => !empty($_POST['controla_recarga']),
+            'validade_recarga_meses' => (int) ($_POST['validade_recarga_meses'] ?? 12),
             'descricao' => $_POST['descricao'] ?? null,
             'status' => $_POST['status'] ?? 'Ativo',
         ]);

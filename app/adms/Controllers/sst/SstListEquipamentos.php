@@ -23,6 +23,7 @@ class SstListEquipamentos
             'status' => $_GET['status'] ?? '',
             'adms_sst_equipamento_tipo_id' => $_GET['tipo_id'] ?? '',
             'adms_department_id' => $_GET['department_id'] ?? '',
+            'recarga_alerta' => !empty($_GET['recarga_alerta']) ? '1' : '',
         ];
         if (isset($_GET['page']) && is_numeric($_GET['page'])) {
             $page = (int) $_GET['page'];

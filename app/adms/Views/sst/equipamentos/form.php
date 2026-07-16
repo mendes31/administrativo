@@ -22,21 +22,34 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                 <h6 class="text-muted text-uppercase small mb-3">Identificação</h6>
                 <div class="row">
                     <div class="col-md-3 mb-3">
-                        <label class="form-label" for="codigo">Código *</label>
-                        <input type="text" name="codigo" id="codigo" class="form-control text-uppercase" value="<?= htmlspecialchars($item['codigo'] ?? '') ?>" required>
-                    </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label" for="patrimonio">Patrimônio</label>
-                        <input type="text" name="patrimonio" id="patrimonio" class="form-control" value="<?= htmlspecialchars($item['patrimonio'] ?? '') ?>">
-                    </div>
-                    <div class="col-md-3 mb-3">
                         <label class="form-label" for="adms_sst_equipamento_tipo_id">Tipo *</label>
                         <select name="adms_sst_equipamento_tipo_id" id="adms_sst_equipamento_tipo_id" class="form-select" required>
                             <option value="">Selecione...</option>
                             <?php foreach ($this->data['tipos'] ?? [] as $t): ?>
-                            <option value="<?= (int)$t['id'] ?>" <?= (int)($item['adms_sst_equipamento_tipo_id'] ?? 0) === (int)$t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome']) ?></option>
+                            <option value="<?= (int)$t['id'] ?>"
+                                data-prefixo="<?= htmlspecialchars((string)($t['prefixo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
+                                data-controla-recarga="<?= !empty($t['controla_recarga']) ? '1' : '0' ?>"
+                                data-validade-meses="<?= (int)($t['validade_recarga_meses'] ?? 12) ?>"
+                                <?= (int)($item['adms_sst_equipamento_tipo_id'] ?? 0) === (int)$t['id'] ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($t['nome']) ?><?= !empty($t['prefixo']) ? ' (' . htmlspecialchars((string)$t['prefixo']) . ')' : '' ?>
+                            </option>
                             <?php endforeach; ?>
                         </select>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="codigo">Código *</label>
+                        <?php if ($isEdit): ?>
+                        <input type="text" name="codigo" id="codigo" class="form-control text-uppercase" value="<?= htmlspecialchars($item['codigo'] ?? '') ?>" readonly>
+                        <div class="form-text">Gerado no cadastro — não pode ser alterado.</div>
+                        <?php else: ?>
+                        <input type="text" id="codigo" class="form-control text-uppercase bg-light" value="" readonly placeholder="Selecione o tipo">
+                        <input type="hidden" name="codigo" value="">
+                        <div class="form-text" id="codigo_hint">Gerado automaticamente (prefixo + 5 dígitos).</div>
+                        <?php endif; ?>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="patrimonio">Patrimônio</label>
+                        <input type="text" name="patrimonio" id="patrimonio" class="form-control" value="<?= htmlspecialchars($item['patrimonio'] ?? '') ?>">
                     </div>
                     <div class="col-md-3 mb-3">
                         <label class="form-label" for="status">Status</label>
@@ -76,8 +89,18 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                     <div class="col-md-3 mb-3"><label class="form-label" for="capacidade">Capacidade</label><input type="text" name="capacidade" id="capacidade" class="form-control" value="<?= htmlspecialchars($item['capacidade'] ?? '') ?>"></div>
                     <div class="col-md-3 mb-3"><label class="form-label" for="numero_serie">Nº série</label><input type="text" name="numero_serie" id="numero_serie" class="form-control" value="<?= htmlspecialchars($item['numero_serie'] ?? '') ?>"></div>
                     <div class="col-md-3 mb-3"><label class="form-label" for="data_fabricacao">Data fabricação</label><input type="date" name="data_fabricacao" id="data_fabricacao" class="form-control" value="<?= htmlspecialchars($item['data_fabricacao'] ?? '') ?>"></div>
-                    <div class="col-md-3 mb-3"><label class="form-label" for="data_recarga">Data recarga</label><input type="date" name="data_recarga" id="data_recarga" class="form-control" value="<?= htmlspecialchars($item['data_recarga'] ?? '') ?>"></div>
-                    <div class="col-md-3 mb-3"><label class="form-label" for="data_proxima_recarga">Próxima recarga</label><input type="date" name="data_proxima_recarga" id="data_proxima_recarga" class="form-control" value="<?= htmlspecialchars($item['data_proxima_recarga'] ?? '') ?>"></div>
+                </div>
+                <div class="row" id="bloco_recarga" style="display:none;">
+                    <div class="col-12"><h6 class="text-muted text-uppercase small mb-3 mt-1">Recarga / validade de carga</h6></div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="data_recarga">Data recarga</label>
+                        <input type="date" name="data_recarga" id="data_recarga" class="form-control" value="<?= htmlspecialchars($item['data_recarga'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <label class="form-label" for="data_proxima_recarga">Próxima recarga</label>
+                        <input type="date" name="data_proxima_recarga" id="data_proxima_recarga" class="form-control" value="<?= htmlspecialchars($item['data_proxima_recarga'] ?? '') ?>">
+                        <div class="form-text" id="hint_proxima_recarga">Calculada automaticamente pela validade do tipo (pode ajustar).</div>
+                    </div>
                 </div>
                 <h6 class="text-muted text-uppercase small mb-3 mt-2">Vistorias</h6>
                 <div class="row">
@@ -130,3 +153,113 @@ $periodicidades = $this->data['periodicidades'] ?? [];
         </div>
     </div>
 </div>
+<script>
+(function () {
+    var tipoSelect = document.getElementById('adms_sst_equipamento_tipo_id');
+    var blocoRecarga = document.getElementById('bloco_recarga');
+    var dataRecarga = document.getElementById('data_recarga');
+    var dataProxima = document.getElementById('data_proxima_recarga');
+    var hintProxima = document.getElementById('hint_proxima_recarga');
+    var codigo = document.getElementById('codigo');
+    var hint = document.getElementById('codigo_hint');
+    var previews = <?= json_encode($this->data['codigo_previews'] ?? [], JSON_UNESCAPED_UNICODE) ?>;
+    var isEdit = <?= $isEdit ? 'true' : 'false' ?>;
+    var proximaManual = false;
+
+    function validadeMeses() {
+        if (!tipoSelect) return 12;
+        var opt = tipoSelect.options[tipoSelect.selectedIndex];
+        var m = opt ? parseInt(opt.getAttribute('data-validade-meses') || '12', 10) : 12;
+        return m > 0 ? m : 12;
+    }
+
+    function addMonths(ymd, months) {
+        var parts = (ymd || '').split('-');
+        if (parts.length !== 3) return '';
+        var d = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, parseInt(parts[2], 10));
+        if (isNaN(d.getTime())) return '';
+        var day = d.getDate();
+        d.setMonth(d.getMonth() + months);
+        // Ajuste fim de mês (ex.: 31/01 + 1 mês)
+        if (d.getDate() < day) {
+            d.setDate(0);
+        }
+        var y = d.getFullYear();
+        var m = String(d.getMonth() + 1).padStart(2, '0');
+        var dd = String(d.getDate()).padStart(2, '0');
+        return y + '-' + m + '-' + dd;
+    }
+
+    function calcProxima(force) {
+        if (!dataRecarga || !dataProxima) return;
+        if (!dataRecarga.value) return;
+        if (proximaManual && !force) return;
+        var meses = validadeMeses();
+        dataProxima.value = addMonths(dataRecarga.value, meses);
+        if (hintProxima) {
+            hintProxima.textContent = 'Calculada: data da recarga + ' + meses + ' meses (validade do tipo). Pode ajustar.';
+        }
+    }
+
+    function toggleRecarga() {
+        if (!tipoSelect || !blocoRecarga) return;
+        var opt = tipoSelect.options[tipoSelect.selectedIndex];
+        var on = opt && opt.value && opt.getAttribute('data-controla-recarga') === '1';
+        blocoRecarga.style.display = on ? '' : 'none';
+        if (!on) {
+            if (dataRecarga && !isEdit) dataRecarga.value = '';
+            if (dataProxima && !isEdit) dataProxima.value = '';
+            proximaManual = false;
+        } else {
+            calcProxima(false);
+            if (hintProxima) {
+                hintProxima.textContent = 'Calculada: data da recarga + ' + validadeMeses() + ' meses (validade do tipo). Pode ajustar.';
+            }
+        }
+    }
+
+    function refreshCodigo() {
+        if (isEdit || !codigo || !tipoSelect) return;
+        var opt = tipoSelect.options[tipoSelect.selectedIndex];
+        if (!opt || !opt.value) {
+            codigo.value = '';
+            if (hint) hint.textContent = 'Gerado automaticamente (prefixo + 5 dígitos).';
+            return;
+        }
+        var preview = previews[opt.value] || '';
+        var prefixo = (opt.getAttribute('data-prefixo') || '').toUpperCase();
+        if (preview) {
+            codigo.value = preview;
+            if (hint) hint.textContent = 'Prévia do próximo código (confirmado ao salvar).';
+        } else if (prefixo.length === 3) {
+            codigo.value = prefixo + '?????';
+            if (hint) hint.textContent = 'O número sequencial será definido ao salvar.';
+        } else {
+            codigo.value = '';
+            if (hint) hint.textContent = 'Tipo sem prefixo válido. Cadastre o prefixo em Tipos de equipamento.';
+        }
+    }
+
+    if (tipoSelect) {
+        tipoSelect.addEventListener('change', function () {
+            proximaManual = false;
+            refreshCodigo();
+            toggleRecarga();
+            calcProxima(true);
+        });
+        refreshCodigo();
+        toggleRecarga();
+    }
+    if (dataRecarga) {
+        dataRecarga.addEventListener('change', function () {
+            proximaManual = false;
+            calcProxima(true);
+        });
+    }
+    if (dataProxima) {
+        dataProxima.addEventListener('input', function () {
+            proximaManual = true;
+        });
+    }
+})();
+</script>

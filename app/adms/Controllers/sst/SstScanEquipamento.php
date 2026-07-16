@@ -23,9 +23,15 @@ class SstScanEquipamento
         $userId = (int) ($_SESSION['user_id'] ?? 0);
 
         if ($userId <= 0) {
-            $_SESSION['error'] = 'Faça login para realizar a vistoria.';
-            $_SESSION['return_url'] = $_ENV['URL_ADM'] . 'sst-scan-equipamento'
-                . ($token !== '' ? '/' . rawurlencode($token) : '');
+            $_SESSION['error'] = 'Faça login para consultar o equipamento.';
+            $return = \App\adms\Helpers\ReturnUrlHelper::sanitize(
+                rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/')
+                . '/sst-scan-equipamento'
+                . ($token !== '' ? '/' . rawurlencode($token) : '')
+            );
+            if ($return !== null) {
+                $_SESSION['return_url'] = $return;
+            }
             header('Location: ' . $_ENV['URL_ADM'] . 'login');
             exit;
         }
@@ -59,6 +65,7 @@ class SstScanEquipamento
                 'SstMinhasEquipamentoVistorias',
                 'SstViewEquipamento',
                 'SstGenerateEquipamentoVistoria',
+                'SstRegisterEquipamentoRecarga',
             ],
         ];
         $this->data['scan_context'] = $context;
@@ -79,4 +86,4 @@ class SstScanEquipamento
         (new LoadViewService('adms/Views/sst/equipamentos/scan_qr', $this->data))->loadView();
     }
 }
-
+

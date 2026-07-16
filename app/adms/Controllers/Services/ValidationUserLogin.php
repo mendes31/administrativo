@@ -19,11 +19,15 @@ class ValidationUserLogin
     {
         // Só limpar sessão se não for para preservar (usado para validação AJAX)
         if (!$preserveSession) {
-            // Limpar sessão antiga, exceto CSRF token se necessário
+            // Preservar retorno pós-login (ex.: QR do equipamento) e CSRF
             $csrf = $_SESSION['csrf_token'] ?? null;
+            $returnUrl = $_SESSION['return_url'] ?? null;
             session_unset();
             if ($csrf) {
                 $_SESSION['csrf_token'] = $csrf;
+            }
+            if (!empty($returnUrl) && is_string($returnUrl)) {
+                $_SESSION['return_url'] = $returnUrl;
             }
             session_regenerate_id();
         }

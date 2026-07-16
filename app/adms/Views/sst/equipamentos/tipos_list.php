@@ -29,12 +29,14 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamento_tipos')
             </form>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
-                    <thead><tr><th>Nome</th><th>Código</th><th>Checklist</th><th>Equipamentos</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Nome</th><th>Código</th><th>Prefixo</th><th>Recarga</th><th>Checklist</th><th>Equipamentos</th><th>Status</th><th></th></tr></thead>
                     <tbody>
                     <?php foreach ($this->data['items'] ?? [] as $r): ?>
                         <tr>
                             <td><?= htmlspecialchars($r['nome'] ?? '') ?></td>
                             <td><code><?= htmlspecialchars($r['codigo'] ?? '') ?></code></td>
+                            <td><code><?= htmlspecialchars($r['prefixo'] ?? '—') ?></code></td>
+                            <td><?= !empty($r['controla_recarga']) ? 'Sim (' . (int)($r['validade_recarga_meses'] ?? 12) . 'm)' : 'Não' ?></td>
                             <td><?= (int)($r['total_checklist'] ?? 0) ?> itens</td>
                             <td><?= (int)($r['total_equipamentos'] ?? 0) ?></td>
                             <td><?= htmlspecialchars($r['status'] ?? '') ?></td>

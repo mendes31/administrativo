@@ -1,6 +1,6 @@
 <?php
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
-// deploy-sync: 2026-06-22 — menu completo (SST equipamentos + treinamentos)
+// deploy-sync: 2026-07-15 — SST equipamentos related_routes (destaque de menu)
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
@@ -1182,19 +1182,38 @@ $menus = [
                         'label' => 'Tipos de equipamento',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-equipamento-tipos',
                         'permission' => 'SstListEquipamentoTipos',
-                        'icon' => 'fas fa-layer-group'
+                        'icon' => 'fas fa-layer-group',
+                        'related_routes' => [
+                            'sst-list-equipamento-tipos',
+                            'sst-create-equipamento-tipo',
+                            'sst-view-equipamento-tipo',
+                            'sst-update-equipamento-tipo',
+                            'sst-delete-equipamento-tipo',
+                            'sst-manage-equipamento-checklist-item',
+                        ],
                     ],
                     [
                         'label' => 'Equipamentos de segurança',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-equipamentos',
                         'permission' => 'SstListEquipamentos',
-                        'icon' => 'fas fa-fire-extinguisher'
+                        'icon' => 'fas fa-fire-extinguisher',
+                        'related_routes' => [
+                            'sst-list-equipamentos',
+                            'sst-create-equipamento',
+                            'sst-view-equipamento',
+                            'sst-update-equipamento',
+                            'sst-delete-equipamento',
+                            'sst-register-equipamento-recarga',
+                            'sst-export-equipamento-qr',
+                            'sst-generate-equipamento-vistoria',
+                        ],
                     ],
                     [
                         'label' => 'Config. vistorias equipamentos',
                         'url' => $_ENV['URL_ADM'] . 'sst-equipamento-settings',
                         'permission' => 'SstEquipamentoSettings',
-                        'icon' => 'fas fa-cog'
+                        'icon' => 'fas fa-cog',
+                        'related_routes' => ['sst-equipamento-settings'],
                     ],
                 ]
             ],
@@ -1254,13 +1273,19 @@ $menus = [
                         'label' => 'Vistorias de equipamentos',
                         'url' => $_ENV['URL_ADM'] . 'sst-minhas-equipamento-vistorias',
                         'permission' => 'SstMinhasEquipamentoVistorias',
-                        'icon' => 'fas fa-clipboard-check'
+                        'icon' => 'fas fa-clipboard-check',
+                        'related_routes' => [
+                            'sst-minhas-equipamento-vistorias',
+                            'sst-list-equipamento-vistorias',
+                            'sst-execute-equipamento-vistoria',
+                        ],
                     ],
                     [
                         'label' => 'Ler QR equipamento',
                         'url' => $_ENV['URL_ADM'] . 'sst-scan-equipamento',
                         'permission' => 'SstScanEquipamento',
-                        'icon' => 'fas fa-qrcode'
+                        'icon' => 'fas fa-qrcode',
+                        'related_routes' => ['sst-scan-equipamento'],
                     ],
                     [
                         'label' => 'CIPA',

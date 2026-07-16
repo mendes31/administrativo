@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstEquipamentoCodigoHelper;
 use App\adms\Models\Repository\SstEquipamentoTiposRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -36,10 +37,29 @@ class SstCreateEquipamentoTipo
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-equipamento-tipos');
             exit;
         }
+
+        $prefixo = SstEquipamentoCodigoHelper::normalizePrefixo((string) ($_POST['prefixo'] ?? ''));
+        if (!SstEquipamentoCodigoHelper::isValidPrefixo((string) ($_POST['prefixo'] ?? ''))) {
+            $_SESSION['msg'] = 'Prefixo inválido. Informe exatamente 3 caracteres (A–Z / 0–9).';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento-tipo');
+            exit;
+        }
+
         $repo = new SstEquipamentoTiposRepository();
+        if ($repo->prefixoExists($prefixo)) {
+            $_SESSION['msg'] = 'Já existe um tipo com o prefixo ' . $prefixo . '.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento-tipo');
+            exit;
+        }
+
         $id = $repo->create([
             'nome' => $_POST['nome'] ?? '',
             'codigo' => $_POST['codigo'] ?? '',
+            'prefixo' => $prefixo,
+            'controla_recarga' => !empty($_POST['controla_recarga']),
+            'validade_recarga_meses' => (int) ($_POST['validade_recarga_meses'] ?? 12),
             'descricao' => $_POST['descricao'] ?? null,
             'status' => $_POST['status'] ?? 'Ativo',
         ]);
@@ -48,7 +68,7 @@ class SstCreateEquipamentoTipo
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-equipamento-tipo/' . $id);
         } else {
-            $_SESSION['msg'] = 'Erro ao salvar.';
+            $_SESSION['msg'] = 'Erro ao salvar (verifique código ou prefixo duplicado).';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento-tipo');
         }

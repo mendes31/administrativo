@@ -1,6 +1,7 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
+use App\adms\Helpers\SstEquipamentoRecargaHelper;
 $perms = $this->data['buttonPermission'] ?? [];
 $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
 ?>
@@ -31,18 +32,40 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
                 <div class="col-md-3"><label class="form-label small">Busca</label><input type="text" name="search" class="form-control form-control-sm" value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>"></div>
                 <div class="col-md-2"><label class="form-label small">Tipo</label><select name="tipo_id" class="form-select form-select-sm"><option value="">Todos</option><?php foreach ($this->data['tipos'] ?? [] as $t): ?><option value="<?= (int)$t['id'] ?>" <?= (string)($this->data['filters']['adms_sst_equipamento_tipo_id'] ?? '') === (string)$t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome']) ?></option><?php endforeach; ?></select></div>
                 <div class="col-md-2"><label class="form-label small">Status</label><select name="status" class="form-select form-select-sm"><option value="">Todos</option><?php foreach (['Ativo','Inativo','Baixado'] as $s): ?><option value="<?= $s ?>" <?= ($this->data['filters']['status'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option><?php endforeach; ?></select></div>
+                <div class="col-md-2">
+                    <label class="form-label small">Recarga</label>
+                    <select name="recarga_alerta" class="form-select form-select-sm">
+                        <option value="">Todas</option>
+                        <option value="1" <?= !empty($this->data['filters']['recarga_alerta']) ? 'selected' : '' ?>>Vencida / a vencer (30d)</option>
+                    </select>
+                </div>
                 <div class="col-auto"><button class="btn btn-primary btn-sm">Filtrar</button></div>
             </form>
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
-                    <thead><tr><th>Código</th><th>Tipo</th><th>Localização</th><th>Periodicidade</th><th>Responsável</th><th>Pend.</th><th>Status</th><th></th></tr></thead>
+                    <thead><tr><th>Código</th><th>Tipo</th><th>Localização</th><th>Periodicidade</th><th>Próx. recarga</th><th>Responsável</th><th>Pend.</th><th>Status</th><th></th></tr></thead>
                     <tbody>
-                    <?php foreach ($this->data['items'] ?? [] as $r): ?>
-                        <tr>
+                    <?php foreach ($this->data['items'] ?? [] as $r):
+                        $st = SstEquipamentoRecargaHelper::status(
+                            $r['data_proxima_recarga'] ?? null,
+                            !empty($r['controla_recarga'])
+                        );
+                    ?>
+                        <tr class="<?= $st === 'vencido' ? 'table-danger' : ($st === 'a_vencer' ? 'table-warning' : '') ?>">
                             <td><strong><?= htmlspecialchars($r['codigo'] ?? '') ?></strong></td>
                             <td><?= htmlspecialchars($r['tipo_nome'] ?? '') ?></td>
                             <td><?= htmlspecialchars($r['localizacao'] ?? '-') ?></td>
                             <td><?= htmlspecialchars(SstEquipamentoPeriodicidadeHelper::label((int)($r['periodicidade_meses'] ?? 1))) ?></td>
+                            <td>
+                                <?php if ($st === null): ?>
+                                    <span class="text-muted">—</span>
+                                <?php elseif ($st === 'sem_data'): ?>
+                                    <span class="badge bg-secondary">Sem data</span>
+                                <?php else: ?>
+                                    <?= !empty($r['data_proxima_recarga']) ? date('d/m/Y', strtotime($r['data_proxima_recarga'])) : '—' ?>
+                                    <span class="badge <?= SstEquipamentoRecargaHelper::statusBadgeClass($st) ?>"><?= htmlspecialchars(SstEquipamentoRecargaHelper::statusLabel($st)) ?></span>
+                                <?php endif; ?>
+                            </td>
                             <td><?= htmlspecialchars($r['responsavel_nome'] ?? '—') ?></td>
                             <td><?= (int)($r['vistorias_pendentes'] ?? 0) ?></td>
                             <td><?= htmlspecialchars($r['status'] ?? '') ?></td>

@@ -1,22 +1,95 @@
 <h1>Equipamentos e vistorias</h1>
-<p>Controle de equipamentos de segurança (extintores, PA, etc.) com checklist e vistorias periódicas.</p>
-<p><strong>Quem acessa:</strong> SST e responsáveis com <em>SstListEquipamentos</em>, <em>SstMinhasEquipamentoVistorias</em>.</p>
+<p>Controle de equipamentos de segurança (extintores, hidrantes, etc.) com checklist e vistorias periódicas.</p>
+<p><strong>Quem acessa:</strong> SST e responsáveis com <em>SstListEquipamentos</em>, <em>SstCreateEquipamento</em>, <em>SstListEquipamentoTipos</em>, <em>SstRegisterEquipamentoRecarga</em>, <em>SstMinhasEquipamentoVistorias</em>.</p>
+
+<h2>Tipos de equipamento</h2>
+<p>Cadastre cada categoria (Extintor, Hidrante, etc.) antes dos equipamentos. O <strong>prefixo</strong> define a numeração automática.</p>
+
+<h3>Campos do tipo</h3>
+<div class="help-field"><strong>Nome *</strong> Nome exibido nas listas e no cadastro do equipamento (ex.: Extintor).</div>
+<div class="help-field"><strong>Código *</strong> Identificador interno do tipo (ex.: <code>EXTINTOR</code>). Não é o código do equipamento; serve para organização e busca.</div>
+<div class="help-field"><strong>Prefixo *</strong> Exatamente <strong>3 caracteres</strong> (A–Z / 0–9), únicos no sistema (ex.: <code>EXT</code>, <code>HID</code>). Usado para gerar o código do equipamento (<code>EXT00001</code>).</div>
+<div class="help-field"><strong>Controla recarga / validade de carga</strong> Marque para tipos que precisam de controle de recarga (ex.: Extintor). Habilita campos de data no equipamento, histórico e alertas. Tipos sem essa necessidade (hidrante, porta, etc.) deixam desmarcado.</div>
+<div class="help-field"><strong>Validade padrão (meses)</strong> Quando controla recarga: quantidade de meses usada para calcular a próxima data ao registrar uma recarga (padrão 12).</div>
+<div class="help-field"><strong>Status</strong> Ativo = disponível no cadastro de equipamentos; Inativo = oculto nas novas inclusões.</div>
+<div class="help-field"><strong>Descrição</strong> Texto livre opcional sobre o tipo.</div>
+<div class="help-field"><strong>Checklist</strong> Itens de inspeção vinculados ao tipo. Na vistoria, o responsável responde a cada item (conforme / não conforme / N/A).</div>
+
+<h2>Novo / editar equipamento — campos</h2>
+
+<h3>Identificação</h3>
+<div class="help-field"><strong>Tipo *</strong> Selecione primeiro. Define o checklist das vistorias e o prefixo do código. Ex.: Extintor (EXT).</div>
+<div class="help-field"><strong>Código *</strong> Gerado automaticamente: prefixo do tipo + 5 dígitos (ex.: <code>EXT00001</code>). Na inclusão, a tela mostra uma prévia; o valor definitivo é confirmado ao salvar. Na edição, o código não pode ser alterado.</div>
+<div class="help-field"><strong>Patrimônio</strong> Número patrimonial da empresa (plaqueta / inventário físico), se houver. Independente do código automático.</div>
+<div class="help-field"><strong>Status</strong> Ativo = entra na fila de vistorias; Inativo = pausado; Baixado = fora de uso (descarte / substituição).</div>
+<div class="help-field"><strong>Localização</strong> Onde o equipamento está instalado (setor, sala, torre, etc.). Facilita a vistoria em campo.</div>
+<div class="help-field"><strong>Departamento</strong> Departamento responsável pela área do equipamento (opcional).</div>
+<div class="help-field"><strong>Responsável</strong> Usuário que recebe as vistorias na fila “Minhas vistorias”. Se vazio (“fila geral”), qualquer usuário com permissão pode executar conforme a regra do módulo.</div>
+
+<h3>Características</h3>
+<div class="help-field"><strong>Fabricante</strong> Marca / fabricante do equipamento.</div>
+<div class="help-field"><strong>Modelo</strong> Modelo comercial ou referência do fabricante.</div>
+<div class="help-field"><strong>Capacidade</strong> Capacidade técnica (ex.: 6 kg, 10 L), conforme o tipo.</div>
+<div class="help-field"><strong>Nº série</strong> Número de série do fabricante.</div>
+<div class="help-field"><strong>Data fabricação</strong> Data de fabricação informada na etiqueta / documento.</div>
+
+<h3>Recarga / validade de carga</h3>
+<p>Aparece somente se o <strong>tipo</strong> estiver marcado com “Controla recarga”. Independente das vistorias periódicas.</p>
+<div class="help-field"><strong>Data recarga</strong> Data da última recarga / serviço de carga no cadastro (resumo atual).</div>
+<div class="help-field"><strong>Próxima recarga</strong> Calculada automaticamente: data da recarga + <em>validade em meses</em> definida no tipo (ex.: 12). Você pode ajustar manualmente. Na listagem: verde (em dia), amarelo (vence em até 30 dias), vermelho (vencida).</div>
+<div class="help-field"><strong>Registrar recarga</strong> No detalhe do equipamento: informa data, tipo de evento (Recarga, Teste hidrostático, etc.), empresa e documento. O sistema grava o histórico e atualiza automaticamente a última e a próxima data. Se “Próxima” ficar vazia, calcula data + validade em meses do tipo.</div>
+<div class="help-field"><strong>Histórico de recargas</strong> Linha do tempo de todas as recargas/manutenções — não se perde ao editar o cadastro.</div>
+
+<h3>Vistorias</h3>
+<div class="help-field"><strong>Periodicidade *</strong> Intervalo entre competências (Mensal, Bimestral, Trimestral, Semestral, Anual). Define com que frequência o sistema gera vistorias.</div>
+<div class="help-field"><strong>Dia da vistoria</strong> Dia do mês em que o cron abre a vistoria e define o prazo. “Padrão do módulo” usa o dia configurado em Configurações de vistorias.</div>
+<div class="help-field"><strong>Mês referência (1ª competência)</strong> Data âncora da primeira competência. Se vazio, usa a data de cadastro do equipamento.</div>
+<div class="help-field"><strong>Gerar vistorias automaticamente</strong> Se marcado, o cron / rotina cria as competências. Se desmarcado, a geração automática não inclui este equipamento.</div>
+<div class="help-field"><strong>Observações</strong> Anotações livres (histórico, restrições de acesso, etc.).</div>
+
+<p class="help-note">Padrões globais (dia padrão, regras do cron) ficam em <strong>Configurações de vistorias</strong>.</p>
+
+<h2>Código automático (resumo)</h2>
+<ol>
+<li>Cadastre o tipo com <strong>prefixo</strong> de 3 caracteres.</li>
+<li>No equipamento, escolha o <strong>tipo</strong>.</li>
+<li>O sistema gera <code>PREFIXO</code> + sequência de 5 dígitos (ex.: <code>HID00002</code>).</li>
+<li>Novos tipos podem ser criados a qualquer momento, desde que o prefixo seja único.</li>
+</ol>
+
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Cadastre <strong>tipos de equipamento</strong> com checklist de itens.</li>
-<li>Registre equipamentos com identificação, QR e localização.</li>
-<li>Configure periodicidade em <strong>Config. vistorias</strong>.</li>
-<li>Responsável executa vistoria em <strong>Minhas vistorias</strong> ou via <strong>Ler QR</strong>.</li>
-<li>Itens não conformes geram plano de ação.</li>
+<li>Cadastre <strong>tipos</strong> com prefixo e checklist.</li>
+<li>Cadastre o <strong>equipamento</strong> (tipo → código automático → localização e demais dados).</li>
+<li>Ajuste periodicidade e, se necessário, as <strong>Config. vistorias</strong>.</li>
+<li>O responsável executa em <strong>Minhas vistorias</strong> ou via <strong>Ler QR</strong>.</li>
+<li>Itens não conformes podem gerar plano de ação.</li>
 </ol>
+
+<h2 id="ler-qr">Ler QR / painel do equipamento</h2>
+<p>Cada equipamento tem um QR na ficha. A URL aponta para <em>sst-scan-equipamento/{token}</em>.</p>
+<ol>
+<li>Escaneie o QR com o celular (ou use <strong>Ler QR</strong> dentro do sistema, com a câmera).</li>
+<li>Se não estiver logado, o sistema pede login e, ao concluir, <strong>volta ao painel do equipamento</strong> (não ao dashboard).</li>
+<li>O painel mostra dados básicos (código, nº de série, patrimônio, localização), badges de <strong>vistoria</strong> e <strong>recarga</strong> (quando o tipo controla) e a lista de pendências.</li>
+<li>Se houver vistoria aberta e você for o responsável, use <strong>Iniciar vistoria</strong>. A ficha completa e o registro de recarga ficam nos atalhos do painel.</li>
+</ol>
+
 <h2 id="aba-vistorias-abertas">Minhas vistorias — Abertas</h2>
-<p>Pendentes ou vencidas atribuídas ao responsável.</p>
+<p>Pendentes ou vencidas atribuídas ao responsável (ou na fila geral).</p>
 <h2 id="aba-vistorias-concluidas">Minhas vistorias — Concluídas</h2>
-<p>Histórico de vistorias executadas.</p>
+<p>Histórico de vistorias já executadas.</p>
+
 <h2>Problemas comuns</h2>
 <dl>
-<dt>QR não abre vistoria</dt><dd>Equipamento inativo ou vistoria já concluída no período.</dd>
-<dt>Vistoria vencida no dashboard</dt><dd>Execute vistoria ou reassigne responsável.</dd>
-<dt>Checklist vazio</dt><dd>Configure itens no tipo de equipamento.</dd>
+<dt>Recarga vencida na lista</dt><dd>Abra o equipamento e use <strong>Registrar recarga</strong> com a nova data; a próxima é recalculada automaticamente.</dd>
+<dt>Campos de recarga não aparecem</dt><dd>No tipo do equipamento, marque <strong>Controla recarga / validade de carga</strong> (ex.: Extintor).</dd>
+<dt>Não consigo salvar o equipamento</dt><dd>Confirme se o tipo tem <strong>prefixo</strong> de 3 caracteres cadastrado.</dd>
+<dt>Prefixo já existe</dt><dd>Cada tipo precisa de um prefixo único (ex.: EXT, HID).</dd>
+<dt>Código não muda na edição</dt><dd>É intencional: o código é gerado só no cadastro e permanece fixo.</dd>
+<dt>QR cai no dashboard após login</dt><dd>Atualize a página e escaneie de novo; o retorno pós-login deve abrir o painel do equipamento. Se persistir, limpe o cache do navegador e confirme que a URL do QR contém <code>sst-scan-equipamento/</code> + token.</dd>
+<dt>QR não abre vistoria</dt><dd>Equipamento inativo/baixado, você não é o responsável, ou vistoria já concluída no período. O painel ainda mostra os dados e o status de recarga.</dd>
+<dt>Vistoria vencida no dashboard</dt><dd>Execute a vistoria ou reassigne o responsável.</dd>
+<dt>Checklist vazio</dt><dd>Inclua itens no cadastro do tipo de equipamento.</dd>
 <dt>Não conforme sem ação</dt><dd>Abra plano de correção com prazo.</dd>
 </dl>

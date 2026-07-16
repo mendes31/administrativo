@@ -192,8 +192,10 @@ class LgpdConsentimentoLogin
         $repoConsent->create($consentData);
 
         $_SESSION['success'] = 'Consentimento registrado com sucesso. Obrigado!';
+        $redirect = \App\adms\Helpers\ReturnUrlHelper::consume()
+            ?? \App\adms\Helpers\ReturnUrlHelper::dashboardFallback();
         // 303: resposta ao POST não deve ser reutilizada como "página anterior" típica (PRG)
-        header('Location: ' . $_ENV['URL_ADM'] . 'dashboard', true, 303);
+        header('Location: ' . $redirect, true, 303);
         exit;
     }
 
