@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\PdfInstitutionalHeaderHelper;
 use App\adms\Helpers\UserFormHelper;
 
 /**
@@ -14,12 +15,20 @@ class SstEquipamentoVistoriaPdfService
     /**
      * @param array<string, mixed> $vistoria
      * @param list<array<string, mixed>> $respostas
-     * @param list<array<string, mixed>> $anexos
+     * @param list<array<string, mixed>> $anexos fotos da vistoria
+     * @param list<array<string, mixed>> $naoConformidades
+     * @param array<int, list<array<string, mixed>>> $acoesPorNcId id NC => ações
+     * @param array<int, list<array<string, mixed>>> $evidenciasPorAcaoId id AC => anexos
      */
-    public function buildHtml(array $vistoria, array $respostas, array $anexos): string
-    {
+    public function buildHtml(
+        array $vistoria,
+        array $respostas,
+        array $anexos,
+        array $naoConformidades = [],
+        array $acoesPorNcId = [],
+        array $evidenciasPorAcaoId = [],
+    ): string {
         $esc = static fn (?string $v): string => htmlspecialchars((string) ($v ?? ''), ENT_QUOTES, 'UTF-8');
-        $upload = new SstAnexosUploadService();
 
         $codigo = $esc($vistoria['equipamento_codigo'] ?? null);
         $tipo = $esc($vistoria['tipo_nome'] ?? null);
@@ -67,36 +76,17 @@ class SstEquipamentoVistoriaPdfService
             $assinaturaExtra .= ' · por ' . $executor;
         }
 
-        $fotosHtml = '';
-        $imgCount = 0;
-        foreach ($anexos as $anexo) {
-            $mime = strtolower((string) ($anexo['mime_type'] ?? ''));
-            $path = (string) ($anexo['file_path'] ?? '');
-            $abs = $upload->absolutePath($path);
-            $isImage = str_starts_with($mime, 'image/') || (bool) preg_match('/\.(jpe?g|png|gif|webp)$/i', $path);
-            if (!$isImage || $abs === '' || !is_file($abs)) {
-                continue;
-            }
-            $imgCount++;
-            $quando = !empty($anexo['created_at'])
-                ? date('d/m/Y H:i', strtotime((string) $anexo['created_at']))
-                : '—';
-            $por = trim((string) ($anexo['uploaded_by_name'] ?? ''));
-            $nome = $esc($anexo['file_name'] ?? null);
-            $src = htmlspecialchars(str_replace('\\', '/', $abs), ENT_QUOTES, 'UTF-8');
-            $fotosHtml .= '<div style="display:inline-block;width:48%;vertical-align:top;margin:0 1% 14px;page-break-inside:avoid">'
-                . '<div style="border:1px solid #ccc;padding:6px;text-align:center">'
-                . '<img src="' . $src . '" style="max-width:100%;max-height:220px" />'
-                . '</div>'
-                . '<div style="font-size:10px;color:#444;margin-top:4px">'
-                . '<strong>Foto ' . $imgCount . '</strong> · ' . $quando
-                . ($por !== '' ? ' · ' . $esc($por) : '')
-                . '<br>' . $nome
-                . '</div></div>';
-        }
-        if ($fotosHtml === '') {
-            $fotosHtml = '<p style="color:#666;font-size:12px">Nenhuma foto anexada a esta vistoria.</p>';
-        }
+        $fotosHtml = $this->buildFotosBlock($anexos, 'vistoria', $esc);
+        $ncHtml = $this->buildNcEvidenciasHtml($naoConformidades, $acoesPorNcId, $evidenciasPorAcaoId, $esc);
+
+        $header = PdfInstitutionalHeaderHelper::buildHeaderTable(
+            'RELATÓRIO DE VISTORIA — EQUIPAMENTO SST',
+            'Documento para auditoria / impressão'
+        );
+        $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
+            $vistoria['empresa_contratante'] ?? null,
+            'relatório'
+        );
 
         return '<!DOCTYPE html>
 <html lang="pt-BR">
@@ -106,6 +96,7 @@ class SstEquipamentoVistoriaPdfService
 body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; }
 h1 { font-size: 16px; margin: 0 0 4px; }
 h2 { font-size: 13px; margin: 18px 0 8px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+h3 { font-size: 11px; margin: 10px 0 4px; color: #333; }
 .meta { color: #555; font-size: 10px; margin-bottom: 12px; }
 .grid td { padding: 3px 8px 3px 0; vertical-align: top; }
 .grid .lbl { color: #666; width: 110px; }
@@ -113,11 +104,14 @@ table.chk { width: 100%; border-collapse: collapse; margin-top: 4px; }
 table.chk th, table.chk td { border: 1px solid #999; padding: 5px 6px; }
 table.chk th { background: #eee; font-size: 10px; }
 .assinatura { margin-top: 14px; padding: 8px; border: 1px solid #aaa; background: #f7f7f7; font-size: 10px; }
+.nc-box { border: 1px solid #c00; background: #fff5f5; padding: 8px; margin: 10px 0; page-break-inside: avoid; }
+.ac-box { border: 1px solid #999; background: #f9f9f9; padding: 6px; margin: 6px 0 8px; page-break-inside: avoid; }
 </style>
 </head>
 <body>
-<h1>Relatório de Vistoria — Equipamento SST</h1>
-<div class="meta">Documento gerado em ' . $gerado . '</div>
+' . $header . '
+' . $empresaBlock . '
+<div class="meta">Gerado em ' . $gerado . ' · Competência ' . $competencia . '</div>
 
 <table class="grid" width="100%">
 <tr><td class="lbl">Equipamento</td><td><strong>' . $codigo . '</strong></td><td class="lbl">Grupo</td><td>' . $tipo . '</td></tr>
@@ -142,9 +136,170 @@ table.chk th { background: #eee; font-size: 10px; }
 Confirmada em ' . $assinaturaEm . $assinaturaExtra . '
 </div>
 
+' . $ncHtml . '
+
 <h2>Fotos da vistoria</h2>
 ' . $fotosHtml . '
 </body>
 </html>';
+    }
+
+    /**
+     * @param list<array<string, mixed>> $naoConformidades
+     * @param array<int, list<array<string, mixed>>> $acoesPorNcId
+     * @param array<int, list<array<string, mixed>>> $evidenciasPorAcaoId
+     */
+    private function buildNcEvidenciasHtml(
+        array $naoConformidades,
+        array $acoesPorNcId,
+        array $evidenciasPorAcaoId,
+        callable $esc,
+    ): string {
+        if ($naoConformidades === []) {
+            return '';
+        }
+
+        $html = '<h2>Não conformidades e evidências</h2>';
+        $html .= '<p style="font-size:10px;color:#555">O resultado da vistoria permanece Não conforme. Abaixo: NC, ação corretiva e evidências fotográficas quando existirem.</p>';
+
+        foreach ($naoConformidades as $nc) {
+            $ncId = (int) ($nc['id'] ?? 0);
+            $html .= '<div class="nc-box">';
+            $html .= '<strong>' . $esc($nc['codigo'] ?? 'NC') . '</strong> — ' . $esc($nc['descricao'] ?? null);
+            $html .= '<br><span style="font-size:10px">Status: <strong>' . $esc($nc['status'] ?? null) . '</strong>';
+            if (trim((string) ($nc['observacao'] ?? '')) !== '') {
+                $html .= ' · Observação do desvio: ' . $esc($nc['observacao']);
+            }
+            $html .= '</span>';
+
+            if (($nc['status'] ?? '') === 'Encerrada') {
+                $html .= '<div style="margin-top:6px;font-size:10px;color:#0a5;">Encerrada';
+                if (!empty($nc['acao_encerramento_codigo'])) {
+                    $html .= ' mediante <strong>' . $esc($nc['acao_encerramento_codigo']) . '</strong>';
+                    if (!empty($nc['acao_encerramento_titulo'])) {
+                        $html .= ' — ' . $esc($nc['acao_encerramento_titulo']);
+                    }
+                }
+                if (!empty($nc['encerrada_em'])) {
+                    $html .= ' em ' . date('d/m/Y H:i', strtotime((string) $nc['encerrada_em']));
+                }
+                if (!empty($nc['acao_encerramento_descricao'])) {
+                    $html .= '<br>Descrição da AC: ' . $esc($nc['acao_encerramento_descricao']);
+                }
+                if (!empty($nc['acao_encerramento_obs'])) {
+                    $html .= '<br>Obs. da AC: ' . $esc($nc['acao_encerramento_obs']);
+                }
+                $html .= '</div>';
+            }
+
+            $acoes = $acoesPorNcId[$ncId] ?? [];
+            if ($acoes === []) {
+                $html .= '<p style="font-size:10px;color:#666;margin:6px 0 0">Sem ações corretivas cadastradas.</p>';
+            } else {
+                $html .= '<h3>Ações corretivas</h3>';
+                foreach ($acoes as $acao) {
+                    $aid = (int) ($acao['id'] ?? 0);
+                    $isEncerramento = !empty($nc['encerrada_por_acao_id'])
+                        && (int) $nc['encerrada_por_acao_id'] === $aid;
+                    $html .= '<div class="ac-box">';
+                    $html .= '<strong>' . $esc($acao['codigo'] ?? 'AC') . '</strong> — ' . $esc($acao['titulo'] ?? null);
+                    if ($isEncerramento) {
+                        $html .= ' <span style="color:#0a5;font-size:9px">(encerrou a NC)</span>';
+                    }
+                    $html .= '<br><span style="font-size:10px">Status: ' . $esc($acao['status'] ?? null);
+                    if (!empty($acao['responsavel_nome'])) {
+                        $html .= ' · Resp.: ' . $esc($acao['responsavel_nome']);
+                    }
+                    if (!empty($acao['prazo'])) {
+                        $html .= ' · Prazo: ' . date('d/m/Y', strtotime((string) $acao['prazo']));
+                    }
+                    if (!empty($acao['data_conclusao'])) {
+                        $html .= ' · Conclusão: ' . date('d/m/Y', strtotime((string) $acao['data_conclusao']));
+                    }
+                    $html .= '</span>';
+                    if (trim((string) ($acao['descricao'] ?? '')) !== '') {
+                        $html .= '<br><span style="font-size:10px">' . $esc($acao['descricao']) . '</span>';
+                    }
+                    if (trim((string) ($acao['observacoes'] ?? '')) !== '') {
+                        $html .= '<br><span style="font-size:10px">Obs.: ' . $esc($acao['observacoes']) . '</span>';
+                    }
+
+                    $evs = $evidenciasPorAcaoId[$aid] ?? [];
+                    if ($evs !== []) {
+                        $html .= '<div style="margin-top:6px"><span style="font-size:10px;font-weight:bold">Evidências fotográficas da ação:</span><br>';
+                        $html .= $this->buildFotosBlock($evs, 'ac-' . $aid, $esc);
+                        $html .= '</div>';
+                    } else {
+                        $html .= '<p style="font-size:9px;color:#888;margin:4px 0 0">Sem fotos de evidência nesta ação.</p>';
+                    }
+                    $html .= '</div>';
+                }
+            }
+            $html .= '</div>';
+        }
+
+        return $html;
+    }
+
+    /** @param list<array<string, mixed>> $anexos */
+    private function buildFotosBlock(array $anexos, string $prefix, callable $esc): string
+    {
+        $upload = new SstAnexosUploadService();
+        $fotosHtml = '';
+        $imgCount = 0;
+        foreach ($anexos as $anexo) {
+            $mime = strtolower((string) ($anexo['mime_type'] ?? ''));
+            $path = (string) ($anexo['file_path'] ?? '');
+            $abs = $upload->absolutePath($path);
+            $isImage = str_starts_with($mime, 'image/') || (bool) preg_match('/\.(jpe?g|png|gif|webp)$/i', $path);
+            if (!$isImage || $abs === '' || !is_file($abs)) {
+                continue;
+            }
+            $dataUri = $this->imageToDataUri($abs, $mime);
+            if ($dataUri === null) {
+                continue;
+            }
+            $imgCount++;
+            $quando = !empty($anexo['created_at'])
+                ? date('d/m/Y H:i', strtotime((string) $anexo['created_at']))
+                : '—';
+            $por = trim((string) ($anexo['uploaded_by_name'] ?? ''));
+            $nome = $esc($anexo['file_name'] ?? null);
+            $fotosHtml .= '<div style="display:inline-block;width:48%;vertical-align:top;margin:0 1% 14px;page-break-inside:avoid">'
+                . '<div style="border:1px solid #ccc;padding:6px;text-align:center">'
+                . '<img src="' . $dataUri . '" style="max-width:100%;max-height:220px" />'
+                . '</div>'
+                . '<div style="font-size:10px;color:#444;margin-top:4px">'
+                . '<strong>Foto ' . $prefix . '-' . $imgCount . '</strong> · ' . $quando
+                . ($por !== '' ? ' · ' . $esc($por) : '')
+                . '<br>' . $nome
+                . '</div></div>';
+        }
+        if ($fotosHtml === '') {
+            return '<p style="color:#666;font-size:12px">Nenhuma foto anexada.</p>';
+        }
+
+        return $fotosHtml;
+    }
+
+    private function imageToDataUri(string $absPath, string $mimeHint = ''): ?string
+    {
+        $data = @file_get_contents($absPath);
+        if ($data === false || $data === '') {
+            return null;
+        }
+        $mime = strtolower(trim($mimeHint));
+        if ($mime === '' || !str_starts_with($mime, 'image/')) {
+            $ext = strtolower(pathinfo($absPath, PATHINFO_EXTENSION));
+            $mime = match ($ext) {
+                'jpg', 'jpeg' => 'image/jpeg',
+                'png' => 'image/png',
+                'gif' => 'image/gif',
+                'webp' => 'image/webp',
+                default => 'image/jpeg',
+            };
+        }
+
+        return 'data:' . $mime . ';base64,' . base64_encode($data);
     }
 }

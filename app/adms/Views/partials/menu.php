@@ -1249,6 +1249,7 @@ $menus = [
                             'sst-register-equipamento-recarga',
                             'sst-export-equipamento-qr',
                             'sst-generate-equipamento-vistoria',
+                            'sst-export-equipamento-auditoria-pdf',
                         ],
                     ],
                     [
@@ -1353,6 +1354,20 @@ $menus = [
                             'sst-minhas-equipamento-vistorias',
                             'sst-list-equipamento-vistorias',
                             'sst-execute-equipamento-vistoria',
+                            'sst-export-equipamento-vistoria-pdf',
+                        ],
+                    ],
+                    [
+                        'label' => 'NCs de equipamentos',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-equipamento-nao-conformidades',
+                        'permission' => 'SstListEquipamentoNaoConformidades',
+                        'icon' => 'fas fa-exclamation-triangle',
+                        'related_routes' => [
+                            'sst-list-equipamento-nao-conformidades',
+                            'sst-view-equipamento-nao-conformidade',
+                            'sst-create-equipamento-acao-corretiva',
+                            'sst-update-equipamento-acao-corretiva',
+                            'sst-encerrar-equipamento-nao-conformidade',
                         ],
                     ],
                     [

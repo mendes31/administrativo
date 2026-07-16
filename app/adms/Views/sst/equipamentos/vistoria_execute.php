@@ -5,6 +5,7 @@ use App\adms\Helpers\UserFormHelper;
 $vistoria = $this->data['vistoria'] ?? [];
 $respostas = $this->data['respostas'] ?? [];
 $anexos = $this->data['anexos'] ?? [];
+$naoConformidades = $this->data['nao_conformidades'] ?? [];
 $readonly = !empty($this->data['readonly']);
 $perms = $this->data['buttonPermission'] ?? [];
 $csrfToken = CSRFHelper::generateCSRFToken('sst_equipamento_vistoria');
@@ -67,6 +68,36 @@ $fromQs = $fromQr ? '?from=qr' : '';
                    class="btn btn-outline-danger btn-sm" target="_blank" rel="noopener">
                     <i class="fas fa-file-pdf me-1"></i>Documento para impressão (PDF)
                 </a>
+            </div>
+            <?php endif; ?>
+            <?php if ($readonly && ($vistoria['resultado'] ?? '') === 'Não conforme'): ?>
+            <div class="mt-3">
+                <?php if ($naoConformidades === []): ?>
+                <div class="alert alert-warning py-2 small mb-0">
+                    Resultado <strong>Não conforme</strong>. As NCs serão geradas automaticamente; atualize a página se não aparecerem.
+                </div>
+                <?php else: ?>
+                <div class="alert alert-warning py-2 small mb-0">
+                    <div class="fw-semibold mb-1">Resultado histórico: Não conforme</div>
+                    <ul class="mb-0 ps-3">
+                        <?php foreach ($naoConformidades as $ncRow): ?>
+                        <li>
+                            <a href="<?= htmlspecialchars($urlAdm) ?>sst-view-equipamento-nao-conformidade/<?= (int) $ncRow['id'] ?>">
+                                <?= htmlspecialchars($ncRow['codigo'] ?? 'NC') ?>
+                            </a>
+                            — <?= htmlspecialchars($ncRow['descricao'] ?? '') ?>
+                            · <strong><?= htmlspecialchars($ncRow['status'] ?? '') ?></strong>
+                            <?php if (($ncRow['status'] ?? '') === 'Encerrada' && !empty($ncRow['acao_encerramento_codigo'])): ?>
+                            <span class="text-success">
+                                (encerrada mediante <?= htmlspecialchars($ncRow['acao_encerramento_codigo']) ?>)
+                            </span>
+                            <?php endif; ?>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
+                    <div class="mt-1 text-muted">A vistoria não muda para Conforme após a correção — o tratamento fica na NC/ação corretiva.</div>
+                </div>
+                <?php endif; ?>
             </div>
             <?php endif; ?>
         </div>

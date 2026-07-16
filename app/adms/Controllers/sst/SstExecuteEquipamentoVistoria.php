@@ -7,8 +7,10 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\SstAnexosRepository;
+use App\adms\Models\Repository\SstEquipamentoNaoConformidadesRepository;
 use App\adms\Models\Repository\SstEquipamentoVistoriasRepository;
 use App\adms\Models\Services\SstAnexosUploadService;
+use App\adms\Models\Services\SstEquipamentoNaoConformidadeService;
 use App\adms\Views\Services\LoadViewService;
 
 class SstExecuteEquipamentoVistoria
@@ -48,6 +50,12 @@ class SstExecuteEquipamentoVistoria
         $this->data['vistoria'] = $vistoria;
         $this->data['respostas'] = $repo->getRespostas($id);
         $this->data['anexos'] = (new SstAnexosRepository())->getByEntity(self::ENTITY, $id);
+        $ncService = new SstEquipamentoNaoConformidadeService();
+        // Vistorias NC antigas (antes do módulo): gera NCs na primeira abertura.
+        if ($readonly && ($vistoria['resultado'] ?? '') === 'Não conforme') {
+            $ncService->createFromVistoria($id);
+        }
+        $this->data['nao_conformidades'] = (new SstEquipamentoNaoConformidadesRepository())->getByVistoriaId($id);
         $this->data['readonly'] = $readonly;
         $pageElements = [
             'title_head' => $readonly ? 'Vistoria concluída - SST' : 'Executar vistoria - SST',
@@ -56,6 +64,9 @@ class SstExecuteEquipamentoVistoria
                 'SstExecuteEquipamentoVistoria',
                 'SstExportEquipamentoVistoriaPdf',
                 'SstViewAnexo',
+                'SstViewEquipamentoNaoConformidade',
+                'SstListEquipamentoNaoConformidades',
+                'SstCreateEquipamentoAcaoCorretiva',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
@@ -135,8 +146,22 @@ class SstExecuteEquipamentoVistoria
             $_SERVER['REMOTE_ADDR'] ?? null,
             $_SERVER['HTTP_USER_AGENT'] ?? null,
         );
-        $_SESSION['msg'] = $ok ? 'Vistoria concluída.' : 'Erro ao salvar vistoria.';
-        $_SESSION['msg_type'] = $ok ? 'success' : 'danger';
+        if ($ok) {
+            $createdNcs = (new SstEquipamentoNaoConformidadeService())->createFromVistoria($id);
+            if ($createdNcs !== []) {
+                $n = count($createdNcs);
+                $_SESSION['msg'] = 'Vistoria concluída. '
+                    . ($n === 1
+                        ? 'Foi aberta 1 não conformidade para tratamento.'
+                        : "Foram abertas {$n} não conformidades para tratamento.");
+            } else {
+                $_SESSION['msg'] = 'Vistoria concluída.';
+            }
+            $_SESSION['msg_type'] = 'success';
+        } else {
+            $_SESSION['msg'] = 'Erro ao salvar vistoria.';
+            $_SESSION['msg_type'] = 'danger';
+        }
         header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . $id);
         exit;
     }

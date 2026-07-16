@@ -76,7 +76,28 @@
 <li>Se houver vistoria aberta e você for o responsável, use <strong>Iniciar vistoria</strong>. A ficha completa e o registro de recarga ficam nos atalhos do painel.</li>
 <li>Na execução da vistoria pelo celular, o checklist aparece em cartões (um item por vez), com botão de concluir fixo na parte inferior; no computador continua em tabela.</li>
 <li>Use <strong>Fotos da vistoria</strong> para fotografar pelo celular (câmera) ou anexar da galeria. Cada imagem é salva com <strong>data e hora</strong> do envio. Dá para salvar as fotos antes de concluir ou anexar mais ao finalizar.</li>
-<li>Após concluir, use <strong>Documento para impressão (PDF)</strong> / <strong>Imprimir</strong>: o relatório traz dados do equipamento, checklist, assinatura eletrônica e as fotos anexadas.</li>
+<li>Após concluir, use <strong>Documento para impressão (PDF)</strong> / <strong>Imprimir</strong>: o relatório traz dados do equipamento, checklist, assinatura eletrônica, fotos da vistoria e, quando houver NC, as <strong>evidências da ação corretiva</strong> (fotos e dados da AC que encerrou a NC).</li>
+<li>Se a vistoria ficar <strong>Não conforme</strong>, o sistema abre automaticamente uma <strong>NC</strong> por item (ex.: NC-000012). A vistoria <em>não</em> volta a Conforme depois da correção.</li>
+<li>Trate o desvio em <strong>NCs de equipamentos</strong>: cadastre <strong>ação corretiva</strong> (responsável, prazo, evidências) e, ao concluir a AC, <strong>encerre a NC mediante a AC</strong>. O histórico fica: vistoria NC + NC encerrada pela AC-xxx.</li>
+<li>Enquanto houver NC aberta, o equipamento pode ficar com status <strong>Bloqueado</strong>; ao encerrar todas as NCs, volta a <strong>Ativo</strong>.</li>
+
+<h2 id="relatorio-auditoria">Relatório de auditoria (vistorias e recargas)</h2>
+<p>Documento PDF no padrão institucional (mesmo cabeçalho com logo das LNTs), para auditorias internas/externas.</p>
+<ol>
+<li>Na ficha do equipamento: <strong>Relatório auditoria</strong> → informe data início e fim → <strong>Gerar PDF</strong>.</li>
+<li>Na lista de equipamentos: <strong>Relatório período</strong> gera o consolidado (opcionalmente filtrando filial/grupo).</li>
+<li>O PDF traz identificação da empresa/unidade, dados do equipamento (quando unitário), tabela de vistorias e tabela de recargas do período. Itens Não conforme ficam destacados.</li>
+</ol>
+
+<h2 id="nao-conformidades">Não conformidades e ações corretivas</h2>
+<p>Fluxo padrão de mercado: inspeção = diagnóstico; NC + ação corretiva = tratamento; a vistoria original permanece como evidência histórica.</p>
+<ol>
+<li>Conclua a vistoria com item(ns) Não conforme.</li>
+<li>Abra a NC gerada (pela vistoria ou pelo menu <strong>NCs de equipamentos</strong>).</li>
+<li>Crie ação corretiva com prazo e responsável; anexe fotos da correção.</li>
+<li>Marque a AC como <strong>Concluído</strong>.</li>
+<li>Use <strong>Encerrar NC</strong> selecionando a AC. A mensagem registra: NC-xxx encerrada mediante AC-yyy.</li>
+</ol>
 </ol>
 
 <h2 id="aba-vistorias-abertas">Minhas vistorias — Abertas</h2>
@@ -94,6 +115,7 @@
 <dt>QR cai no dashboard após login</dt><dd>Atualize a página e escaneie de novo; o retorno pós-login deve abrir o painel do equipamento. Se persistir, limpe o cache do navegador e confirme que a URL do QR contém <code>sst-scan-equipamento/</code> + token.</dd>
 <dt>QR não abre vistoria</dt><dd>Equipamento inativo/baixado, você não é o responsável, ou vistoria já concluída no período. O painel ainda mostra os dados e o status de recarga.</dd>
 <dt>PDF da vistoria sem fotos</dt><dd>Anexe as imagens na tela de execução (câmera/galeria) e clique em Salvar fotos antes ou ao concluir. O PDF só lista fotos já gravadas.</dd>
+<dt>Vistoria Não conforme — o que fazer?</dt><dd>Não abra outra vistoria da mesma competência. Trate pela NC gerada + ação corretiva e encerre a NC. A vistoria continua Não conforme no histórico.</dd>
 <dt>Vistoria vencida no dashboard</dt><dd>Execute a vistoria ou reassigne o responsável.</dd>
 <dt>Checklist vazio</dt><dd>Inclua itens no cadastro do tipo de equipamento.</dd>
 <dt>Não conforme sem ação</dt><dd>Abra plano de correção com prazo.</dd>

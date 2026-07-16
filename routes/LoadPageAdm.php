@@ -229,7 +229,13 @@ class LoadPageAdm
         "SstListEquipamentos", "SstCreateEquipamento", "SstViewEquipamento", "SstUpdateEquipamento", "SstDeleteEquipamento",
         "SstListEquipamentoVistorias", "SstMinhasEquipamentoVistorias", "SstExecuteEquipamentoVistoria",
         "SstGenerateEquipamentoVistoria", "SstScanEquipamento", "SstExportEquipamentoQr",
+        "SstListEquipamentos", "SstCreateEquipamento", "SstViewEquipamento", "SstUpdateEquipamento", "SstDeleteEquipamento",
+        "SstListEquipamentoVistorias", "SstMinhasEquipamentoVistorias", "SstExecuteEquipamentoVistoria",
+        "SstGenerateEquipamentoVistoria", "SstScanEquipamento", "SstExportEquipamentoQr",
         "SstRegisterEquipamentoRecarga", "SstExportEquipamentoVistoriaPdf", "SstViewAnexo",
+        "SstListEquipamentoNaoConformidades", "SstViewEquipamentoNaoConformidade",
+        "SstCreateEquipamentoAcaoCorretiva", "SstUpdateEquipamentoAcaoCorretiva",
+        "SstEncerrarEquipamentoNaoConformidade", "SstExportEquipamentoAuditoriaPdf",
     ];
 
     /** @var array $listDirectory Recebe a lista de diretórios com as controllers */

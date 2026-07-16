@@ -22,6 +22,11 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-scan-equipamento" class="btn btn-success btn-sm"><i class="fas fa-qrcode"></i> Ler QR</a>
                 <?php endif; ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-minhas-equipamento-vistorias" class="btn btn-outline-primary btn-sm"><i class="fas fa-tasks"></i> Minhas vistorias</a>
+                <?php if (in_array('SstExportEquipamentoAuditoriaPdf', $perms, true)): ?>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuditoriaConsolidado">
+                    <i class="fas fa-file-pdf"></i> Relatório período
+                </button>
+                <?php endif; ?>
                 <?php if (in_array('SstCreateEquipamento', $perms, true)): ?>
                 <a href="<?= $_ENV['URL_ADM']; ?>sst-create-equipamento" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Novo</a>
                 <?php endif; ?>
@@ -84,3 +89,59 @@ $csrfDelete = CSRFHelper::generateCSRFToken('form_delete_sst_equipamentos');
         </div>
     </div>
 </div>
+
+<?php if (in_array('SstExportEquipamentoAuditoriaPdf', $perms, true)): ?>
+<?php
+$dePadrao = date('Y-01-01');
+$atePadrao = date('Y-m-d');
+$fEmpresa = (string) ($this->data['filters']['empresa_contratante'] ?? '');
+$fTipo = (string) ($this->data['filters']['adms_sst_equipamento_tipo_id'] ?? '');
+?>
+<div class="modal fade" id="modalAuditoriaConsolidado" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="GET" action="<?= $_ENV['URL_ADM']; ?>sst-export-equipamento-auditoria-pdf" target="_blank">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-file-pdf me-2 text-danger"></i>Relatório consolidado por período</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted mb-2">PDF institucional com vistorias e recargas de todos os equipamentos (respeita filtros de filial/grupo abaixo).</p>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label" for="c_data_inicio">Data início *</label>
+                            <input type="date" name="data_inicio" id="c_data_inicio" class="form-control" required value="<?= htmlspecialchars($dePadrao) ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="c_data_fim">Data fim *</label>
+                            <input type="date" name="data_fim" id="c_data_fim" class="form-control" required value="<?= htmlspecialchars($atePadrao) ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="c_empresa">Filial</label>
+                            <select name="empresa_contratante" id="c_empresa" class="form-select">
+                                <option value="">Todas</option>
+                                <?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?>
+                                <option value="<?= htmlspecialchars((string) $slug) ?>" <?= $fEmpresa === (string) $slug ? 'selected' : '' ?>><?= htmlspecialchars((string) $empLabel) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="c_tipo">Grupo</label>
+                            <select name="tipo_id" id="c_tipo" class="form-select">
+                                <option value="">Todos</option>
+                                <?php foreach ($this->data['tipos'] ?? [] as $t): ?>
+                                <option value="<?= (int) $t['id'] ?>" <?= $fTipo === (string) $t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome'] ?? '') ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-print me-1"></i>Gerar PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>

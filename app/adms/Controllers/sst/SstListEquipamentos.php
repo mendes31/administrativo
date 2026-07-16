@@ -41,7 +41,7 @@ class SstListEquipamentos
         $pageElements = [
             'title_head' => 'Equipamentos de segurança - SST',
             'menu' => 'sst-list-equipamentos',
-            'buttonPermission' => ['SstListEquipamentos', 'SstCreateEquipamento', 'SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento', 'SstScanEquipamento'],
+            'buttonPermission' => ['SstListEquipamentos', 'SstCreateEquipamento', 'SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento', 'SstScanEquipamento', 'SstExportEquipamentoAuditoriaPdf'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/equipamentos/list', $this->data))->loadView();

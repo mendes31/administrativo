@@ -54,7 +54,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                     <div class="col-md-3 mb-3">
                         <label class="form-label" for="status">Status</label>
                         <select name="status" id="status" class="form-select">
-                            <?php foreach (['Ativo','Inativo','Baixado'] as $s): ?>
+                            <?php foreach (['Ativo','Inativo','Baixado','Bloqueado'] as $s): ?>
                             <option value="<?= $s ?>" <?= ($item['status'] ?? 'Ativo') === $s ? 'selected' : '' ?>><?= $s ?></option>
                             <?php endforeach; ?>
                         </select>

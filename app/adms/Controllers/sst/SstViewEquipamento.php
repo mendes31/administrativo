@@ -38,7 +38,7 @@ class SstViewEquipamento
                 'SstViewEquipamento', 'SstUpdateEquipamento', 'SstDeleteEquipamento',
                 'SstExecuteEquipamentoVistoria', 'SstGenerateEquipamentoVistoria',
                 'SstExportEquipamentoQr', 'SstScanEquipamento',
-                'SstRegisterEquipamentoRecarga',
+                'SstRegisterEquipamentoRecarga', 'SstExportEquipamentoAuditoriaPdf',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

@@ -35,6 +35,11 @@ if ($validadeMeses <= 0) {
             <span><?= htmlspecialchars($item['tipo_nome'] ?? '') ?></span>
             <span class="ms-auto">
                 <?php if (in_array('SstUpdateEquipamento', $perms, true)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-update-equipamento/<?= $id ?>" class="btn btn-warning btn-sm"><i class="fa-regular fa-pen-to-square"></i> Editar</a><?php endif; ?>
+                <?php if (in_array('SstExportEquipamentoAuditoriaPdf', $perms, true)): ?>
+                <button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalAuditoriaPdf">
+                    <i class="fas fa-file-pdf"></i> Relatório auditoria
+                </button>
+                <?php endif; ?>
             </span>
         </div>
         <div class="card-body">
@@ -227,3 +232,39 @@ if ($validadeMeses <= 0) {
         </div>
     </div>
 </div>
+
+<?php if (in_array('SstExportEquipamentoAuditoriaPdf', $perms, true)): ?>
+<?php
+$dePadrao = date('Y-01-01');
+$atePadrao = date('Y-m-d');
+?>
+<div class="modal fade" id="modalAuditoriaPdf" tabindex="-1" aria-labelledby="modalAuditoriaPdfLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="GET" action="<?= $_ENV['URL_ADM']; ?>sst-export-equipamento-auditoria-pdf/<?= $id ?>" target="_blank">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalAuditoriaPdfLabel"><i class="fas fa-file-pdf me-2 text-danger"></i>Relatório para auditoria</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="small text-muted">Gera PDF profissional (cabeçalho institucional) com <strong>todas as vistorias</strong> e <strong>recargas</strong> do equipamento no período.</p>
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label" for="aud_data_inicio">Data início *</label>
+                            <input type="date" name="data_inicio" id="aud_data_inicio" class="form-control" required value="<?= htmlspecialchars($dePadrao) ?>">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label" for="aud_data_fim">Data fim *</label>
+                            <input type="date" name="data_fim" id="aud_data_fim" class="form-control" required value="<?= htmlspecialchars($atePadrao) ?>">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-danger"><i class="fas fa-print me-1"></i>Gerar PDF</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+<?php endif; ?>

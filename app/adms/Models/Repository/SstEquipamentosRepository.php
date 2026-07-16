@@ -244,6 +244,56 @@ class SstEquipamentosRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Histórico de vistorias no período (por data realizada ou prevista).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listVistoriasByPeriodo(
+        ?int $equipamentoId,
+        string $dataInicio,
+        string $dataFim,
+        ?string $empresaContratante = null,
+        ?int $tipoId = null,
+    ): array {
+        $where = [
+            'WHERE DATE(COALESCE(v.data_realizada, v.data_prevista)) BETWEEN :de AND :ate',
+        ];
+        $params = [
+            ':de' => $dataInicio,
+            ':ate' => $dataFim,
+        ];
+        if ($equipamentoId !== null && $equipamentoId > 0) {
+            $where[] = 'v.adms_sst_equipamento_id = :eq';
+            $params[':eq'] = $equipamentoId;
+        }
+        if ($empresaContratante !== null && $empresaContratante !== '') {
+            $where[] = 'e.empresa_contratante = :empresa';
+            $params[':empresa'] = $empresaContratante;
+        }
+        if ($tipoId !== null && $tipoId > 0) {
+            $where[] = 'e.adms_sst_equipamento_tipo_id = :tipo';
+            $params[':tipo'] = $tipoId;
+        }
+
+        $sql = 'SELECT v.*, e.codigo AS equipamento_codigo, e.localizacao, e.empresa_contratante,
+                       e.patrimonio, e.numero_serie, e.status AS equipamento_status,
+                       t.nome AS tipo_nome, u.name AS executor_nome
+                FROM adms_sst_equipamento_vistorias v
+                INNER JOIN adms_sst_equipamentos e ON e.id = v.adms_sst_equipamento_id
+                INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
+                LEFT JOIN adms_users u ON u.id = v.executor_adms_user_id
+                ' . implode(' AND ', $where) . '
+                ORDER BY e.codigo ASC, COALESCE(v.data_realizada, v.data_prevista) ASC, v.id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     private function bindEquipamento(\PDOStatement $stmt, array $data, int $uid): void
     {
         $stmt->bindValue(':codigo', strtoupper(trim((string) ($data['codigo'] ?? ''))));

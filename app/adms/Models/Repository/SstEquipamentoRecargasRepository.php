@@ -29,6 +29,51 @@ class SstEquipamentoRecargasRepository extends DbConnection
     }
 
     /**
+     * @return list<array<string, mixed>>
+     */
+    public function listByPeriodo(
+        ?int $equipamentoId,
+        string $dataInicio,
+        string $dataFim,
+        ?string $empresaContratante = null,
+        ?int $tipoId = null,
+    ): array {
+        $where = ['WHERE r.data_recarga BETWEEN :de AND :ate'];
+        $params = [
+            ':de' => $dataInicio,
+            ':ate' => $dataFim,
+        ];
+        if ($equipamentoId !== null && $equipamentoId > 0) {
+            $where[] = 'r.adms_sst_equipamento_id = :eq';
+            $params[':eq'] = $equipamentoId;
+        }
+        if ($empresaContratante !== null && $empresaContratante !== '') {
+            $where[] = 'e.empresa_contratante = :empresa';
+            $params[':empresa'] = $empresaContratante;
+        }
+        if ($tipoId !== null && $tipoId > 0) {
+            $where[] = 'e.adms_sst_equipamento_tipo_id = :tipo';
+            $params[':tipo'] = $tipoId;
+        }
+
+        $sql = 'SELECT r.*, e.codigo AS equipamento_codigo, e.localizacao, e.empresa_contratante,
+                       t.nome AS tipo_nome, u.name AS created_by_nome
+                FROM adms_sst_equipamento_recargas r
+                INNER JOIN adms_sst_equipamentos e ON e.id = r.adms_sst_equipamento_id
+                INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
+                LEFT JOIN adms_users u ON u.id = r.created_by
+                ' . implode(' AND ', $where) . '
+                ORDER BY e.codigo ASC, r.data_recarga ASC, r.id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Registra evento, atualiza datas no equipamento e devolve o id do histórico.
      *
      * @param array{

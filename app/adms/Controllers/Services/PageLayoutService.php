@@ -764,6 +764,12 @@ class PageLayoutService
             'SstExportEquipamentoQr',
             'SstExportEquipamentoVistoriaPdf',
             'SstViewAnexo',
+            'SstListEquipamentoNaoConformidades',
+            'SstViewEquipamentoNaoConformidade',
+            'SstCreateEquipamentoAcaoCorretiva',
+            'SstUpdateEquipamentoAcaoCorretiva',
+            'SstEncerrarEquipamentoNaoConformidade',
+            'SstExportEquipamentoAuditoriaPdf',
         ];
 
         // Verificar se o usuário está logado
