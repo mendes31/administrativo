@@ -4,18 +4,22 @@ use App\adms\Helpers\UserFormHelper;
 
 $vistoria = $this->data['vistoria'] ?? [];
 $respostas = $this->data['respostas'] ?? [];
+$anexos = $this->data['anexos'] ?? [];
 $readonly = !empty($this->data['readonly']);
+$perms = $this->data['buttonPermission'] ?? [];
 $csrfToken = CSRFHelper::generateCSRFToken('sst_equipamento_vistoria');
 $id = (int) ($vistoria['id'] ?? 0);
 $fromQr = isset($_GET['from']) && $_GET['from'] === 'qr';
 $assinaturaEm = $vistoria['assinatura_confirmada_em'] ?? null;
 $filialLabel = UserFormHelper::empresaContratanteLabel($vistoria['empresa_contratante'] ?? null);
 $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
+$podePdf = $readonly && in_array('SstExportEquipamentoVistoriaPdf', $perms, true);
+$fromQs = $fromQr ? '?from=qr' : '';
 ?>
 <div class="container-fluid px-3 px-md-4 pb-5 pb-md-3">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
     <?php if ($fromQr && !$readonly): ?>
-    <div class="alert alert-info py-2 small"><i class="fas fa-qrcode me-1"></i>Equipamento identificado via QR Code. Preencha o checklist e confirme a declaração para concluir.</div>
+    <div class="alert alert-info py-2 small"><i class="fas fa-qrcode me-1"></i>Equipamento identificado via QR Code. Preencha o checklist, anexe fotos e confirme a declaração para concluir.</div>
     <?php endif; ?>
 
     <div class="mb-2 d-flex flex-column flex-md-row gap-2 align-items-md-center">
@@ -57,6 +61,77 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
                     </div>
                 </div>
             </div>
+            <?php if ($podePdf): ?>
+            <div class="mt-3">
+                <a href="<?= htmlspecialchars($urlAdm) ?>sst-export-equipamento-vistoria-pdf/<?= $id ?>"
+                   class="btn btn-outline-danger btn-sm" target="_blank" rel="noopener">
+                    <i class="fas fa-file-pdf me-1"></i>Documento para impressão (PDF)
+                </a>
+            </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-3">
+        <div class="card-header bg-white fw-semibold d-flex align-items-center gap-2">
+            <i class="fas fa-camera"></i> Fotos da vistoria
+            <span class="badge bg-secondary"><?= count($anexos) ?></span>
+        </div>
+        <div class="card-body px-2 px-md-3">
+            <?php if ($anexos !== []): ?>
+            <div class="row g-2 mb-3">
+                <?php foreach ($anexos as $anexo): ?>
+                <?php
+                    $aid = (int) ($anexo['id'] ?? 0);
+                    $quando = !empty($anexo['created_at'])
+                        ? date('d/m/Y H:i', strtotime((string) $anexo['created_at']))
+                        : '—';
+                    $viewUrl = htmlspecialchars($urlAdm) . 'sst-view-anexo/' . $aid;
+                ?>
+                <div class="col-6 col-md-4 col-lg-3">
+                    <div class="card h-100 border shadow-sm">
+                        <a href="<?= $viewUrl ?>" target="_blank" rel="noopener" class="ratio ratio-1x1 bg-light">
+                            <img src="<?= $viewUrl ?>" alt="<?= htmlspecialchars($anexo['file_name'] ?? 'Foto') ?>"
+                                 class="object-fit-cover rounded-top" style="object-fit:cover;width:100%;height:100%">
+                        </a>
+                        <div class="card-body p-2 small">
+                            <div class="fw-semibold text-truncate" title="<?= htmlspecialchars($anexo['file_name'] ?? '') ?>">
+                                <?= htmlspecialchars($anexo['file_name'] ?? 'Foto') ?>
+                            </div>
+                            <div class="text-muted"><i class="far fa-clock me-1"></i><?= htmlspecialchars($quando) ?></div>
+                            <?php if (!empty($anexo['uploaded_by_name'])): ?>
+                            <div class="text-muted text-truncate"><?= htmlspecialchars($anexo['uploaded_by_name']) ?></div>
+                            <?php endif; ?>
+                            <?php if (!$readonly): ?>
+                            <div class="form-check mt-1">
+                                <input class="form-check-input" type="checkbox" form="form-vistoria-fotos" name="delete_anexos[]" value="<?= $aid ?>" id="del_foto_<?= $aid ?>">
+                                <label class="form-check-label text-danger" for="del_foto_<?= $aid ?>">Excluir ao salvar</label>
+                            </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+            <p class="small text-muted mb-3">Nenhuma foto anexada ainda.</p>
+            <?php endif; ?>
+
+            <?php if (!$readonly): ?>
+            <form method="POST" action="<?= htmlspecialchars($urlAdm) ?>sst-execute-equipamento-vistoria/<?= $id ?><?= htmlspecialchars($fromQs) ?>"
+                  enctype="multipart/form-data" class="border rounded p-3 bg-light" id="form-vistoria-fotos">
+                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                <input type="hidden" name="form_action" value="upload_fotos">
+                <label class="form-label fw-semibold" for="fotos_rapido">
+                    <i class="fas fa-camera me-1"></i>Adicionar fotos (câmera ou galeria)
+                </label>
+                <input type="file" name="fotos[]" id="fotos_rapido" class="form-control mb-2" accept="image/*" capture="environment" multiple>
+                <div class="form-text mb-2">Cada foto é salva com data e hora do envio (JPG, PNG, GIF, WEBP — máx. 10 MB). Marque “Excluir ao salvar” nas fotos que deseja remover.</div>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-cloud-upload-alt me-1"></i>Salvar fotos
+                </button>
+            </form>
+            <?php endif; ?>
         </div>
     </div>
 
@@ -65,8 +140,10 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
             <?= $readonly ? 'Checklist registrado' : 'Checklist de inspeção' ?>
         </div>
         <div class="card-body px-2 px-md-3">
-            <form method="POST" action="<?= htmlspecialchars($urlAdm) ?>sst-execute-equipamento-vistoria/<?= $id ?>" id="form-vistoria-execute">
+            <form method="POST" action="<?= htmlspecialchars($urlAdm) ?>sst-execute-equipamento-vistoria/<?= $id ?><?= htmlspecialchars($fromQs) ?>"
+                  id="form-vistoria-execute" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
+                <input type="hidden" name="form_action" value="conclude">
 
                 <div class="vistoria-checklist mb-3">
                     <?php foreach ($respostas as $idx => $r): ?>
@@ -124,6 +201,13 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
                     <?php endif; ?>
                 </div>
 
+                <?php if (!$readonly): ?>
+                <div class="mb-3 px-1 px-md-0">
+                    <label class="form-label" for="fotos_conclude"><i class="fas fa-images me-1"></i>Anexar mais fotos ao concluir (opcional)</label>
+                    <input type="file" name="fotos[]" id="fotos_conclude" class="form-control" accept="image/*" capture="environment" multiple>
+                </div>
+                <?php endif; ?>
+
                 <?php if ($readonly && !empty($assinaturaEm)): ?>
                 <div class="alert alert-light border small mb-3">
                     <strong>Assinatura eletrônica:</strong>
@@ -165,7 +249,15 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
                     <a href="<?= htmlspecialchars($urlAdm) ?>sst-minhas-equipamento-vistorias" class="btn btn-outline-secondary w-100">Voltar</a>
                 </div>
                 <?php else: ?>
-                <a href="<?= htmlspecialchars($urlAdm) ?>sst-minhas-equipamento-vistorias" class="btn btn-secondary">Voltar</a>
+                <div class="d-flex flex-wrap gap-2">
+                    <?php if ($podePdf): ?>
+                    <a href="<?= htmlspecialchars($urlAdm) ?>sst-export-equipamento-vistoria-pdf/<?= $id ?>"
+                       class="btn btn-danger" target="_blank" rel="noopener">
+                        <i class="fas fa-print me-1"></i>Imprimir / PDF
+                    </a>
+                    <?php endif; ?>
+                    <a href="<?= htmlspecialchars($urlAdm) ?>sst-minhas-equipamento-vistorias" class="btn btn-secondary">Voltar</a>
+                </div>
                 <?php endif; ?>
             </form>
         </div>

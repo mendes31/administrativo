@@ -762,6 +762,8 @@ class PageLayoutService
             'SstGenerateEquipamentoVistoria',
             'SstScanEquipamento',
             'SstExportEquipamentoQr',
+            'SstExportEquipamentoVistoriaPdf',
+            'SstViewAnexo',
         ];
 
         // Verificar se o usuário está logado

@@ -285,6 +285,8 @@
     "sst-encaminhamento-aso": "sst-asos",
     "sst-equipamento-settings": "sst-equipamentos",
     "sst-execute-equipamento-vistoria": "sst-equipamentos",
+    "sst-export-equipamento-vistoria-pdf": "sst-equipamentos",
+    "sst-view-anexo": "sst-equipamentos",
     "sst-list-acidentes": "sst-acidentes-afastamentos",
     "sst-list-afastamentos": "sst-acidentes-afastamentos",
     "sst-list-asos": "sst-asos",

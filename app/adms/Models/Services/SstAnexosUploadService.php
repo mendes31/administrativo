@@ -19,7 +19,7 @@ class SstAnexosUploadService
         'xls', 'xlsx', 'csv', 'txt', 'zip', 'rar', 'ppt', 'pptx',
     ];
 
-    public function processUploads(string $entityType, int $entityId, string $fieldName = 'attachments'): int
+    public function processUploads(string $entityType, int $entityId, string $fieldName = 'attachments', bool $imagesOnly = false): int
     {
         if ($entityId <= 0 || empty($_FILES[$fieldName]) || !is_array($_FILES[$fieldName]['name'])) {
             return 0;
@@ -33,6 +33,9 @@ class SstAnexosUploadService
         $repo = new SstAnexosRepository();
         $uploaded = 0;
         $fileCount = count($_FILES[$fieldName]['name']);
+        $allowed = $imagesOnly
+            ? ['jpg', 'jpeg', 'png', 'gif', 'webp']
+            : self::ALLOWED_EXTS;
 
         for ($i = 0; $i < $fileCount; $i++) {
             if (($_FILES[$fieldName]['error'][$i] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
@@ -49,11 +52,17 @@ class SstAnexosUploadService
             }
 
             $ext = strtolower(pathinfo($originalName, PATHINFO_EXTENSION));
-            if (!in_array($ext, self::ALLOWED_EXTS, true)) {
+            if (!in_array($ext, $allowed, true)) {
                 continue;
             }
 
-            $safeName = time() . '_' . $i . '_' . preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName);
+            if ($imagesOnly && $mimeType !== '' && !str_starts_with(strtolower($mimeType), 'image/')) {
+                continue;
+            }
+
+            $stamp = date('Ymd_His');
+            $safeOriginal = preg_replace('/[^a-zA-Z0-9._-]/', '_', $originalName) ?: ('foto.' . $ext);
+            $safeName = $stamp . '_' . $i . '_' . $safeOriginal;
             $destPath = $uploadDir . DIRECTORY_SEPARATOR . $safeName;
 
             if (!move_uploaded_file($tmpName, $destPath)) {
@@ -66,7 +75,7 @@ class SstAnexosUploadService
                 'entity_id' => $entityId,
                 'file_name' => $originalName,
                 'file_path' => $relativePath,
-                'mime_type' => $mimeType,
+                'mime_type' => $mimeType !== '' ? $mimeType : ('image/' . ($ext === 'jpg' ? 'jpeg' : $ext)),
                 'file_size' => $fileSize,
             ]);
 
@@ -105,6 +114,16 @@ class SstAnexosUploadService
         }
     }
 
+    public function absolutePath(string $relativePath): string
+    {
+        $relativePath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath), DIRECTORY_SEPARATOR);
+        $base = defined('APP_ROOT')
+            ? APP_ROOT
+            : rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
+
+        return $base . DIRECTORY_SEPARATOR . $relativePath;
+    }
+
     private function uploadDir(string $entityType, int $entityId): string
     {
         return $this->storageBase() . DIRECTORY_SEPARATOR . $entityType . DIRECTORY_SEPARATOR . $entityId;
@@ -117,15 +136,5 @@ class SstAnexosUploadService
             : rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
 
         return $base . DIRECTORY_SEPARATOR . 'storage' . DIRECTORY_SEPARATOR . 'sst' . DIRECTORY_SEPARATOR . 'attachments';
-    }
-
-    private function absolutePath(string $relativePath): string
-    {
-        $relativePath = ltrim(str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $relativePath), DIRECTORY_SEPARATOR);
-        $base = defined('APP_ROOT')
-            ? APP_ROOT
-            : rtrim((string) ($_SERVER['DOCUMENT_ROOT'] ?? ''), '/\\');
-
-        return $base . DIRECTORY_SEPARATOR . $relativePath;
     }
 }

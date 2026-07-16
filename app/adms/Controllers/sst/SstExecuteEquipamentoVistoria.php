@@ -6,11 +6,15 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\SstAnexosRepository;
 use App\adms\Models\Repository\SstEquipamentoVistoriasRepository;
+use App\adms\Models\Services\SstAnexosUploadService;
 use App\adms\Views\Services\LoadViewService;
 
 class SstExecuteEquipamentoVistoria
 {
+    private const ENTITY = 'equipamento_vistorias';
+
     private array $data = [];
 
     public function index(string|int $id = 0): void
@@ -24,34 +28,68 @@ class SstExecuteEquipamentoVistoria
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-minhas-equipamento-vistorias');
             exit;
         }
-        if (($vistoria['status'] ?? '') === 'Concluída') {
-            $this->data['vistoria'] = $vistoria;
-            $this->data['respostas'] = $repo->getRespostas($id);
-            $this->data['readonly'] = true;
-            $pageElements = [
-                'title_head' => 'Vistoria concluída - SST',
-                'menu' => 'sst-minhas-equipamento-vistorias',
-                'buttonPermission' => ['SstExecuteEquipamentoVistoria'],
-            ];
-            $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
-            (new LoadViewService('adms/Views/sst/equipamentos/vistoria_execute', $this->data))->loadView();
-            return;
-        }
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($vistoria['status'] ?? '') !== 'Concluída') {
+            $action = (string) ($_POST['form_action'] ?? 'conclude');
+            if ($action === 'upload_fotos') {
+                $this->uploadFotos($id);
+                return;
+            }
             $this->conclude($id, $repo);
             return;
         }
-        $repo->markEmAndamento($id, (int) ($_SESSION['user_id'] ?? 0));
-        $this->data['vistoria'] = $repo->getById($id);
+
+        $readonly = ($vistoria['status'] ?? '') === 'Concluída';
+        if (!$readonly) {
+            $repo->markEmAndamento($id, (int) ($_SESSION['user_id'] ?? 0));
+            $vistoria = $repo->getById($id) ?? $vistoria;
+        }
+
+        $this->data['vistoria'] = $vistoria;
         $this->data['respostas'] = $repo->getRespostas($id);
-        $this->data['readonly'] = false;
+        $this->data['anexos'] = (new SstAnexosRepository())->getByEntity(self::ENTITY, $id);
+        $this->data['readonly'] = $readonly;
         $pageElements = [
-            'title_head' => 'Executar vistoria - SST',
+            'title_head' => $readonly ? 'Vistoria concluída - SST' : 'Executar vistoria - SST',
             'menu' => 'sst-minhas-equipamento-vistorias',
-            'buttonPermission' => ['SstExecuteEquipamentoVistoria'],
+            'buttonPermission' => [
+                'SstExecuteEquipamentoVistoria',
+                'SstExportEquipamentoVistoriaPdf',
+                'SstViewAnexo',
+            ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/equipamentos/vistoria_execute', $this->data))->loadView();
+    }
+
+    private function uploadFotos(int $id): void
+    {
+        if (!CSRFHelper::validateCSRFToken('sst_equipamento_vistoria', $_POST['csrf_token'] ?? '')) {
+            $_SESSION['msg'] = 'Token inválido.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . $id);
+            exit;
+        }
+
+        $upload = new SstAnexosUploadService();
+        $toDelete = $_POST['delete_anexos'] ?? [];
+        $hadDeletes = is_array($toDelete) && $toDelete !== [];
+        $upload->processDeletions($toDelete, self::ENTITY, $id);
+        $n = $upload->processUploads(self::ENTITY, $id, 'fotos', true);
+
+        if ($n > 0) {
+            $_SESSION['msg'] = $n === 1 ? '1 foto salva com data e hora.' : "{$n} fotos salvas com data e hora.";
+            $_SESSION['msg_type'] = 'success';
+        } elseif ($hadDeletes) {
+            $_SESSION['msg'] = 'Fotos atualizadas.';
+            $_SESSION['msg_type'] = 'success';
+        } else {
+            $_SESSION['msg'] = 'Nenhuma foto nova foi enviada. Use JPG, PNG, GIF ou WEBP (máx. 10 MB).';
+            $_SESSION['msg_type'] = 'warning';
+        }
+        $qs = (!empty($_GET['from']) && $_GET['from'] === 'qr') ? '?from=qr' : '';
+        header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . $id . $qs);
+        exit;
     }
 
     private function conclude(int $id, SstEquipamentoVistoriasRepository $repo): void
@@ -62,6 +100,11 @@ class SstExecuteEquipamentoVistoria
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-execute-equipamento-vistoria/' . $id);
             exit;
         }
+
+        $upload = new SstAnexosUploadService();
+        $upload->processDeletions($_POST['delete_anexos'] ?? [], self::ENTITY, $id);
+        $upload->processUploads(self::ENTITY, $id, 'fotos', true);
+
         $respostas = [];
         foreach ($_POST['resposta'] ?? [] as $respId => $valor) {
             $respostas[] = [
