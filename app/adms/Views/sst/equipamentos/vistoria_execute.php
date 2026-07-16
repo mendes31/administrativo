@@ -19,7 +19,7 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
     <?php endif; ?>
 
     <div class="mb-2 d-flex flex-column flex-md-row gap-2 align-items-md-center">
-        <h2 class="mt-2 mt-md-3 mb-0 fs-4 fs-md-3">
+        <h2 class="mt-2 mt-md-3 mb-0 fs-4">
             <i class="fas fa-clipboard-check me-2"></i>Vistoria <?= htmlspecialchars($vistoria['competencia'] ?? '') ?>
         </h2>
         <ol class="breadcrumb mb-0 ms-md-auto small">
@@ -68,45 +68,7 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
             <form method="POST" action="<?= htmlspecialchars($urlAdm) ?>sst-execute-equipamento-vistoria/<?= $id ?>" id="form-vistoria-execute">
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfToken) ?>">
 
-                <div class="d-none d-md-block table-responsive mb-3">
-                    <table class="table table-bordered align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th style="width:11rem">Resposta</th>
-                                <th style="width:30%">Observação</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                        <?php foreach ($respostas as $r): ?>
-                            <tr class="<?= ($r['resposta'] ?? '') === 'Não conforme' ? 'table-danger' : '' ?>">
-                                <td><?= htmlspecialchars($r['descricao_snapshot'] ?? '') ?></td>
-                                <td>
-                                    <?php if ($readonly): ?>
-                                        <?= htmlspecialchars($r['resposta'] ?? '-') ?>
-                                    <?php else: ?>
-                                        <select name="resposta[<?= (int) $r['id'] ?>]" class="form-select form-select-sm" required>
-                                            <option value="">—</option>
-                                            <?php foreach (['Conforme', 'Não conforme', 'N/A'] as $opt): ?>
-                                            <option value="<?= $opt ?>" <?= ($r['resposta'] ?? '') === $opt ? 'selected' : '' ?>><?= $opt ?></option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                    <?php endif; ?>
-                                </td>
-                                <td>
-                                    <?php if ($readonly): ?>
-                                        <?= htmlspecialchars($r['observacao'] ?? '') ?>
-                                    <?php else: ?>
-                                        <input type="text" name="obs_item[<?= (int) $r['id'] ?>]" class="form-control form-control-sm" value="<?= htmlspecialchars($r['observacao'] ?? '') ?>">
-                                    <?php endif; ?>
-                                </td>
-                            </tr>
-                        <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="d-md-none vistoria-checklist-mobile mb-3">
+                <div class="vistoria-checklist mb-3">
                     <?php foreach ($respostas as $idx => $r): ?>
                     <?php
                         $naoConforme = ($r['resposta'] ?? '') === 'Não conforme';
@@ -114,29 +76,40 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
                     ?>
                     <div class="card mb-2 <?= $naoConforme ? 'border-danger' : 'border-light' ?> shadow-sm">
                         <div class="card-body p-3">
-                            <div class="d-flex align-items-start gap-2 mb-2">
-                                <span class="badge bg-secondary flex-shrink-0"><?= $idx + 1 ?></span>
-                                <div class="fw-semibold small lh-sm"><?= htmlspecialchars($r['descricao_snapshot'] ?? '') ?></div>
-                            </div>
-                            <?php if ($readonly): ?>
-                                <div class="mb-1">
-                                    <span class="text-muted small">Resposta:</span>
-                                    <span class="fw-semibold <?= $naoConforme ? 'text-danger' : '' ?>"><?= htmlspecialchars($r['resposta'] ?? '-') ?></span>
+                            <div class="row g-2 g-md-3 align-items-md-center">
+                                <div class="col-12 col-md-5">
+                                    <div class="d-flex align-items-start gap-2">
+                                        <span class="badge bg-secondary flex-shrink-0"><?= $idx + 1 ?></span>
+                                        <div class="fw-semibold small lh-sm"><?= htmlspecialchars($r['descricao_snapshot'] ?? '') ?></div>
+                                    </div>
                                 </div>
-                                <?php if (($r['observacao'] ?? '') !== ''): ?>
-                                <div class="small text-muted"><?= htmlspecialchars($r['observacao']) ?></div>
-                                <?php endif; ?>
-                            <?php else: ?>
-                                <label class="form-label small mb-1" for="resp_m_<?= $itemId ?>">Resposta</label>
-                                <select name="resposta[<?= $itemId ?>]" id="resp_m_<?= $itemId ?>" class="form-select mb-2" required>
-                                    <option value="">Selecione</option>
-                                    <?php foreach (['Conforme', 'Não conforme', 'N/A'] as $opt): ?>
-                                    <option value="<?= $opt ?>" <?= ($r['resposta'] ?? '') === $opt ? 'selected' : '' ?>><?= $opt ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <label class="form-label small mb-1" for="obs_m_<?= $itemId ?>">Observação</label>
-                                <input type="text" name="obs_item[<?= $itemId ?>]" id="obs_m_<?= $itemId ?>" class="form-control" value="<?= htmlspecialchars($r['observacao'] ?? '') ?>" placeholder="Opcional">
-                            <?php endif; ?>
+                                <div class="col-12 col-md-3">
+                                    <?php if ($readonly): ?>
+                                        <div class="small">
+                                            <span class="text-muted">Resposta:</span>
+                                            <span class="fw-semibold <?= $naoConforme ? 'text-danger' : '' ?>"><?= htmlspecialchars($r['resposta'] ?? '-') ?></span>
+                                        </div>
+                                    <?php else: ?>
+                                        <label class="form-label small mb-1 d-md-none" for="resp_<?= $itemId ?>">Resposta</label>
+                                        <select name="resposta[<?= $itemId ?>]" id="resp_<?= $itemId ?>" class="form-select" required>
+                                            <option value="">Selecione</option>
+                                            <?php foreach (['Conforme', 'Não conforme', 'N/A'] as $opt): ?>
+                                            <option value="<?= $opt ?>" <?= ($r['resposta'] ?? '') === $opt ? 'selected' : '' ?>><?= $opt ?></option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    <?php endif; ?>
+                                </div>
+                                <div class="col-12 col-md-4">
+                                    <?php if ($readonly): ?>
+                                        <?php if (($r['observacao'] ?? '') !== ''): ?>
+                                        <div class="small text-muted"><?= htmlspecialchars($r['observacao']) ?></div>
+                                        <?php endif; ?>
+                                    <?php else: ?>
+                                        <label class="form-label small mb-1 d-md-none" for="obs_<?= $itemId ?>">Observação</label>
+                                        <input type="text" name="obs_item[<?= $itemId ?>]" id="obs_<?= $itemId ?>" class="form-control" value="<?= htmlspecialchars($r['observacao'] ?? '') ?>" placeholder="Observação (opcional)">
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <?php endforeach; ?>
@@ -209,30 +182,10 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
         background: linear-gradient(to top, #fff 70%, rgba(255,255,255,0.92));
         border-top: 1px solid rgba(0,0,0,.08);
     }
-    .vistoria-checklist-mobile .form-select,
-    .vistoria-checklist-mobile .form-control {
+    .vistoria-checklist .form-select,
+    .vistoria-checklist .form-control {
         min-height: 2.75rem;
         font-size: 1rem;
     }
-    .vistoria-checklist-mobile .form-check-input {
-        margin-top: 0.2rem;
-    }
 }
 </style>
-<script>
-(function () {
-    var form = document.getElementById('form-vistoria-execute');
-    if (!form) return;
-    // Evita enviar o mesmo campo duas vezes (tabela desktop + cards mobile): desabilita o bloco oculto no submit.
-    form.addEventListener('submit', function () {
-        var isMobile = window.matchMedia('(max-width: 767.98px)').matches;
-        var desktop = form.querySelector('.d-none.d-md-block');
-        var mobile = form.querySelector('.d-md-none.vistoria-checklist-mobile');
-        var block = isMobile ? desktop : mobile;
-        if (!block) return;
-        block.querySelectorAll('select, input, textarea').forEach(function (el) {
-            el.disabled = true;
-        });
-    });
-})();
-</script>
