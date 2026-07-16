@@ -55,8 +55,8 @@ class SstEquipamentoVistoriasRepository extends DbConnection
 
     public function getById(int $id): ?array
     {
-        $sql = "SELECT v.*, e.codigo AS equipamento_codigo, e.localizacao, e.adms_department_id,
-                       e.responsavel_adms_user_id, e.adms_sst_equipamento_tipo_id,
+        $sql = "SELECT v.*, e.codigo AS equipamento_codigo, e.localizacao, e.empresa_contratante,
+                       e.adms_department_id, e.responsavel_adms_user_id, e.adms_sst_equipamento_tipo_id,
                        t.nome AS tipo_nome, u.name AS executor_nome, d.name AS departamento_nome,
                        ur.name AS responsavel_nome
                 FROM adms_sst_equipamento_vistorias v

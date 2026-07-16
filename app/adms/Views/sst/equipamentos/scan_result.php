@@ -2,6 +2,7 @@
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Helpers\SstEquipamentoRecargaHelper;
+use App\adms\Helpers\UserFormHelper;
 
 $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $context = $this->data['scan_context'] ?? [];
@@ -108,6 +109,10 @@ $tudoOk = $pendencias === [] && !in_array($code, ['inactive', 'forbidden'], true
                         <div class="col-6 col-md-4">
                             <div class="text-muted">Grupo</div>
                             <div class="fw-semibold"><?= htmlspecialchars($equipamento['tipo_nome'] ?? '—') ?></div>
+                        </div>
+                        <div class="col-6 col-md-4">
+                            <div class="text-muted">Filial</div>
+                            <div class="fw-semibold"><?= htmlspecialchars(UserFormHelper::empresaContratanteLabel($equipamento['empresa_contratante'] ?? null)) ?></div>
                         </div>
                         <div class="col-6 col-md-4">
                             <div class="text-muted">Fabricante / Tipo</div>
