@@ -58,6 +58,8 @@ $cronLine = (string) ($this->data['cron_line'] ?? '');
 
 $publicUrl = (string) ($this->data['public_channel_url'] ?? '');
 
+$logoUrl = $urlAdm . 'public/adms/image/logo/Logo-Tiaraju.png';
+
 $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' => 0, 'attachments' => 0, 'legacy_files' => 0];
 
 ?>
@@ -184,6 +186,34 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
         </div>
 
+    </div>
+
+
+
+    <div class="card border-light shadow-sm mb-3">
+        <div class="card-header fw-semibold">
+            <i class="fas fa-qrcode me-1"></i> QR Code e cartaz do canal
+        </div>
+        <div class="card-body">
+            <div class="row align-items-center g-3">
+                <div class="col-md-auto text-center">
+                    <div id="whistleblowing-public-qr" class="d-inline-block p-2 bg-white border rounded"></div>
+                </div>
+                <div class="col-md">
+                    <p class="small mb-2">
+                        O QR Code direciona para o canal público:
+                        <code class="user-select-all"><?= htmlspecialchars($publicUrl, ENT_QUOTES, 'UTF-8') ?></code>
+                    </p>
+                    <p class="small text-muted mb-3">
+                        Baixe um cartaz institucional em PNG, pronto para impressão e divulgação. O material não contém endereço de e-mail.
+                    </p>
+                    <button type="button" class="btn btn-outline-primary btn-sm" id="download-whistleblowing-poster">
+                        <i class="fas fa-download me-1"></i>Baixar cartaz com QR Code
+                    </button>
+                    <div class="small text-danger mt-2 d-none" id="whistleblowing-qr-error" role="alert"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
 
@@ -566,5 +596,209 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
     <?php endif; ?>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+<script>
+(function () {
+    const publicUrl = <?= json_encode($publicUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    const logoUrl = <?= json_encode($logoUrl, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP) ?>;
+    const qrContainer = document.getElementById('whistleblowing-public-qr');
+    const downloadButton = document.getElementById('download-whistleblowing-poster');
+    const errorBox = document.getElementById('whistleblowing-qr-error');
+
+    function showError(message) {
+        if (!errorBox) return;
+        errorBox.textContent = message;
+        errorBox.classList.remove('d-none');
+    }
+
+    if (!qrContainer || !downloadButton || publicUrl === '') {
+        return;
+    }
+    if (typeof QRCode === 'undefined') {
+        downloadButton.disabled = true;
+        showError('Não foi possível carregar o gerador de QR Code. Verifique a conexão e atualize a página.');
+        return;
+    }
+
+    new QRCode(qrContainer, {
+        text: publicUrl,
+        width: 190,
+        height: 190,
+        colorDark: '#102f31',
+        colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.H
+    });
+
+    function roundedRect(ctx, x, y, width, height, radius) {
+        const r = Math.min(radius, width / 2, height / 2);
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.lineTo(x + width - r, y);
+        ctx.quadraticCurveTo(x + width, y, x + width, y + r);
+        ctx.lineTo(x + width, y + height - r);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - r, y + height);
+        ctx.lineTo(x + r, y + height);
+        ctx.quadraticCurveTo(x, y + height, x, y + height - r);
+        ctx.lineTo(x, y + r);
+        ctx.quadraticCurveTo(x, y, x + r, y);
+        ctx.closePath();
+    }
+
+    function drawWrappedText(ctx, text, centerX, startY, maxWidth, lineHeight) {
+        const words = text.split(/\s+/);
+        const lines = [];
+        let line = '';
+        words.forEach(function (word) {
+            const candidate = line === '' ? word : line + ' ' + word;
+            if (ctx.measureText(candidate).width > maxWidth && line !== '') {
+                lines.push(line);
+                line = word;
+            } else {
+                line = candidate;
+            }
+        });
+        if (line !== '') lines.push(line);
+        lines.forEach(function (item, index) {
+            ctx.fillText(item, centerX, startY + (index * lineHeight));
+        });
+
+        return startY + (lines.length * lineHeight);
+    }
+
+    function loadImage(src) {
+        return new Promise(function (resolve, reject) {
+            const image = new Image();
+            image.onload = function () { resolve(image); };
+            image.onerror = reject;
+            image.src = src;
+        });
+    }
+
+    function qrSource() {
+        return qrContainer.querySelector('canvas') || qrContainer.querySelector('img');
+    }
+
+    async function createPoster() {
+        const qr = qrSource();
+        if (!qr) {
+            throw new Error('QR Code ainda não está pronto.');
+        }
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 1240;
+        canvas.height = 1754;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+            throw new Error('Seu navegador não suporta a geração do cartaz.');
+        }
+
+        const gradient = ctx.createLinearGradient(0, 0, 1240, 1754);
+        gradient.addColorStop(0, '#173b3e');
+        gradient.addColorStop(0.55, '#244f50');
+        gradient.addColorStop(1, '#102f31');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.strokeStyle = 'rgba(255, 255, 255, .18)';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(34, 34, canvas.width - 68, canvas.height - 68);
+
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#f5f2e9';
+        ctx.font = '900 104px Arial, sans-serif';
+        ctx.fillText('NOVO CANAL', 620, 190);
+        ctx.fillText('DE DENÚNCIAS', 620, 310);
+
+        ctx.fillStyle = '#f2f3ef';
+        ctx.font = '500 35px Arial, sans-serif';
+        const descriptionEnd = drawWrappedText(
+            ctx,
+            'O Grupo Tiaraju disponibiliza um canal específico, seguro e confidencial para o recebimento de denúncias e relatos relacionados à ética, conduta e segurança de alimentos, garantindo respeito, integridade e o compromisso com a qualidade e segurança em todas as nossas atividades.',
+            620,
+            430,
+            1020,
+            48
+        );
+
+        ctx.fillStyle = '#78c5ae';
+        ctx.font = '700 39px Arial, sans-serif';
+        drawWrappedText(
+            ctx,
+            'Escaneie o QR Code e registre sua denúncia com facilidade',
+            620,
+            descriptionEnd + 65,
+            760,
+            48
+        );
+
+        const qrBoxSize = 500;
+        const qrBoxX = (canvas.width - qrBoxSize) / 2;
+        const qrBoxY = 860;
+        ctx.fillStyle = '#ffffff';
+        roundedRect(ctx, qrBoxX, qrBoxY, qrBoxSize, qrBoxSize, 42);
+        ctx.fill();
+        ctx.drawImage(qr, qrBoxX + 48, qrBoxY + 48, qrBoxSize - 96, qrBoxSize - 96);
+
+        ctx.fillStyle = '#f2f3ef';
+        ctx.font = '500 30px Arial, sans-serif';
+        drawWrappedText(
+            ctx,
+            'A denúncia pode ser realizada de forma anônima ou identificada, conforme a preferência do denunciante.',
+            620,
+            1435,
+            900,
+            40
+        );
+
+        try {
+            const logo = await loadImage(logoUrl);
+            const logoBoxX = 360;
+            const logoBoxY = 1550;
+            const logoBoxWidth = 520;
+            const logoBoxHeight = 125;
+            ctx.fillStyle = 'rgba(255, 255, 255, .94)';
+            roundedRect(ctx, logoBoxX, logoBoxY, logoBoxWidth, logoBoxHeight, 22);
+            ctx.fill();
+            const scale = Math.min((logoBoxWidth - 70) / logo.width, (logoBoxHeight - 35) / logo.height);
+            const logoWidth = logo.width * scale;
+            const logoHeight = logo.height * scale;
+            ctx.drawImage(
+                logo,
+                logoBoxX + ((logoBoxWidth - logoWidth) / 2),
+                logoBoxY + ((logoBoxHeight - logoHeight) / 2),
+                logoWidth,
+                logoHeight
+            );
+        } catch (e) {
+            ctx.fillStyle = '#f2f3ef';
+            ctx.font = '900 48px Arial, sans-serif';
+            ctx.fillText('GRUPO TIARAJU', 620, 1625);
+        }
+
+        return canvas;
+    }
+
+    downloadButton.addEventListener('click', async function () {
+        downloadButton.disabled = true;
+        const originalHtml = downloadButton.innerHTML;
+        downloadButton.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Gerando cartaz...';
+        errorBox?.classList.add('d-none');
+
+        try {
+            const poster = await createPoster();
+            const link = document.createElement('a');
+            link.download = 'cartaz-canal-de-denuncias.png';
+            link.href = poster.toDataURL('image/png');
+            link.click();
+        } catch (error) {
+            showError(error instanceof Error ? error.message : 'Não foi possível gerar o cartaz.');
+        } finally {
+            downloadButton.disabled = false;
+            downloadButton.innerHTML = originalHtml;
+        }
+    });
+})();
+</script>
 
 
