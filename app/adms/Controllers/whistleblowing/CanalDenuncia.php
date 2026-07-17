@@ -8,6 +8,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 use App\adms\Models\Services\WhistleblowingAttachmentFilenameHelper;
 use App\adms\Models\Repository\WhistleblowingMessagesRepository;
+use App\adms\Models\Repository\WhistleblowingConfigRepository;
 use App\adms\Models\Repository\WhistleblowingReportsRepository;
 use App\adms\Models\Services\WhistleblowingChannelSecurityService;
 use App\adms\Models\Services\WhistleblowingCaptchaService;
@@ -77,6 +78,18 @@ final class CanalDenuncia
             exit;
         }
 
+        $scope = 'registrar';
+        if ($this->rateLimit->isBlocked($scope)) {
+            $wait = $this->rateLimit->secondsUntilUnblock($scope);
+            $mins = max(1, (int) ceil($wait / 60));
+            $this->render('registrar', $this->registrarViewData([
+                'error' => 'Muitos envios a partir deste endereço. Aguarde cerca de ' . $mins
+                    . ' minuto(s) e tente novamente.',
+                'old' => $_POST,
+            ]));
+            return;
+        }
+
         if ($this->isPostTooLarge()) {
             $this->render('registrar', $this->registrarViewData([
                 'error' => 'O(s) anexo(s) ultrapassam o limite de envio do servidor. Máximo '
@@ -101,6 +114,9 @@ final class CanalDenuncia
             ]));
             return;
         }
+
+        // Conta envios reais (após CSRF/CAPTCHA) para conter spam mesmo com CAPTCHA desligado.
+        $this->rateLimit->recordAttempt($scope);
 
         $category = trim((string) ($_POST['category'] ?? ''));
         $riskLevel = trim((string) ($_POST['risk_level'] ?? 'Médio'));
@@ -192,6 +208,7 @@ final class CanalDenuncia
             'title' => 'Denúncia registrada',
             'protocol' => $result['protocol'],
             'password' => $result['password'],
+            ...$this->reporterInactivityViewData(),
         ]);
     }
 
@@ -299,6 +316,18 @@ final class CanalDenuncia
             exit;
         }
 
+        $scope = 'responder';
+        if ($this->rateLimit->isBlocked($scope)) {
+            $wait = $this->rateLimit->secondsUntilUnblock($scope);
+            $mins = max(1, (int) ceil($wait / 60));
+            $this->render('acompanhar', array_merge([
+                'title' => 'Acompanhar denúncia',
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_acompanhar'),
+                'error' => 'Muitas mensagens enviadas. Aguarde cerca de ' . $mins . ' minuto(s) e tente novamente.',
+            ], $this->captchaViewData()));
+            return;
+        }
+
         if (!CSRFHelper::validateCSRFToken('canal_denuncia_responder', $_POST['csrf_token'] ?? '', false)) {
             header('Location: ' . $this->baseUrl() . 'acompanhar');
             exit;
@@ -310,16 +339,32 @@ final class CanalDenuncia
 
         $report = $this->reportsRepo->verifyProtocolAndPassword($protocol, $password);
         if ($report === null) {
+            $this->rateLimit->recordFailedAttempt($scope);
             header('Location: ' . $this->baseUrl() . 'acompanhar');
             exit;
         }
 
         $reportId = (int) $report['id'];
 
+        if (($report['status'] ?? '') === 'Encerrada') {
+            $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
+            $this->render('detalhe', [
+                'title' => 'Acompanhamento — ' . $hydrated['protocol'],
+                'report' => $hydrated,
+                'messages' => $this->messagesRepo->getPublicMessagesByReportId($reportId),
+                'attachments' => $this->messagesRepo->getPublicAttachmentsByReportId($reportId),
+                'protocol' => $protocol,
+                'password' => $password,
+                'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_responder'),
+                ...$this->reporterInactivityViewData(),
+            ]);
+            return;
+        }
+
         $uploadResult = $this->uploadService->processMultiple($_FILES['attachments'] ?? null);
         if ($uploadResult['errors'] !== []) {
             $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
-            $messages = $this->messagesRepo->getMessagesByReportId($reportId, true);
+            $messages = $this->messagesRepo->getPublicMessagesByReportId($reportId);
             $attachments = $this->messagesRepo->getPublicAttachmentsByReportId($reportId);
             $this->render('detalhe', [
                 'title' => 'Acompanhamento — ' . $hydrated['protocol'],
@@ -336,7 +381,7 @@ final class CanalDenuncia
 
         if ($message === '' && $uploadResult['uploads'] === []) {
             $hydrated = $this->reportsRepo->hydrateReportForWhistleblower($report);
-            $messages = $this->messagesRepo->getMessagesByReportId($reportId, true);
+            $messages = $this->messagesRepo->getPublicMessagesByReportId($reportId);
             $attachments = $this->messagesRepo->getPublicAttachmentsByReportId($reportId);
             $this->render('detalhe', [
                 'title' => 'Acompanhamento — ' . $hydrated['protocol'],
@@ -368,6 +413,8 @@ final class CanalDenuncia
         }
 
         if ($message !== '' || $uploadResult['uploads'] !== []) {
+            $this->rateLimit->recordAttempt($scope);
+            $this->reportsRepo->clearReporterResponseDeadline($reportId);
             (new WhistleblowingNotificationService())->notifyWhistleblowerReply(
                 $reportId,
                 (string) ($report['protocol'] ?? $protocol),
@@ -471,7 +518,20 @@ final class CanalDenuncia
             'categories' => WhistleblowingCategoryService::getActiveNames(),
             'risk_levels' => WhistleblowingProtocolService::RISK_LEVELS,
             'csrf_token' => CSRFHelper::generateCSRFToken('canal_denuncia_registrar'),
-        ], $this->captchaViewData(), $extra);
+        ], $this->captchaViewData(), $this->reporterInactivityViewData(), $extra);
+    }
+
+    /**
+     * @return array{reporter_inactivity_enabled: bool, reporter_inactivity_days: int}
+     */
+    private function reporterInactivityViewData(): array
+    {
+        $config = new WhistleblowingConfigRepository();
+
+        return [
+            'reporter_inactivity_enabled' => $config->isReporterInactivityEnabled(),
+            'reporter_inactivity_days' => $config->getReporterInactivityDays(),
+        ];
     }
 
     private function captchaViewData(): array

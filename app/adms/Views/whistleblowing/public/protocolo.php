@@ -30,6 +30,11 @@ require __DIR__ . '/_view_scope.php';
     <div class="alert alert-info small mb-3">
         <i class="fas fa-info-circle me-1"></i>
         Os retornos do comitê ficam disponíveis somente na consulta por protocolo.
+        <?php if (!empty($reporter_inactivity_enabled)): ?>
+        Quando o comitê solicitar informações, responda em até
+        <strong><?php echo (int)($reporter_inactivity_days ?? 15); ?> dia(s)</strong>.
+        A falta de retorno poderá ser considerada pelo comitê na decisão de encerramento.
+        <?php endif; ?>
         Se você perder protocolo ou senha, registre uma <strong>nova denúncia</strong> e informe no relato
         que se trata de um novo cadastro devido à perda das credenciais anteriores.
     </div>

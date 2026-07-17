@@ -9,8 +9,12 @@ use App\adms\Models\Services\WhistleblowingSlaBreachService;
 use App\adms\Models\Services\WhistleblowingRetentionService;
 
 /**
- * Cron HTTP para retenção LGPD de denúncias.
+ * Cron HTTP do Canal de Denúncias.
  * GET whistleblowing-retention-cron?token=...
+ *
+ * - Alertas de SLA / inatividade: sempre processados quando o token é válido.
+ * - Retenção LGPD: só se «Retenção automática» estiver ativa na configuração.
+ *
  * Token: banco (whistleblowing-config) ou CRON_WHISTLEBLOWING_TOKEN no .env
  */
 final class WhistleblowingRetentionCron
@@ -36,17 +40,23 @@ final class WhistleblowingRetentionCron
         }
 
         $configRepo = new WhistleblowingConfigRepository();
-        if (!$configRepo->isCronEnabled()) {
-            http_response_code(503);
-            header('Content-Type: text/plain; charset=utf-8');
-            echo "Cron desativado na configuração do canal.\n";
-            exit;
-        }
+        $retentionEnabled = $configRepo->isCronEnabled();
 
+        $result = [
+            'archived' => 0,
+            'deleted' => 0,
+            'attachments_deleted' => 0,
+            'duration_ms' => 0,
+        ];
         $slaBreaches = 0;
+
         try {
-            $result = (new WhistleblowingRetentionService())->run('cron');
+            // Alertas independentes da retenção LGPD.
             $slaBreaches = (new WhistleblowingSlaBreachService())->processPendingBreaches();
+
+            if ($retentionEnabled) {
+                $result = (new WhistleblowingRetentionService())->run('cron');
+            }
         } catch (\Throwable $e) {
             http_response_code(500);
             header('Content-Type: text/plain; charset=utf-8');
@@ -58,7 +68,8 @@ final class WhistleblowingRetentionCron
         echo 'OK archived=' . (int) ($result['archived'] ?? 0)
             . ' deleted=' . (int) ($result['deleted'] ?? 0)
             . ' attachments=' . (int) ($result['attachments_deleted'] ?? 0)
-            . ' sla_alerts=' . (int) ($slaBreaches ?? 0)
+            . ' sla_alerts=' . (int) $slaBreaches
+            . ' retention=' . ($retentionEnabled ? 'on' : 'off')
             . ' ms=' . (int) ($result['duration_ms'] ?? 0) . "\n";
         exit;
     }

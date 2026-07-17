@@ -1,5 +1,5 @@
 <h1>Listar Denúncias</h1>
-<p>Listagem interna de denúncias recebidas pelo canal público, com filtros por protocolo, status, classificação, risco e responsável.</p>
+<p>Listagem interna de denúncias recebidas pelo canal público, com filtros por protocolo, status, classificação, risco, responsável e período de registro.</p>
 <p><strong>Quem acessa:</strong> nível <em>Operador</em> (comitês do usuário) ou <em>Administrador</em> (todas). Permissão <em>WhistleblowingListReports</em>.</p>
 
 <h2>Escopo por comitê</h2>
@@ -8,16 +8,26 @@
 <h2>Fluxo passo a passo</h2>
 <ol>
 <li>Acesse <strong>Canal de Denúncias → Denúncias</strong> (<code>denuncias</code>).</li>
-<li>Filtre por status, classificação, risco ou protocolo.</li>
+<li>Filtre por status, classificação, risco, protocolo ou período de registro.</li>
 <li>Consulte a coluna <strong>SLA 1ª resposta</strong>: ela mostra o prazo, o percentual consumido e a situação (<strong>Dentro do prazo</strong>, <strong>Próximo do vencimento</strong>, <strong>SLA vencido</strong> ou resposta concluída).</li>
+<li>Quando a denúncia estiver <strong>Encerrada</strong>, a coluna <strong>Resultado</strong> exibe o desfecho (Procedente, Improcedente, etc.); nas demais situações aparece traço.</li>
+<li>A listagem mostra o <strong>comitê</strong> responsável, mas não o nome do responsável individual — por sigilo e imparcialidade, esse dado aparece apenas no detalhe da denúncia. O filtro <strong>Responsável</strong> continua disponível para busca.</li>
+<li>Quando habilitado, consulte também <strong>SLA encerramento</strong>, calculado do registro até o encerramento formal.</li>
+<li>Quando habilitado, a coluna <strong>Retorno denunciante</strong> indica se há resposta pendente, a data limite e se o prazo venceu.</li>
 <li>Clique em <strong>Visualizar</strong> para abrir o detalhe.</li>
 </ol>
 
 <h2>Filtros rápidos do dashboard</h2>
-<p>Ao clicar em um card do dashboard, a listagem abre com um filtro rápido aplicado (Pendentes triagem, Críticas abertas, SLA 1ª resposta vencido ou Em investigação). Um aviso azul no topo indica o filtro ativo; use <strong>Remover filtro</strong> para ver todas. Os demais filtros do formulário podem ser combinados com o filtro rápido.</p>
+<p>Ao clicar em um card do dashboard, a listagem abre com um filtro rápido aplicado (Pendentes triagem, Críticas abertas, SLA 1ª resposta vencido, retorno do denunciante vencido ou Em investigação). A opção <strong>Ver na listagem</strong> do aging mostra apenas denúncias abertas, ordenadas da mais parada para a mais recente, incluindo a coluna <strong>Dias parado</strong>. Um aviso azul no topo indica o filtro ativo; use <strong>Remover filtro</strong> para ver todas. Os demais filtros e o período podem ser combinados com o filtro rápido.</p>
 
 <h2>SLA de primeira resposta</h2>
 <p>A barra é calculada entre o registro da denúncia e o prazo configurado para a primeira resposta. Verde indica prazo normal ou resposta no prazo; amarelo indica consumo de 80% ou mais; vermelho indica vencimento ou resposta enviada fora do prazo. Após a primeira resposta, o percentual deixa de avançar.</p>
+
+<h2>SLA de encerramento</h2>
+<p>A coluna aparece somente quando o recurso está ativo na Configuração. A barra avança enquanto a denúncia permanece aberta e congela no encerramento, indicando se foi concluída dentro ou fora do prazo. O filtro rápido <strong>SLA de encerramento vencido</strong> lista apenas denúncias abertas com esse prazo ultrapassado.</p>
+
+<h2>Retorno do denunciante</h2>
+<p>A coluna aparece quando a regra está ativa. <strong>Aguardando denunciante</strong> mostra a data limite; <strong>Retorno vencido</strong> indica que o comitê foi ou será alertado pela rotina automática. O filtro rápido correspondente lista apenas protocolos abertos com prazo ultrapassado. Não há encerramento automático.</p>
 
 <h2>Permissões relacionadas</h2>
 <ul>
@@ -31,4 +41,6 @@
 <dt>Lista vazia (operador)</dt><dd>Denúncia pode estar em comitê diferente; verifique classificação e membros.</dd>
 <dt>Sem botão Visualizar</dt><dd>Conceder permissão ou nível Operador/Administrador.</dd>
 <dt>SLA não definido</dt><dd>Verifique a configuração global e o prazo específico da classificação ou do risco.</dd>
+<dt>SLA de encerramento não aparece</dt><dd>O recurso está desativado em Configuração ou a denúncia ainda não recebeu prazo após a ativação.</dd>
+<dt>Retorno do denunciante não aparece</dt><dd>Ative a regra em Configuração. O prazo nasce somente depois de uma resposta pública do comitê.</dd>
 </dl>

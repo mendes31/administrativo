@@ -20,17 +20,13 @@ final class WhistleblowingRetentionService
     private const CACHE_FILENAME = 'whistleblowing_retention_last_run.json';
 
     /**
-     * Garante execução da retenção no primeiro acesso do dia (login),
-     * respeitando intervalo mínimo e flag «Retenção automática ativa» na config.
+     * Garante execução periódica no primeiro acesso do dia (login).
+     * Alertas de SLA/inatividade rodam independentemente da retenção LGPD.
+     * A retenção só roda se «Retenção automática» estiver ativa (ou $force).
      */
     public static function ensureUpdated(bool $force = false, ?int $minIntervalSeconds = null): void
     {
         try {
-            $configRepo = new \App\adms\Models\Repository\WhistleblowingConfigRepository();
-            if (!$configRepo->isCronEnabled() && !$force) {
-                return;
-            }
-
             $cacheFile = self::cacheFilePath();
             $now = time();
             $interval = $minIntervalSeconds ?? self::DEFAULT_INTERVAL_SECONDS;
@@ -48,13 +44,25 @@ final class WhistleblowingRetentionService
                 }
             }
 
-            $result = (new self())->run('auto');
-            self::writeCache($now, $result);
+            $configRepo = new \App\adms\Models\Repository\WhistleblowingConfigRepository();
+
             try {
                 (new WhistleblowingSlaBreachService())->processPendingBreaches();
             } catch (\Throwable $slaEx) {
                 error_log('WhistleblowingSlaBreachService on login: ' . $slaEx->getMessage());
             }
+
+            $result = [
+                'archived' => 0,
+                'deleted' => 0,
+                'attachments_deleted' => 0,
+                'duration_ms' => 0,
+            ];
+            if ($configRepo->isCronEnabled() || $force) {
+                $result = (new self())->run('auto');
+            }
+
+            self::writeCache($now, $result);
         } catch (\Throwable $e) {
             error_log('WhistleblowingRetentionService::ensureUpdated error: ' . $e->getMessage());
         }

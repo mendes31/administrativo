@@ -1,15 +1,34 @@
 <?php
 $stats = $this->data['stats'] ?? [];
 $canListReports = in_array('WhistleblowingListReports', $this->data['buttonPermission'] ?? []);
+$filters = is_array($this->data['filters'] ?? null) ? $this->data['filters'] : [];
+$dateFrom = (string) ($filters['date_from'] ?? '');
+$dateTo = (string) ($filters['date_to'] ?? '');
+$periodParams = array_filter([
+    'date_from' => $dateFrom,
+    'date_to' => $dateTo,
+], static fn (string $value): bool => $value !== '');
+$periodQuery = http_build_query($periodParams);
+$exportUrl = $_ENV['URL_ADM'] . 'whistleblowing-export-dashboard'
+    . ($periodQuery !== '' ? '?' . $periodQuery : '');
+$agingParams = array_merge(['preset' => 'aging'], $periodParams);
+$agingUrl = $_ENV['URL_ADM'] . 'denuncias?' . http_build_query($agingParams);
+$allReportsUrl = $_ENV['URL_ADM'] . 'denuncias'
+    . ($periodQuery !== '' ? '?' . $periodQuery : '');
 
 /**
  * Envolve o conteúdo do card em link para a listagem filtrada (quando o usuário pode listar).
  */
-$cardLink = static function (string $query, string $inner) use ($canListReports): string {
+$cardLink = static function (string $preset, string $inner) use ($canListReports, $periodParams): string {
     if (!$canListReports) {
         return $inner;
     }
-    $href = $_ENV['URL_ADM'] . 'denuncias' . ($query !== '' ? '?preset=' . $query : '');
+    $params = $periodParams;
+    if ($preset !== '') {
+        $params['preset'] = $preset;
+    }
+    $query = http_build_query($params);
+    $href = $_ENV['URL_ADM'] . 'denuncias' . ($query !== '' ? '?' . $query : '');
 
     return '<a href="' . htmlspecialchars($href, ENT_QUOTES, 'UTF-8') . '" class="text-decoration-none text-reset wb-card-link" title="Ver denúncias deste indicador">' . $inner . '</a>';
 };
@@ -25,7 +44,7 @@ $cardLink = static function (string $query, string $inner) use ($canListReports)
         <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-chart-pie me-2"></i>Dashboard — Canal de Denúncias</h2>
         <div class="ms-auto hstack gap-2">
             <?php if (in_array('WhistleblowingExportDashboard', $this->data['buttonPermission'] ?? [])): ?>
-            <a href="<?php echo $_ENV['URL_ADM']; ?>whistleblowing-export-dashboard" class="btn btn-sm btn-outline-success">
+            <a href="<?= htmlspecialchars($exportUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-success">
                 <i class="fas fa-file-excel me-1"></i>Exportar Excel
             </a>
             <?php endif; ?>
@@ -37,6 +56,40 @@ $cardLink = static function (string $query, string $inner) use ($canListReports)
     </div>
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+
+    <div class="card border-light shadow-sm mb-3">
+        <div class="card-body py-2">
+            <form method="get" class="row g-2 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="dashboard-date-from">Registradas de</label>
+                    <input type="date" name="date_from" id="dashboard-date-from" class="form-control form-control-sm"
+                        value="<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?>">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small mb-1" for="dashboard-date-to">Registradas até</label>
+                    <input type="date" name="date_to" id="dashboard-date-to" class="form-control form-control-sm"
+                        value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>">
+                </div>
+                <div class="col-md-auto">
+                    <button type="submit" class="btn btn-primary btn-sm">
+                        <i class="fas fa-filter me-1"></i>Aplicar período
+                    </button>
+                </div>
+                <?php if ($periodQuery !== ''): ?>
+                <div class="col-md-auto">
+                    <a href="<?= $_ENV['URL_ADM'] ?>denuncias-dashboard" class="btn btn-outline-secondary btn-sm">
+                        <i class="fas fa-times me-1"></i>Limpar período
+                    </a>
+                </div>
+                <?php endif; ?>
+                <div class="col-md ms-md-auto">
+                    <p class="small text-muted text-md-end mb-1">
+                        O período considera a data de registro da denúncia e também é aplicado à exportação.
+                    </p>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <div class="row mb-4">
         <div class="col-xl-3 col-md-6 mb-3">
@@ -75,6 +128,28 @@ $cardLink = static function (string $query, string $inner) use ($canListReports)
                 </div>
             </div>'); ?>
         </div>
+        <?php if (!empty($this->data['sla_closure_label'])): ?>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('sla-encerramento-vencido', '
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3"><i class="fas fa-calendar-times text-danger fa-2x"></i></div>
+                    <div><h6 class="text-muted mb-1">SLA encerramento (' . htmlspecialchars((string)$this->data['sla_closure_label'], ENT_QUOTES, 'UTF-8') . ')</h6><h3 class="mb-0 fw-bold text-danger">' . (int)($stats['sla_closure_overdue'] ?? 0) . '</h3><small class="text-muted">ainda abertas</small></div>
+                </div>
+            </div>'); ?>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($this->data['reporter_inactivity_enabled'])): ?>
+        <div class="col-xl-3 col-md-6 mb-3">
+            <?php echo $cardLink('retorno-denunciante-vencido', '
+            <div class="card border-0 shadow-sm h-100">
+                <div class="card-body d-flex align-items-center">
+                    <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3"><i class="fas fa-user-clock text-danger fa-2x"></i></div>
+                    <div><h6 class="text-muted mb-1">Retorno do denunciante (' . (int)($this->data['reporter_inactivity_days'] ?? 15) . ' dias)</h6><h3 class="mb-0 fw-bold text-danger">' . (int)($stats['reporter_response_overdue'] ?? 0) . '</h3><small class="text-muted">prazo vencido</small></div>
+                </div>
+            </div>'); ?>
+        </div>
+        <?php endif; ?>
     </div>
 
     <div class="row mb-4">
@@ -138,7 +213,14 @@ $cardLink = static function (string $query, string $inner) use ($canListReports)
     </div>
 
     <div class="card border-light shadow mb-4">
-        <div class="card-header fw-semibold">Aging — denúncias paradas (dias sem atualização)</div>
+        <div class="card-header fw-semibold hstack gap-2">
+            <span>Aging — denúncias paradas (dias sem atualização)</span>
+            <?php if ($canListReports): ?>
+                <a href="<?= htmlspecialchars($agingUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-primary ms-auto">
+                    <i class="fas fa-list me-1"></i>Ver na listagem
+                </a>
+            <?php endif; ?>
+        </div>
         <div class="table-responsive">
             <table class="table table-sm table-striped mb-0">
                 <thead>
@@ -170,7 +252,7 @@ $cardLink = static function (string $query, string $inner) use ($canListReports)
     <div class="card border-light shadow">
         <div class="card-header hstack">
             <span>Denúncias recentes</span>
-            <a href="<?php echo $_ENV['URL_ADM']; ?>denuncias" class="btn btn-sm btn-outline-primary ms-auto">Ver todas</a>
+            <a href="<?= htmlspecialchars($allReportsUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-primary ms-auto">Ver todas</a>
         </div>
         <div class="table-responsive">
             <table class="table table-striped mb-0">

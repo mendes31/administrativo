@@ -25,6 +25,7 @@ final class WhistleblowingPermissionService
         'WhistleblowingUpdateCommittee',
         'WhistleblowingConfig',
         'WhistleblowingGovernanceLgpd',
+        'WhistleblowingAuditEvidence',
     ];
 
     public static function sessionUserId(): int

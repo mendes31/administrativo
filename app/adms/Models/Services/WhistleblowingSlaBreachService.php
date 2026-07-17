@@ -33,6 +33,37 @@ final class WhistleblowingSlaBreachService
             }
         }
 
+        foreach ($repo->findReportsWithClosureSlaBreachPendingNotification() as $report) {
+            $reportId = (int) ($report['id'] ?? 0);
+            if ($reportId <= 0) {
+                continue;
+            }
+            $notifier->notifyClosureSlaBreach(
+                $reportId,
+                (string) ($report['protocol'] ?? ''),
+                isset($report['committee_id']) ? (int) $report['committee_id'] : null
+            );
+            if ($repo->markClosureSlaBreachNotified($reportId)) {
+                $count++;
+            }
+        }
+
+        foreach ($repo->findReportsWithReporterInactivityPendingNotification() as $report) {
+            $reportId = (int) ($report['id'] ?? 0);
+            if ($reportId <= 0) {
+                continue;
+            }
+            $notifier->notifyReporterInactivity(
+                $reportId,
+                (string) ($report['protocol'] ?? ''),
+                isset($report['committee_id']) ? (int) $report['committee_id'] : null,
+                (string) ($report['reporter_response_deadline'] ?? '')
+            );
+            if ($repo->markReporterInactivityNotified($reportId)) {
+                $count++;
+            }
+        }
+
         return $count;
     }
 }

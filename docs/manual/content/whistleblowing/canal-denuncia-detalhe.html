@@ -8,6 +8,7 @@
 <li>Classificação, grau de risco e data de registro.</li>
 <li><strong>Seu relato</strong> e envolvidos informados (se houver).</li>
 <li><strong>Comunicação com o comitê</strong> — thread de mensagens (suas e do comitê).</li>
+<li>Quando houver retorno solicitado, aviso <strong>Aguardando denunciante</strong> com data limite. Após o prazo, o aviso informa que o protocolo continua aberto até decisão do comitê.</li>
 <li><strong>Seus anexos</strong> — lista com botão de download.</li>
 </ul>
 
@@ -17,6 +18,7 @@
 <li>Escreva texto complementar no campo de mensagem.</li>
 <li>Opcionalmente anexe arquivos (mesmas regras do registro: 50 MB, formatos PDF/imagem/áudio/MP4, até 10 arquivos, botão <em>Adicionar arquivos</em>).</li>
 <li>Clique em <strong>Enviar</strong> (POST em <code>/canaldenuncia/responder</code>).</li>
+<li>Uma mensagem ou anexo enviado pelo denunciante encerra a pendência de retorno atual.</li>
 </ol>
 
 <h2>Download de anexos</h2>
@@ -28,7 +30,7 @@
 </ul>
 
 <h2>Denúncia encerrada</h2>
-<p>Quando o status é <strong>Encerrada</strong>, exibe aviso de encerramento e o formulário de nova informação fica oculto. O denunciante ainda pode consultar histórico e baixar anexos enquanto a sessão estiver válida.</p>
+<p>Quando o status é <strong>Encerrada</strong>, o formulário de nova informação fica oculto. A tela mostra data, resultado e explicação do encerramento, mantém o histórico disponível e oferece o botão <strong>Registrar nova denúncia</strong>. Essa orientação deve ser usada quando houver fatos novos, novas evidências ou persistência da situação; o novo relato deve citar o protocolo anterior.</p>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -36,4 +38,5 @@
 <dt>Anexo não envia na resposta</dt><dd>Verifique formato e tamanho; mensagem de erro aparece antes do envio.</dd>
 <dt>Download não funciona</dt><dd>Sessão expirada — consulte novamente com protocolo e senha.</dd>
 <dt>Quero enviar mais informações mas está encerrada</dt><dd>Denúncias encerradas não aceitam novas mensagens pelo canal público.</dd>
+<dt>O prazo venceu, mas o protocolo ainda está aberto</dt><dd>Comportamento esperado: o sistema apenas alerta o comitê. O encerramento depende de decisão manual.</dd>
 </dl>

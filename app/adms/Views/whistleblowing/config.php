@@ -8,6 +8,10 @@ $tokenConfigured = !empty($this->data['token_configured']);
 
 $keyConfigured = !empty($this->data['key_configured']);
 
+$keyWrapped = !empty($this->data['key_wrapped']);
+
+$wrapSecretConfigured = !empty($this->data['wrap_secret_configured']);
+
 $channelPublicOk = !empty($this->data['channel_public_ok']);
 
 $csrf = (string) ($this->data['csrf_token'] ?? '');
@@ -38,13 +42,31 @@ $slaMedio = (int) ($this->data['sla_hours_medio'] ?? 72);
 
 $slaBaixo = (int) ($this->data['sla_hours_baixo'] ?? 120);
 
+$slaClosureEnabled = !empty($this->data['sla_closure_enabled']);
+
+$slaClosureDefault = (int) ($this->data['sla_closure_hours'] ?? 720);
+
+$slaClosureCritico = (int) ($this->data['sla_closure_hours_critico'] ?? 168);
+
+$slaClosureAlto = (int) ($this->data['sla_closure_hours_alto'] ?? 360);
+
+$slaClosureMedio = (int) ($this->data['sla_closure_hours_medio'] ?? 720);
+
+$slaClosureBaixo = (int) ($this->data['sla_closure_hours_baixo'] ?? 1080);
+
 $notifyReply = !empty($this->data['notify_committee_on_reply']);
 
 $notifyStatus = !empty($this->data['notify_committee_on_status_change']);
 
 $notifySla = !empty($this->data['notify_committee_on_sla_breach']);
 
+$notifyClosureSla = !empty($this->data['notify_committee_on_sla_closure_breach']);
+
 $notifyReporter = !empty($this->data['notify_reporter_on_reply']);
+
+$reporterInactivityEnabled = !empty($this->data['reporter_inactivity_enabled']);
+
+$reporterInactivityDays = (int) ($this->data['reporter_inactivity_days'] ?? 15);
 
 $captchaEnabled = !empty($this->data['captcha_enabled']);
 
@@ -97,6 +119,9 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
         include __DIR__ . '/../partials/button_log_alteracoes.php';
 
         ?>
+        <a href="<?= htmlspecialchars($urlAdm) ?>whistleblowing-audit-evidence" class="btn btn-outline-primary btn-sm">
+            <i class="fas fa-file-shield me-1"></i>Pacote de evidências
+        </a>
 
     </div>
 
@@ -261,6 +286,7 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
                         <input type="checkbox" name="cron_enabled" value="1" class="form-check-input" id="cron_enabled" <?= $cronEnabled ? 'checked' : '' ?>>
 
                         <label class="form-check-label small" for="cron_enabled">Retenção automática</label>
+                        <div class="form-text">Controla só arquivamento/exclusão LGPD. Alertas de SLA e inatividade do denunciante continuam ativos pelo cron/login.</div>
 
                     </div>
 
@@ -268,10 +294,11 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                 <div class="col-md-3">
 
-                    <label class="form-label small">Tentativas acompanhamento (máx.)</label>
+                    <label class="form-label small">Tentativas canal público (máx.)</label>
 
                     <input type="number" name="rate_limit_max_attempts" class="form-control form-control-sm" min="3" max="20" value="<?= $rateMax ?>">
 
+                    <div class="form-text">Registro, acompanhamento e respostas do denunciante.</div>
                 </div>
 
                 <div class="col-md-3">
@@ -308,6 +335,64 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
                     <p class="small text-muted mb-2">Prioridade: SLA da classificação (se definido) → risco → padrão global.</p>
                 </div>
 
+                <div class="col-12">
+                    <hr class="my-1">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <h6 class="small fw-semibold mb-0">SLA — encerramento (horas)</h6>
+                        <div class="form-check form-switch mb-0">
+                            <input type="checkbox" name="sla_closure_enabled" value="1" class="form-check-input"
+                                id="sla_closure_enabled" <?= $slaClosureEnabled ? 'checked' : '' ?>>
+                            <label class="form-check-label small" for="sla_closure_enabled">Ativar SLA de encerramento</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-2 closure-sla-field">
+                    <label class="form-label small">Padrão global</label>
+                    <input type="number" name="sla_closure_hours" class="form-control form-control-sm" min="1" max="8760" value="<?= $slaClosureDefault ?>">
+                </div>
+                <div class="col-md-2 closure-sla-field">
+                    <label class="form-label small">Crítico</label>
+                    <input type="number" name="sla_closure_hours_critico" class="form-control form-control-sm" min="1" max="8760" value="<?= $slaClosureCritico ?>">
+                </div>
+                <div class="col-md-2 closure-sla-field">
+                    <label class="form-label small">Alto</label>
+                    <input type="number" name="sla_closure_hours_alto" class="form-control form-control-sm" min="1" max="8760" value="<?= $slaClosureAlto ?>">
+                </div>
+                <div class="col-md-2 closure-sla-field">
+                    <label class="form-label small">Médio</label>
+                    <input type="number" name="sla_closure_hours_medio" class="form-control form-control-sm" min="1" max="8760" value="<?= $slaClosureMedio ?>">
+                </div>
+                <div class="col-md-2 closure-sla-field">
+                    <label class="form-label small">Baixo</label>
+                    <input type="number" name="sla_closure_hours_baixo" class="form-control form-control-sm" min="1" max="8760" value="<?= $slaClosureBaixo ?>">
+                </div>
+                <div class="col-md-2 closure-sla-field d-flex align-items-end">
+                    <p class="small text-muted mb-2">Conta desde o registro até o encerramento formal.</p>
+                </div>
+
+                <div class="col-12">
+                    <hr class="my-1">
+                    <div class="d-flex align-items-center gap-3 flex-wrap">
+                        <h6 class="small fw-semibold mb-0">Retorno do denunciante</h6>
+                        <div class="form-check form-switch mb-0">
+                            <input type="checkbox" name="reporter_inactivity_enabled" value="1" class="form-check-input"
+                                id="reporter_inactivity_enabled" <?= $reporterInactivityEnabled ? 'checked' : '' ?>>
+                            <label class="form-check-label small" for="reporter_inactivity_enabled">Ativar prazo de retorno</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label small" for="reporter_inactivity_days">Prazo após resposta pública (dias)</label>
+                    <input type="number" name="reporter_inactivity_days" id="reporter_inactivity_days"
+                        class="form-control form-control-sm" min="1" max="365" value="<?= $reporterInactivityDays ?>">
+                </div>
+                <div class="col-md-9 d-flex align-items-end">
+                    <p class="small text-muted mb-2">
+                        Cada resposta pública do comitê reinicia o prazo. Uma resposta ou anexo do denunciante encerra a pendência.
+                        Ao vencer, o comitê recebe um alerta e decide manualmente; o sistema nunca encerra a denúncia automaticamente.
+                    </p>
+                </div>
+
                 <div class="col-12"><hr class="my-1"><h6 class="small fw-semibold mb-0">Notificações</h6></div>
                 <div class="col-md-3">
                     <div class="form-check">
@@ -324,13 +409,20 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
                 <div class="col-md-3">
                     <div class="form-check">
                         <input type="checkbox" name="notify_committee_on_sla_breach" value="1" class="form-check-input" id="notify_sla" <?= $notifySla ? 'checked' : '' ?>>
-                        <label class="form-check-label small" for="notify_sla">Comitê — SLA estourado</label>
+                        <label class="form-check-label small" for="notify_sla">Comitê — SLA da 1ª resposta estourado</label>
                     </div>
                 </div>
                 <div class="col-md-3">
                     <div class="form-check">
                         <input type="checkbox" name="notify_reporter_on_reply" value="1" class="form-check-input" id="notify_reporter" <?= $notifyReporter ? 'checked' : '' ?>>
                         <label class="form-check-label small" for="notify_reporter">Denunciante — nova resposta (e-mail voluntário)</label>
+                    </div>
+                </div>
+                <div class="col-md-3 closure-sla-field">
+                    <div class="form-check">
+                        <input type="checkbox" name="notify_committee_on_sla_closure_breach" value="1" class="form-check-input"
+                            id="notify_closure_sla" <?= $notifyClosureSla ? 'checked' : '' ?>>
+                        <label class="form-check-label small" for="notify_closure_sla">Comitê — SLA de encerramento estourado</label>
                     </div>
                 </div>
 
@@ -467,11 +559,30 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                         <?= $keyConfigured ? '<span class="badge bg-success">Configurada (canal liberado)</span>' : '<span class="badge bg-danger">Obrigatória — canal bloqueado</span>' ?>
 
+                        <?php if ($keyConfigured): ?>
+                            <?= $keyWrapped
+                                ? ' <span class="badge bg-primary">Envelopada no banco</span>'
+                                : ' <span class="badge bg-warning text-dark">Em claro no banco</span>' ?>
+                        <?php endif; ?>
+
+                        <?= $wrapSecretConfigured
+                            ? ' <span class="badge bg-secondary">KEK .env OK</span>'
+                            : ' <span class="badge bg-danger">Falta WHISTLEBLOWING_KEY_WRAP_SECRET no .env</span>' ?>
+
                     </p>
 
-                    <p class="small">Protege relatos, mensagens e anexos. Na <strong>primeira configuração</strong>, salve a chave abaixo. Para trocar depois, use <strong>Rotação de chave</strong>.</p>
+                    <p class="small">Protege relatos, mensagens e anexos. A chave digitada aqui (DEK) é <strong>envelopada</strong> com o segredo do <code>.env</code> antes de gravar no banco — dump sozinho não abre as denúncias. Na <strong>primeira configuração</strong>, salve abaixo. Para trocar depois, use <strong>Rotação de chave</strong> (não precisa alterar o .env).</p>
 
-                    <p class="small text-muted">Gere com: <code>php -r "echo bin2hex(random_bytes(32));"</code></p>
+                    <p class="small text-muted mb-2">Gere a DEK com: <code>php -r "echo bin2hex(random_bytes(32));"</code>. Guarde uma cópia offline (cofre) — se perder a DEK e os backups, não há recuperação.</p>
+
+                    <?php if (!$wrapSecretConfigured): ?>
+                        <div class="alert alert-warning small py-2">
+                            Antes de guardar a DEK, adicione ao <code>.env</code> (mín. 32 caracteres) e reinicie o PHP se necessário:<br>
+                            <code>WHISTLEBLOWING_KEY_WRAP_SECRET=</code> + valor gerado com
+                            <code>php -r "echo bin2hex(random_bytes(32));"</code>
+                            <br><span class="text-muted">Este segredo quase nunca muda. Guarde backup do <code>.env</code> separado do dump do banco. Sem ele, a chave envelopada no banco não abre.</span>
+                        </div>
+                    <?php endif; ?>
 
                     <?php if (!$keyConfigured): ?>
 
@@ -483,15 +594,15 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                         <div class="col-12">
 
-                            <label class="form-label small"><?= $keyConfigured ? 'Nova chave (substitui a atual)' : 'Chave secreta' ?></label>
+                            <label class="form-label small">Chave secreta (DEK)</label>
 
-                            <input type="password" name="encryption_key" class="form-control font-monospace" autocomplete="new-password" minlength="32" placeholder="Mínimo 32 caracteres">
+                            <input type="password" name="encryption_key" class="form-control font-monospace" autocomplete="new-password" minlength="32" placeholder="Mínimo 32 caracteres" <?= $wrapSecretConfigured ? '' : 'disabled' ?>>
 
                         </div>
 
                         <div class="col-12">
 
-                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-save"></i> Guardar chave</button>
+                            <button type="submit" class="btn btn-primary btn-sm" <?= $wrapSecretConfigured ? '' : 'disabled' ?>><i class="fas fa-save"></i> Guardar chave</button>
 
                         </div>
 
@@ -499,7 +610,7 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                     <?php else: ?>
 
-                    <p class="small text-muted mb-0">Chave já configurada. Use o card <strong>Rotação de chave</strong> abaixo para alterá-la com recriptografia automática.</p>
+                    <p class="small text-muted mb-0">Chave já configurada<?= $keyWrapped ? ' e envelopada' : '' ?>. Use o card <strong>Rotação de chave</strong> abaixo para alterá-la com recriptografia automática.</p>
 
                     <?php endif; ?>
 
@@ -596,6 +707,23 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
     <?php endif; ?>
 
 </div>
+
+<script>
+(function () {
+    const toggle = document.getElementById('sla_closure_enabled');
+    const fields = document.querySelectorAll('.closure-sla-field');
+    if (!toggle) return;
+
+    function syncClosureSlaFields() {
+        fields.forEach(function (field) {
+            field.classList.toggle('opacity-50', !toggle.checked);
+        });
+    }
+
+    toggle.addEventListener('change', syncClosureSlaFields);
+    syncClosureSlaFields();
+})();
+</script>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>

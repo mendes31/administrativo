@@ -6,12 +6,20 @@
 <ol>
 <li>Abra a denúncia pela listagem.</li>
 <li>Leia relato e envolvidos. Se o denunciante optou por identificação voluntária, o selo <strong>Identificação voluntária</strong> e o contato cifrado aparecem no topo.</li>
+<li>Se a denúncia estiver <strong>Encerrada</strong>, o resumo do cabeçalho já mostra o <strong>resultado</strong>, a data de encerramento e o bloco <strong>Conclusão da apuração</strong> com o motivo.</li>
 <li>Confira o <strong>SLA 1ª resposta</strong>, com prazo, percentual consumido e situação. Depois da primeira resposta, o indicador é congelado e informa se ela ocorreu dentro ou fora do prazo.</li>
+<li>Se habilitado, confira o <strong>SLA encerramento</strong>. Ele avança enquanto a denúncia estiver aberta e congela no encerramento formal; uma reabertura inicia novo prazo.</li>
 <li><strong>Responder</strong> — mensagem ao denunciante ou <strong>Nota interna</strong> (só comitê).</li>
-<li><strong>Gestão</strong> — status, risco, responsável. Ao encerrar: informe <strong>resultado</strong> (Procedente, Improcedente, etc.) e <strong>motivo</strong>.</li>
+<li>Cada resposta pública inicia ou reinicia o prazo configurado para retorno. O detalhe mostra <strong>Aguardando denunciante</strong> ou <strong>Retorno vencido</strong>, com a data limite.</li>
+<li>Quando o prazo vence, avalie o histórico. O sistema alerta, mas não encerra automaticamente.</li>
+<li><strong>Gestão</strong> — status, risco e responsável. Para encerrar, selecione o status <strong>Encerrada</strong>; o bloco amarelo <strong>Conclusão da apuração</strong> será exibido logo abaixo. Escolha o <strong>resultado</strong> (Procedente, Improcedente, etc.), informe o <strong>motivo</strong> e clique em <strong>Confirmar encerramento</strong>.</li>
 <li><strong>Anexos</strong> — clique no ícone de download; arquivo descriptografado com extensão correta; ação registrada na auditoria.</li>
-<li><strong>Auditoria de acesso</strong> — exporte Excel ou PDF (abas de acesso interno e linha do tempo de status).</li>
+<li>No final da página, consulte a <strong>Linha do tempo</strong> e a <strong>Auditoria de acesso interno</strong>. Exporte em Excel ou PDF quando necessário.</li>
 </ol>
+<p>O resultado e o motivo registrados no encerramento são apresentados ao denunciante na consulta do protocolo. Redija a explicação de forma clara, sem expor dados pessoais ou informações internas desnecessárias.</p>
+
+<h2>Organização da tela</h2>
+<p>As áreas são apresentadas em sequência vertical tanto no computador quanto no celular: relato, mensagens, resposta, gestão, anexos, linha do tempo e auditoria. No computador, o conteúdo fica centralizado em uma área de leitura com cartões arredondados, no mesmo padrão visual das Políticas Internas. No celular, os cartões ocupam a largura disponível e dados longos, como nomes de arquivos e User-Agent, quebram em várias linhas para não ocultar conteúdo nem exigir rolagem horizontal.</p>
 
 <h2>Anexos</h2>
 <ul>
@@ -22,9 +30,14 @@
 <h2>Status do fluxo</h2>
 <p>Recebida → Em triagem → Em análise → Comitê → Investigação → Providências → Encerrada.</p>
 
+<h2>Auditoria de acesso interno</h2>
+<p>A visualização é registrada uma única vez ao entrar na denúncia. Atualizar a página ou concluir uma ação na própria tela não cria outra visualização. Ao sair para outra tela e retornar, inicia-se uma nova visita. Downloads, respostas, notas internas, mudanças de status e exportações são registrados individualmente.</p>
+<p>IP e User-Agent pertencem exclusivamente ao usuário interno autenticado. O canal público não registra IP nem dados técnicos do denunciante nessa auditoria.</p>
+
 <h2>Problemas comuns</h2>
 <dl>
 <dt>Denunciante não vê a resposta</dt><dd>Não marque nota interna.</dd>
+<dt>Retorno do denunciante venceu</dt><dd>A denúncia continua aberta. O comitê deve decidir manualmente se encerra ou se aguarda/solicita novas informações.</dd>
 <dt>Download falha</dt><dd>Execute <strong>Rotação de chave</strong> em Configuração (chave legada marcada) se houve troca de chave.</dd>
 <dt>Arquivo sem extensão</dt><dd>O sistema infere extensão pelo tipo MIME ou nome em disco; atualize a página.</dd>
 </dl>

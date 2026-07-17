@@ -1,0 +1,47 @@
+<h1>Evidências auditáveis — Canal de Denúncias</h1>
+<p>Gera uma prévia e arquivos PDF/Excel para demonstrar os controles técnicos e operacionais do canal sem exportar o conteúdo sensível das denúncias.</p>
+<p><strong>Quem acessa:</strong> nível <em>Canal de Denúncias — Administrador</em> ou permissão <em>WhistleblowingAuditEvidence</em>. Operadores não recebem esta permissão por padrão.</p>
+
+<h2>O que o pacote comprova</h2>
+<ul>
+<li>estrutura das tabelas principais;</li>
+<li>presença de relato, contato voluntário, senha e motivo de encerramento protegidos em repouso;</li>
+<li>metadados e prazos de uma denúncia de referência;</li>
+<li>acessos, mensagens, anexos e status somente de forma agregada ou sanitizada;</li>
+<li>segregação por comitês e classificações, sem nomes ou e-mails dos membros;</li>
+<li>políticas de SLA, retenção, rate limit, CAPTCHA e retorno do denunciante, sem chaves ou secrets;</li>
+<li>execuções de retenção e resumo operacional sem relatos.</li>
+</ul>
+
+<h2>Gerar passo a passo</h2>
+<ol>
+<li>Crie preferencialmente uma denúncia exclusiva para teste/auditoria, sem nomes ou fatos reais.</li>
+<li>Acesse <strong>Canal de Denúncias → Configuração → Pacote de evidências</strong>.</li>
+<li>Informe o protocolo de teste e clique em <strong>Atualizar prévia</strong>. Se deixar em branco, o pacote conterá apenas controles globais.</li>
+<li>Revise as seções da prévia e confirme que não há conteúdo identificável.</li>
+<li>Clique em <strong>Baixar PDF</strong> ou <strong>Baixar Excel</strong>.</li>
+<li>Guarde o fingerprint SHA-256 com o arquivo para identificar exatamente a geração apresentada.</li>
+</ol>
+
+<h2>Conteúdo que nunca é exportado</h2>
+<ul>
+<li>texto do relato e envolvidos;</li>
+<li>nome, e-mail e telefone do denunciante;</li>
+<li>conteúdo de mensagens e notas internas;</li>
+<li>nomes originais ou nomes armazenados de anexos;</li>
+<li>chaves de criptografia, tokens, secrets e hashes completos;</li>
+<li>nomes, e-mails e identificadores dos membros dos comitês.</li>
+</ul>
+
+<h2>Auditoria da geração</h2>
+<p>Cada download registra internamente usuário autenticado, formato, protocolo de referência e data/hora. A identidade de quem gerou não é incluída no arquivo externo, mas permanece disponível no banco para auditoria interna.</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+<dt>Token de segurança inválido</dt><dd>Atualize a página (F5) e tente o download novamente. A sessão pode ter expirado ou a tela ficou aberta por muito tempo.</dd>
+<dt>Protocolo não encontrado</dt><dd>Confira o código. Nenhum arquivo é gerado quando o protocolo informado não existe.</dd>
+<dt>Botão não aparece</dt><dd>A funcionalidade é administrativa. Verifique a permissão <em>WhistleblowingAuditEvidence</em>.</dd>
+<dt>Prévia sem denúncia de referência</dt><dd>Informe um protocolo válido; em branco, são exibidos somente controles globais.</dd>
+<dt>Planilha alerta sobre fórmula</dt><dd>Os valores textuais são gravados como texto para impedir execução de fórmulas. Não remova essa proteção.</dd>
+<dt>Preciso enviar relatos ao auditor</dt><dd>O pacote não foi projetado para isso. Use denúncia fictícia e forneça apenas as evidências sanitizadas.</dd>
+</dl>

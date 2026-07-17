@@ -51,10 +51,12 @@ class WhistleblowingUpdateStatus
 
         if ($newStatus === 'Encerrada') {
             if (!in_array($closureOutcome, WhistleblowingProtocolService::CLOSURE_OUTCOMES, true)) {
+                $this->preserveForm();
                 $this->redirect($reportId, 'Selecione o resultado do encerramento.');
                 return;
             }
             if ($closureReason === '') {
+                $this->preserveForm();
                 $this->redirect($reportId, 'Informe o motivo do encerramento.');
                 return;
             }
@@ -72,9 +74,15 @@ class WhistleblowingUpdateStatus
             if ($newStatus === 'Encerrada') {
                 $closedAtForRetention = date('Y-m-d H:i:s');
                 $updateData['closed_at'] = $closedAtForRetention;
+                $updateData['reporter_response_requested_at'] = null;
+                $updateData['reporter_response_deadline'] = null;
+                $updateData['reporter_inactivity_notified_at'] = null;
                 $shouldScheduleRetention = true;
             } elseif ($oldStatus === 'Encerrada') {
                 $shouldClearRetention = true;
+                $updateData['closed_at'] = null;
+                $updateData['closure_outcome'] = null;
+                $updateData['closure_reason_encrypted'] = null;
             }
         }
         if ($assignedUserId !== null) {
@@ -105,6 +113,20 @@ class WhistleblowingUpdateStatus
                 $effectiveRisk,
                 (string) ($report['created_at'] ?? date('Y-m-d H:i:s'))
             );
+            if (!$shouldClearRetention) {
+                $repo->recalculateClosureSlaDeadline(
+                    $reportId,
+                    $effectiveRisk,
+                    (string) ($report['created_at'] ?? date('Y-m-d H:i:s'))
+                );
+            }
+        }
+        if ($shouldClearRetention) {
+            $repo->recalculateClosureSlaDeadline(
+                $reportId,
+                $effectiveRisk,
+                date('Y-m-d H:i:s')
+            );
         }
 
         if (isset($updateData['status'])) {
@@ -131,8 +153,21 @@ class WhistleblowingUpdateStatus
 
         $_SESSION['msg'] = 'Denúncia atualizada com sucesso.';
         $_SESSION['msg_type'] = 'success';
+        $_SESSION['whistleblowing_skip_next_view'][$reportId] = true;
         header('Location: ' . $_ENV['URL_ADM'] . 'view-denuncia/' . $reportId);
         exit;
+    }
+
+    private function preserveForm(): void
+    {
+        $_SESSION['whistleblowing_status_form'] = [
+            'status' => trim((string) ($_POST['status'] ?? '')),
+            'risk_level' => trim((string) ($_POST['risk_level'] ?? '')),
+            'assigned_user_id' => (int) ($_POST['assigned_user_id'] ?? 0),
+            'notes' => trim((string) ($_POST['notes'] ?? '')),
+            'closure_outcome' => trim((string) ($_POST['closure_outcome'] ?? '')),
+            'closure_reason' => trim((string) ($_POST['closure_reason'] ?? '')),
+        ];
     }
 
     private function redirect(int $reportId, string $msg): void
@@ -140,6 +175,7 @@ class WhistleblowingUpdateStatus
         $_SESSION['msg'] = $msg;
         $_SESSION['msg_type'] = 'danger';
         if ($reportId > 0) {
+            $_SESSION['whistleblowing_skip_next_view'][$reportId] = true;
             header('Location: ' . $_ENV['URL_ADM'] . 'view-denuncia/' . $reportId);
         } else {
             header('Location: ' . $_ENV['URL_ADM'] . 'denuncias');

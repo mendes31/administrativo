@@ -52,6 +52,11 @@ class WhistleblowingReplyReport
             return;
         }
 
+        if (($report['status'] ?? '') === 'Encerrada' && !$isInternal) {
+            $this->redirect($reportId, 'A denúncia está encerrada. Reabra o protocolo antes de enviar nova resposta ao denunciante.');
+            return;
+        }
+
         $uploadService = new WhistleblowingUploadService();
         $uploadResult = $uploadService->processMultiple($_FILES['attachments'] ?? null);
         if ($uploadResult['errors'] !== []) {
@@ -90,6 +95,7 @@ class WhistleblowingReplyReport
         }
 
         if (!$isInternal) {
+            $repo->startReporterResponseDeadline($reportId);
             $freshReport = $repo->getReportById($reportId);
             if ($freshReport !== null) {
                 (new WhistleblowingNotificationService())->notifyReporterOnCommitteeReply($freshReport);
@@ -102,6 +108,7 @@ class WhistleblowingReplyReport
 
         $_SESSION['msg'] = $isInternal ? 'Nota interna registrada.' : 'Resposta enviada ao denunciante.';
         $_SESSION['msg_type'] = 'success';
+        $_SESSION['whistleblowing_skip_next_view'][$reportId] = true;
         header('Location: ' . $_ENV['URL_ADM'] . 'view-denuncia/' . $reportId);
         exit;
     }
@@ -111,6 +118,7 @@ class WhistleblowingReplyReport
         $_SESSION['msg'] = $msg;
         $_SESSION['msg_type'] = 'danger';
         if ($reportId > 0) {
+            $_SESSION['whistleblowing_skip_next_view'][$reportId] = true;
             header('Location: ' . $_ENV['URL_ADM'] . 'view-denuncia/' . $reportId);
         } else {
             header('Location: ' . $_ENV['URL_ADM'] . 'denuncias');

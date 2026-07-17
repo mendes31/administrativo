@@ -1049,24 +1049,37 @@ $menus = [
                 'url' => $_ENV['URL_ADM'] . 'denuncias-dashboard',
                 'permission' => 'WhistleblowingDashboard',
                 'icon' => 'fas fa-chart-pie',
+                'related_routes' => ['denuncias-dashboard', 'whistleblowing-export-dashboard'],
             ],
             [
                 'label' => 'Denúncias',
                 'url' => $_ENV['URL_ADM'] . 'denuncias',
                 'permission' => 'WhistleblowingListReports',
                 'icon' => 'fas fa-list',
+                'related_routes' => [
+                    'denuncias', 'list-denuncias', 'view-denuncia', 'reply-denuncia',
+                    'update-denuncia-status', 'whistleblowing-export-access-log',
+                ],
             ],
             [
                 'label' => 'Comitês',
                 'url' => $_ENV['URL_ADM'] . 'list-whistleblowing-committees',
                 'permission' => 'WhistleblowingListCommittees',
                 'icon' => 'fas fa-users-cog',
+                'related_routes' => [
+                    'list-whistleblowing-committees', 'create-whistleblowing-committee',
+                    'update-whistleblowing-committee',
+                ],
             ],
             [
                 'label' => 'Classificações',
                 'url' => $_ENV['URL_ADM'] . 'list-whistleblowing-categories',
                 'permission' => 'WhistleblowingListCategories',
                 'icon' => 'fas fa-tags',
+                'related_routes' => [
+                    'list-whistleblowing-categories', 'create-whistleblowing-category',
+                    'update-whistleblowing-category',
+                ],
             ],
             [
                 'label' => 'Canal público',
@@ -1087,12 +1100,14 @@ $menus = [
                 'url' => $_ENV['URL_ADM'] . 'whistleblowing-governance',
                 'permission' => 'WhistleblowingGovernanceLgpd',
                 'icon' => 'fas fa-balance-scale',
+                'related_routes' => ['whistleblowing-governance'],
             ],
             [
                 'label' => 'Configuração',
                 'url' => $_ENV['URL_ADM'] . 'whistleblowing-config',
                 'permission' => 'WhistleblowingConfig',
                 'icon' => 'fas fa-cog',
+                'related_routes' => ['whistleblowing-config', 'whistleblowing-audit-evidence'],
             ],
         ],
     ],

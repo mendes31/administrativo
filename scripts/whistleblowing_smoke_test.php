@@ -74,6 +74,32 @@ use App\adms\Models\Services\WhistleblowingCommitteeNotificationService;
 $notifier = new WhistleblowingCommitteeNotificationService();
 assertTrue($notifier instanceof WhistleblowingCommitteeNotificationService, 'Serviço de notificação carrega');
 
+// 6. Envelopamento da DEK (Modelo B)
+use App\adms\Models\Services\WhistleblowingKeyWrapService;
+
+$prevWrap = $_ENV[WhistleblowingKeyWrapService::ENV_VAR] ?? null;
+$_ENV[WhistleblowingKeyWrapService::ENV_VAR] = bin2hex(random_bytes(32));
+$dek = bin2hex(random_bytes(32));
+$wrapped = WhistleblowingKeyWrapService::wrap($dek);
+assertTrue(WhistleblowingKeyWrapService::isWrapped($wrapped), 'Blob DEK usa prefixo wbk1:');
+assertTrue(WhistleblowingKeyWrapService::unwrap($wrapped) === $dek, 'Unwrap recupera a DEK original');
+$wrong = $_ENV[WhistleblowingKeyWrapService::ENV_VAR];
+$_ENV[WhistleblowingKeyWrapService::ENV_VAR] = bin2hex(random_bytes(32));
+$unwrapFailed = false;
+try {
+    WhistleblowingKeyWrapService::unwrap($wrapped);
+} catch (\Throwable) {
+    $unwrapFailed = true;
+}
+assertTrue($unwrapFailed, 'KEK errado não abre a DEK envelopada');
+if ($prevWrap === null) {
+    unset($_ENV[WhistleblowingKeyWrapService::ENV_VAR]);
+} else {
+    $_ENV[WhistleblowingKeyWrapService::ENV_VAR] = $prevWrap;
+}
+// silencia unused
+unset($wrong);
+
 echo "\n";
 if ($failures > 0) {
     echo "Resultado: {$failures} falha(s).\n";

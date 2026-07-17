@@ -32,7 +32,14 @@ final class WhistleblowingExportAccessLog
         }
 
         $format = strtolower((string) ($_GET['format'] ?? 'excel'));
-        $accessLog = (new WhistleblowingAccessLogRepository())->getByReportId($id);
+
+        $accessLogRepo = new WhistleblowingAccessLogRepository();
+        $userId = WhistleblowingPermissionService::sessionUserId();
+        if ($userId > 0) {
+            $accessLogRepo->log($id, $userId, $format === 'pdf' ? 'export_audit_pdf' : 'export_audit_excel');
+        }
+
+        $accessLog = $accessLogRepo->getByReportId($id);
         $statusLog = $repo->getStatusLog($id);
         $protocol = (string) ($report['protocol'] ?? 'denuncia');
 
@@ -54,12 +61,14 @@ final class WhistleblowingExportAccessLog
 
         $sheetAccess = $spreadsheet->getActiveSheet();
         $sheetAccess->setTitle('Acesso');
-        $sheetAccess->fromArray(['Data/Hora', 'Usuário', 'Ação'], null, 'A1');
+        $sheetAccess->fromArray(['Data/Hora', 'Usuário', 'Ação', 'IP', 'User-Agent'], null, 'A1');
         $row = 2;
         foreach ($accessLog as $entry) {
             $sheetAccess->setCellValue('A' . $row, date('d/m/Y H:i:s', strtotime((string) ($entry['created_at'] ?? 'now'))));
             $sheetAccess->setCellValue('B' . $row, (string) ($entry['user_name'] ?? ''));
             $sheetAccess->setCellValue('C' . $row, (string) ($entry['action'] ?? ''));
+            $sheetAccess->setCellValue('D' . $row, (string) ($entry['ip_address'] ?? ''));
+            $sheetAccess->setCellValue('E' . $row, (string) ($entry['user_agent'] ?? ''));
             $row++;
         }
 
@@ -89,11 +98,13 @@ final class WhistleblowingExportAccessLog
     private function exportPdf(string $protocol, array $accessLog, array $statusLog): void
     {
         $html = '<h2>Auditoria — ' . htmlspecialchars($protocol) . '</h2>';
-        $html .= '<h3>Acesso interno</h3><table border="1" cellpadding="4" cellspacing="0" width="100%"><tr><th>Data</th><th>Usuário</th><th>Ação</th></tr>';
+        $html .= '<h3>Acesso interno</h3><table border="1" cellpadding="4" cellspacing="0" width="100%"><tr><th>Data</th><th>Usuário</th><th>Ação</th><th>IP</th><th>User-Agent</th></tr>';
         foreach ($accessLog as $entry) {
             $html .= '<tr><td>' . htmlspecialchars(date('d/m/Y H:i', strtotime((string) ($entry['created_at'] ?? 'now')))) . '</td>'
                 . '<td>' . htmlspecialchars((string) ($entry['user_name'] ?? '')) . '</td>'
-                . '<td>' . htmlspecialchars((string) ($entry['action'] ?? '')) . '</td></tr>';
+                . '<td>' . htmlspecialchars((string) ($entry['action'] ?? '')) . '</td>'
+                . '<td>' . htmlspecialchars((string) ($entry['ip_address'] ?? '')) . '</td>'
+                . '<td>' . htmlspecialchars(mb_substr((string) ($entry['user_agent'] ?? ''), 0, 80)) . '</td></tr>';
         }
         $html .= '</table>';
 

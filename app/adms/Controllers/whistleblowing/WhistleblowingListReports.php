@@ -26,10 +26,23 @@ class WhistleblowingListReports
         $this->page = isset($_GET['page']) ? max(1, (int) $_GET['page']) : 1;
         $this->perPage = isset($_GET['per_page']) ? max(1, (int) $_GET['per_page']) : 20;
 
-        $allowedPresets = ['triagem', 'investigacao', 'criticas', 'sla-vencido'];
+        $allowedPresets = [
+            'triagem',
+            'investigacao',
+            'criticas',
+            'sla-vencido',
+            'sla-encerramento-vencido',
+            'retorno-denunciante-vencido',
+            'aging',
+        ];
         $preset = (string) ($_GET['preset'] ?? '');
         if (!in_array($preset, $allowedPresets, true)) {
             $preset = '';
+        }
+        $dateFrom = $this->validDate((string) ($_GET['date_from'] ?? ''));
+        $dateTo = $this->validDate((string) ($_GET['date_to'] ?? ''));
+        if ($dateFrom !== '' && $dateTo !== '' && $dateFrom > $dateTo) {
+            [$dateFrom, $dateTo] = [$dateTo, $dateFrom];
         }
 
         $filters = WhistleblowingPermissionService::applyReportScopeFilters([
@@ -39,8 +52,8 @@ class WhistleblowingListReports
             'category' => $_GET['category'] ?? '',
             'risk_level' => $_GET['risk_level'] ?? '',
             'assigned_user_id' => $_GET['assigned_user_id'] ?? '',
-            'date_from' => $_GET['date_from'] ?? '',
-            'date_to' => $_GET['date_to'] ?? '',
+            'date_from' => $dateFrom,
+            'date_to' => $dateTo,
             'include_archived' => $_GET['include_archived'] ?? '0',
         ]);
 
@@ -71,5 +84,13 @@ class WhistleblowingListReports
 
         $loadView = new LoadViewService('adms/Views/whistleblowing/reports/list', $this->data);
         $loadView->loadView();
+    }
+
+    private function validDate(string $date): string
+    {
+        $date = trim($date);
+        $parsed = \DateTimeImmutable::createFromFormat('!Y-m-d', $date);
+
+        return $parsed !== false && $parsed->format('Y-m-d') === $date ? $date : '';
     }
 }

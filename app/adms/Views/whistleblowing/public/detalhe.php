@@ -18,6 +18,8 @@ $statusLabels = [
     'Encerrada' => 'success',
 ];
 $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
+$responseDeadline = strtotime((string)($report['reporter_response_deadline'] ?? ''));
+$isResponseOverdue = $responseDeadline !== false && $responseDeadline < time();
 ?>
 <div class="canal-card canal-card--wide">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-3">
@@ -42,6 +44,19 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
         <i class="fas fa-info-circle me-1"></i>
         As respostas do comitê aparecem abaixo. Consulte esta página periodicamente com protocolo e senha — não enviamos retornos por e-mail ou telefone.
     </div>
+
+    <?php if (($report['status'] ?? '') !== 'Encerrada' && $responseDeadline !== false): ?>
+    <div class="alert alert-<?php echo $isResponseOverdue ? 'danger' : 'warning'; ?> py-2 small mb-2 mb-sm-3">
+        <i class="fas fa-<?php echo $isResponseOverdue ? 'exclamation-circle' : 'clock'; ?> me-1"></i>
+        <?php if ($isResponseOverdue): ?>
+            O prazo para seu retorno venceu em <strong><?php echo date('d/m/Y H:i', $responseDeadline); ?></strong>.
+            O protocolo permanece aberto até a decisão do comitê. Você ainda pode enviar informações enquanto ele não for encerrado.
+        <?php else: ?>
+            O comitê aguarda seu retorno até <strong><?php echo date('d/m/Y H:i', $responseDeadline); ?></strong>.
+            Responda abaixo, mesmo que seja apenas para informar que ainda está reunindo os dados.
+        <?php endif; ?>
+    </div>
+    <?php endif; ?>
 
     <div class="mb-3">
         <h2 class="h6 fw-semibold">Seu relato</h2>
@@ -145,9 +160,28 @@ $badge = $statusLabels[$report['status'] ?? ''] ?? 'secondary';
         </form>
     </div>
     <?php else: ?>
-    <div class="alert alert-success mt-3 mb-0">
-        <i class="fas fa-check me-1"></i> Esta denúncia foi encerrada.
+    <div class="alert alert-success mt-3 mb-3">
+        <h2 class="h6 fw-semibold mb-2"><i class="fas fa-check-circle me-1"></i> Protocolo encerrado</h2>
+        <p class="mb-1">
+            Esta denúncia foi encerrada
+            <?php if (!empty($report['closed_at'])): ?>
+                em <strong><?php echo date('d/m/Y H:i', strtotime((string)$report['closed_at'])); ?></strong>
+            <?php endif; ?>.
+        </p>
+        <?php if (!empty($report['closure_outcome'])): ?>
+            <p class="mb-1"><strong>Resultado:</strong> <?php echo htmlspecialchars((string)$report['closure_outcome'], ENT_QUOTES, 'UTF-8'); ?></p>
+        <?php endif; ?>
+        <?php if (!empty($report['closure_reason'])): ?>
+            <div class="mb-2"><strong>Explicação:</strong> <?php echo nl2br(htmlspecialchars((string)$report['closure_reason'], ENT_QUOTES, 'UTF-8')); ?></div>
+        <?php endif; ?>
+        <p class="mb-0">
+            O histórico continua disponível para consulta. Se surgirem <strong>fatos novos</strong>, novas evidências ou se a situação persistir,
+            registre uma nova denúncia e informe este protocolo anterior no relato.
+        </p>
     </div>
+    <a href="<?php echo htmlspecialchars($base_url . 'registrar', ENT_QUOTES, 'UTF-8'); ?>" class="btn btn-canal-outline">
+        <i class="fas fa-file-alt me-1"></i>Registrar nova denúncia
+    </a>
     <?php endif; ?>
 </div>
 <?php include __DIR__ . '/_attachment_validation.php'; ?>

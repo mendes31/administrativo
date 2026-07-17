@@ -5,11 +5,15 @@
 <h2>Fluxo</h2>
 <ol>
 <li>Acesse <code>denuncias-dashboard</code>.</li>
+<li>Opcionalmente, informe <strong>Registradas de</strong> e <strong>Registradas até</strong> e clique em <strong>Aplicar período</strong>. O intervalo considera a data de registro.</li>
 <li>Analise indicadores, tabela de <strong>aging</strong> (denúncias paradas) e denúncias recentes.</li>
 <li>Clique em um card de indicador para abrir a listagem já filtrada com o resultado correspondente.</li>
-<li>Use <strong>Exportar Excel</strong> para planilha com resumo e aging.</li>
+<li>Use <strong>Exportar Excel</strong> para planilha com resumo e aging do mesmo período selecionado. Cada exportação é registrada no log do sistema com usuário, data/hora e período, quando os logs estão habilitados.</li>
 <li>Use <strong>Ver todas</strong> para a listagem detalhada.</li>
 </ol>
+
+<h2>Filtro por período</h2>
+<p>O período é aplicado aos cards, tempos médios, distribuições, denúncias recentes, aging, links para a listagem e exportação Excel. Datas invertidas são corrigidas automaticamente. Use <strong>Limpar período</strong> para voltar à visão completa.</p>
 
 <h2>Cards com link para a listagem</h2>
 <p>Os cards levam à listagem de denúncias com filtro rápido aplicado (exige permissão <em>WhistleblowingListReports</em>):</p>
@@ -18,6 +22,8 @@
 <li><strong>Pendentes triagem</strong> — status Recebida ou Em triagem.</li>
 <li><strong>Críticas abertas</strong> — risco Crítico e não encerradas.</li>
 <li><strong>SLA 1ª resposta</strong> — abertas, sem primeira resposta e com prazo vencido.</li>
+<li><strong>SLA encerramento</strong> — aparece somente quando ativado; mostra denúncias ainda abertas após o prazo configurado.</li>
+<li><strong>Retorno do denunciante</strong> — aparece quando a regra está ativa; mostra protocolos abertos sem retorno após a data limite.</li>
 <li><strong>Em investigação</strong> — status Em análise, Comitê ou Investigação.</li>
 </ul>
 <p>Na listagem, um aviso indica o filtro rápido ativo, com botão <strong>Remover filtro</strong>.</p>
@@ -25,10 +31,13 @@
 <h2>SLA e aging</h2>
 <ul>
 <li><strong>SLA 1ª resposta (72h)</strong> — contagem de denúncias abertas sem <code>first_response_at</code> há mais de 72 horas.</li>
-<li><strong>Aging</strong> — denúncias abertas ordenadas por dias sem atualização (<code>updated_at</code>).</li>
+<li><strong>SLA de encerramento</strong> — contagem de denúncias ainda abertas após o prazo global/por risco. O card e a linha da exportação não aparecem quando o recurso está desativado.</li>
+<li><strong>Retorno do denunciante</strong> — contagem de prazos vencidos após mensagem pública do comitê. O card abre a listagem filtrada e não encerra nenhum protocolo automaticamente.</li>
+<li><strong>Aging</strong> — denúncias abertas ordenadas por dias sem atualização (<code>updated_at</code>). Clique em <strong>Ver na listagem</strong> para abrir todos os resultados ordenados do mais parado para o mais recente.</li>
 </ul>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Indicadores zerados</dt><dd>Nenhuma denúncia no escopo do usuário ou filtros de comitê.</dd>
+<dt>Indicadores zerados</dt><dd>Nenhuma denúncia no escopo do usuário ou no período selecionado.</dd>
+<dt>Exportação diferente da tela</dt><dd>Confirme se o período continua preenchido antes de clicar em Exportar Excel.</dd>
 </dl>

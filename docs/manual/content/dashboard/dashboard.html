@@ -1,28 +1,42 @@
 <h1>Dashboard</h1>
-<p>Tela <strong>Dashboard</strong> do módulo Dashboard. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
+<p>Página inicial do sistema após o login. Reúne cards com informativos, políticas, eventos, aniversariantes, agenda pessoal, documentos de folha e outros atalhos. Cada card só aparece para quem tem a permissão correspondente.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Dashboard — visão geral</em> (<code>dashboard-visao-geral</code>) para o fluxo completo da área.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>Dashboard</em>.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>Dashboard</em>. A exibição de cada card depende de permissões específicas (veja a tabela abaixo).</p>
+
+<h2>Cards disponíveis</h2>
+<p class="text-muted small">Cada card exige a permissão indicada no nível de acesso do usuário.</p>
+<div class="help-field"><strong>Informativos</strong> (<em>DashboardCardInformativos</em>) — últimos informativos publicados, contagem de ativos e não lidos, agrupados por categoria.</div>
+<div class="help-field"><strong>Políticas</strong> (<em>DashboardCardPolicies</em>) — políticas ativas, urgentes e pendentes de leitura.</div>
+<div class="help-field"><strong>Timeline</strong> (<em>DashboardCardTimeline</em>) — contagem de notificações da timeline ainda não lidas.</div>
+<div class="help-field"><strong>Eventos da empresa</strong> (<em>DashboardCardEventos</em>) — eventos do mês em exibição, com situação do seu RSVP e contadores do mês/ano.</div>
+<div class="help-field"><strong>Aniversariantes</strong> (<em>DashboardCardAniversariantes</em>) — aniversariantes do dia e do mês entre usuários ativos.</div>
+<div class="help-field"><strong>Tempo de empresa</strong> (<em>DashboardCardTempoEmpresa</em>) — colaboradores que completam aniversário de empresa no mês.</div>
+<div class="help-field"><strong>Documentos de folha</strong> (<em>DashboardCardPayrollDocuments</em>) — seus documentos mais recentes e assinaturas pendentes.</div>
+<div class="help-field"><strong>Minha agenda</strong> (<em>DashboardCardMyCalendar</em>) — compromissos do mês (pessoais, reservas de sala, convites e eventos) com atalho para cada item.</div>
+<div class="help-field"><strong>Quizzes</strong> (<em>DashboardCardGamificationQuizzes</em>) — quizzes publicados disponíveis para você responder.</div>
+<div class="help-field"><strong>Salas de reunião</strong> (<em>DashboardCardRoomBooking</em>) — quantidade de salas ativas e atalho para reservas.</div>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Acesse <strong>Dashboard</strong> pelo menu Dashboard.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Faça login; o Dashboard é a página inicial padrão.</li>
+    <li>Revise os contadores de pendências: informativos e políticas não lidos, assinaturas de folha pendentes e notificações da timeline.</li>
+    <li>Clique no card desejado para abrir a área correspondente (listagem de informativos, políticas, evento com RSVP, reserva de sala, etc.).</li>
+    <li>No card <strong>Minha agenda</strong>, abra o modal para ver os compromissos do ano e acessar cada item (editar compromisso, ver reserva, responder RSVP).</li>
+    <li>Pressione <kbd>F1</kbd> em qualquer tela para abrir a ajuda contextual.</li>
 </ol>
-
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Um card não aparece</dt>
+    <dd>Falta a permissão <em>DashboardCard...</em> correspondente no seu nível de acesso. Solicite a inclusão ao administrador.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>Dashboard</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dt>Contadores desatualizados</dt>
+    <dd>Os contadores refletem o momento em que a página foi carregada. Recarregue o Dashboard para atualizar.</dd>
+    <dt>Card de eventos sem o seu RSVP</dt>
+    <dd>O RSVP aparece somente para usuários autenticados e para eventos em que você foi convidado. Abra o evento para responder.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
 </dl>

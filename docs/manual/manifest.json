@@ -2230,6 +2230,11 @@
                     "file": "whistleblowing/whistleblowing-config.html"
                 },
                 {
+                    "id": "whistleblowing-audit-evidence",
+                    "title": "Evidências auditáveis",
+                    "file": "whistleblowing/whistleblowing-audit-evidence.html"
+                },
+                {
                     "id": "whistleblowing-governance",
                     "title": "Governança LGPD",
                     "file": "whistleblowing/whistleblowing-governance.html"

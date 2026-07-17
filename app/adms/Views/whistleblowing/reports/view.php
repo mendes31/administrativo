@@ -1,17 +1,66 @@
 <?php
 $report = $this->data['report'] ?? [];
-$sla = (new \App\adms\Models\Services\WhistleblowingSlaService())->progress($report);
+$slaService = new \App\adms\Models\Services\WhistleblowingSlaService();
+$sla = $slaService->progress($report);
+$closureSlaEnabled = $slaService->defaultClosureSlaLabel() !== null;
+$closureSla = $closureSlaEnabled ? $slaService->closureProgress($report) : null;
+$reporterResponse = (new \App\adms\Models\Services\WhistleblowingReporterInactivityService())->status($report);
 $statusBadges = [
     'Recebida' => 'secondary', 'Em triagem' => 'info', 'Em análise' => 'primary',
     'Comitê' => 'warning', 'Investigação' => 'warning', 'Providências' => 'info', 'Encerrada' => 'success',
 ];
 $canReply = in_array('WhistleblowingReplyReport', $this->data['buttonPermission'] ?? []);
 $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermission'] ?? []);
+$statusForm = is_array($this->data['status_form'] ?? null) ? $this->data['status_form'] : [];
+$selectedStatus = (string) ($statusForm['status'] ?? $report['status'] ?? '');
+$selectedRisk = (string) ($statusForm['risk_level'] ?? $report['risk_level'] ?? '');
+$selectedAssignedUser = (int) ($statusForm['assigned_user_id'] ?? $report['assigned_user_id'] ?? 0);
+$selectedClosureOutcome = (string) ($statusForm['closure_outcome'] ?? $report['closure_outcome'] ?? '');
+$selectedClosureReason = (string) ($statusForm['closure_reason'] ?? $report['closure_reason'] ?? '');
 ?>
 
-<div class="container-fluid px-4">
+<style>
+.wb-report-page {
+    max-width: 1120px;
+}
+.wb-report-page .card {
+    border: 0 !important;
+    border-radius: 18px;
+    overflow: hidden;
+}
+.wb-report-page .card-header {
+    background: #fff;
+    border-bottom: 1px solid #e9ecef;
+    font-weight: 600;
+    padding: 1rem 1.25rem;
+}
+.wb-report-page .card-body {
+    padding: 1.25rem;
+}
+.wb-report-page .list-group-item {
+    padding: .9rem 1.25rem;
+}
+@media (min-width: 768px) {
+    .wb-report-page .card-body {
+        padding: 1.5rem;
+    }
+}
+@media (max-width: 575.98px) {
+    .wb-report-page .card {
+        border-radius: 12px;
+    }
+    .wb-report-page .card-header,
+    .wb-report-page .card-body,
+    .wb-report-page .list-group-item {
+        padding-left: .85rem;
+        padding-right: .85rem;
+    }
+}
+</style>
+
+<div class="container-fluid px-2 px-md-4 mx-auto wb-report-page">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3 mobile-hide-page-title">
+        <h2 class="mt-3 mb-2 text-primary fw-bold mobile-hide-page-title" style="font-size: 1.7rem; letter-spacing: -1px;">
             <i class="fas fa-shield-alt me-2"></i><?php echo htmlspecialchars((string)($report['protocol'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
         </h2>
         <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
@@ -23,13 +72,18 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
     <div class="row g-3">
-        <div class="col-lg-8">
-            <div class="card border-light shadow mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center">
+        <div class="col-12">
+            <div class="card border-light shadow-sm mb-3">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
                     <span>Relato</span>
-                    <span class="badge bg-<?php echo $statusBadges[$report['status'] ?? ''] ?? 'secondary'; ?>">
-                        <?php echo htmlspecialchars((string)($report['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                    </span>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <span class="badge bg-<?php echo $statusBadges[$report['status'] ?? ''] ?? 'secondary'; ?>">
+                            <?php echo htmlspecialchars((string)($report['status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+                        </span>
+                        <?php if (($report['status'] ?? '') === 'Encerrada' && !empty($report['closure_outcome'])): ?>
+                            <span class="badge bg-dark"><?php echo htmlspecialchars((string)$report['closure_outcome'], ENT_QUOTES, 'UTF-8'); ?></span>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <div class="card-body">
                     <div class="row g-2 mb-3 small">
@@ -38,6 +92,22 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                         <div class="col-md-3"><strong>Comitê:</strong> <?php echo htmlspecialchars((string)($report['committee_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="col-md-3"><strong>Responsável:</strong> <?php echo htmlspecialchars((string)($report['assigned_name'] ?? '—'), ENT_QUOTES, 'UTF-8'); ?></div>
                         <div class="col-md-3"><strong>Registrada:</strong> <?php echo date('d/m/Y H:i', strtotime((string)($report['created_at'] ?? 'now'))); ?></div>
+                        <?php if (($report['status'] ?? '') === 'Encerrada'): ?>
+                        <div class="col-md-3">
+                            <strong>Encerrada em:</strong>
+                            <?php echo !empty($report['closed_at'])
+                                ? date('d/m/Y H:i', strtotime((string)$report['closed_at']))
+                                : '—'; ?>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>Resultado:</strong>
+                            <?php if (!empty($report['closure_outcome'])): ?>
+                                <span class="badge bg-dark"><?php echo htmlspecialchars((string)$report['closure_outcome'], ENT_QUOTES, 'UTF-8'); ?></span>
+                            <?php else: ?>
+                                <span class="text-muted">Não informado</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
                         <div class="col-md-6">
                             <strong>SLA 1ª resposta:</strong>
                             <?php if ($sla['available']): ?>
@@ -58,6 +128,37 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                                 <span class="text-muted">Não definido</span>
                             <?php endif; ?>
                         </div>
+                        <?php if ($closureSlaEnabled && $closureSla !== null): ?>
+                        <div class="col-md-6">
+                            <strong>SLA encerramento:</strong>
+                            <?php if ($closureSla['available']): ?>
+                                <span title="<?php echo htmlspecialchars($closureSla['title'], ENT_QUOTES, 'UTF-8'); ?>">
+                                    <?php echo htmlspecialchars($closureSla['deadline'], ENT_QUOTES, 'UTF-8'); ?>
+                                </span>
+                                <div class="progress position-relative mt-1" style="height: 15px; max-width: 300px;" role="progressbar"
+                                    aria-label="<?php echo htmlspecialchars($closureSla['label'], ENT_QUOTES, 'UTF-8'); ?>"
+                                    aria-valuenow="<?php echo (int)$closureSla['percent']; ?>" aria-valuemin="0" aria-valuemax="100">
+                                    <div class="progress-bar progress-bar-striped bg-<?php echo htmlspecialchars($closureSla['color'], ENT_QUOTES, 'UTF-8'); ?>"
+                                        style="width: <?php echo (int)$closureSla['percent']; ?>%"></div>
+                                    <span class="position-absolute w-100 text-center fw-semibold"
+                                        style="font-size: .68rem; line-height: 15px; color: <?php echo $closureSla['percent'] >= 50 ? '#fff' : '#212529'; ?>;">
+                                        <?php echo (int)$closureSla['percent']; ?>% — <?php echo htmlspecialchars($closureSla['label'], ENT_QUOTES, 'UTF-8'); ?>
+                                    </span>
+                                </div>
+                            <?php else: ?>
+                                <span class="text-muted">Não definido</span>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+                        <?php if ($reporterResponse['active']): ?>
+                        <div class="col-md-6">
+                            <strong>Retorno do denunciante:</strong>
+                            <span class="badge bg-<?php echo htmlspecialchars($reporterResponse['color'], ENT_QUOTES, 'UTF-8'); ?>">
+                                <?php echo htmlspecialchars($reporterResponse['label'], ENT_QUOTES, 'UTF-8'); ?>
+                            </span>
+                            até <?php echo htmlspecialchars($reporterResponse['deadline'], ENT_QUOTES, 'UTF-8'); ?>
+                        </div>
+                        <?php endif; ?>
                         <div class="col-md-3">
                             <strong>Denunciante:</strong>
                             <?php if (!empty($report['is_reporter_identified'])): ?>
@@ -68,7 +169,7 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                         </div>
                     </div>
                     <?php if (!empty($report['is_reporter_identified'])): ?>
-                    <div class="alert alert-info py-2 small mb-3">
+                    <div class="alert alert-info py-2 small mb-3 text-break">
                         <strong>Contato voluntário:</strong>
                         <?php echo htmlspecialchars((string)($report['reporter_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
                         <?php if (!empty($report['reporter_email'])): ?>
@@ -79,20 +180,36 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                         <?php endif; ?>
                     </div>
                     <?php endif; ?>
+                    <?php if (($report['status'] ?? '') === 'Encerrada' && (!empty($report['closure_outcome']) || !empty($report['closure_reason']))): ?>
+                    <div class="alert alert-success py-2 small mb-3 text-break">
+                        <strong>Conclusão da apuração:</strong>
+                        <?php echo htmlspecialchars((string)($report['closure_outcome'] ?? 'Sem resultado'), ENT_QUOTES, 'UTF-8'); ?>
+                        <?php if (!empty($report['closure_reason'])): ?>
+                            <div class="mt-1"><?php echo nl2br(htmlspecialchars((string)$report['closure_reason'], ENT_QUOTES, 'UTF-8')); ?></div>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
+                    <?php if ($reporterResponse['active'] && $reporterResponse['overdue']): ?>
+                    <div class="alert alert-danger py-2 small mb-3">
+                        <strong>Retorno do denunciante vencido.</strong>
+                        O protocolo não foi encerrado automaticamente. Avalie o histórico e decida manualmente se há elementos para encerrar,
+                        registrando resultado e motivo.
+                    </div>
+                    <?php endif; ?>
                     <div class="mb-3">
                         <h6 class="fw-semibold">Descrição</h6>
-                        <div class="border rounded p-3 bg-light"><?php echo nl2br(htmlspecialchars((string)($report['description'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></div>
+                        <div class="border rounded p-3 bg-light text-break"><?php echo nl2br(htmlspecialchars((string)($report['description'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></div>
                     </div>
                     <?php if (!empty($report['involved'])): ?>
                     <div class="mb-0">
                         <h6 class="fw-semibold">Envolvidos</h6>
-                        <div class="border rounded p-3 bg-light"><?php echo nl2br(htmlspecialchars((string)$report['involved'], ENT_QUOTES, 'UTF-8')); ?></div>
+                        <div class="border rounded p-3 bg-light text-break"><?php echo nl2br(htmlspecialchars((string)$report['involved'], ENT_QUOTES, 'UTF-8')); ?></div>
                     </div>
                     <?php endif; ?>
                 </div>
             </div>
 
-            <div class="card border-light shadow mb-3">
+            <div class="card border-light shadow-sm mb-3">
                 <div class="card-header">Mensagens</div>
                 <div class="card-body" style="max-height: 420px; overflow-y: auto;">
                     <?php if (empty($this->data['messages'])): ?>
@@ -110,7 +227,7 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                                     <?php echo htmlspecialchars((string)($msg['user_name'] ?? ($isComite ? 'Comitê' : 'Denunciante')), ENT_QUOTES, 'UTF-8'); ?>
                                     — <?php echo date('d/m/Y H:i', strtotime((string)($msg['created_at'] ?? 'now'))); ?>
                                 </div>
-                                <div><?php echo nl2br(htmlspecialchars((string)($msg['message'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></div>
+                                <div class="text-break"><?php echo nl2br(htmlspecialchars((string)($msg['message'] ?? ''), ENT_QUOTES, 'UTF-8')); ?></div>
                             </div>
                         <?php endforeach; ?>
                     <?php endif; ?>
@@ -118,13 +235,14 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
             </div>
 
             <?php if ($canReply): ?>
-            <div class="card border-light shadow mb-3">
+            <div class="card border-light shadow-sm mb-3">
                 <div class="card-header">Responder</div>
                 <div class="card-body">
                     <form method="post" action="<?php echo $_ENV['URL_ADM']; ?>reply-denuncia/<?php echo (int)($report['id'] ?? 0); ?>" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string)($this->data['csrf_reply'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-2">
                             <textarea name="message" class="form-control" rows="4" required placeholder="Resposta visível ao denunciante..."></textarea>
+                            <div class="form-text">Uma resposta pública inicia ou reinicia o prazo configurado para retorno do denunciante.</div>
                         </div>
                         <div class="mb-2 form-check">
                             <input type="checkbox" name="is_internal_note" class="form-check-input" id="is_internal_note">
@@ -149,26 +267,27 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
             <?php endif; ?>
         </div>
 
-        <div class="col-lg-4">
+        <div class="col-12">
             <?php if ($canStatus): ?>
-            <div class="card border-light shadow mb-3">
+            <div class="card border-light shadow-sm mb-3">
                 <div class="card-header">Gestão</div>
                 <div class="card-body">
                     <form method="post" action="<?php echo $_ENV['URL_ADM']; ?>update-denuncia-status/<?php echo (int)($report['id'] ?? 0); ?>">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars((string)($this->data['csrf_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
                         <div class="mb-2">
                             <label class="form-label small">Status</label>
-                            <select name="status" class="form-select form-select-sm">
+                            <select name="status" id="wb-status-select" class="form-select form-select-sm">
                                 <?php foreach ($this->data['statuses'] as $st): ?>
-                                    <option value="<?php echo htmlspecialchars($st, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (($report['status'] ?? '') === $st) ? 'selected' : ''; ?>><?php echo htmlspecialchars($st, ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <option value="<?php echo htmlspecialchars($st, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($selectedStatus === $st) ? 'selected' : ''; ?>><?php echo htmlspecialchars($st, ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
                             </select>
+                            <div class="form-text">Para concluir a apuração, selecione <strong>Encerrada</strong>. Os campos de resultado e motivo aparecerão abaixo.</div>
                         </div>
                         <div class="mb-2">
                             <label class="form-label small">Risco</label>
                             <select name="risk_level" class="form-select form-select-sm">
                                 <?php foreach ($this->data['risk_levels'] as $risk): ?>
-                                    <option value="<?php echo htmlspecialchars($risk, ENT_QUOTES, 'UTF-8'); ?>" <?php echo (($report['risk_level'] ?? '') === $risk) ? 'selected' : ''; ?>><?php echo htmlspecialchars($risk, ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <option value="<?php echo htmlspecialchars($risk, ENT_QUOTES, 'UTF-8'); ?>" <?php echo ($selectedRisk === $risk) ? 'selected' : ''; ?>><?php echo htmlspecialchars($risk, ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -177,27 +296,29 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                             <select name="assigned_user_id" class="form-select form-select-sm">
                                 <option value="">—</option>
                                 <?php foreach ($this->data['users'] as $u): ?>
-                                    <option value="<?php echo (int)$u['id']; ?>" <?php echo ((int)($report['assigned_user_id'] ?? 0) === (int)$u['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$u['name'], ENT_QUOTES, 'UTF-8'); ?></option>
+                                    <option value="<?php echo (int)$u['id']; ?>" <?php echo ($selectedAssignedUser === (int)$u['id']) ? 'selected' : ''; ?>><?php echo htmlspecialchars((string)$u['name'], ENT_QUOTES, 'UTF-8'); ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="mb-2">
                             <label class="form-label small">Observação (linha do tempo)</label>
-                            <textarea name="notes" class="form-control form-control-sm" rows="2"></textarea>
+                            <textarea name="notes" class="form-control form-control-sm" rows="2"><?php echo htmlspecialchars((string)($statusForm['notes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
-                        <div id="wb-closure-fields" class="mb-2 <?= ($report['status'] ?? '') === 'Encerrada' ? '' : 'd-none' ?>">
-                            <label class="form-label small">Resultado do encerramento <span class="text-danger">*</span></label>
+                        <div id="wb-closure-fields" class="alert alert-warning border-warning mb-3 <?= $selectedStatus === 'Encerrada' ? '' : 'd-none' ?>">
+                            <h6 class="alert-heading mb-2"><i class="fas fa-check-circle me-1"></i>Conclusão da apuração</h6>
+                            <p class="small mb-2">Escolha o resultado e explique o motivo. Essas informações serão apresentadas ao denunciante.</p>
+                            <label class="form-label small fw-semibold">Resultado do encerramento <span class="text-danger">*</span></label>
                             <select name="closure_outcome" class="form-select form-select-sm mb-2">
                                 <option value="">Selecione...</option>
                                 <?php foreach (($this->data['closure_outcomes'] ?? []) as $outcome): ?>
                                     <option value="<?php echo htmlspecialchars($outcome, ENT_QUOTES, 'UTF-8'); ?>"
-                                        <?php echo (($report['closure_outcome'] ?? '') === $outcome) ? 'selected' : ''; ?>>
+                                        <?php echo ($selectedClosureOutcome === $outcome) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($outcome, ENT_QUOTES, 'UTF-8'); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                            <label class="form-label small">Motivo do encerramento <span class="text-danger">*</span></label>
-                            <textarea name="closure_reason" class="form-control form-control-sm" rows="3" placeholder="Resumo da conclusão da apuração..."><?php echo htmlspecialchars((string)($report['closure_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                            <label class="form-label small fw-semibold">Motivo do encerramento <span class="text-danger">*</span></label>
+                            <textarea name="closure_reason" class="form-control form-control-sm" rows="3" placeholder="Resumo claro da conclusão da apuração..."><?php echo htmlspecialchars($selectedClosureReason, ENT_QUOTES, 'UTF-8'); ?></textarea>
                         </div>
                         <?php if (!empty($report['closure_outcome'])): ?>
                         <div class="alert alert-secondary py-2 small mb-2">
@@ -207,15 +328,24 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                             <?php endif; ?>
                         </div>
                         <?php endif; ?>
-                        <button type="submit" class="btn btn-warning btn-sm w-100">Atualizar</button>
+                        <button type="submit" class="btn btn-warning btn-sm w-100">
+                            <i class="fas fa-save me-1"></i><span id="wb-status-submit-label"><?= $selectedStatus === 'Encerrada' ? 'Confirmar encerramento' : 'Atualizar gestão' ?></span>
+                        </button>
                     </form>
                     <script>
                     (function () {
                         var statusSelect = document.querySelector('select[name="status"]');
                         var closureBox = document.getElementById('wb-closure-fields');
+                        var closureOutcome = document.querySelector('select[name="closure_outcome"]');
+                        var closureReason = document.querySelector('textarea[name="closure_reason"]');
+                        var submitLabel = document.getElementById('wb-status-submit-label');
                         function toggleClosure() {
                             if (!statusSelect || !closureBox) return;
-                            closureBox.classList.toggle('d-none', statusSelect.value !== 'Encerrada');
+                            var closing = statusSelect.value === 'Encerrada';
+                            closureBox.classList.toggle('d-none', !closing);
+                            if (closureOutcome) closureOutcome.required = closing;
+                            if (closureReason) closureReason.required = closing;
+                            if (submitLabel) submitLabel.textContent = closing ? 'Confirmar encerramento' : 'Atualizar gestão';
                         }
                         statusSelect?.addEventListener('change', toggleClosure);
                         toggleClosure();
@@ -226,7 +356,7 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
             <?php endif; ?>
 
             <?php if (!empty($this->data['attachments'])): ?>
-            <div class="card border-light shadow mb-3">
+            <div class="card border-light shadow-sm mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span>Anexos</span>
                     <span class="badge bg-light text-dark border small fw-normal">Download somente via módulo</span>
@@ -242,8 +372,8 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
                             : ($sizeBytes >= 1024 ? round($sizeBytes / 1024, 1) . ' KB' : $sizeBytes . ' B');
                         ?>
                         <li class="list-group-item d-flex justify-content-between align-items-center gap-2 small">
-                            <div class="flex-grow-1">
-                                <div class="fw-semibold"><?php echo htmlspecialchars((string)($att['original_name'] ?? 'arquivo'), ENT_QUOTES, 'UTF-8'); ?></div>
+                            <div class="flex-grow-1" style="min-width: 0;">
+                                <div class="fw-semibold text-break"><?php echo htmlspecialchars((string)($att['original_name'] ?? 'arquivo'), ENT_QUOTES, 'UTF-8'); ?></div>
                                 <div class="text-muted">
                                     <?php if ($isEncrypted): ?>
                                         <span class="badge bg-success">Cifrado em disco</span>
@@ -271,42 +401,82 @@ $canStatus = in_array('WhistleblowingUpdateStatus', $this->data['buttonPermissio
             </div>
             <?php endif; ?>
 
-            <div class="card border-light shadow mb-3">
-                <div class="card-header">Linha do tempo</div>
-                <ul class="list-group list-group-flush small">
+        </div>
+    </div>
+
+    <div class="row g-3 mt-1">
+        <div class="col-12">
+            <div class="card border-light shadow-sm h-100">
+                <div class="card-header"><i class="fas fa-stream me-1"></i>Linha do tempo</div>
+                <ul class="list-group list-group-flush small" style="max-height: 360px; overflow-y: auto;">
                     <?php foreach ($this->data['status_log'] ?? [] as $log): ?>
                         <li class="list-group-item">
                             <strong><?php echo htmlspecialchars((string)($log['to_status'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
                             <div class="text-muted"><?php echo date('d/m/Y H:i', strtotime((string)($log['created_at'] ?? 'now'))); ?>
                                 <?php if (!empty($log['user_name'])): ?> — <?php echo htmlspecialchars((string)$log['user_name'], ENT_QUOTES, 'UTF-8'); ?><?php endif; ?>
                             </div>
-                            <?php if (!empty($log['notes'])): ?><div><?php echo htmlspecialchars((string)$log['notes'], ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
+                            <?php if (!empty($log['notes'])): ?><div class="mt-1"><?php echo htmlspecialchars((string)$log['notes'], ENT_QUOTES, 'UTF-8'); ?></div><?php endif; ?>
                         </li>
                     <?php endforeach; ?>
                 </ul>
             </div>
+        </div>
 
-            <div class="card border-light shadow">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <span>Auditoria de acesso</span>
+        <div class="col-12">
+            <div class="card border-light shadow-sm h-100">
+                <div class="card-header d-flex flex-wrap justify-content-between align-items-center gap-2">
+                    <span><i class="fas fa-user-shield me-1"></i>Auditoria de acesso interno</span>
                     <?php if (in_array('WhistleblowingExportAccessLog', $this->data['buttonPermission'] ?? [])): ?>
                     <div class="btn-group btn-group-sm">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>whistleblowing-export-access-log/<?php echo (int)($report['id'] ?? 0); ?>?format=excel"
-                           class="btn btn-outline-secondary btn-sm">Excel</a>
+                           class="btn btn-outline-success btn-sm"><i class="fas fa-file-excel me-1"></i>Excel</a>
                         <a href="<?php echo $_ENV['URL_ADM']; ?>whistleblowing-export-access-log/<?php echo (int)($report['id'] ?? 0); ?>?format=pdf"
-                           class="btn btn-outline-secondary btn-sm">PDF</a>
+                           class="btn btn-outline-danger btn-sm"><i class="fas fa-file-pdf me-1"></i>PDF</a>
                     </div>
                     <?php endif; ?>
                 </div>
-                <ul class="list-group list-group-flush small">
+                <div class="list-group list-group-flush small" style="max-height: 420px; overflow-y: auto;">
+                    <?php
+                    $accessActionLabels = [
+                        'view' => 'visualização',
+                        'download_attachment' => 'download de anexo',
+                        'status_change' => 'alteração de status',
+                        'reply' => 'resposta ao denunciante',
+                        'internal_note' => 'nota interna',
+                        'export_audit_pdf' => 'exportação da auditoria (PDF)',
+                        'export_audit_excel' => 'exportação da auditoria (Excel)',
+                    ];
+                    ?>
                     <?php foreach ($this->data['access_log'] ?? [] as $al): ?>
-                        <li class="list-group-item">
-                            <?php echo htmlspecialchars((string)($al['user_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                            — <?php echo htmlspecialchars((string)($al['action'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
-                            <div class="text-muted"><?php echo date('d/m/Y H:i', strtotime((string)($al['created_at'] ?? 'now'))); ?></div>
-                        </li>
+                        <?php $accessAction = (string)($al['action'] ?? ''); ?>
+                        <div class="list-group-item">
+                            <div class="row g-2 align-items-start">
+                                <div class="col-12 col-md-4">
+                                    <strong><?php echo htmlspecialchars((string)($al['user_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                    <div class="text-muted"><?php echo htmlspecialchars($accessActionLabels[$accessAction] ?? $accessAction, ENT_QUOTES, 'UTF-8'); ?></div>
+                                </div>
+                                <div class="col-12 col-md-3">
+                                    <span class="d-md-none fw-semibold">Data: </span>
+                                    <span class="text-nowrap"><?php echo date('d/m/Y H:i', strtotime((string)($al['created_at'] ?? 'now'))); ?></span>
+                                </div>
+                                <div class="col-12 col-md-5">
+                                    <?php if (!empty($al['ip_address'])): ?>
+                                        <div><span class="fw-semibold">IP interno:</span> <?php echo htmlspecialchars((string)$al['ip_address'], ENT_QUOTES, 'UTF-8'); ?></div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($al['user_agent'])): ?>
+                                        <div class="text-muted text-break mt-1">
+                                            <span class="fw-semibold text-dark">Dispositivo:</span>
+                                            <?php echo htmlspecialchars((string)$al['user_agent'], ENT_QUOTES, 'UTF-8'); ?>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
                     <?php endforeach; ?>
-                </ul>
+                </div>
+                <div class="card-footer small text-muted">
+                    Registra somente acessos e ações de usuários internos autenticados; nunca o IP do denunciante.
+                </div>
             </div>
         </div>
     </div>

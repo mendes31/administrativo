@@ -99,6 +99,52 @@ final class WhistleblowingNotificationService
         );
     }
 
+    public function notifyClosureSlaBreach(int $reportId, string $protocol, ?int $committeeId): void
+    {
+        $config = new WhistleblowingConfigRepository();
+        if (!$config->isSlaClosureEnabled() || !$config->isNotifyCommitteeOnSlaClosureBreach()) {
+            return;
+        }
+
+        $this->notifyCommittee(
+            $reportId,
+            $protocol,
+            $committeeId,
+            'SLA de encerramento estourado — ' . $protocol,
+            'A denúncia permanece aberta após o prazo configurado para encerramento.',
+            [],
+            'whistleblowing_sla_closure_breach'
+        );
+    }
+
+    public function notifyReporterInactivity(
+        int $reportId,
+        string $protocol,
+        ?int $committeeId,
+        string $deadline
+    ): void {
+        $config = new WhistleblowingConfigRepository();
+        if (!$config->isReporterInactivityEnabled()) {
+            return;
+        }
+
+        $formattedDeadline = strtotime($deadline) !== false
+            ? date('d/m/Y H:i', strtotime($deadline))
+            : $deadline;
+        $this->notifyCommittee(
+            $reportId,
+            $protocol,
+            $committeeId,
+            'Retorno do denunciante vencido — ' . $protocol,
+            'O prazo para retorno do denunciante venceu. A denúncia permanece aberta e deve ser avaliada pelo comitê.',
+            [
+                ['Prazo encerrado em', $formattedDeadline],
+                ['Ação', 'Avaliar o caso e decidir manualmente se deve ser encerrado'],
+            ],
+            'whistleblowing_reporter_inactivity'
+        );
+    }
+
     /**
      * @param array<string, mixed> $report Linha hidratada ou bruta com reporter_email
      */
@@ -117,16 +163,24 @@ final class WhistleblowingNotificationService
         $protocol = (string) ($report['protocol'] ?? '');
         $publicUrl = WhistleblowingPublicUrlHelper::baseUrl() . 'acompanhar';
         $subject = 'Nova resposta na denúncia ' . $protocol;
+        $deadline = strtotime((string) ($report['reporter_response_deadline'] ?? ''));
+        $deadlineHtml = $deadline !== false
+            ? '<p>O comitê aguarda seu retorno até <strong>' . date('d/m/Y H:i', $deadline) . '</strong>.</p>'
+            : '';
+        $deadlineText = $deadline !== false
+            ? "\nRetorne até: " . date('d/m/Y H:i', $deadline)
+            : '';
 
         $bodyHtml = '<div style="font-family:Arial,sans-serif;font-size:14px;color:#333;">'
             . '<p>Há uma nova resposta do comitê na sua denúncia <strong>' . htmlspecialchars($protocol) . '</strong>.</p>'
+            . $deadlineHtml
             . '<p>Por segurança, o conteúdo da resposta <strong>não</strong> é enviado por e-mail.</p>'
             . '<p>Acesse o canal com seu protocolo e senha:</p>'
             . '<p><a href="' . htmlspecialchars($publicUrl) . '">' . htmlspecialchars($publicUrl) . '</a></p>'
             . '<p style="color:#666;font-size:12px;">Mensagem automática — Canal de Denúncias.</p>'
             . '</div>';
 
-        $bodyText = "Nova resposta na denúncia {$protocol}.\nConsulte em: {$publicUrl}";
+        $bodyText = "Nova resposta na denúncia {$protocol}.{$deadlineText}\nConsulte em: {$publicUrl}";
 
         try {
             SendEmailService::sendEmail($email, 'Denunciante', $subject, $bodyHtml, $bodyText);

@@ -41,11 +41,54 @@ final class WhistleblowingSlaService
         return date('Y-m-d H:i:s', $base + ($hours * 3600));
     }
 
+    public function resolveClosureHours(string $riskLevel): ?int
+    {
+        $config = new WhistleblowingConfigRepository();
+        if (!$config->isSlaClosureEnabled()) {
+            return null;
+        }
+
+        $map = [
+            'Crítico' => $config->getSlaClosureHoursCritico(),
+            'Alto' => $config->getSlaClosureHoursAlto(),
+            'Médio' => $config->getSlaClosureHoursMedio(),
+            'Baixo' => $config->getSlaClosureHoursBaixo(),
+        ];
+
+        return $map[trim($riskLevel)] ?? $config->getSlaClosureHours();
+    }
+
+    public function computeClosureDeadline(string $riskLevel, ?string $fromDatetime = null): ?string
+    {
+        $hours = $this->resolveClosureHours($riskLevel);
+        if ($hours === null) {
+            return null;
+        }
+        $base = $fromDatetime !== null && $fromDatetime !== ''
+            ? strtotime($fromDatetime)
+            : time();
+        if ($base === false) {
+            $base = time();
+        }
+
+        return date('Y-m-d H:i:s', $base + ($hours * 3600));
+    }
+
     public function defaultSlaLabel(): string
     {
         $hours = (new WhistleblowingConfigRepository())->getSlaFirstResponseHours();
 
         return $this->formatHoursLabel($hours);
+    }
+
+    public function defaultClosureSlaLabel(): ?string
+    {
+        $config = new WhistleblowingConfigRepository();
+        if (!$config->isSlaClosureEnabled()) {
+            return null;
+        }
+
+        return $this->formatHoursLabel($config->getSlaClosureHours());
     }
 
     public function formatHoursLabel(int $hours): string
@@ -94,6 +137,68 @@ final class WhistleblowingSlaService
         } elseif ($completed) {
             $color = 'success';
             $label = 'Respondida no prazo';
+        } elseif ($percent >= 80) {
+            $color = 'warning';
+            $label = 'Próximo do vencimento';
+        } else {
+            $color = 'success';
+            $label = 'Dentro do prazo';
+        }
+
+        return [
+            'available' => true,
+            'deadline' => date('d/m/Y H:i', $deadline),
+            'percent' => $percent,
+            'color' => $color,
+            'label' => $label,
+            'title' => $label . ' — prazo: ' . date('d/m/Y H:i', $deadline),
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $report
+     * @return array{available: bool, deadline: string, percent: int, color: string, label: string, title: string}
+     */
+    public function closureProgress(array $report, ?int $now = null): array
+    {
+        if (!(new WhistleblowingConfigRepository())->isSlaClosureEnabled()) {
+            return [
+                'available' => false,
+                'deadline' => '',
+                'percent' => 0,
+                'color' => 'secondary',
+                'label' => 'SLA desativado',
+                'title' => 'SLA de encerramento desativado',
+            ];
+        }
+
+        $createdAt = strtotime((string) ($report['sla_closure_started_at'] ?? $report['created_at'] ?? ''));
+        $deadline = strtotime((string) ($report['sla_closure_deadline'] ?? ''));
+        if ($createdAt === false || $deadline === false || $deadline <= $createdAt) {
+            return [
+                'available' => false,
+                'deadline' => '',
+                'percent' => 0,
+                'color' => 'secondary',
+                'label' => 'SLA indisponível',
+                'title' => 'Prazo de encerramento não definido',
+            ];
+        }
+
+        $closedAt = strtotime((string) ($report['closed_at'] ?? ''));
+        $completed = $closedAt !== false;
+        $reference = $completed ? $closedAt : ($now ?? time());
+        $elapsed = max(0, $reference - $createdAt);
+        $duration = max(1, $deadline - $createdAt);
+        $percent = min(100, (int) round(($elapsed / $duration) * 100));
+        $overdue = $reference > $deadline;
+
+        if ($overdue) {
+            $color = 'danger';
+            $label = $completed ? 'Encerrada fora do prazo' : 'SLA vencido';
+        } elseif ($completed) {
+            $color = 'success';
+            $label = 'Encerrada no prazo';
         } elseif ($percent >= 80) {
             $color = 'warning';
             $label = 'Próximo do vencimento';

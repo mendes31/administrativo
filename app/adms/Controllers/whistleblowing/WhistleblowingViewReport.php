@@ -51,7 +51,7 @@ class WhistleblowingViewReport
         }
 
         $userId = (int) ($_SESSION['user_id'] ?? 0);
-        if ($userId > 0) {
+        if ($userId > 0 && $this->isNewReportVisit($reportId)) {
             (new WhistleblowingAccessLogRepository())->log($reportId, $userId, 'view');
         }
 
@@ -66,6 +66,10 @@ class WhistleblowingViewReport
         $this->data['closure_outcomes'] = WhistleblowingProtocolService::CLOSURE_OUTCOMES;
         $this->data['csrf_reply'] = CSRFHelper::generateCSRFToken('whistleblowing_reply');
         $this->data['csrf_status'] = CSRFHelper::generateCSRFToken('whistleblowing_status');
+        $this->data['status_form'] = is_array($_SESSION['whistleblowing_status_form'] ?? null)
+            ? $_SESSION['whistleblowing_status_form']
+            : [];
+        unset($_SESSION['whistleblowing_status_form']);
 
         $usersRepo = new UsersRepository();
         $this->data['users'] = $usersRepo->getAllUsersSelect();
@@ -80,6 +84,32 @@ class WhistleblowingViewReport
 
         $loadView = new LoadViewService('adms/Views/whistleblowing/reports/view', $this->data);
         $loadView->loadView();
+    }
+
+    /**
+     * Uma visita começa ao entrar vindo de outra tela (ou por acesso direto).
+     * F5 e redirecionamentos das ações da própria denúncia não geram novo "view".
+     */
+    private function isNewReportVisit(int $reportId): bool
+    {
+        if (!empty($_SESSION['whistleblowing_skip_next_view'][$reportId])) {
+            unset($_SESSION['whistleblowing_skip_next_view'][$reportId]);
+            return false;
+        }
+
+        $referer = (string) ($_SERVER['HTTP_REFERER'] ?? '');
+        if ($referer === '') {
+            $key = 'whistleblowing_direct_visit_' . $reportId;
+            $lastDirectVisit = (int) ($_SESSION[$key] ?? 0);
+            $_SESSION[$key] = time();
+
+            return $lastDirectVisit === 0 || (time() - $lastDirectVisit) > 1800;
+        }
+
+        $path = trim((string) parse_url($referer, PHP_URL_PATH), '/');
+        $currentSuffix = 'view-denuncia/' . $reportId;
+
+        return !str_ends_with($path, $currentSuffix);
     }
 
     public function downloadAttachment(string|int|null $id = null): void

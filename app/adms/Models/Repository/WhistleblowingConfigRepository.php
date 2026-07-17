@@ -7,6 +7,7 @@ namespace App\adms\Models\Repository;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Models\Services\WhistleblowingChannelSecurityService;
+use App\adms\Models\Services\WhistleblowingKeyWrapService;
 use PDO;
 
 /**
@@ -54,9 +55,34 @@ class WhistleblowingConfigRepository extends DbConnection
         return $this->getHttpCronToken() !== '';
     }
 
+    /**
+     * DEK em claro (desenvolve o blob envelopado do banco, se aplicável).
+     * Nunca use este retorno para gravar logs ou exibir na tela.
+     */
     public function getEncryptionKey(): string
     {
+        $stored = trim((string) ($this->getRow()['encryption_key'] ?? ''));
+        if ($stored === '') {
+            return '';
+        }
+
+        try {
+            return WhistleblowingKeyWrapService::resolveStoredKey($stored);
+        } catch (\Throwable) {
+            // Blob envelopado sem KEK válida no .env — trata como chave indisponível
+            return '';
+        }
+    }
+
+    /** Valor bruto da coluna (blob envelopado ou legado em claro). */
+    public function getStoredEncryptionKeyRaw(): string
+    {
         return trim((string) ($this->getRow()['encryption_key'] ?? ''));
+    }
+
+    public function isEncryptionKeyWrapped(): bool
+    {
+        return WhistleblowingKeyWrapService::isWrapped($this->getStoredEncryptionKeyRaw());
     }
 
     public function hasEncryptionKey(): bool
@@ -141,6 +167,36 @@ class WhistleblowingConfigRepository extends DbConnection
         return max(1, min(720, (int) ($this->getRow()['sla_hours_baixo'] ?? 120)));
     }
 
+    public function isSlaClosureEnabled(): bool
+    {
+        return (int) ($this->getRow()['sla_closure_enabled'] ?? 0) === 1;
+    }
+
+    public function getSlaClosureHours(): int
+    {
+        return max(1, min(8760, (int) ($this->getRow()['sla_closure_hours'] ?? 720)));
+    }
+
+    public function getSlaClosureHoursCritico(): int
+    {
+        return max(1, min(8760, (int) ($this->getRow()['sla_closure_hours_critico'] ?? 168)));
+    }
+
+    public function getSlaClosureHoursAlto(): int
+    {
+        return max(1, min(8760, (int) ($this->getRow()['sla_closure_hours_alto'] ?? 360)));
+    }
+
+    public function getSlaClosureHoursMedio(): int
+    {
+        return max(1, min(8760, (int) ($this->getRow()['sla_closure_hours_medio'] ?? 720)));
+    }
+
+    public function getSlaClosureHoursBaixo(): int
+    {
+        return max(1, min(8760, (int) ($this->getRow()['sla_closure_hours_baixo'] ?? 1080)));
+    }
+
     public function isNotifyCommitteeOnReply(): bool
     {
         return (int) ($this->getRow()['notify_committee_on_reply'] ?? 1) === 1;
@@ -156,9 +212,24 @@ class WhistleblowingConfigRepository extends DbConnection
         return (int) ($this->getRow()['notify_committee_on_sla_breach'] ?? 1) === 1;
     }
 
+    public function isNotifyCommitteeOnSlaClosureBreach(): bool
+    {
+        return (int) ($this->getRow()['notify_committee_on_sla_closure_breach'] ?? 1) === 1;
+    }
+
     public function isNotifyReporterOnReply(): bool
     {
         return (int) ($this->getRow()['notify_reporter_on_reply'] ?? 0) === 1;
+    }
+
+    public function isReporterInactivityEnabled(): bool
+    {
+        return (int) ($this->getRow()['reporter_inactivity_enabled'] ?? 0) === 1;
+    }
+
+    public function getReporterInactivityDays(): int
+    {
+        return max(1, min(365, (int) ($this->getRow()['reporter_inactivity_days'] ?? 15)));
     }
 
     public function isCaptchaEnabled(): bool
@@ -223,10 +294,19 @@ class WhistleblowingConfigRepository extends DbConnection
             'sla_hours_alto' => (string) max(1, min(720, (int) ($policies['sla_hours_alto'] ?? 48))),
             'sla_hours_medio' => (string) max(1, min(720, (int) ($policies['sla_hours_medio'] ?? 72))),
             'sla_hours_baixo' => (string) max(1, min(720, (int) ($policies['sla_hours_baixo'] ?? 120))),
+            'sla_closure_enabled' => !empty($policies['sla_closure_enabled']) ? '1' : '0',
+            'sla_closure_hours' => (string) max(1, min(8760, (int) ($policies['sla_closure_hours'] ?? 720))),
+            'sla_closure_hours_critico' => (string) max(1, min(8760, (int) ($policies['sla_closure_hours_critico'] ?? 168))),
+            'sla_closure_hours_alto' => (string) max(1, min(8760, (int) ($policies['sla_closure_hours_alto'] ?? 360))),
+            'sla_closure_hours_medio' => (string) max(1, min(8760, (int) ($policies['sla_closure_hours_medio'] ?? 720))),
+            'sla_closure_hours_baixo' => (string) max(1, min(8760, (int) ($policies['sla_closure_hours_baixo'] ?? 1080))),
             'notify_committee_on_reply' => !empty($policies['notify_committee_on_reply']) ? '1' : '0',
             'notify_committee_on_status_change' => !empty($policies['notify_committee_on_status_change']) ? '1' : '0',
             'notify_committee_on_sla_breach' => !empty($policies['notify_committee_on_sla_breach']) ? '1' : '0',
+            'notify_committee_on_sla_closure_breach' => !empty($policies['notify_committee_on_sla_closure_breach']) ? '1' : '0',
             'notify_reporter_on_reply' => !empty($policies['notify_reporter_on_reply']) ? '1' : '0',
+            'reporter_inactivity_enabled' => !empty($policies['reporter_inactivity_enabled']) ? '1' : '0',
+            'reporter_inactivity_days' => (string) max(1, min(365, (int) ($policies['reporter_inactivity_days'] ?? 15))),
             'captcha_enabled' => !empty($policies['captcha_enabled']) ? '1' : '0',
             'captcha_provider' => in_array(($policies['captcha_provider'] ?? ''), ['recaptcha', 'hcaptcha'], true)
                 ? $policies['captcha_provider']
@@ -243,7 +323,14 @@ class WhistleblowingConfigRepository extends DbConnection
 
     public function saveEncryptionKey(string $key): bool
     {
-        return $this->saveFields(['encryption_key' => trim($key)]);
+        $key = trim($key);
+        if ($key === '') {
+            return $this->saveFields(['encryption_key' => null]);
+        }
+
+        return $this->saveFields([
+            'encryption_key' => WhistleblowingKeyWrapService::prepareForStorage($key),
+        ]);
     }
 
     /**
@@ -268,8 +355,11 @@ class WhistleblowingConfigRepository extends DbConnection
                     'retention_archive_years', 'retention_delete_years', 'cron_enabled',
                     'rate_limit_max_attempts', 'rate_limit_window_minutes',
                     'sla_first_response_hours', 'sla_hours_critico', 'sla_hours_alto', 'sla_hours_medio', 'sla_hours_baixo',
+                    'sla_closure_enabled', 'sla_closure_hours', 'sla_closure_hours_critico', 'sla_closure_hours_alto',
+                    'sla_closure_hours_medio', 'sla_closure_hours_baixo',
                     'notify_committee_on_reply', 'notify_committee_on_status_change', 'notify_committee_on_sla_breach',
-                    'notify_reporter_on_reply', 'captcha_enabled',
+                    'notify_committee_on_sla_closure_breach', 'notify_reporter_on_reply',
+                    'reporter_inactivity_enabled', 'reporter_inactivity_days', 'captcha_enabled',
                 ], true)) {
                     $params[":{$col}"] = (int) $val;
                 } else {
@@ -300,8 +390,11 @@ class WhistleblowingConfigRepository extends DbConnection
                     'retention_archive_years', 'retention_delete_years', 'cron_enabled',
                     'rate_limit_max_attempts', 'rate_limit_window_minutes',
                     'sla_first_response_hours', 'sla_hours_critico', 'sla_hours_alto', 'sla_hours_medio', 'sla_hours_baixo',
+                    'sla_closure_enabled', 'sla_closure_hours', 'sla_closure_hours_critico', 'sla_closure_hours_alto',
+                    'sla_closure_hours_medio', 'sla_closure_hours_baixo',
                     'notify_committee_on_reply', 'notify_committee_on_status_change', 'notify_committee_on_sla_breach',
-                    'notify_reporter_on_reply', 'captcha_enabled',
+                    'notify_committee_on_sla_closure_breach', 'notify_reporter_on_reply',
+                    'reporter_inactivity_enabled', 'reporter_inactivity_days', 'captcha_enabled',
                 ], true)) {
                     $stmt->bindValue(':' . $col, (int) $val, PDO::PARAM_INT);
                 } else {
@@ -321,13 +414,32 @@ class WhistleblowingConfigRepository extends DbConnection
                     $recordId,
                     $userId,
                     empty($oldData['id']) ? 'INSERT' : 'UPDATE',
-                    $oldData,
-                    $newData
+                    $this->redactSensitiveConfig($oldData),
+                    $this->redactSensitiveConfig($newData)
                 );
             }
         }
 
         return $ok;
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    private function redactSensitiveConfig(array $row): array
+    {
+        if (array_key_exists('encryption_key', $row) && $row['encryption_key'] !== null && $row['encryption_key'] !== '') {
+            $raw = (string) $row['encryption_key'];
+            $row['encryption_key'] = WhistleblowingKeyWrapService::isWrapped($raw)
+                ? '[envelopada]'
+                : '[definida]';
+        }
+        if (array_key_exists('http_cron_token', $row) && $row['http_cron_token'] !== null && $row['http_cron_token'] !== '') {
+            $row['http_cron_token'] = '[definido]';
+        }
+
+        return $row;
     }
 
     private function tableExists(): bool

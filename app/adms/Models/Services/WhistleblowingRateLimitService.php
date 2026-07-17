@@ -7,7 +7,7 @@ namespace App\adms\Models\Services;
 use App\adms\Models\Repository\WhistleblowingConfigRepository;
 
 /**
- * Rate limit por IP para tentativas de acompanhamento (protocolo + senha).
+ * Rate limit por IP para o canal público (acompanhamento, registro e respostas).
  */
 final class WhistleblowingRateLimitService
 {
@@ -58,6 +58,12 @@ final class WhistleblowingRateLimitService
     }
 
     public function recordFailedAttempt(string $scope): void
+    {
+        $this->recordAttempt($scope);
+    }
+
+    /** Conta qualquer tentativa (falha ou envio válido) dentro da janela. */
+    public function recordAttempt(string $scope): void
     {
         $now = time();
         $data = $this->read($scope) ?? ['attempts' => 0, 'first_at' => $now, 'blocked_until' => 0];

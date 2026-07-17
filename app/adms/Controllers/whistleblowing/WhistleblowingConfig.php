@@ -32,13 +32,16 @@ use App\adms\Models\Services\WhistleblowingChannelSecurityService;
 
 use App\adms\Models\Services\WhistleblowingKeyRotationService;
 
+use App\adms\Models\Services\WhistleblowingKeyWrapService;
+
 use App\adms\Views\Services\LoadViewService;
 
 
 
 /**
 
- * Configuração do Canal de Denúncias (cron + criptografia + políticas) — sem depender do .env.
+ * Configuração do Canal de Denúncias (cron + criptografia + políticas).
+ * A DEK fica no banco envelopada; o .env guarda WHISTLEBLOWING_KEY_WRAP_SECRET.
 
  */
 
@@ -66,11 +69,26 @@ class WhistleblowingConfig
 
         $repo = new WhistleblowingConfigRepository();
 
+        $migratedWrap = false;
+        try {
+            $migratedWrap = WhistleblowingKeyWrapService::migratePlaintextKeyIfNeeded();
+        } catch (\Throwable) {
+            $migratedWrap = false;
+        }
+        if ($migratedWrap && empty($_SESSION['msg'])) {
+            $_SESSION['msg'] = 'Chave de criptografia envelopada com o segredo do .env (WHISTLEBLOWING_KEY_WRAP_SECRET). O dump do banco sozinho não revela mais a chave.';
+            $_SESSION['msg_type'] = 'success';
+        }
+
         $this->data['config_row'] = $repo->getRow();
 
         $this->data['token_configured'] = $repo->hasHttpCronToken();
 
         $this->data['key_configured'] = $repo->hasEncryptionKey();
+
+        $this->data['key_wrapped'] = $repo->isEncryptionKeyWrapped();
+
+        $this->data['wrap_secret_configured'] = WhistleblowingKeyWrapService::hasWrapSecret();
 
         $this->data['channel_public_ok'] = WhistleblowingChannelSecurityService::isPublicChannelAvailable();
 
@@ -96,13 +114,31 @@ class WhistleblowingConfig
 
         $this->data['sla_hours_baixo'] = $repo->getSlaHoursBaixo();
 
+        $this->data['sla_closure_enabled'] = $repo->isSlaClosureEnabled();
+
+        $this->data['sla_closure_hours'] = $repo->getSlaClosureHours();
+
+        $this->data['sla_closure_hours_critico'] = $repo->getSlaClosureHoursCritico();
+
+        $this->data['sla_closure_hours_alto'] = $repo->getSlaClosureHoursAlto();
+
+        $this->data['sla_closure_hours_medio'] = $repo->getSlaClosureHoursMedio();
+
+        $this->data['sla_closure_hours_baixo'] = $repo->getSlaClosureHoursBaixo();
+
         $this->data['notify_committee_on_reply'] = $repo->isNotifyCommitteeOnReply();
 
         $this->data['notify_committee_on_status_change'] = $repo->isNotifyCommitteeOnStatusChange();
 
         $this->data['notify_committee_on_sla_breach'] = $repo->isNotifyCommitteeOnSlaBreach();
 
+        $this->data['notify_committee_on_sla_closure_breach'] = $repo->isNotifyCommitteeOnSlaClosureBreach();
+
         $this->data['notify_reporter_on_reply'] = $repo->isNotifyReporterOnReply();
+
+        $this->data['reporter_inactivity_enabled'] = $repo->isReporterInactivityEnabled();
+
+        $this->data['reporter_inactivity_days'] = $repo->getReporterInactivityDays();
 
         $this->data['captcha_enabled'] = $repo->isCaptchaEnabled();
 
@@ -218,6 +254,10 @@ class WhistleblowingConfig
 
         if ($action === 'save_policies') {
 
+            $wasClosureSlaEnabled = $repo->isSlaClosureEnabled();
+            $wasReporterInactivityEnabled = $repo->isReporterInactivityEnabled();
+            $previousReporterInactivityDays = $repo->getReporterInactivityDays();
+
             $ok = $repo->savePolicies([
 
                 'retention_archive_years' => $_POST['retention_archive_years'] ?? 5,
@@ -242,13 +282,31 @@ class WhistleblowingConfig
 
                 'sla_hours_baixo' => $_POST['sla_hours_baixo'] ?? 120,
 
+                'sla_closure_enabled' => $_POST['sla_closure_enabled'] ?? '',
+
+                'sla_closure_hours' => $_POST['sla_closure_hours'] ?? 720,
+
+                'sla_closure_hours_critico' => $_POST['sla_closure_hours_critico'] ?? 168,
+
+                'sla_closure_hours_alto' => $_POST['sla_closure_hours_alto'] ?? 360,
+
+                'sla_closure_hours_medio' => $_POST['sla_closure_hours_medio'] ?? 720,
+
+                'sla_closure_hours_baixo' => $_POST['sla_closure_hours_baixo'] ?? 1080,
+
                 'notify_committee_on_reply' => $_POST['notify_committee_on_reply'] ?? '',
 
                 'notify_committee_on_status_change' => $_POST['notify_committee_on_status_change'] ?? '',
 
                 'notify_committee_on_sla_breach' => $_POST['notify_committee_on_sla_breach'] ?? '',
 
+                'notify_committee_on_sla_closure_breach' => $_POST['notify_committee_on_sla_closure_breach'] ?? '',
+
                 'notify_reporter_on_reply' => $_POST['notify_reporter_on_reply'] ?? '',
+
+                'reporter_inactivity_enabled' => $_POST['reporter_inactivity_enabled'] ?? '',
+
+                'reporter_inactivity_days' => $_POST['reporter_inactivity_days'] ?? 15,
 
                 'captcha_enabled' => $_POST['captcha_enabled'] ?? '',
 
@@ -262,6 +320,14 @@ class WhistleblowingConfig
 
             if ($ok) {
                 (new WhistleblowingReportsRepository())->recalculateRetentionForClosedReports();
+                $resetClosureStart = !$wasClosureSlaEnabled && $repo->isSlaClosureEnabled();
+                (new WhistleblowingReportsRepository())->recalculateClosureSlaDeadlinesForOpenReports($resetClosureStart);
+                if (
+                    $wasReporterInactivityEnabled !== $repo->isReporterInactivityEnabled()
+                    || $previousReporterInactivityDays !== $repo->getReporterInactivityDays()
+                ) {
+                    (new WhistleblowingReportsRepository())->recalculateReporterResponseDeadlinesForOpenReports();
+                }
             }
 
             $_SESSION['msg'] = $ok ? 'Políticas e agendamento atualizados.' : 'Não foi possível salvar as políticas.';
@@ -410,21 +476,19 @@ class WhistleblowingConfig
 
             if ($key !== '') {
 
-                if ($repo->getEncryptionKey() !== '') {
-
-                    $_SESSION['msg'] = 'Chave de criptografia atualizada. Denúncias antigas só poderão ser lidas se a chave anterior for restaurada.';
-
-                    $_SESSION['msg_type'] = 'warning';
-
-                } else {
-
-                    $_SESSION['msg'] = 'Chave de criptografia guardada. O canal público foi liberado para novos registros.';
-
-                    $_SESSION['msg_type'] = 'success';
-
+                try {
+                    $repo->saveEncryptionKey($key);
+                    if ($repo->getEncryptionKey() !== '' && $repo->isEncryptionKeyWrapped()) {
+                        $_SESSION['msg'] = 'Chave de criptografia guardada e envelopada no banco. O canal público foi liberado. Guarde uma cópia segura da chave (cofre/password manager) — sem ela e sem o .env, não há recuperação.';
+                        $_SESSION['msg_type'] = 'success';
+                    } else {
+                        $_SESSION['msg'] = 'Chave de criptografia guardada. O canal público foi liberado para novos registros.';
+                        $_SESSION['msg_type'] = 'success';
+                    }
+                } catch (\Throwable $e) {
+                    $_SESSION['msg'] = 'Não foi possível guardar a chave: ' . $e->getMessage();
+                    $_SESSION['msg_type'] = 'danger';
                 }
-
-                $repo->saveEncryptionKey($key);
 
             }
 

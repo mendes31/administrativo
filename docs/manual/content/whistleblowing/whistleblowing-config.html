@@ -4,11 +4,25 @@
 
 <h2>Primeira configuração</h2>
 <ol>
-<li>Gere chave: <code>php -r "echo bin2hex(random_bytes(32));"</code></li>
-<li>Salve em <strong>Chave de criptografia</strong> — libera o canal público.</li>
+<li>No arquivo <code>.env</code>, defina <code>WHISTLEBLOWING_KEY_WRAP_SECRET</code> (mín. 32 caracteres; gere com <code>php -r "echo bin2hex(random_bytes(32));"</code>). Este valor <strong>quase nunca muda</strong> e deve ter backup separado do dump do banco.</li>
+<li>Gere a chave de dados (DEK): <code>php -r "echo bin2hex(random_bytes(32));"</code> e guarde uma cópia em cofre/password manager.</li>
+<li>Salve a DEK em <strong>Chave de criptografia</strong> — o sistema a envelopa com o segredo do <code>.env</code> antes de gravar no banco e libera o canal público.</li>
 <li>Ajuste políticas (arquivar/excluir, retenção automática, rate limit, SLA, notificações).</li>
 <li>Em <strong>QR Code e cartaz do canal</strong>, confira o endereço público e baixe o material para divulgação.</li>
+<li>Use <strong>Pacote de evidências</strong> para gerar uma comprovação técnica sanitizada em PDF ou Excel.</li>
 </ol>
+
+<h2>Envelopamento da chave (Modelo B)</h2>
+<ul>
+<li><strong>DEK</strong> — chave digitada na Configuração; cifra relatos, mensagens e anexos.</li>
+<li><strong>KEK</strong> — <code>WHISTLEBLOWING_KEY_WRAP_SECRET</code> no <code>.env</code>; só envelopa a DEK no banco.</li>
+<li>Dump do banco sozinho <strong>não</strong> revela a DEK. Rotação da DEK na tela <strong>não</strong> exige alterar o <code>.env</code>.</li>
+<li>Se a DEK ainda estiver em claro (instalação antiga), ao abrir a Configuração com o KEK já definido o sistema envelopa automaticamente.</li>
+</ul>
+<p><strong>Recuperação:</strong> perder a DEK e não ter backup (cofre, dump antigo com chave em claro, ou registro offline) torna os dados irrecuperáveis. Perder só o <code>.env</code> (KEK) também impede abrir a DEK envelopada — restaure o backup do <code>.env</code>. O sistema não consegue “inventar” a chave perdida.</p>
+
+<h2>Pacote de evidências auditáveis</h2>
+<p>O botão abre a tela <em>WhistleblowingAuditEvidence</em>, restrita a administradores. Ela transforma o roteiro SQL de auditoria em prévia e exportação segura, sem relato, contatos, mensagens, arquivos, segredos ou hashes completos. Consulte o tópico <code>whistleblowing-audit-evidence</code>.</p>
 
 <h2>QR Code e cartaz para divulgação</h2>
 <ol>
@@ -25,7 +39,16 @@
 <li><strong>Por risco</strong> — Crítico, Alto, Médio, Baixo (sobrescreve o padrão se a classificação não tiver SLA próprio).</li>
 <li><strong>Por classificação</strong> — em <em>Classificações</em>, campo opcional de SLA em horas.</li>
 <li>Ordem de prioridade: classificação → risco → padrão global.</li>
-<li>Alertas de SLA estourado: cron HTTP, login diário ou execução manual em Governança.</li>
+<li>Alertas de SLA estourado: cron HTTP ou processamento automático no primeiro login do dia.</li>
+</ul>
+
+<h2>SLA — encerramento (opcional)</h2>
+<ul>
+<li><strong>Ativar SLA de encerramento</strong> — liga ou desliga completamente o prazo, os indicadores e o processamento de alertas.</li>
+<li><strong>Padrão global</strong> — prazo em horas desde o registro até o encerramento formal.</li>
+<li><strong>Por risco</strong> — permite prazos diferentes para Crítico, Alto, Médio e Baixo.</li>
+<li>Ao ativar, as denúncias já abertas iniciam o prazo a partir da ativação. Alterações posteriores recalculam a data limite sem reiniciar o tempo já consumido. Ao desativar, os prazos abertos deixam de ser exibidos e processados.</li>
+<li>Se uma denúncia encerrada for reaberta, inicia-se um novo prazo de encerramento.</li>
 </ul>
 
 <h2>Notificações</h2>
@@ -34,7 +57,18 @@
 <li><strong>Comitê — resposta do denunciante</strong> — opcional nas políticas.</li>
 <li><strong>Comitê — mudança de status</strong> — opcional.</li>
 <li><strong>Comitê — SLA estourado</strong> — opcional.</li>
+<li><strong>Comitê — SLA de encerramento estourado</strong> — opcional e processado somente quando o SLA de encerramento estiver ativo.</li>
 <li><strong>Denunciante — nova resposta</strong> — e-mail genérico só se marcou identificação voluntária com e-mail e a opção estiver ativa.</li>
+</ul>
+
+<h2>Prazo de retorno do denunciante</h2>
+<ul>
+<li><strong>Ativar prazo de retorno</strong> — habilita a regra de inatividade. O padrão inicial é desativado, para que a organização defina a política antes de usar.</li>
+<li><strong>Prazo após resposta pública</strong> — quantidade de dias, entre 1 e 365, contada a partir de cada mensagem pública do comitê.</li>
+<li>Nova resposta pública do comitê reinicia o prazo. Nota interna não inicia prazo.</li>
+<li>Mensagem ou anexo enviado pelo denunciante encerra a pendência atual.</li>
+<li>Ao vencer, o sistema envia um alerta único por e-mail e sino aos membros do comitê. O protocolo permanece aberto: somente o comitê decide e registra manualmente o encerramento.</li>
+<li>Ao desativar a regra, as pendências abertas deixam de ser exibidas e processadas.</li>
 </ul>
 
 <h2>CAPTCHA</h2>
@@ -43,6 +77,10 @@
 <h2>Retenção automática</h2>
 <p>Dispara no <strong>primeiro login do dia</strong> (máx. 1×/24 h). Não requer Agendador de Tarefas no Windows. Token HTTP/crontab é opcional (Linux).</p>
 <p>Os prazos de arquivar e excluir são calculados a partir da <strong>data de encerramento</strong> da denúncia (quando o status passa para <em>Encerrada</em>). Denúncias em andamento não entram na fila até serem encerradas.</p>
+<p>Esta opção controla <strong>somente</strong> o arquivamento/exclusão LGPD. Alertas de SLA (primeira resposta e encerramento) e de inatividade do denunciante continuam sendo processados pelo cron/login mesmo com a retenção desligada.</p>
+
+<h2>Rate limit do canal público</h2>
+<p>Limita, por IP, o número de tentativas em <strong>Registrar</strong>, <strong>Acompanhar</strong> e <strong>Responder</strong> dentro da janela configurada. Protege contra spam de denúncias e força bruta de protocolo/senha, mesmo quando o CAPTCHA está desligado.</p>
 
 <h2>Rotação de chave</h2>
 <ol>
@@ -55,11 +93,14 @@
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Canal público indisponível</dt><dd>Chave não configurada ou &lt; 32 caracteres.</dd>
+<dt>Falta WHISTLEBLOWING_KEY_WRAP_SECRET</dt><dd>Defina no <code>.env</code> (mín. 32) e recarregue a Configuração. Sem isso não é possível guardar nem envelopar a DEK.</dd>
+<dt>Chave envelopada não abre</dt><dd>O KEK do <code>.env</code> está ausente ou diferente do usado na gravação — restaure o backup correto do <code>.env</code>.</dd>
+<dt>Canal público indisponível</dt><dd>DEK não configurada, &lt; 32 caracteres, ou envelopada sem KEK válido.</dd>
 <dt>Rotação falha na denúncia #N</dt><dd>Chave atual incorreta — use branco + chave legada.</dd>
 <dt>Rate limit</dt><dd>Ajuste tentativas e janela nas políticas.</dd>
 <dt>CAPTCHA inválido no acompanhamento</dt><dd>Verifique site key/secret key e provedor (hCaptcha vs reCAPTCHA).</dd>
 <dt>Denunciante não recebe e-mail de resposta</dt><dd>Ative a opção nas políticas e confirme que informou e-mail na identificação voluntária.</dd>
+<dt>Alerta de falta de retorno não chegou</dt><dd>Confirme se o prazo de retorno está ativo, se a denúncia permanece aberta, se houve resposta pública do comitê e se a rotina diária/cron foi executada.</dd>
 <dt>QR Code não aparece</dt><dd>Verifique a conexão com a internet, atualize a página e confirme se a URL pública está configurada.</dd>
 <dt>Cartaz não baixa</dt><dd>Permita downloads no navegador e tente novamente. Teste o QR Code do arquivo antes de imprimir.</dd>
 </dl>

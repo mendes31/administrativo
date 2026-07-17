@@ -23,6 +23,13 @@ require __DIR__ . '/_view_scope.php';
             <li>Guarde o <strong>protocolo</strong> e a <strong>senha</strong> ao final — eles não serão exibidos novamente.</li>
             <li>Perdeu protocolo ou senha? Registre uma <strong>nova denúncia</strong> e informe isso no relato.</li>
             <li>Retornos do comitê aparecem somente na consulta por protocolo.</li>
+            <?php if (!empty($reporter_inactivity_enabled)): ?>
+            <li>
+                Após uma resposta do comitê, você terá
+                <strong><?php echo (int)($reporter_inactivity_days ?? 15); ?> dia(s)</strong> para enviar o retorno solicitado.
+                Sem resposta, o comitê será alertado e poderá encerrar o protocolo após análise.
+            </li>
+            <?php endif; ?>
         </ul>
     </div>
 

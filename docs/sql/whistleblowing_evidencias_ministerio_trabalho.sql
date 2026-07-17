@@ -6,6 +6,8 @@
 -- 2. Não exportar resultados com relatos reais identificáveis para terceiros.
 -- 3. Nunca incluir chave de criptografia (adms_whistleblowing_config) no relatório.
 -- 4. Substituir 'DEN-TESTE-MTB' pelo protocolo fictício usado na demonstração.
+-- 5. Para geração guiada e sanitizada, use a tela administrativa
+--    "Evidências auditáveis" (PDF/Excel); este SQL permanece como roteiro técnico.
 -- =============================================================================
 
 -- -----------------------------------------------------------------------------
@@ -29,6 +31,12 @@ SELECT
     is_reporter_identified,
     committee_id,
     assigned_user_id,
+    sla_response_deadline,
+    sla_closure_started_at,
+    sla_closure_deadline,
+    reporter_response_requested_at,
+    reporter_response_deadline,
+    reporter_inactivity_notified_at,
     created_at,
     closed_at,
     archived_at,
