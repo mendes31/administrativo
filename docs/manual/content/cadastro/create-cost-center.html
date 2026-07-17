@@ -1,5 +1,5 @@
 <h1>Cadastrar Centros de Custo</h1>
-<p>Cadastra um novo registro em <strong>Cadastrar Centros de Custo</strong>. Preencha os campos obrigatórios e salve; o registro passará a aparecer nas listagens e poderá receber permissões conforme o pacote.</p>
+<p>Cria um novo centro de custo para uso em vínculos financeiros e organizacionais (relatórios, resumos por centro de custo e associações a departamentos/lançamentos). Após salvar, o registro passa a aparecer na listagem e nas seleções do sistema.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Estrutura organizacional</em> (<code>cad-estrutura</code>) para o fluxo completo da área.</p>
 
@@ -7,24 +7,24 @@
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-cost-center</code>).</li>
-    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
-    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
-    <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
-    <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
+    <li>Acesse <strong>Cadastro → Centros de Custo</strong> e clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-cost-center</code>).</li>
+    <li>Informe o <strong>Nome</strong> do centro de custo. Use um nome único e descritivo (ex.: "Produção", "Comercial", "TI").</li>
+    <li>Clique em <strong>Cadastrar</strong>; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
+    <li>Volte à listagem (botão <strong>Listar</strong>) e confirme que o novo centro de custo aparece.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
-<div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
+<div class="help-field"><strong>Nome</strong> Único campo do formulário e obrigatório. É o texto exibido em listagens, seleções e relatórios (ex.: Resumo por Centro de Custo). Evite duplicar nomes já existentes para não confundir os vínculos.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>CreateCostCenter</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Você tem a listagem (<em>ListCostCenters</em>), mas não a permissão de criação. Inclua a página filha no pacote.</dd>
+    <dt>Cadastro não salva</dt>
+    <dd>Verifique se o campo Nome foi preenchido. Se a página ficou aberta por muito tempo, recarregue-a para renovar o token de segurança (CSRF) e tente novamente.</dd>
+    <dt>Nome já existe</dt>
+    <dd>Consulte a listagem antes de criar; se o centro de custo já existir, edite o registro atual em vez de duplicá-lo.</dd>
 </dl>

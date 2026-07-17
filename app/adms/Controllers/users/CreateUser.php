@@ -13,6 +13,7 @@ use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WorkShiftsRepository;
 use App\adms\Models\Services\SuperUsuarioAccessLevelsSyncService;
+use App\adms\Models\Services\UserEducationService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -79,6 +80,10 @@ class CreateUser
         $listWorkShifts = new WorkShiftsRepository();
         $this->data['listWorkShifts'] = $listWorkShifts->getAllWorkShiftsSelect();
 
+        // Reapresentar formações preenchidas quando a validação falhar
+        $postedEducations = $_POST['educations'] ?? null;
+        $this->data['educations'] = is_array($postedEducations) ? $postedEducations : [];
+
         // Definir o título da página
         // Ativar o item de menu
         // Apresentar ou ocultar botão 
@@ -137,6 +142,15 @@ class CreateUser
         // Instanciar a classe validar os dados do formulário com Rakit
         $validationUser = new ValidationUserRakitService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
+
+        // Validar formações informadas na aba "Formações"
+        $educationRows = is_array($_POST['educations'] ?? null) ? $_POST['educations'] : [];
+        $educationFiles = is_array($_FILES['education_files'] ?? null) ? $_FILES['education_files'] : null;
+        $educationService = new UserEducationService();
+        $this->data['errors'] = array_merge(
+            $this->data['errors'],
+            $educationService->validateRows($educationRows, $educationFiles)
+        );
 
         // Acessa o IF quando existir campo com dados incorretos
         if (!empty($this->data['errors'])) {
@@ -227,6 +241,25 @@ class CreateUser
 
         // Acessa o IF se o repository retornou TRUE (retorna ID do novo usuário)
         if ($result) {
+            // Guardar as formações informadas na aba "Formações"
+            $educationSaveFailed = false;
+            if ($educationRows !== []) {
+                try {
+                    $educationService->saveRows(
+                        (int) $result,
+                        $educationRows,
+                        $educationFiles,
+                        (int) ($_SESSION['user_id'] ?? 0) ?: null
+                    );
+                } catch (\Throwable $e) {
+                    $educationSaveFailed = true;
+                    GenerateLog::generateLog('error', 'Falha ao guardar formações do novo usuário.', [
+                        'user_id' => (int) $result,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
             $newUserSuperFlag = ((int) ($form['super_usuario'] ?? 0) === 1) ? 1 : 0;
             $superLevelsSyncFailed = false;
             if ($newUserSuperFlag === 1) {
@@ -277,6 +310,9 @@ class CreateUser
             $_SESSION['success'] = $superLevelsSyncFailed
                 ? 'Usuário cadastrado, porém falhou a sincronização dos níveis de acesso (super usuário). Ajuste manualmente na visualização do usuário ou contacte o suporte.'
                 : 'Usuário cadastrado com sucesso!';
+            if ($educationSaveFailed) {
+                $_SESSION['error'] = 'Não foi possível guardar as formações informadas. Edite o usuário e cadastre-as novamente na aba "Formações".';
+            }
 
             // Redirecionar o usuário para a pagina listar
             header("Location: {$_ENV['URL_ADM']}view-user/$result");

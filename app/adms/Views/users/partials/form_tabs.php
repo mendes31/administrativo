@@ -35,13 +35,11 @@ $form = $this->data['form'] ?? [];
             <i class="fas fa-briefcase me-1"></i>Dados Contratuais
         </button>
     </li>
-    <?php if ($isUpdate): ?>
-        <li class="nav-item" role="presentation">
-            <button class="nav-link <?php echo $activeTab === 'formacoes' ? 'active' : ''; ?>" id="tab-formacoes-btn" data-bs-toggle="tab" data-bs-target="#tab-formacoes" type="button" role="tab" data-tab-key="formacoes">
-                <i class="fas fa-graduation-cap me-1"></i>Formações
-            </button>
-        </li>
-    <?php endif; ?>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link <?php echo $activeTab === 'formacoes' ? 'active' : ''; ?>" id="tab-formacoes-btn" data-bs-toggle="tab" data-bs-target="#tab-formacoes" type="button" role="tab" data-tab-key="formacoes">
+            <i class="fas fa-graduation-cap me-1"></i>Formações
+        </button>
+    </li>
 </ul>
 
 <div class="tab-content" id="userFormTabsContent">
@@ -500,12 +498,11 @@ $form = $this->data['form'] ?? [];
         </div>
     </div>
 
-    <?php if ($isUpdate): ?>
-        <?php
-        $educationRows = is_array($this->data['educations'] ?? null) ? $this->data['educations'] : [];
-        $educationTypes = \App\adms\Helpers\UserEducationHelper::typeOptions();
-        $educationStatuses = \App\adms\Helpers\UserEducationHelper::statusOptions();
-        ?>
+    <?php
+    $educationRows = is_array($this->data['educations'] ?? null) ? $this->data['educations'] : [];
+    $educationTypes = \App\adms\Helpers\UserEducationHelper::typeOptions();
+    $educationStatuses = \App\adms\Helpers\UserEducationHelper::statusOptions();
+    ?>
         <div class="tab-pane fade <?php echo $activeTab === 'formacoes' ? 'show active' : ''; ?>" id="tab-formacoes" role="tabpanel">
             <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
                 <div>
@@ -626,10 +623,8 @@ $form = $this->data['form'] ?? [];
                 </div>
             </div>
         </template>
-    <?php endif; ?>
 </div>
 
-<?php if ($isUpdate): ?>
 <script>
 (function () {
     var list = document.getElementById('user-educations-list');
@@ -665,4 +660,3 @@ $form = $this->data['form'] ?? [];
     refreshEmpty();
 })();
 </script>
-<?php endif; ?>

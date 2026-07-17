@@ -61,8 +61,8 @@ class CreateCostCenter
         // Apresentar ou ocultar botão 
         $pageElements = [
             'title_head' => 'Cadastrar Centro de Custo',
-            'menu' => 'list-departments',
-            'buttonPermission' => ['ListDepartment'],
+            'menu' => 'list-cost-centers',
+            'buttonPermission' => ['ListCostCenters'],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

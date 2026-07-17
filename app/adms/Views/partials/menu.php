@@ -177,27 +177,48 @@ $menus = [
             [
                 'label' => 'Cargos',
                 'url' => $_ENV['URL_ADM'] . 'list-positions',
-                'permission' => 'ListPositions'
+                'permission' => 'ListPositions',
+                'related_routes' => [
+                    'list-positions', 'create-position', 'update-position', 'view-position',
+                    'delete-position', 'import-positions',
+                ],
             ],
             [
                 'label' => 'Centros de Custo',
                 'url' => $_ENV['URL_ADM'] . 'list-cost-centers',
-                'permission' => 'ListCostCenters'
+                'permission' => 'ListCostCenters',
+                'related_routes' => [
+                    'list-cost-centers', 'create-cost-center', 'update-cost-center', 'view-cost-center',
+                    'delete-cost-center', 'import-cost-centers',
+                ],
             ],
             [
                 'label' => 'Departamentos',
                 'url' => $_ENV['URL_ADM'] . 'list-departments',
-                'permission' => 'ListDepartments'
+                'permission' => 'ListDepartments',
+                'related_routes' => [
+                    'list-departments', 'create-department', 'update-departments', 'view-department',
+                    'delete-department', 'import-departments',
+                ],
             ],
             [
                 'label' => 'Turnos de trabalho',
                 'url' => $_ENV['URL_ADM'] . 'list-work-shifts',
-                'permission' => 'ListWorkShifts'
+                'permission' => 'ListWorkShifts',
+                'related_routes' => [
+                    'list-work-shifts', 'create-work-shift', 'update-work-shift', 'view-work-shift',
+                    'delete-work-shift',
+                ],
             ],
             [
                 'label' => 'Níveis de Acesso',
                 'url' => $_ENV['URL_ADM'] . 'list-access-levels',
-                'permission' => 'ListAccessLevels'
+                'permission' => 'ListAccessLevels',
+                'related_routes' => [
+                    'list-access-levels', 'create-access-level', 'update-access-level', 'view-access-level',
+                    'delete-access-level', 'import-access-levels', 'access-level-page-sync',
+                    'export-access-levels-permissions-pdf', 'export-access-levels-permissions-excel',
+                ],
             ],
             [
                 'label' => 'Usuários',
@@ -206,17 +227,25 @@ $menus = [
                     [
                         'label' => 'Listar Usuários',
                         'url' => $_ENV['URL_ADM'] . 'list-users',
-                        'permission' => 'ListUsers'
+                        'permission' => 'ListUsers',
+                        'related_routes' => [
+                            'list-users', 'create-user', 'update-user', 'view-user', 'delete-user',
+                            'update-employment-history', 'update-password-user', 'update-user-access-levels',
+                            'update-user-image', 'update-user-image-only', 'delete-user-image',
+                            'export-users-excel', 'export-users-pdf',
+                        ],
                     ],
                     [
                         'label' => 'Importar Usuários',
                         'url' => $_ENV['URL_ADM'] . 'import-users',
-                        'permission' => 'ImportUsers'
+                        'permission' => 'ImportUsers',
+                        'related_routes' => ['import-users'],
                     ],
                     [
                         'label' => 'Organograma',
                         'url' => $_ENV['URL_ADM'] . 'organization-chart',
-                        'permission' => 'OrganizationChart'
+                        'permission' => 'OrganizationChart',
+                        'related_routes' => ['organization-chart'],
                     ],
                 ]
             ],
