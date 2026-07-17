@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\users;
 
 use App\adms\Helpers\UserEducationHelper;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\UserEducationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
@@ -14,40 +15,113 @@ use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 /**
  * Exporta lista de usuários em Excel respeitando os filtros da listagem.
- * Colunas alinhadas ao pedido: cargo com texto integral da BD (pos.name).
+ * As colunas seguem a mesma ordem das abas do cadastro de usuário.
  */
 class ExportUsersExcel
 {
     /** @var list<string> */
     private const EXPORT_KEYS = [
+        // Aba Usuário
+        'user_id',
         'user_name',
+        'email',
+        'username',
+        'cpf',
+        'celular',
         'department_name',
-        'data_admissao_br',
         'position_name',
         'supervisor_name',
-        'data_nascimento_br',
-        'cpf',
-        'email',
+        'work_shift_description',
+        'tentativas_login',
+        'image',
+        'status',
+        'bloqueado',
+        'senha_nunca_expira',
+        'modificar_senha_proximo_logon',
+        'super_usuario',
+        'enviar_boas_vindas_email',
+        'enviar_boas_vindas_whatsapp',
+        // Aba Dados Pessoais
+        'email_pessoal',
+        'data_nascimento',
         'sexo',
-        'celular',
+        'estado_civil',
         'escolaridade',
+        'raca',
+        'filhos',
+        // Aba Endereço
+        'cep',
+        'pais_residencia_iso',
+        'uf',
+        'municipio',
+        'bairro',
+        'endereco',
+        'numero_endereco',
+        'complemento_endereco',
+        // Aba Dados Contratuais
+        'empresa_contratante',
+        'matricula',
+        'data_admissao',
+        'data_desligamento',
+        'motivo_desligamento',
+        'tipo_impacto_desligamento',
+        // Aba Formações (resumo; detalhes permanecem na planilha própria)
         'formacoes',
     ];
 
     /** @var list<string> */
     private const EXPORT_HEADERS_PT = [
+        // Aba Usuário
+        'ID',
         'Nome',
+        'E-mail corporativo',
+        'Usuário',
+        'CPF',
+        'Celular',
         'Departamento',
-        'Data admissão',
         'Cargo',
         'Superior imediato',
-        'Data nascimento',
-        'CPF',
-        'E-mail',
+        'Turno',
+        'Tentativas de login',
+        'Imagem',
+        'Status',
+        'Bloqueado',
+        'Senha nunca expira',
+        'Modificar senha no próximo logon',
+        'Super usuário',
+        'Boas-vindas por e-mail',
+        'Boas-vindas por WhatsApp',
+        // Aba Dados Pessoais
+        'E-mail pessoal',
+        'Data de nascimento',
         'Sexo',
-        'Celular',
+        'Estado civil',
         'Escolaridade',
+        'Raça/cor',
+        'Filhos',
+        // Aba Endereço
+        'CEP',
+        'País',
+        'UF',
+        'Município',
+        'Bairro',
+        'Logradouro',
+        'Número',
+        'Complemento',
+        // Aba Dados Contratuais
+        'Empresa contratante',
+        'Matrícula',
+        'Data de admissão',
+        'Data de desligamento',
+        'Motivo do desligamento',
+        'Impacto do desligamento',
+        // Aba Formações
         'Formações',
+    ];
+
+    /** @var list<string> */
+    private const TEXT_KEYS = [
+        'username', 'cpf', 'celular', 'cep', 'numero_endereco', 'matricula',
     ];
 
     public function index(): void
@@ -114,9 +188,9 @@ class ExportUsersExcel
                 $colLetter = Coordinate::stringFromColumnIndex($c);
                 $key = self::EXPORT_KEYS[$c - 1];
                 $cell = $colLetter . $row;
-                $raw = $user[$key] ?? '';
+                $raw = $this->formatExportValue($key, $user[$key] ?? '');
 
-                if ($key === 'cpf') {
+                if (in_array($key, self::TEXT_KEYS, true)) {
                     $sheet->setCellValueExplicit($cell, (string) $raw, DataType::TYPE_STRING);
                 } else {
                     $sheet->setCellValue($cell, $raw);
@@ -131,8 +205,12 @@ class ExportUsersExcel
             $sheet->getColumnDimension($colLetter)->setAutoSize(true);
         }
 
-        // Cargo: texto completo da BD — largura mínima + quebra de linha (evita “cortar” visualmente no Excel)
-        $cargoCol = Coordinate::stringFromColumnIndex(4);
+        $sheet->freezePane('A2');
+        $sheet->setAutoFilter('A1:' . Coordinate::stringFromColumnIndex($headerCount) . '1');
+
+        // Cargo: texto completo da BD — largura mínima + quebra de linha.
+        $cargoIndex = array_search('position_name', self::EXPORT_KEYS, true);
+        $cargoCol = Coordinate::stringFromColumnIndex(($cargoIndex === false ? 0 : $cargoIndex) + 1);
         $dim = $sheet->getColumnDimension($cargoCol);
         if ((float) $dim->getWidth() < 42) {
             $dim->setWidth(42);
@@ -199,5 +277,43 @@ class ExportUsersExcel
 
         $writer->save('php://output');
         exit;
+    }
+
+    private function formatExportValue(string $key, mixed $value): mixed
+    {
+        $text = is_scalar($value) ? (string) $value : '';
+
+        return match ($key) {
+            'data_nascimento', 'data_admissao', 'data_desligamento' => $this->formatDate($text),
+            'sexo' => UserFormHelper::sexoLabel($text),
+            'estado_civil' => UserFormHelper::estadoCivilLabel($text),
+            'escolaridade' => UserFormHelper::escolaridadeLabel($text),
+            'raca' => UserFormHelper::racaLabel($text),
+            'filhos' => UserFormHelper::filhosLabel($text),
+            'pais_residencia_iso' => UserFormHelper::paisResidenciaLabel($text),
+            'empresa_contratante' => UserFormHelper::empresaContratanteLabel($text),
+            'tipo_impacto_desligamento' => UserFormHelper::tipoImpactoDesligamentoLabel($text),
+            'super_usuario', 'enviar_boas_vindas_email', 'enviar_boas_vindas_whatsapp'
+                => $this->formatBoolean($value),
+            default => $value ?? '',
+        };
+    }
+
+    private function formatDate(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '0000-00-00') {
+            return '';
+        }
+        $timestamp = strtotime($value);
+
+        return $timestamp === false ? $value : date('d/m/Y', $timestamp);
+    }
+
+    private function formatBoolean(mixed $value): string
+    {
+        return in_array(strtolower(trim((string) $value)), ['1', 'sim', 'yes', 'true'], true)
+            ? 'Sim'
+            : 'Não';
     }
 }

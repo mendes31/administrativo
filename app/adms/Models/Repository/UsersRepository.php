@@ -311,24 +311,53 @@ class UsersRepository extends DbConnection
         }
 
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        // Exportação: nomes de colunas alinhados ao pedido; cargo = pos.name integral (sem truncar / formatar na UI).
+        // Exportação completa: campos ordenados no controller conforme as abas do cadastro de usuário.
         $sql = 'SELECT
                     usr.id AS user_id,
                     usr.name AS user_name,
+                    usr.email AS email,
+                    usr.username AS username,
+                    usr.cpf AS cpf,
+                    usr.celular AS celular,
                     dep.name AS department_name,
-                    IFNULL(DATE_FORMAT(usr.data_admissao, \'%d/%m/%Y\'), \'\') AS data_admissao_br,
                     pos.name AS position_name,
                     sup.name AS supervisor_name,
-                    IFNULL(DATE_FORMAT(usr.data_nascimento, \'%d/%m/%Y\'), \'\') AS data_nascimento_br,
-                    usr.cpf AS cpf,
-                    usr.email AS email,
+                    ws.description AS work_shift_description,
+                    usr.tentativas_login AS tentativas_login,
+                    usr.image AS image,
+                    usr.status AS status,
+                    usr.bloqueado AS bloqueado,
+                    usr.senha_nunca_expira AS senha_nunca_expira,
+                    usr.modificar_senha_proximo_logon AS modificar_senha_proximo_logon,
+                    usr.super_usuario AS super_usuario,
+                    usr.enviar_boas_vindas_email AS enviar_boas_vindas_email,
+                    usr.enviar_boas_vindas_whatsapp AS enviar_boas_vindas_whatsapp,
+                    usr.email_pessoal AS email_pessoal,
+                    usr.data_nascimento AS data_nascimento,
                     usr.sexo AS sexo,
-                    usr.celular AS celular,
-                    usr.escolaridade AS escolaridade
+                    usr.estado_civil AS estado_civil,
+                    usr.escolaridade AS escolaridade,
+                    usr.raca AS raca,
+                    usr.filhos AS filhos,
+                    usr.cep AS cep,
+                    usr.pais_residencia_iso AS pais_residencia_iso,
+                    usr.uf AS uf,
+                    usr.municipio AS municipio,
+                    usr.bairro AS bairro,
+                    usr.endereco AS endereco,
+                    usr.numero_endereco AS numero_endereco,
+                    usr.complemento_endereco AS complemento_endereco,
+                    usr.empresa_contratante AS empresa_contratante,
+                    usr.matricula AS matricula,
+                    usr.data_admissao AS data_admissao,
+                    usr.data_desligamento AS data_desligamento,
+                    usr.motivo_desligamento AS motivo_desligamento,
+                    usr.tipo_impacto_desligamento AS tipo_impacto_desligamento
                 FROM adms_users usr
                 LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
                 LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id
                 LEFT JOIN adms_users sup ON sup.id = usr.immediate_supervisor_id
+                LEFT JOIN adms_work_shifts ws ON usr.adms_work_shift_id = ws.id
                 ' . $whereSql . '
                 ORDER BY usr.name ASC';
 
