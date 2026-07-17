@@ -56,6 +56,19 @@ $selectedClosureReason = (string) ($statusForm['closure_reason'] ?? $report['clo
         padding-right: .85rem;
     }
 }
+@media (max-width: 767.98px) {
+    .wb-report-page .form-control-sm,
+    .wb-report-page .form-select-sm,
+    .wb-report-page button.btn-sm,
+    .wb-report-page a.btn-sm {
+        min-height: 42px;
+        font-size: 1rem;
+    }
+    .wb-report-page .progress {
+        width: 100%;
+        max-width: none !important;
+    }
+}
 </style>
 
 <div class="container-fluid px-2 px-md-4 mx-auto wb-report-page">

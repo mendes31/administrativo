@@ -88,11 +88,11 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
 <div class="container-fluid px-4">
 
-    <div class="mb-1 hstack gap-2">
+    <div class="mb-1 d-flex flex-wrap align-items-center gap-2">
 
-        <h2 class="mt-3"><i class="fas fa-cog me-2"></i>Configuração — Canal de Denúncias</h2>
+        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-cog me-2"></i>Configuração — Canal de Denúncias</h2>
 
-        <ol class="breadcrumb mb-3 ms-auto">
+        <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
 
             <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm) ?>denuncias-dashboard">Canal de Denúncias</a></li>
 
@@ -497,7 +497,7 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                     <p class="small fw-semibold mb-1">Linha sugerida para crontab (Linux):</p>
 
-                    <pre class="bg-light p-2 rounded small text-break user-select-all"><?= htmlspecialchars($cronLine) ?></pre>
+                    <pre class="bg-light p-2 rounded small user-select-all wb-cron-line"><?= htmlspecialchars($cronLine) ?></pre>
 
                     <?php endif; ?>
 
@@ -738,6 +738,25 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
     syncClosureSlaFields();
 })();
 </script>
+
+<style>
+.wb-cron-line {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+@media (max-width: 767.98px) {
+    .container-fluid.px-4 { padding-left: .75rem !important; padding-right: .75rem !important; }
+    .form-control-sm,
+    .form-select-sm,
+    button.btn-sm,
+    a.btn-sm {
+        min-height: 42px;
+        font-size: 1rem;
+    }
+    .card-body > form .btn { width: 100%; }
+}
+</style>
 
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 <script>

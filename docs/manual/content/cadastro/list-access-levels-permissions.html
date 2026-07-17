@@ -1,24 +1,34 @@
 <h1>Liberar Permissões</h1>
-<p>Lista e filtra registros de <strong>Liberar Permissões</strong> no módulo Cadastro. Use esta tela para localizar itens, acessar visualização/edição e iniciar novos cadastros.</p>
+<p>Tela onde você define, para um <strong>nível de acesso</strong> específico, quais páginas do sistema ficam <em>autorizadas</em> ou <em>revogadas</em>. As páginas são exibidas agrupadas por módulo, com um interruptor por página e ações rápidas para autorizar ou revogar um grupo inteiro.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Níveis de acesso</em> (<code>cad-niveis-acesso</code>) para o fluxo completo da área.</p>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>ListAccessLevelsPermissions</em>.</p>
 
+<p class="help-note"><strong>Grupo Canal de Denúncias:</strong> por sigilo e para não gerar dúvidas quanto ao anonimato do canal, as páginas do grupo <em>Canal de Denúncias</em> só aparecem nesta matriz para <strong>Super Administrador</strong> ou <strong>Super usuário</strong>. Demais usuários não visualizam esse grupo e não conseguem conceder/remover essas páginas — mesmo que enviem o formulário, as concessões atuais do canal são preservadas. O acesso ao módulo é dado pelos níveis <em>Canal de Denúncias — Operador/Administrador</em> (o Operador também é herdado automaticamente ao vincular a pessoa a um comitê).</p>
+
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Acesse o menu <strong>Cadastro</strong> e abra <strong>Liberar Permissões</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
-    <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
-    <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
+    <li>Acesse <strong>Cadastro &rarr; Níveis de Acesso</strong> e clique em <strong>Permissões</strong> no nível desejado.</li>
+    <li>Use a busca <em>Buscar por grupo</em> ou os botões <strong>Expandir Todos</strong> / <strong>Colapsar Todos</strong> para navegar entre os módulos.</li>
+    <li>Ative ou desative o interruptor de cada página, ou use <strong>Autorizar Grupo</strong> / <strong>Revogar Grupo</strong> para aplicar a todas as páginas do módulo de uma vez.</li>
+    <li>Clique em <strong>Salvar</strong> para gravar as permissões do nível.</li>
+    <li>Se necessário, use <strong>Exportar PDF</strong> para gerar o relatório de permissões do nível.</li>
     <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
-<div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
-<div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
+<p class="text-muted small">O que cada elemento afeta no sistema.</p>
+<div class="help-field"><strong>Interruptor da página (Autorizada/Revogada)</strong> Concede (1) ou remove (0) o acesso do nível àquela página. Páginas privadas exigem liberação manual; públicas já ficam acessíveis pela rota.</div>
+<div class="help-field"><strong>Autorizar Grupo / Revogar Grupo</strong> Marca ou desmarca de uma vez todas as páginas do módulo exibido.</div>
+<div class="help-field"><strong>Buscar por grupo</strong> Filtra os módulos exibidos; não altera dados, apenas a exibição.</div>
+<div class="help-field"><strong>Exportar PDF</strong> Gera um relatório com as páginas autorizadas do nível de acesso.</div>
+
+<h2>Regras importantes</h2>
+<ul>
+    <li>O nível <strong>Super Administrador</strong> tem acesso total; a matriz dele é somente leitura e não pode ser gravada.</li>
+    <li>O grupo <strong>Canal de Denúncias</strong> só é gerenciável por Super Administrador ou Super usuário (ver nota acima).</li>
+</ul>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -26,6 +36,6 @@
     <dd>Permissão <em>ListAccessLevelsPermissions</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Não encontro o grupo Canal de Denúncias na matriz</dt>
+    <dd>É intencional: esse grupo só aparece para Super Administrador ou Super usuário. Para dar acesso ao módulo, atribua os níveis <em>Canal de Denúncias — Operador/Administrador</em> ao usuário (ou vincule a pessoa a um comitê, que concede o Operador automaticamente).</dd>
 </dl>

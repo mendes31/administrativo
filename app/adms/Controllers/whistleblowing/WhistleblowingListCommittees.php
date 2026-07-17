@@ -16,6 +16,11 @@ class WhistleblowingListCommittees
     {
         $repo = new WhistleblowingCommitteesRepository();
         $this->data['committees'] = $repo->getAllCommittees();
+        $committeeIds = array_map(
+            static fn(array $committee): int => (int) ($committee['id'] ?? 0),
+            $this->data['committees']
+        );
+        $this->data['committee_details'] = $repo->getCommitteeListDetails($committeeIds);
 
         $pageElements = [
             'title_head' => 'Comitês — Canal de Denúncias',

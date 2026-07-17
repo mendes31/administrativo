@@ -15,6 +15,12 @@ $agingParams = array_merge(['preset' => 'aging'], $periodParams);
 $agingUrl = $_ENV['URL_ADM'] . 'denuncias?' . http_build_query($agingParams);
 $allReportsUrl = $_ENV['URL_ADM'] . 'denuncias'
     . ($periodQuery !== '' ? '?' . $periodQuery : '');
+$statusBadges = [
+    'Recebida' => 'secondary', 'Em triagem' => 'info', 'Em análise' => 'primary',
+    'Comitê' => 'warning', 'Investigação' => 'warning', 'Providências' => 'info',
+    'Encerrada' => 'success',
+];
+$riskBadges = ['Baixo' => 'secondary', 'Médio' => 'primary', 'Alto' => 'warning', 'Crítico' => 'danger'];
 
 /**
  * Envolve o conteúdo do card em link para a listagem filtrada (quando o usuário pode listar).
@@ -37,6 +43,13 @@ $cardLink = static function (string $preset, string $inner) use ($canListReports
 <style>
 .wb-card-link .card { transition: box-shadow .15s ease, transform .15s ease; }
 .wb-card-link:hover .card { box-shadow: 0 .5rem 1rem rgba(0,0,0,.15) !important; transform: translateY(-2px); }
+.wb-mobile-report { border-radius: 12px; }
+@media (max-width: 767.98px) {
+    .container-fluid.px-4 { padding-left: .75rem !important; padding-right: .75rem !important; }
+    .wb-dashboard-period .form-control-sm,
+    .wb-dashboard-period .btn-sm { min-height: 42px; font-size: 1rem; }
+    .wb-dashboard-period .btn { width: 100%; }
+}
 </style>
 
 <div class="container-fluid px-4">
@@ -59,7 +72,7 @@ $cardLink = static function (string $preset, string $inner) use ($canListReports
 
     <div class="card border-light shadow-sm mb-3">
         <div class="card-body py-2">
-            <form method="get" class="row g-2 align-items-end">
+            <form method="get" class="row g-2 align-items-end wb-dashboard-period">
                 <div class="col-md-3">
                     <label class="form-label small mb-1" for="dashboard-date-from">Registradas de</label>
                     <input type="date" name="date_from" id="dashboard-date-from" class="form-control form-control-sm"
@@ -183,45 +196,51 @@ $cardLink = static function (string $preset, string $inner) use ($canListReports
         <div class="col-md-4 mb-3">
             <div class="card border-light shadow">
                 <div class="card-header">Por status</div>
+                <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <?php foreach ($stats['by_status'] ?? [] as $row): ?>
                         <tr><td><?= htmlspecialchars((string)($row['label'] ?? '')) ?></td><td class="text-end"><?= (int)($row['total'] ?? 0) ?></td></tr>
                     <?php endforeach; ?>
                 </table>
+                </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
             <div class="card border-light shadow">
                 <div class="card-header">Por classificação</div>
+                <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <?php foreach ($stats['by_category'] ?? [] as $row): ?>
                         <tr><td><?= htmlspecialchars((string)($row['label'] ?? '')) ?></td><td class="text-end"><?= (int)($row['total'] ?? 0) ?></td></tr>
                     <?php endforeach; ?>
                 </table>
+                </div>
             </div>
         </div>
         <div class="col-md-4 mb-3">
             <div class="card border-light shadow">
                 <div class="card-header">Por risco</div>
+                <div class="table-responsive">
                 <table class="table table-sm mb-0">
                     <?php foreach ($stats['by_risk'] ?? [] as $row): ?>
                         <tr><td><?= htmlspecialchars((string)($row['label'] ?? '')) ?></td><td class="text-end"><?= (int)($row['total'] ?? 0) ?></td></tr>
                     <?php endforeach; ?>
                 </table>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="card border-light shadow mb-4">
-        <div class="card-header fw-semibold hstack gap-2">
+        <div class="card-header fw-semibold d-flex flex-wrap align-items-center justify-content-between gap-2">
             <span>Aging — denúncias paradas (dias sem atualização)</span>
             <?php if ($canListReports): ?>
-                <a href="<?= htmlspecialchars($agingUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-primary ms-auto">
+                <a href="<?= htmlspecialchars($agingUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-primary">
                     <i class="fas fa-list me-1"></i>Ver na listagem
                 </a>
             <?php endif; ?>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive d-none d-lg-block">
             <table class="table table-sm table-striped mb-0">
                 <thead>
                     <tr>
@@ -247,14 +266,43 @@ $cardLink = static function (string $preset, string $inner) use ($canListReports
                 </tbody>
             </table>
         </div>
+        <div class="d-lg-none p-3">
+            <?php foreach ($stats['aging'] ?? [] as $row): ?>
+                <article class="wb-mobile-report border p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <a class="font-monospace fw-semibold text-break" href="<?php echo $_ENV['URL_ADM']; ?>view-denuncia/<?= (int) ($row['id'] ?? 0) ?>">
+                            <?= htmlspecialchars((string) ($row['protocol'] ?? '')) ?>
+                        </a>
+                        <span class="badge bg-<?= $statusBadges[$row['status'] ?? ''] ?? 'secondary' ?>">
+                            <?= htmlspecialchars((string) ($row['status'] ?? '')) ?>
+                        </span>
+                    </div>
+                    <div class="small mb-2 text-break">
+                        <?= htmlspecialchars((string) ($row['category'] ?? '')) ?> ·
+                        <?= htmlspecialchars((string) ($row['committee_name'] ?? '—')) ?>
+                    </div>
+                    <div class="d-flex flex-wrap justify-content-between gap-2 small">
+                        <span class="badge bg-<?= $riskBadges[$row['risk_level'] ?? ''] ?? 'secondary' ?>">
+                            Risco <?= htmlspecialchars((string) ($row['risk_level'] ?? '')) ?>
+                        </span>
+                        <span class="<?= (int) ($row['days_idle'] ?? 0) >= 7 ? 'text-danger fw-semibold' : 'text-muted' ?>">
+                            <?= (int) ($row['days_idle'] ?? 0) ?> dias parado · <?= (int) ($row['days_open'] ?? 0) ?> dias aberta
+                        </span>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            <?php if (empty($stats['aging'])): ?>
+                <p class="text-muted text-center mb-0 py-3">Nenhuma denúncia aberta no momento.</p>
+            <?php endif; ?>
+        </div>
     </div>
 
     <div class="card border-light shadow">
-        <div class="card-header hstack">
+        <div class="card-header d-flex flex-wrap align-items-center justify-content-between gap-2">
             <span>Denúncias recentes</span>
-            <a href="<?= htmlspecialchars($allReportsUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-primary ms-auto">Ver todas</a>
+            <a href="<?= htmlspecialchars($allReportsUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-primary">Ver todas</a>
         </div>
-        <div class="table-responsive">
+        <div class="table-responsive d-none d-lg-block">
             <table class="table table-striped mb-0">
                 <thead><tr><th>Protocolo</th><th>Classificação</th><th>Status</th><th>Data</th></tr></thead>
                 <tbody>
@@ -268,6 +316,27 @@ $cardLink = static function (string $preset, string $inner) use ($canListReports
                     <?php endforeach; ?>
                 </tbody>
             </table>
+        </div>
+        <div class="d-lg-none p-3">
+            <?php foreach ($stats['recent'] ?? [] as $r): ?>
+                <article class="wb-mobile-report border p-3 mb-2">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <a class="font-monospace fw-semibold text-break" href="<?php echo $_ENV['URL_ADM']; ?>view-denuncia/<?= (int) $r['id'] ?>">
+                            <?= htmlspecialchars((string) $r['protocol']) ?>
+                        </a>
+                        <span class="badge bg-<?= $statusBadges[$r['status'] ?? ''] ?? 'secondary' ?>">
+                            <?= htmlspecialchars((string) $r['status']) ?>
+                        </span>
+                    </div>
+                    <div class="small text-muted mt-2">
+                        <span class="text-break"><?= htmlspecialchars((string) $r['category']) ?></span>
+                        <span class="d-block mt-1"><?= date('d/m/Y H:i', strtotime((string) $r['created_at'])) ?></span>
+                    </div>
+                </article>
+            <?php endforeach; ?>
+            <?php if (empty($stats['recent'])): ?>
+                <p class="text-muted text-center mb-0 py-3">Nenhuma denúncia recente.</p>
+            <?php endif; ?>
         </div>
     </div>
 </div>

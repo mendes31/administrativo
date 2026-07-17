@@ -2,10 +2,16 @@
 <p>Comitês (Ética, Compliance, Segurança etc.), membros e classificações. Denúncias são encaminhadas ao comitê da classificação.</p>
 <p><strong>Quem acessa:</strong> nível <em>Administrador</em> ou permissões de comitê (<em>WhistleblowingListCommittees</em>, <em>Create</em>, <em>Update</em>).</p>
 
+<h2>Visualizar comitês e vínculos</h2>
+<p>A listagem apresenta cada comitê em um cartão, com status, membros vinculados e classificações atendidas. O nome de cada membro aparece diretamente no cartão; posicione o cursor sobre o nome para consultar o e-mail cadastrado.</p>
+
 <h2>Fluxo</h2>
 <ol>
 <li>Liste em <code>list-whistleblowing-committees</code>.</li>
-<li>Cadastre/edite: nome, membros ativos e classificações.</li>
+<li>Clique em <strong>Novo comitê</strong> ou <strong>Editar membros</strong>.</li>
+<li>Na área <strong>Membros do comitê</strong>, pesquise por nome ou e-mail e marque as pessoas desejadas.</li>
+<li>Confira os vínculos no painel <strong>Membros vinculados</strong>. Para remover alguém antes de salvar, desmarque a pessoa ou use o botão de remoção no painel.</li>
+<li>Preencha nome, descrição, status e classificações atendidas; depois clique em <strong>Salvar</strong>.</li>
 <li>Ao salvar membros → nível <strong>Operador</strong> automático (menu do canal).</li>
 <li>Operador vê só denúncias dos seus comitês; administrador vê todas.</li>
 <li>Atribua nível <strong>Administrador</strong> manualmente para Configuração e Governança.</li>
@@ -18,4 +24,6 @@
 <dl>
 <dt>Membro não vê o menu</dt><dd>Salvar como membro de comitê ativo.</dd>
 <dt>Membro vê menu mas lista vazia</dt><dd>Denúncia em outro comitê/classificação.</dd>
+<dt>Não encontro uma pessoa para vincular</dt><dd>Pesquise pelo nome ou e-mail cadastrado. Se não aparecer, confirme se o usuário existe no cadastro de usuários.</dd>
+<dt>Comitê aparece sem membros</dt><dd>Edite o comitê, marque pelo menos uma pessoa na lista e salve. Comitês sem membros não terão destinatários para a análise.</dd>
 </dl>

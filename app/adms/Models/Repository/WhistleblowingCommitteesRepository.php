@@ -27,6 +27,50 @@ class WhistleblowingCommitteesRepository extends DbConnection
         return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Retorna membros e classificações agrupados por comitê para a listagem.
+     *
+     * @param list<int> $committeeIds
+     * @return array<int, array{members: list<array{id: int, name: string, email: string}>, categories: list<string>}>
+     */
+    public function getCommitteeListDetails(array $committeeIds): array
+    {
+        $committeeIds = array_values(array_unique(array_filter(array_map('intval', $committeeIds))));
+        if ($committeeIds === []) {
+            return [];
+        }
+
+        $ids = implode(',', $committeeIds);
+        $details = [];
+        foreach ($committeeIds as $committeeId) {
+            $details[$committeeId] = ['members' => [], 'categories' => []];
+        }
+
+        $membersSql = "SELECT m.committee_id, u.id, u.name, COALESCE(u.email, '') AS email
+                       FROM adms_whistleblowing_committee_members m
+                       INNER JOIN adms_users u ON u.id = m.user_id
+                       WHERE m.committee_id IN ({$ids})
+                       ORDER BY u.name ASC";
+        foreach ($this->getConnection()->query($membersSql)->fetchAll(PDO::FETCH_ASSOC) ?: [] as $member) {
+            $committeeId = (int) $member['committee_id'];
+            $details[$committeeId]['members'][] = [
+                'id' => (int) $member['id'],
+                'name' => (string) $member['name'],
+                'email' => (string) $member['email'],
+            ];
+        }
+
+        $categoriesSql = "SELECT committee_id, category
+                          FROM adms_whistleblowing_committee_categories
+                          WHERE committee_id IN ({$ids})
+                          ORDER BY category ASC";
+        foreach ($this->getConnection()->query($categoriesSql)->fetchAll(PDO::FETCH_ASSOC) ?: [] as $category) {
+            $details[(int) $category['committee_id']]['categories'][] = (string) $category['category'];
+        }
+
+        return $details;
+    }
+
     public function getCommitteeById(int $id): ?array
     {
         $sql = 'SELECT * FROM adms_whistleblowing_committees WHERE id = :id LIMIT 1';

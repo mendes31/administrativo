@@ -50,11 +50,11 @@ $originLabels = [
 
 <div class="container-fluid px-4">
 
-    <div class="mb-1 hstack gap-2">
+    <div class="mb-1 d-flex flex-wrap align-items-center gap-2">
 
-        <h2 class="mt-3"><i class="fas fa-balance-scale me-2"></i>Governança LGPD</h2>
+        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-balance-scale me-2"></i>Governança LGPD</h2>
 
-        <ol class="breadcrumb mb-3 ms-auto">
+        <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
 
             <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm) ?>denuncias-dashboard">Canal de Denúncias</a></li>
 
@@ -72,7 +72,7 @@ $originLabels = [
 
     <div class="row g-3 mb-3">
 
-        <div class="col-lg-3">
+        <div class="col-md-6 col-lg-3">
 
             <div class="card border-light shadow-sm h-100">
 
@@ -124,7 +124,7 @@ $originLabels = [
 
         </div>
 
-        <div class="col-lg-3">
+        <div class="col-md-6 col-lg-3">
 
             <div class="card border-light shadow-sm h-100">
 
@@ -160,7 +160,7 @@ $originLabels = [
 
         </div>
 
-        <div class="col-lg-3">
+        <div class="col-md-6 col-lg-3">
 
             <div class="card border-light shadow-sm h-100">
 
@@ -186,7 +186,7 @@ $originLabels = [
 
         </div>
 
-        <div class="col-lg-3">
+        <div class="col-md-6 col-lg-3">
 
             <div class="card border-light shadow-sm h-100">
 
@@ -254,7 +254,7 @@ $originLabels = [
 
             <p class="mb-2">No Windows, a retenção já roda no login. Use o crontab abaixo apenas se quiser disparo adicional no servidor:</p>
 
-            <pre class="bg-light p-2 rounded text-break user-select-all mb-0"><?= htmlspecialchars($cronLine) ?></pre>
+            <pre class="bg-light p-2 rounded user-select-all mb-0 wb-cron-line"><?= htmlspecialchars($cronLine) ?></pre>
 
         </div>
 
@@ -286,7 +286,7 @@ $originLabels = [
 
         <div class="card-body p-0">
 
-            <div class="table-responsive">
+            <div class="table-responsive d-none d-lg-block">
 
                 <table class="table table-sm table-hover mb-0">
 
@@ -376,6 +376,41 @@ $originLabels = [
 
             </div>
 
+            <div class="d-lg-none p-3">
+                <?php if ($runs === []): ?>
+                    <p class="text-center text-muted mb-0 py-3">Nenhuma execução registrada.</p>
+                <?php else: ?>
+                    <?php foreach ($runs as $run): ?>
+                        <?php
+                        $origin = (string) ($run['triggered_by'] ?? 'cron');
+                        $st = (string) ($run['status'] ?? '');
+                        $badge = $st === 'success' ? 'success' : ($st === 'error' ? 'danger' : 'secondary');
+                        ?>
+                        <article class="wb-governance-run border rounded-3 p-3 mb-2">
+                            <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                <div>
+                                    <strong class="d-block"><?= htmlspecialchars($originLabels[$origin] ?? $origin, ENT_QUOTES, 'UTF-8') ?></strong>
+                                    <small class="text-muted text-break"><?= htmlspecialchars((string) ($run['started_at'] ?? ''), ENT_QUOTES, 'UTF-8') ?></small>
+                                </div>
+                                <span class="badge bg-<?= $badge ?>"><?= htmlspecialchars($st, ENT_QUOTES, 'UTF-8') ?></span>
+                            </div>
+                            <div class="row g-2 small mb-2">
+                                <div class="col-6"><span class="text-muted d-block">Arquivadas</span><strong><?= (int) ($run['archived_count'] ?? 0) ?></strong></div>
+                                <div class="col-6"><span class="text-muted d-block">Excluídas</span><strong><?= (int) ($run['deleted_count'] ?? 0) ?></strong></div>
+                                <div class="col-6"><span class="text-muted d-block">Anexos</span><strong><?= (int) ($run['attachments_deleted'] ?? 0) ?></strong></div>
+                                <div class="col-6"><span class="text-muted d-block">Tempo</span><strong><?= round(((int) ($run['duration_ms'] ?? 0)) / 1000, 2) ?> s</strong></div>
+                            </div>
+                            <?php if (!empty($run['finished_at'])): ?>
+                                <div class="small"><span class="text-muted">Fim:</span> <?= htmlspecialchars((string) $run['finished_at'], ENT_QUOTES, 'UTF-8') ?></div>
+                            <?php endif; ?>
+                            <?php if (!empty($run['message'])): ?>
+                                <div class="small text-muted mt-2 text-break"><?= htmlspecialchars((string) $run['message'], ENT_QUOTES, 'UTF-8') ?></div>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                <?php endif; ?>
+            </div>
+
         </div>
 
         <?php if ($totalPages > 1): ?>
@@ -413,5 +448,17 @@ $originLabels = [
     </div>
 
 </div>
+
+<style>
+.wb-cron-line {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+}
+@media (max-width: 767.98px) {
+    .container-fluid.px-4 { padding-left: .75rem !important; padding-right: .75rem !important; }
+    .card-footer .btn { flex: 1 1 auto; }
+}
+</style>
 
 

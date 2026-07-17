@@ -7,7 +7,7 @@ $action = $isEdit
 ?>
 
 <div class="container-fluid px-4">
-    <h2 class="mt-3"><?= $isEdit ? 'Editar classificação' : 'Nova classificação' ?></h2>
+    <h2 class="mt-3 mobile-hide-page-title"><?= $isEdit ? 'Editar classificação' : 'Nova classificação' ?></h2>
 
     <div class="card border-light shadow">
         <div class="card-body">
@@ -61,9 +61,17 @@ $action = $isEdit
                 </div>
                 <?php endif; ?>
 
-                <button type="submit" class="btn btn-primary">Salvar</button>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>list-whistleblowing-categories" class="btn btn-secondary">Cancelar</a>
+                <div class="d-grid d-sm-flex gap-2">
+                    <button type="submit" class="btn btn-primary">Salvar</button>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-whistleblowing-categories" class="btn btn-secondary">Cancelar</a>
+                </div>
             </form>
         </div>
     </div>
 </div>
+
+<style>
+@media (max-width: 767.98px) {
+    .container-fluid.px-4 { padding-left: .75rem !important; padding-right: .75rem !important; }
+}
+</style>
