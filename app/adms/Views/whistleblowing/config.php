@@ -648,7 +648,7 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
             </p>
 
-            <p class="text-muted mb-3">Deixe <strong>Chave atual</strong> em branco se houver denúncias antigas (chave legada). O sistema testa automaticamente chave informada, chave do banco e chave legada.</p>
+            <p class="text-muted mb-3">A chave atual é recuperada automaticamente do banco (envelopada com o segredo do <code>.env</code>). Informe apenas a <strong>nova chave</strong> e confirme.</p>
 
             <form method="post" class="row g-2" onsubmit="return confirm('Confirmar rotação da chave? A operação recriptografa todos os dados do canal.');">
 
@@ -656,15 +656,7 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                 <input type="hidden" name="action" value="rotate_key">
 
-                <div class="col-md-4">
-
-                    <label class="form-label small">Chave atual</label>
-
-                    <input type="password" name="current_encryption_key" class="form-control form-control-sm font-monospace" autocomplete="off" placeholder="Chave em uso hoje">
-
-                </div>
-
-                <div class="col-md-4">
+                <div class="col-md-6">
 
                     <label class="form-label small">Nova chave (mín. 32)</label>
 
@@ -672,7 +664,7 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-6">
 
                     <label class="form-label small">Confirmar nova chave</label>
 
@@ -682,11 +674,33 @@ $rotationCounts = $this->data['rotation_counts'] ?? ['reports' => 0, 'messages' 
 
                 <div class="col-12">
 
-                    <div class="form-check">
+                    <a class="small text-decoration-none" data-bs-toggle="collapse" href="#rotationAdvanced" role="button" aria-expanded="false" aria-controls="rotationAdvanced">
+                        <i class="fas fa-caret-right me-1"></i>Opções avançadas de recuperação
+                    </a>
 
-                        <input type="checkbox" name="try_legacy_key" value="1" class="form-check-input" id="try_legacy_key" checked>
+                    <div class="collapse mt-2" id="rotationAdvanced">
 
-                        <label class="form-check-label" for="try_legacy_key">Tentar também chave legada do sistema (denúncias muito antigas)</label>
+                        <div class="border rounded p-2 bg-light">
+
+                            <div class="mb-2">
+
+                                <label class="form-label small mb-1">Chave anterior manual</label>
+
+                                <input type="password" name="current_encryption_key" class="form-control form-control-sm font-monospace" autocomplete="off" placeholder="Preencha somente se o sistema não conseguir ler os dados antigos">
+
+                                <div class="form-text">Use apenas em recuperação/migração (ex.: dados cifrados com chave externa). No uso normal, deixe em branco.</div>
+
+                            </div>
+
+                            <div class="form-check">
+
+                                <input type="checkbox" name="try_legacy_key" value="1" class="form-check-input" id="try_legacy_key" checked>
+
+                                <label class="form-check-label" for="try_legacy_key">Tentar também chave legada do sistema (denúncias muito antigas)</label>
+
+                            </div>
+
+                        </div>
 
                     </div>
 

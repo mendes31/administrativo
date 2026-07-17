@@ -84,11 +84,11 @@
 
 <h2>Rotação de chave</h2>
 <ol>
-<li>Deixe <strong>Chave atual em branco</strong> se existirem denúncias antigas (chave legada).</li>
-<li>Marque <em>Tentar também chave legada do sistema</em>.</li>
-<li>Informe nova chave (mín. 32) e confirme.</li>
-<li><strong>Rotacionar e recriptografar</strong> — migra relatos, mensagens, notas e anexos para <code>.enc</code>.</li>
+<li>Gere a nova DEK (<code>php -r "echo bin2hex(random_bytes(32));"</code>) e guarde cópia em cofre antes de rotacionar.</li>
+<li>Informe a nova chave (mín. 32) e confirme. A chave atual é recuperada automaticamente do banco — não precisa digitá-la.</li>
+<li><strong>Rotacionar e recriptografar</strong> — migra relatos, mensagens, notas e anexos para <code>.enc</code>. O <code>.env</code> não muda.</li>
 </ol>
+<p><strong>Opções avançadas de recuperação</strong> (seção recolhida): o campo <em>Chave anterior manual</em> só é necessário quando o sistema não consegue ler os dados antigos (ex.: dados cifrados com chave externa ou banco restaurado sem a chave usada nos registros). A opção <em>Tentar também chave legada</em> cobre denúncias muito antigas.</p>
 <p>Não use o formulário simples de chave para trocar após a primeira configuração.</p>
 
 <h2>Problemas comuns</h2>
