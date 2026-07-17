@@ -38,8 +38,9 @@
 <ul>
 <li>Retenção automática no <strong>primeiro login do dia</strong> (sem cron no Windows).</li>
 <li><strong>Governança LGPD</strong> — histórico, execução manual, contadores de anexos.</li>
-<li><strong>Rotação de chave</strong> — obrigatória para trocar chave; deixe «Chave atual» em branco se houver dados legados.</li>
-<li>Download de anexos só pelo módulo interno; cada download é auditado.</li>
+<li><strong>Rotação de chave</strong> — informe a nova chave e sua confirmação. A chave anterior manual fica nas opções avançadas de recuperação e só é necessária quando a chave armazenada não consegue abrir dados legados.</li>
+<li>Downloads internos exigem login e são auditados. O denunciante também pode baixar, no acompanhamento autenticado por protocolo e senha, os anexos públicos do próprio protocolo.</li>
+<li>Relato, mensagens, identificação e anexos permanecem cifrados em repouso; o segredo de envelopamento da chave fica no <code>.env</code>.</li>
 </ul>
 
 <h2>Problemas comuns</h2>

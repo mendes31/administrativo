@@ -12,11 +12,23 @@
 <li><strong>Seus anexos</strong> — lista com botão de download.</li>
 </ul>
 
+<h2>Significado do status</h2>
+<ul>
+<li><strong>Recebida</strong> — registro concluído e aguardando triagem.</li>
+<li><strong>Em triagem</strong> — conferência inicial e encaminhamento.</li>
+<li><strong>Em análise</strong> — conteúdo em avaliação interna.</li>
+<li><strong>Comitê</strong> — relato encaminhado ao comitê competente.</li>
+<li><strong>Investigação</strong> — informações e evidências em verificação.</li>
+<li><strong>Providências</strong> — medidas decorrentes da apuração em andamento.</li>
+<li><strong>Encerrada</strong> — análise concluída; consulte o resultado e a explicação exibidos na página.</li>
+</ul>
+
 <h2>Enviar nova informação</h2>
 <p>Disponível enquanto o status <strong>não</strong> for <em>Encerrada</em>:</p>
 <ol>
-<li>Escreva texto complementar no campo de mensagem.</li>
-<li>Opcionalmente anexe arquivos (mesmas regras do registro: 50 MB, formatos PDF/imagem/áudio/MP4, até 10 arquivos, botão <em>Adicionar arquivos</em>).</li>
+<li>Escreva texto complementar no campo <strong>Informações adicionais</strong>. O texto pode ficar vazio quando você enviar pelo menos um anexo válido.</li>
+<li>Opcionalmente anexe arquivos: PDF, JPG/JPEG, PNG, GIF, WEBP, MP3, WAV, OGG/OPUS, MP4, DOC ou DOCX; até 10 arquivos e com o tamanho máximo indicado na tela.</li>
+<li>Use <strong>Adicionar arquivos</strong> várias vezes para acumular a seleção e <strong>Remover</strong> para retirar um item antes do envio.</li>
 <li>Clique em <strong>Enviar</strong> (POST em <code>/canaldenuncia/responder</code>).</li>
 <li>Uma mensagem ou anexo enviado pelo denunciante encerra a pendência de retorno atual.</li>
 </ol>
@@ -28,6 +40,9 @@
 <li>Clique no ícone de download ao lado de cada arquivo.</li>
 <li>Requer sessão pública ativa (consulta recente com protocolo e senha).</li>
 </ul>
+
+<h2>Sair e privacidade da sessão</h2>
+<p>O botão <strong>Sair</strong> retorna à página inicial do canal. A autorização pública possui duração aproximada de 2 horas; em dispositivo compartilhado, feche a aba ou o navegador depois da consulta e não permita que ele memorize protocolo ou senha.</p>
 
 <h2>Denúncia encerrada</h2>
 <p>Quando o status é <strong>Encerrada</strong>, o formulário de nova informação fica oculto. A tela mostra data, resultado e explicação do encerramento, mantém o histórico disponível e oferece o botão <strong>Registrar nova denúncia</strong>. Essa orientação deve ser usada quando houver fatos novos, novas evidências ou persistência da situação; o novo relato deve citar o protocolo anterior.</p>

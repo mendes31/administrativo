@@ -16,19 +16,28 @@
 <table>
 <thead><tr><th>Campo</th><th>Obrigatório</th><th>Descrição</th></tr></thead>
 <tbody>
-<tr><td>Classificação</td><td>Sim</td><td>Lista configurada em <em>Classificações de Denúncias</em> (ativas).</td></tr>
-<tr><td>Grau de risco</td><td>Não (padrão: Médio)</td><td>Baixo, Médio, Alto ou Crítico.</td></tr>
+<tr><td>Classificação</td><td>Sim</td><td>Assunto principal do relato, carregado das classificações ativas. Se o fato envolver mais de uma opção, escolha a predominante e descreva as demais no relato.</td></tr>
+<tr><td>Grau de risco</td><td>Não (padrão: Médio)</td><td>Estimativa inicial de urgência e impacto; orienta prioridade e pode alterar o prazo de primeira resposta.</td></tr>
 <tr><td>Relato da denúncia</td><td>Sim</td><td>Descrição do ocorrido (datas, locais, contexto).</td></tr>
 <tr><td>Envolvidos</td><td>Não</td><td>Nomes, cargos, setores ou terceiros, se souber.</td></tr>
-<tr><td>Anexos</td><td>Não</td><td>Até 10 arquivos, 50 MB cada. Ver seção abaixo.</td></tr>
+<tr><td>Anexos</td><td>Não</td><td>Até 10 arquivos, respeitando o tamanho máximo apresentado na própria tela. Ver seção abaixo.</td></tr>
 <tr><td>Identificação voluntária</td><td>Não</td><td>Checkbox + nome, e-mail e/ou telefone (cifrados).</td></tr>
 </tbody>
 </table>
 
+<h2>Como escolher o grau de risco</h2>
+<ul>
+<li><strong>Baixo</strong> — impacto limitado e sem urgência aparente.</li>
+<li><strong>Médio</strong> — impacto relevante que exige acompanhamento.</li>
+<li><strong>Alto</strong> — possível dano grave ou necessidade de ação rápida.</li>
+<li><strong>Crítico</strong> — risco imediato, amplo ou severo para pessoas, operação, integridade ou conformidade.</li>
+</ul>
+<p>Esta é uma indicação inicial. O comitê pode reavaliar o risco durante a triagem.</p>
+
 <h2>Anexos</h2>
 <ul>
 <li>Formatos: PDF, JPG, PNG, GIF, WEBP, MP3, WAV, <strong>OGG/OPUS</strong> (áudios do WhatsApp), MP4, DOC, DOCX.</li>
-<li>Máximo <strong>50 MB</strong> por arquivo; até <strong>10 arquivos</strong>.</li>
+<li>O tamanho máximo por arquivo é informado dinamicamente na tela; são aceitos até <strong>10 arquivos</strong>.</li>
 <li>Botão <strong>Adicionar arquivos</strong> — pode clicar várias vezes para acrescentar (lista visível com opção Remover).</li>
 <li>Validação ao selecionar e no envio: arquivo inválido ou grande demais <strong>bloqueia o envio</strong> da denúncia.</li>
 </ul>
@@ -52,13 +61,16 @@
 <p>Quando habilitado em <em>Configuração</em>, aparece o checkbox «não sou robô» (hCaptcha ou reCAPTCHA) antes do botão <strong>Enviar denúncia</strong>. Sem marcar, o envio é bloqueado.</p>
 
 <h2>Rate limit</h2>
-<p>Mesmo com CAPTCHA desligado, o sistema limita a quantidade de envios por IP na janela configurada em <em>Configuração</em>, para evitar spam de denúncias.</p>
+<p>Mesmo com CAPTCHA desligado, o sistema usa o IP de forma transitória para limitar a quantidade de envios na janela configurada e evitar spam. Esse dado não é anexado ao relato, não aparece para o comitê e não integra a auditoria interna como identificação do denunciante.</p>
+
+<h2>Botões</h2>
+<p><strong>Enviar denúncia</strong> valida os campos e registra o protocolo. <strong>Voltar</strong> retorna à página inicial sem enviar; dados ainda não submetidos podem ser perdidos.</p>
 
 <h2>Problemas comuns</h2>
 <dl>
 <dt>«Sessão expirada»</dt><dd>Atualize a página e envie novamente (token CSRF expirou).</dd>
 <dt>Marquei identificação e não consigo enviar</dt><dd>Informe pelo menos um campo de contato ou desmarque a opção.</dd>
-<dt>Anexo rejeitado</dt><dd>Verifique formato e tamanho (50 MB). Vídeos devem ser MP4. Áudios do WhatsApp em OGG/OPUS são aceitos.</dd>
+<dt>Anexo rejeitado</dt><dd>Verifique formato e o limite de tamanho indicado na tela. Vídeos devem ser MP4. Áudios do WhatsApp em OGG/OPUS são aceitos.</dd>
 <dt>CAPTCHA inválido</dt><dd>Marque «não sou robô» antes de enviar. Se o erro persistir, atualize a página.</dd>
 <dt>Muitos envios / bloqueio temporário</dt><dd>Aguarde a janela configurada em Configuração (rate limit) e tente novamente.</dd>
 <dt>Denúncia criada sem anexo</dt><dd>Não deve ocorrer com a validação atual — se o anexo for inválido, o envio é bloqueado com mensagem de erro.</dd>

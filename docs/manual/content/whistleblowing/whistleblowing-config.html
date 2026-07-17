@@ -79,9 +79,50 @@
 <p>Dispara no <strong>primeiro login do dia</strong> (máx. 1×/24 h). Não requer Agendador de Tarefas no Windows. Token HTTP/crontab é opcional (Linux).</p>
 <p>Os prazos de arquivar e excluir são calculados a partir da <strong>data de encerramento</strong> da denúncia (quando o status passa para <em>Encerrada</em>). Denúncias em andamento não entram na fila até serem encerradas.</p>
 <p>Esta opção controla <strong>somente</strong> o arquivamento/exclusão LGPD. Alertas de SLA (primeira resposta e encerramento) e de inatividade do denunciante continuam sendo processados pelo cron/login mesmo com a retenção desligada.</p>
+<ul>
+<li><strong>Arquivar após</strong> — aceita de 1 a 30 anos.</li>
+<li><strong>Excluir após</strong> — aceita de 2 a 50 anos e deve ficar depois do arquivamento. Se for informado valor menor ou igual, o sistema ajusta para pelo menos um ano após arquivar.</li>
+<li><strong>Hora de referência</strong> — horário sugerido para o agendamento externo Linux; não altera o momento do processamento automático pelo login.</li>
+</ul>
 
 <h2>Rate limit do canal público</h2>
 <p>Limita, por IP, o número de tentativas em <strong>Registrar</strong>, <strong>Acompanhar</strong> e <strong>Responder</strong> dentro da janela configurada. Protege contra spam de denúncias e força bruta de protocolo/senha, mesmo quando o CAPTCHA está desligado.</p>
+<ul>
+<li><strong>Tentativas máximas</strong> — aceita de 3 a 20.</li>
+<li><strong>Janela de bloqueio</strong> — aceita de 5 a 120 minutos.</li>
+<li>O IP é usado para a limitação de abuso e não é anexado ao relato nem exibido na auditoria interna como dado do denunciante.</li>
+</ul>
+
+<h2>Limites dos campos de SLA</h2>
+<ul>
+<li>Primeira resposta global e por risco: de <strong>1 a 720 horas</strong>.</li>
+<li>Encerramento global e por risco: de <strong>1 a 8.760 horas</strong>.</li>
+<li>Retorno do denunciante: de <strong>1 a 365 dias</strong>.</li>
+</ul>
+
+<h2>Chaves do CAPTCHA</h2>
+<ul>
+<li><strong>Provedor</strong> — deve corresponder ao serviço em que as credenciais foram criadas: hCaptcha ou reCAPTCHA v2.</li>
+<li><strong>Site key</strong> — chave pública usada pelo navegador para apresentar o desafio.</li>
+<li><strong>Secret key</strong> — segredo usado pelo servidor para validar a resposta; não deve ser divulgado. Ao informar novo valor e salvar, a credencial anterior é substituída.</li>
+<li>Cadastre no provedor o domínio correto de produção e teste o registro e o acompanhamento após ativar.</li>
+</ul>
+
+<h2>Token do cron HTTP</h2>
+<ol>
+<li>Informe um token com no mínimo 16 caracteres e clique em <strong>Guardar token</strong>. Se já houver token, o novo valor o substitui.</li>
+<li>Atualize o agendamento externo com a linha de crontab exibida após salvar.</li>
+<li><strong>Limpar token</strong> invalida chamadas HTTP que dependam dele; use somente se o cron externo não for utilizado ou se for recriar a integração.</li>
+</ol>
+
+<h2>Indicadores da chave</h2>
+<ul>
+<li><strong>Configurada (canal liberado)</strong> — existe DEK válida para operação do canal.</li>
+<li><strong>Obrigatória — canal bloqueado</strong> — não existe chave utilizável; o registro público fica indisponível.</li>
+<li><strong>Envelopada no banco</strong> — a DEK está protegida pela KEK do <code>.env</code>.</li>
+<li><strong>Em claro no banco</strong> — formato legado que deve ser migrado para envelopamento.</li>
+<li><strong>KEK .env OK</strong> — o segredo de envelopamento exigido está configurado no ambiente.</li>
+</ul>
 
 <h2>Rotação de chave</h2>
 <ol>
@@ -89,6 +130,7 @@
 <li>Informe a nova chave (mín. 32) e confirme. A chave atual é recuperada automaticamente do banco — não precisa digitá-la.</li>
 <li><strong>Rotacionar e recriptografar</strong> — migra relatos, mensagens, notas e anexos para <code>.enc</code>. O <code>.env</code> não muda.</li>
 </ol>
+<p>Antes da confirmação, os contadores informam quantas <strong>denúncias</strong>, <strong>mensagens</strong> e <strong>anexos</strong> serão processados. <strong>Arquivos legados</strong> são anexos antigos ainda sem o formato <code>.enc</code> e serão migrados durante a rotação.</p>
 <p><strong>Opções avançadas de recuperação</strong> (seção recolhida): o campo <em>Chave anterior manual</em> só é necessário quando o sistema não consegue ler os dados antigos (ex.: dados cifrados com chave externa ou banco restaurado sem a chave usada nos registros). A opção <em>Tentar também chave legada</em> cobre denúncias muito antigas.</p>
 <p>Não use o formulário simples de chave para trocar após a primeira configuração.</p>
 

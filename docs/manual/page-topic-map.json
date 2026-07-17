@@ -256,6 +256,8 @@
     "whistleblowing-config": "whistleblowing-config",
     "whistleblowing-audit-evidence": "whistleblowing-audit-evidence",
     "whistleblowing-governance": "whistleblowing-governance",
+    "whistleblowing-export-access-log": "view-denuncia",
+    "whistleblowing-retention-cron": "whistleblowing-config",
     "reply-denuncia": "view-denuncia",
     "update-denuncia-status": "view-denuncia",
     "sales-dashboard": "sales-dashboard",

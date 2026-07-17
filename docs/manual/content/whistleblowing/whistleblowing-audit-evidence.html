@@ -23,6 +23,25 @@
 <li>Guarde o fingerprint SHA-256 com o arquivo para identificar exatamente a geração apresentada.</li>
 </ol>
 
+<h2>Como interpretar a prévia</h2>
+<div class="help-field"><strong>Gerado em</strong> Data e hora em que o conteúdo da prévia foi montado.</div>
+<div class="help-field"><strong>Ambiente</strong> Identifica o ambiente da aplicação que produziu a evidência, útil para não confundir homologação e produção.</div>
+<div class="help-field"><strong>Fingerprint SHA-256</strong> Identificador criptográfico da geração. Compare o fingerprint guardado com o apresentado para detectar troca ou alteração do pacote.</div>
+<div class="help-field"><strong>Badges numéricos dos acordeões</strong> Quantidade de registros sanitizados ou verificações presentes naquela seção; não representam conteúdo descriptografado.</div>
+<ul>
+<li><strong>Denúncia</strong> — metadados, status, risco, prazos e presença de campos protegidos do protocolo de referência.</li>
+<li><strong>Criptografia</strong> — estado da chave, envelopamento e indicadores de proteção, sem revelar segredos.</li>
+<li><strong>Políticas</strong> — configuração sanitizada de SLA, rate limit, CAPTCHA, notificações e retorno do denunciante.</li>
+<li><strong>Retenção</strong> — política e execuções da rotina LGPD.</li>
+<li><strong>Acessos</strong> — ações internas agregadas/sanitizadas, sem conteúdo do relato.</li>
+<li><strong>Mensagens e anexos</strong> — contagens, tipos e indicadores de proteção; textos e nomes de arquivos não são exportados.</li>
+<li><strong>Comitês</strong> — estrutura e segregação sem identificar membros.</li>
+<li><strong>Schema</strong> — presença de tabelas, colunas e controles esperados no banco.</li>
+</ul>
+
+<h2>Últimas gerações</h2>
+<p>Apresenta o histórico recente de exportações com data/hora, formato e protocolo de referência quando informado. Use-o para conferir recorrência e rastreabilidade da geração; a identidade do usuário permanece no registro interno, não no arquivo entregue externamente.</p>
+
 <h2>Conteúdo que nunca é exportado</h2>
 <ul>
 <li>texto do relato e envolvidos;</li>

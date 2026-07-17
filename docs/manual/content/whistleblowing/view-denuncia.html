@@ -18,6 +18,16 @@
 </ol>
 <p>O resultado e o motivo registrados no encerramento são apresentados ao denunciante na consulta do protocolo. Redija a explicação de forma clara, sem expor dados pessoais ou informações internas desnecessárias.</p>
 
+<h2>Campos de resposta e gestão</h2>
+<div class="help-field"><strong>Mensagem</strong> Texto enviado ao acompanhamento público do protocolo.</div>
+<div class="help-field"><strong>Nota interna</strong> Mantém a mensagem visível somente para usuários internos autorizados; não inicia prazo de retorno do denunciante.</div>
+<div class="help-field"><strong>Adicionar arquivos</strong> Anexa até o limite e formatos indicados na tela (PDF, imagens, áudio, vídeo e documentos aceitos). A seleção é acumulativa; use <strong>Remover</strong> para retirar um arquivo antes de enviar.</div>
+<div class="help-field"><strong>Status</strong> Representa a etapa operacional atual. É possível avançar ou corrigir a etapa conforme a apuração; selecione Encerrada apenas quando houver resultado e motivo conclusivos.</div>
+<div class="help-field"><strong>Risco</strong> Define a prioridade operacional e pode alterar o SLA: Baixo, Médio, Alto ou Crítico. Reavalie na triagem conforme impacto e urgência.</div>
+<div class="help-field"><strong>Responsável</strong> Usuário interno selecionado para acompanhamento individual. A lista vem dos usuários disponíveis no sistema; o nome não é mostrado na listagem pública nem ao denunciante.</div>
+<div class="help-field"><strong>Observação (linha do tempo)</strong> Justificativa interna associada à atualização de gestão. Aparece no histórico de status e não é enviada como mensagem pública.</div>
+<div class="help-field"><strong>Resultado e motivo do encerramento</strong> Campos obrigatórios ao selecionar Encerrada. Ambos ficam disponíveis ao denunciante; não inclua dados pessoais ou detalhes internos desnecessários.</div>
+
 <h2>Organização da tela</h2>
 <p>As áreas são apresentadas em sequência vertical tanto no computador quanto no celular: relato, mensagens, resposta, gestão, anexos, linha do tempo e auditoria. No computador, o conteúdo fica centralizado em uma área de leitura com cartões arredondados, no mesmo padrão visual das Políticas Internas. No celular, os cartões ocupam a largura disponível, os controles de gestão têm tamanho adequado para toque e dados longos, como nomes de arquivos e User-Agent, quebram em várias linhas para não ocultar conteúdo nem exigir rolagem horizontal.</p>
 
@@ -28,11 +38,20 @@
 </ul>
 
 <h2>Status do fluxo</h2>
-<p>Recebida → Em triagem → Em análise → Comitê → Investigação → Providências → Encerrada.</p>
+<ul>
+<li><strong>Recebida</strong> — aguardando triagem.</li>
+<li><strong>Em triagem</strong> — validação inicial de escopo, classificação, risco e encaminhamento.</li>
+<li><strong>Em análise</strong> — avaliação interna do relato.</li>
+<li><strong>Comitê</strong> — submetida ao comitê competente.</li>
+<li><strong>Investigação</strong> — coleta e verificação de evidências.</li>
+<li><strong>Providências</strong> — medidas corretivas ou administrativas em execução.</li>
+<li><strong>Encerrada</strong> — apuração concluída com resultado e motivo.</li>
+</ul>
 
 <h2>Auditoria de acesso interno</h2>
 <p>A visualização é registrada uma única vez ao entrar na denúncia. Atualizar a página ou concluir uma ação na própria tela não cria outra visualização. Ao sair para outra tela e retornar, inicia-se uma nova visita. Downloads, respostas, notas internas, mudanças de status e exportações são registrados individualmente.</p>
 <p>IP e User-Agent pertencem exclusivamente ao usuário interno autenticado. O canal público não registra IP nem dados técnicos do denunciante nessa auditoria.</p>
+<p><strong>Exportar Excel</strong> gera uma planilha adequada para filtros e conferência técnica. <strong>Exportar PDF</strong> gera uma versão pronta para leitura, impressão ou juntada. Ambos contêm data/hora, usuário, ação, IP e User-Agent do acesso interno e registram a própria exportação na auditoria.</p>
 
 <h2>Problemas comuns</h2>
 <dl>

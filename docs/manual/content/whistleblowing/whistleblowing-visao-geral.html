@@ -25,17 +25,20 @@
 
 <h2>Segurança</h2>
 <ul>
-<li>Criptografia AES-256-GCM em repouso; anexos em disco como <code>.enc</code>.</li>
+<li>Criptografia AES-256-GCM em repouso; anexos em disco como <code>.enc</code> e chave de dados envelopada pelo segredo do <code>.env</code>.</li>
 <li>Canal público bloqueado sem chave forte em Configuração.</li>
-<li>Rate limit no acompanhamento público (tentativas de protocolo + senha).</li>
-<li>Auditoria de visualizações e downloads internos.</li>
+<li>Rate limit no registro, acompanhamento e respostas do canal público.</li>
+<li>Auditoria de visualização, respostas, alterações, downloads e exportações internas, com prevenção de duplicidade por simples atualização da página.</li>
 </ul>
 
-<h2>O que ainda falta</h2>
+<h2>Recursos disponíveis</h2>
 <ul>
-<li>Notificação por e-mail ao comitê ao receber denúncia.</li>
-<li>Exportação de auditoria (Excel/PDF).</li>
-<li>Download de anexos pelo denunciante no canal público.</li>
+<li>Notificação interna por e-mail ao comitê quando uma nova denúncia é recebida e nos alertas operacionais configurados.</li>
+<li>Exportação da auditoria de acesso em Excel/PDF e pacote de evidências técnicas sanitizado.</li>
+<li>Download interno de anexos com auditoria e download público após autenticação com protocolo e senha.</li>
+<li>SLA de primeira resposta e encerramento, por configuração global, risco ou classificação.</li>
+<li>Alertas de ausência de retorno do denunciante, sem encerramento automático.</li>
+<li>Retenção LGPD, histórico de execuções, rotação de chave e governança dos anexos cifrados.</li>
 </ul>
 
 <h2>Problemas comuns</h2>

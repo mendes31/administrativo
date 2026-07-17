@@ -27,16 +27,16 @@
 
 <h2>Regras gerais</h2>
 <ul>
-<li>Denúncia <strong>não vinculada</strong> ao usuário do portal; sem registro de IP do denunciante.</li>
+<li>Denúncia <strong>não vinculada</strong> ao usuário do portal. O IP pode ser usado transitoriamente para rate limit, mas não é anexado ao relato nem apresentado ao comitê.</li>
 <li>Conteúdo armazenado <strong>criptografado</strong>; anexos cifrados em disco (<code>.enc</code>).</li>
 <li><strong>Retornos do comitê</strong> publicados somente na consulta por protocolo — não por e-mail ou telefone.</li>
 <li>Perdeu protocolo ou senha? Registre nova denúncia e informe recadastro no relato.</li>
-<li>Anexos: PDF, imagens, MP3/WAV/<strong>OGG/OPUS</strong> (WhatsApp), MP4, DOC/DOCX — até <strong>50 MB</strong> por arquivo, máx. 10.</li>
+<li>Anexos: PDF, imagens, MP3/WAV/<strong>OGG/OPUS</strong> (WhatsApp), MP4, DOC/DOCX — tamanho máximo indicado na tela e até 10 arquivos.</li>
 </ul>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Anexo rejeitado ou denúncia sem anexo</dt><dd>Validação bloqueia envio se arquivo for inválido. MP4 para vídeo; OGG/OPUS para áudio WhatsApp. Servidor: <code>upload_max_filesize</code> e <code>post_max_size</code> ≥ 50M.</dd>
+<dt>Anexo rejeitado ou denúncia sem anexo</dt><dd>Validação bloqueia envio se arquivo for inválido. MP4 para vídeo; OGG/OPUS para áudio WhatsApp. Confira o limite informado na tela e os limites PHP do servidor.</dd>
 <dt>Protocolo ou senha inválidos</dt><dd>Maiúsculas na senha; 6 caracteres. Sem recuperação automática.</dd>
 <dt>Canal indisponível</dt><dd>Configure chave de criptografia em <em>Configuração Canal de Denúncias</em>.</dd>
 <dt>Página não carrega</dt><dd>Gateway <code>/canaldenuncia/</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</dd>

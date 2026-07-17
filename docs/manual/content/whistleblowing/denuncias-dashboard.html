@@ -1,5 +1,5 @@
 <h1>Dashboard — Canal de Denúncias</h1>
-<p>Indicadores: totais, pendentes, críticas, SLA de primeira resposta (72h), tempos médios, aging (dias parado) e distribuição por status, classificação e risco.</p>
+<p>Indicadores: totais, pendentes, críticas, SLA de primeira resposta conforme o prazo configurado, tempos médios, aging (dias parado) e distribuição por status, classificação e risco.</p>
 <p><strong>Quem acessa:</strong> <em>WhistleblowingDashboard</em>. Operadores veem KPIs do escopo dos seus comitês. Exportação Excel: <em>WhistleblowingExportDashboard</em>.</p>
 
 <h2>Fluxo</h2>
@@ -33,10 +33,17 @@
 
 <h2>SLA e aging</h2>
 <ul>
-<li><strong>SLA 1ª resposta (72h)</strong> — contagem de denúncias abertas sem <code>first_response_at</code> há mais de 72 horas.</li>
+<li><strong>SLA 1ª resposta</strong> — contagem de denúncias abertas sem <code>first_response_at</code> após o prazo aplicável. A prioridade é: prazo da classificação, prazo do risco e, por último, padrão global.</li>
 <li><strong>SLA de encerramento</strong> — contagem de denúncias ainda abertas após o prazo global/por risco. O card e a linha da exportação não aparecem quando o recurso está desativado.</li>
 <li><strong>Retorno do denunciante</strong> — contagem de prazos vencidos após mensagem pública do comitê. O card abre a listagem filtrada e não encerra nenhum protocolo automaticamente.</li>
-<li><strong>Aging</strong> — denúncias abertas ordenadas por dias sem atualização (<code>updated_at</code>). Clique em <strong>Ver na listagem</strong> para abrir todos os resultados ordenados do mais parado para o mais recente.</li>
+<li><strong>Aging</strong> — denúncias abertas ordenadas por dias sem atualização (<code>updated_at</code>). <strong>Dias parado</strong> mede o intervalo desde a última atualização; valores a partir de 7 dias aparecem em vermelho. <strong>Dias aberta</strong> mede o intervalo desde o registro até hoje. Clique em <strong>Ver na listagem</strong> para abrir todos os resultados ordenados do mais parado para o mais recente.</li>
+</ul>
+
+<h2>Tempos médios e distribuições</h2>
+<ul>
+<li><strong>Tempo médio de resposta</strong> — média entre o registro e a primeira resposta do comitê, considerando somente denúncias que já receberam resposta no escopo e período selecionados.</li>
+<li><strong>Tempo médio de encerramento</strong> — média entre o registro e o encerramento formal, considerando somente denúncias encerradas no escopo e período selecionados.</li>
+<li><strong>Por status / classificação / risco</strong> — quantidade de denúncias do escopo do usuário e do período aplicado, usando os mesmos critérios dos demais indicadores.</li>
 </ul>
 
 <h2>Problemas comuns</h2>

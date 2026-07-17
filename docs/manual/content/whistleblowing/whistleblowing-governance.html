@@ -10,14 +10,31 @@
 
 <h2>Painel</h2>
 <ul>
-<li>Status: chave, token, retenção, rate limit.</li>
-<li>Anexos: totais cifrados vs. legado.</li>
+<li><strong>Chave OK/Pendente</strong> — indica se existe chave de dados utilizável para abrir o conteúdo cifrado.</li>
+<li><strong>Token cron OK/Pendente</strong> — indica se o endpoint HTTP possui segredo configurado. É opcional quando a retenção roda pelo login.</li>
+<li><strong>Retenção automática</strong> — indica se o processamento LGPD no primeiro login do dia está ativo.</li>
+<li><strong>Rate limit</strong> — apresenta o número de tentativas permitido e a janela em minutos do canal público.</li>
+<li><strong>Anexos cifrados</strong> — arquivos armazenados no formato protegido atual. <strong>Legado</strong> indica arquivo antigo ainda não migrado para o formato cifrado.</li>
 <li>Política: prazos de arquivar/excluir (editáveis em Configuração).</li>
-<li><strong>Executar agora</strong> — retenção manual.</li>
 </ul>
 
+<h2>Executar retenção manualmente</h2>
+<ol>
+<li>Confira no painel se a chave está disponível e revise os prazos de arquivamento/exclusão.</li>
+<li>Clique em <strong>Executar agora</strong> e confirme a operação.</li>
+<li>O processo verifica denúncias encerradas que atingiram os prazos. Arquivamento retira o protocolo da visão normal; exclusão definitiva remove registros e anexos conforme a política.</li>
+<li>Confira o resultado em <strong>Última execução</strong> e no histórico. Use a execução manual para conferência administrativa ou após mudança da política; não é necessário repeti-la se a rotina automática já executou.</li>
+</ol>
+
 <h2>Histórico</h2>
-<p>Últimas <strong>10 execuções</strong>; use <strong>Ver mais execuções</strong> para páginas anteriores.</p>
+<p>São exibidas <strong>10 execuções por página</strong>; use <strong>Ver mais execuções</strong> e <strong>Anterior</strong> para navegar.</p>
+<ul>
+<li><strong>Início/Fim</strong> — período em que a rotina foi processada.</li>
+<li><strong>Origem</strong> — <em>Automático (login)</em>, <em>Manual</em> ou <em>HTTP (cron)</em>.</li>
+<li><strong>Status</strong> — <em>success</em> indica conclusão; <em>error</em> indica falha que deve ser investigada.</li>
+<li><strong>Arquivadas/Excluídas/Anexos</strong> — quantidades efetivamente processadas na execução.</li>
+<li><strong>Tempo</strong> — duração da rotina em segundos. <strong>Observação</strong> registra resumo ou detalhe do erro.</li>
+</ul>
 <p>Em celulares, cada execução aparece em um cartão com origem, status, início/fim, quantidades processadas, duração e observação. A linha de agendamento externo quebra automaticamente para não criar rolagem horizontal na página.</p>
 
 <h2>Problemas comuns</h2>

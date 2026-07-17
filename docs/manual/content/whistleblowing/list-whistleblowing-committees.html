@@ -1,6 +1,6 @@
 <h1>Comitês de Denúncias</h1>
 <p>Comitês (Ética, Compliance, Segurança etc.), membros e classificações. Denúncias são encaminhadas ao comitê da classificação.</p>
-<p><strong>Quem acessa:</strong> nível <em>Administrador</em> ou permissões de comitê (<em>WhistleblowingListCommittees</em>, <em>Create</em>, <em>Update</em>).</p>
+<p><strong>Quem acessa:</strong> nível <em>Administrador</em> ou permissões <em>WhistleblowingListCommittees</em>, <em>WhistleblowingCreateCommittee</em> e <em>WhistleblowingUpdateCommittee</em>.</p>
 
 <h2>Visualizar comitês e vínculos</h2>
 <p>A listagem apresenta cada comitê em um cartão, com status, membros vinculados e classificações atendidas. O nome de cada membro aparece diretamente no cartão; posicione o cursor sobre o nome para consultar o e-mail cadastrado.</p>
@@ -11,11 +11,23 @@
 <li>Clique em <strong>Novo comitê</strong> ou <strong>Editar membros</strong>.</li>
 <li>Na área <strong>Membros do comitê</strong>, pesquise por nome ou e-mail e marque as pessoas desejadas.</li>
 <li>Confira os vínculos no painel <strong>Membros vinculados</strong>. Para remover alguém antes de salvar, desmarque a pessoa ou use o botão de remoção no painel.</li>
-<li>Preencha nome, descrição, status e classificações atendidas; depois clique em <strong>Salvar</strong>.</li>
+<li>No cadastro, preencha nome, descrição, membros e classificações. Um novo comitê nasce ativo. Ao editar, use <strong>Comitê ativo</strong> para controlar sua operação.</li>
 <li>Ao salvar membros → nível <strong>Operador</strong> automático (menu do canal).</li>
 <li>Operador vê só denúncias dos seus comitês; administrador vê todas.</li>
 <li>Atribua nível <strong>Administrador</strong> manualmente para Configuração e Governança.</li>
 </ol>
+
+<h2>Significado dos campos e controles</h2>
+<div class="help-field"><strong>Nome</strong> Identifica o grupo interno responsável pela análise.</div>
+<div class="help-field"><strong>Descrição</strong> Resume o escopo do comitê e ajuda administradores a diferenciar grupos semelhantes.</div>
+<div class="help-field"><strong>Comitê ativo</strong> Comitês ativos recebem novos encaminhamentos e dão aos seus membros o escopo das denúncias vinculadas. Ao desativar, o comitê deixa de participar do escopo ativo; se uma pessoa não permanecer em outro comitê ativo, o nível automático Operador é revogado.</div>
+<div class="help-field"><strong>Buscar por nome ou e-mail</strong> Filtra a lista disponível sem alterar os vínculos.</div>
+<div class="help-field"><strong>Contador de encontrados</strong> Mostra quantas pessoas correspondem à pesquisa atual.</div>
+<div class="help-field"><strong>Contador de vinculados</strong> Mostra quantas pessoas serão gravadas como membros ao salvar.</div>
+<div class="help-field"><strong>Desmarcar todos</strong> Limpa a seleção atual; os vínculos só são removidos definitivamente depois de salvar.</div>
+<div class="help-field"><strong>Membros vinculados</strong> Painel de conferência. O botão de remoção desmarca a pessoa antes do salvamento.</div>
+<div class="help-field"><strong>Classificações atendidas</strong> Define quais tipos de denúncia podem ser encaminhados automaticamente ao comitê.</div>
+<div class="help-field"><strong>Cancelar</strong> Retorna à listagem sem gravar as alterações ainda não salvas.</div>
 
 <h2>Retenção LGPD</h2>
 <p>Automática no login (Configuração). Cron HTTP é opcional em servidor Linux.</p>
