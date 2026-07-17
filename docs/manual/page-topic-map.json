@@ -459,6 +459,7 @@
     "view-supplier": "view-supplier",
     "view-training": "view-training",
     "view-user": "view-user",
+    "update-user-access-levels": "view-user",
     "view-work-shift": "view-work-shift",
     "whats-app-config": "whats-app-config"
 }

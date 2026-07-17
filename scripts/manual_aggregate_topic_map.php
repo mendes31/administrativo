@@ -42,6 +42,7 @@ function buildManualAggregateTopicMap(): array
     ], 'cad-estrutura');
     $add([
         'list-users', 'create-user', 'update-user', 'view-user', 'import-users',
+        'update-user-access-levels',
     ], 'cad-usuarios');
     $add(['organization-chart'], 'cad-organograma');
     $add([

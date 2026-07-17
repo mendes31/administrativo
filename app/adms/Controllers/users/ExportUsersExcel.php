@@ -2,6 +2,8 @@
 
 namespace App\adms\Controllers\users;
 
+use App\adms\Helpers\UserEducationHelper;
+use App\adms\Models\Repository\UserEducationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Cell\DataType;
@@ -29,6 +31,7 @@ class ExportUsersExcel
         'sexo',
         'celular',
         'escolaridade',
+        'formacoes',
     ];
 
     /** @var list<string> */
@@ -44,6 +47,7 @@ class ExportUsersExcel
         'Sexo',
         'Celular',
         'Escolaridade',
+        'Formações',
     ];
 
     public function index(): void
@@ -70,6 +74,24 @@ class ExportUsersExcel
 
         $usersRepo = new UsersRepository();
         $users = $usersRepo->getAllUsersForExport($filtros);
+        $userIds = array_map(static fn (array $user): int => (int) ($user['user_id'] ?? 0), $users);
+        $educations = (new UserEducationsRepository())->getByUserIds($userIds);
+        $educationsByUser = [];
+        foreach ($educations as $education) {
+            $userId = (int) ($education['adms_user_id'] ?? 0);
+            $educationsByUser[$userId][] = $education;
+        }
+        foreach ($users as &$user) {
+            $items = [];
+            foreach ($educationsByUser[(int) ($user['user_id'] ?? 0)] ?? [] as $education) {
+                $items[] = UserEducationHelper::typeLabel((string) ($education['tipo'] ?? ''))
+                    . ': ' . (string) ($education['curso'] ?? '')
+                    . (!empty($education['instituicao']) ? ' — ' . $education['instituicao'] : '')
+                    . ' (' . UserEducationHelper::statusLabel((string) ($education['situacao'] ?? '')) . ')';
+            }
+            $user['formacoes'] = implode("\n", $items);
+        }
+        unset($user);
 
         $spreadsheet = new Spreadsheet();
         $sheet = $spreadsheet->getActiveSheet();
@@ -117,7 +139,56 @@ class ExportUsersExcel
         }
         if ($lastDataRow >= 2) {
             $sheet->getStyle($cargoCol . '2:' . $cargoCol . $lastDataRow)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+            $educationCol = Coordinate::stringFromColumnIndex($headerCount);
+            $sheet->getStyle($educationCol . '2:' . $educationCol . $lastDataRow)->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+            $sheet->getColumnDimension($educationCol)->setWidth(55);
         }
+
+        $detail = $spreadsheet->createSheet();
+        $detail->setTitle('Formações');
+        $detailHeaders = [
+            'ID usuário', 'Nome', 'ID formação', 'Tipo', 'Curso/Formação', 'Instituição',
+            'Situação', 'Data início', 'Data conclusão', 'Carga horária', 'Observações', 'Comprovante',
+        ];
+        foreach ($detailHeaders as $index => $label) {
+            $column = Coordinate::stringFromColumnIndex($index + 1);
+            $detail->setCellValue($column . '1', $label);
+            $detail->getStyle($column . '1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF2E9263');
+            $detail->getStyle($column . '1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        }
+        $userNames = [];
+        foreach ($users as $user) {
+            $userNames[(int) ($user['user_id'] ?? 0)] = (string) ($user['user_name'] ?? '');
+        }
+        $detailRow = 2;
+        foreach ($educations as $education) {
+            $userId = (int) ($education['adms_user_id'] ?? 0);
+            $values = [
+                $userId,
+                $userNames[$userId] ?? '',
+                (int) ($education['id'] ?? 0),
+                UserEducationHelper::typeLabel((string) ($education['tipo'] ?? '')),
+                (string) ($education['curso'] ?? ''),
+                (string) ($education['instituicao'] ?? ''),
+                UserEducationHelper::statusLabel((string) ($education['situacao'] ?? '')),
+                !empty($education['data_inicio']) ? date('d/m/Y', strtotime((string) $education['data_inicio'])) : '',
+                !empty($education['data_conclusao']) ? date('d/m/Y', strtotime((string) $education['data_conclusao'])) : '',
+                $education['carga_horaria'] ?? '',
+                (string) ($education['observacoes'] ?? ''),
+                !empty($education['comprovante_path']) ? 'Sim' : 'Não',
+            ];
+            foreach ($values as $index => $value) {
+                $detail->setCellValue(Coordinate::stringFromColumnIndex($index + 1) . $detailRow, $value);
+            }
+            $detailRow++;
+        }
+        foreach (range(1, count($detailHeaders)) as $index) {
+            $detail->getColumnDimension(Coordinate::stringFromColumnIndex($index))->setAutoSize(true);
+        }
+        if ($detailRow > 2) {
+            $detail->getStyle('E2:L' . ($detailRow - 1))->getAlignment()->setWrapText(true)->setVertical(Alignment::VERTICAL_TOP);
+        }
+        $spreadsheet->setActiveSheetIndex(0);
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'usuarios_' . date('Y-m-d_His') . '.xlsx';

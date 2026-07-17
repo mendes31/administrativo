@@ -5,7 +5,7 @@
 <ul>
 <li><strong>Denunciante (público):</strong> <code>/canaldenuncia</code> — protocolo + senha, sem login.</li>
 <li><strong>Operador:</strong> membro de comitê — vê denúncias dos seus comitês.</li>
-<li><strong>Administrador:</strong> nível manual — todas as denúncias, comitês, config e governança.</li>
+<li><strong>Administrador:</strong> nível manual — todas as denúncias, comitês, config e governança. Só <em>Super Administrador</em> ou <em>Super usuário</em> pode atribuir/remover este nível (e o de Operador) no cadastro do usuário.</li>
 </ul>
 
 <h2>Implantação (primeira vez)</h2>
@@ -14,7 +14,7 @@
 <li>Instalar gateway em <code>/canaldenuncia</code> e <code>URL_CANAL_DENUNCIA</code> no <code>.env</code>.</li>
 <li><strong>Configuração</strong> → chave AES (mín. 32 caracteres) — libera o canal público.</li>
 <li>Cadastrar <strong>comitês</strong> (membros + classificações).</li>
-<li>Atribuir nível <strong>Administrador</strong> ao Compliance/DPO.</li>
+<li>Com Super Administrador / Super usuário, atribuir nível <strong>Administrador</strong> ao Compliance/DPO na visualização do usuário. Membros de comitê recebem <strong>Operador</strong> automaticamente.</li>
 </ol>
 
 <h2>Fluxo diário — Compliance</h2>

@@ -1,0 +1,2 @@
+# Arquivos privados: acesso somente por controllers autenticados.
+Require all denied

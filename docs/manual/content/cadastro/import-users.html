@@ -10,7 +10,8 @@
 <p>Funciona em <strong>dois passos</strong>:</p>
 <ol>
     <li>Monte a planilha no Excel (uma coluna por campo). Prefira salvar como <strong>.xlsx</strong>.</li>
-    <li>Escolha o arquivo, deixe <em>Mapeamento de colunas</em> marcado e clique em <strong>Abrir mapeamento</strong>.</li>
+    <li>Escolha o arquivo e, em <strong>O que importar</strong>, selecione dados do usuário, somente formações ou ambos.</li>
+    <li>Deixe <em>Mapeamento de colunas</em> marcado e clique em <strong>Abrir mapeamento</strong>.</li>
     <li>Na tela seguinte, para cada <strong>campo do sistema</strong> escolha a <strong>coluna do arquivo</strong> (ou “não importar”). Defina a chave única (CPF, usuário/login ou ID).</li>
     <li>Escolha o método: só atualizar, ou criar e atualizar.</li>
     <li>Clique em <strong>Importar com mapeamento</strong> e revise o resumo.</li>
@@ -19,16 +20,26 @@
 <h2>Fluxo — template oficial</h2>
 <ol>
     <li>Baixe o template, preencha e importe no modo <em>Template oficial</em>.</li>
+    <li>Antes de enviar, escolha o escopo em <strong>O que importar</strong>. A seleção também vale para o template oficial.</li>
     <li>A chave nesse modo é a coluna <code>username</code>.</li>
+    <li>Para várias formações do mesmo usuário, repita o <code>username</code> em linhas diferentes e preencha uma formação em cada linha.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
 <div class="help-field"><strong>Chave única</strong> Localiza o registro: CPF, username ou ID. Sem chave válida a linha é ignorada ou gera erro.</div>
+<div class="help-field"><strong>Somente dados do usuário</strong> Processa apenas campos exclusivos do cadastro e ignora todas as colunas <code>formacao_*</code>. É a opção padrão e mais segura para planilhas cadastrais.</div>
+<div class="help-field"><strong>Somente formações</strong> Exige um usuário já existente, não cria usuários e não altera nome, contatos, endereço, cargo ou demais dados exclusivos, mesmo que essas colunas estejam no arquivo.</div>
+<div class="help-field"><strong>Dados do usuário + formações</strong> Processa os dois grupos. Cada linha contém no máximo uma formação; repita a chave para registrar várias.</div>
 <div class="help-field"><strong>Mapeamento</strong> Só os campos associados a uma coluna são gravados; o restante do cadastro permanece. Cabeçalhos iguais aos nomes dos campos (ex.: <code>username</code>, <code>matricula</code>) são pré-selecionados. Cada coluna do arquivo só pode ser usada em um campo.</div>
 <div class="help-field"><strong>Resultado</strong> Após importar, o resumo mostra totais e uma tabela por linha da planilha (linha 1 = cabeçalho). “Atualizado” significa que o usuário já existia e os campos mapeados foram gravados.</div>
 <div class="help-field"><strong>escolaridade / raca</strong> Aceitam slug ou rótulo do cadastro.</div>
 <div class="help-field"><strong>Endereço e matrícula</strong> Colunas opcionais: CEP, logradouro, número, complemento, bairro, município, UF, matrícula, e-mail pessoal.</div>
+<div class="help-field"><strong>Formações</strong> Colunas: <code>formacao_id</code>, <code>formacao_acao</code>, <code>formacao_tipo</code>, <code>formacao_curso</code>, <code>formacao_instituicao</code>, <code>formacao_situacao</code>, datas, carga horária e observações. Uma linha representa uma formação.</div>
+<div class="help-field"><strong>Criar/atualizar formação</strong> Use <code>formacao_acao=salvar</code>. Sem ID, o sistema evita duplicidade pela combinação tipo + curso + instituição. Com <code>formacao_id</code>, atualiza exatamente aquele registro.</div>
+<div class="help-field"><strong>Excluir formação</strong> Use <code>formacao_acao=excluir</code> e informe obrigatoriamente o <code>formacao_id</code>. O ID deve pertencer ao usuário indicado na linha.</div>
+<div class="help-field"><strong>Valores aceitos</strong> Tipos: <code>curso_livre</code>, <code>profissionalizante</code>, <code>tecnico</code>, <code>graduacao</code>, <code>pos_graduacao</code>, <code>mba</code>, <code>mestrado</code>, <code>doutorado</code>, <code>pos_doutorado</code> ou <code>outro</code>. Situações: <code>cursando</code>, <code>concluido</code>, <code>trancado</code> ou <code>interrompido</code>. Rótulos em português também são aceitos.</div>
+<div class="help-field"><strong>Comprovantes</strong> Arquivos não são importados pela planilha. Depois da importação, anexe diploma ou certificado na aba <em>Formações</em> da edição do usuário.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -37,9 +48,15 @@
     <dt>Só aparece uma coluna no mapeamento</dt>
     <dd>Evite CSV “quebrado”: no Excel use <em>Salvar como → Pasta de Trabalho (.xlsx)</em> e envie o .xlsx. Se usar CSV, confira se há várias colunas e o separador é <code>;</code> ou <code>,</code>.</dd>
     <dt>Chave não encontrada</dt>
-    <dd>No modo “somente atualizar”, linhas sem usuário correspondente são ignoradas. Confira CPF/username.</dd>
+    <dd>No modo “somente atualizar” e no escopo “Somente formações”, linhas sem usuário correspondente são ignoradas. Confira CPF/username.</dd>
+    <dt>Campos desapareceram do mapeamento</dt>
+    <dd>A tabela mostra apenas os campos compatíveis com o escopo selecionado. Escolha “Dados do usuário + formações” para visualizar ambos.</dd>
     <dt>Campo mapeado duas vezes</dt>
     <dd>Cada coluna do arquivo só pode ser associada a um campo do sistema.</dd>
     <dt>Excel não sobe</dt>
-    <dd>Formatos aceitos no mapeamento: <code>.xlsx</code>, <code>.xls</code> e <code>.csv</code>.</dd>
+    <dd>Formatos aceitos tanto no mapeamento quanto no template oficial: <code>.xlsx</code>, <code>.xls</code> e <code>.csv</code>.</dd>
+    <dt>A mesma formação foi importada novamente</dt>
+    <dd>Informe o <code>formacao_id</code> exportado para atualização explícita. Sem ID, mantenha idênticos tipo, curso e instituição para o sistema reconhecer o registro existente.</dd>
+    <dt>Não consigo excluir uma formação</dt>
+    <dd>A exclusão exige <code>formacao_acao=excluir</code> e um <code>formacao_id</code> pertencente ao usuário da linha.</dd>
 </dl>

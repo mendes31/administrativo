@@ -6,10 +6,12 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\EmploymentHistoryRepository;
+use App\adms\Models\Repository\UserEducationsRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\UsersDepartmentsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\LogResumoService;
+use App\adms\Models\Services\UserEducationService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -40,6 +42,11 @@ class ViewUser
      */
     public function index(int|string $id): void
     {
+        if (is_string($id) && str_starts_with($id, 'download-formacao/')) {
+            $this->downloadEducationDocument((int) substr($id, strlen('download-formacao/')));
+            return;
+        }
+
         // Acessa o IF se o id for valor do tipo inteiro
         if (!(int) $id) {
 
@@ -82,6 +89,8 @@ class ViewUser
 
         // Instanciar o Repository para recuperar todos os niveis de acesso no formato de array
         $this->data['userAllAccessLevelsArray'] = $viewUserAccessLevels->getAllAccessLevels();
+        $this->data['can_manage_whistleblowing_levels'] = \App\adms\Models\Services\WhistleblowingPermissionService::canManageAccessLevelsAssignment();
+        $this->data['whistleblowing_access_level_ids'] = \App\adms\Models\Services\WhistleblowingPermissionService::protectedAccessLevelIds();
 
 
         // Instanciar o Repository para recuperar os departamentos do usuário
@@ -96,6 +105,7 @@ class ViewUser
         $historyRepo = new EmploymentHistoryRepository();
         $this->data['employmentHistory'] = $historyRepo->getByUserId((int) $id);
         $this->data['totalTenure'] = $historyRepo->calculateTotalTenure((int) $id);
+        $this->data['educations'] = (new UserEducationsRepository())->getByUserId((int) $id);
 
         $uid = (int) $id;
         $returnUrl = $_ENV['URL_ADM'] . 'view-user/' . $uid;
@@ -116,5 +126,34 @@ class ViewUser
         // Carregar a VIEW
         $loadView = new LoadViewService("adms/Views/users/view", $this->data);
         $loadView->loadView();
+    }
+
+    private function downloadEducationDocument(int $educationId): void
+    {
+        if ($educationId <= 0 || empty($_SESSION['user_id'])) {
+            http_response_code(404);
+            return;
+        }
+        $education = (new UserEducationsRepository())->getById($educationId);
+        if (!is_array($education) || empty($education['comprovante_path'])) {
+            http_response_code(404);
+            return;
+        }
+        $path = UserEducationService::absolutePath((string) $education['comprovante_path']);
+        if ($path === null || !is_readable($path)) {
+            http_response_code(404);
+            return;
+        }
+
+        $name = basename((string) ($education['comprovante_nome_original'] ?? 'comprovante'));
+        $fallback = preg_replace('/[^A-Za-z0-9._-]/', '_', $name) ?: 'comprovante';
+        $mime = trim((string) ($education['comprovante_mime'] ?? 'application/octet-stream'));
+        header('Content-Type: ' . ($mime !== '' ? $mime : 'application/octet-stream'));
+        header('Content-Length: ' . (string) filesize($path));
+        header("Content-Disposition: attachment; filename=\"{$fallback}\"; filename*=UTF-8''" . rawurlencode($name));
+        header('X-Content-Type-Options: nosniff');
+        header('Cache-Control: private, no-store, max-age=0');
+        readfile($path);
+        exit;
     }
 }

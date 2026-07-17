@@ -5,8 +5,11 @@ namespace App\adms\Controllers\users;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserEducationHelper;
 use App\adms\Helpers\UserFormHelper;
+use App\adms\Models\Repository\UserEducationsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\UserEducationService;
 use App\adms\Views\Services\LoadViewService;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
@@ -128,7 +131,25 @@ class ImportUsers
             'bairro' => 'Bairro',
             'municipio' => 'Município',
             'uf' => 'UF',
+            'formacao_id' => 'Formação: ID (para atualizar/excluir)',
+            'formacao_acao' => 'Formação: ação (salvar/excluir)',
+            'formacao_tipo' => 'Formação: tipo',
+            'formacao_curso' => 'Formação: curso',
+            'formacao_instituicao' => 'Formação: instituição',
+            'formacao_situacao' => 'Formação: situação',
+            'formacao_data_inicio' => 'Formação: data de início',
+            'formacao_data_conclusao' => 'Formação: data de conclusão',
+            'formacao_carga_horaria' => 'Formação: carga horária',
+            'formacao_observacoes' => 'Formação: observações',
         ];
+    }
+
+    /** @return 'users'|'educations'|'both' */
+    private function normalizeImportScope(mixed $scope): string
+    {
+        $scope = (string) $scope;
+
+        return in_array($scope, ['users', 'educations', 'both'], true) ? $scope : 'users';
     }
 
     private function clearPendingImport(): void
@@ -165,6 +186,10 @@ class ImportUsers
                 'complemento' => 'complemento_endereco',
                 'cidade' => 'municipio',
                 'pais' => 'pais_residencia_iso',
+                'tipo_formacao' => 'formacao_tipo',
+                'curso_formacao' => 'formacao_curso',
+                'instituicao_formacao' => 'formacao_instituicao',
+                'situacao_formacao' => 'formacao_situacao',
             ];
             if (isset($aliases[$h])) {
                 $suggested[$i] = $aliases[$h];
@@ -251,6 +276,7 @@ class ImportUsers
             'letters' => $letters,
             'preview' => $parsed['preview'],
             'delimiter' => $parsed['delimiter'],
+            'import_scope' => $this->normalizeImportScope($this->data['form']['import_scope'] ?? 'users'),
             'created_at' => time(),
         ];
 
@@ -768,8 +794,13 @@ class ImportUsers
         }
 
         $keyField = (string)($_POST['key_field'] ?? '');
+        $scope = $this->normalizeImportScope($_POST['import_scope'] ?? ($pending['import_scope'] ?? 'users'));
+        $pending['import_scope'] = $scope;
         $method = (string)($_POST['import_method'] ?? 'update_only');
         if (!in_array($method, ['update_only', 'upsert'], true)) {
+            $method = 'update_only';
+        }
+        if ($scope === 'educations') {
             $method = 'update_only';
         }
 
@@ -821,13 +852,25 @@ class ImportUsers
             $this->view();
             return;
         }
+        if (
+            $scope === 'educations'
+            && !isset($fieldToIndex['formacao_id'])
+            && !isset($fieldToIndex['formacao_curso'])
+        ) {
+            $this->data['errors'][] = 'Para importar formações, associe ao menos formacao_curso (criar/atualizar) ou formacao_id (atualizar/excluir).';
+            $this->data['mapping'] = $pending;
+            $this->data['suggested_map'] = $this->suggestColumnMap($pending['headers'] ?? []);
+            $this->view();
+            return;
+        }
 
         $ok = $this->runMappedCsv(
             (string)$pending['file'],
             (string)($pending['delimiter'] ?? ';'),
             $fieldToIndex,
             $keyField,
-            $method
+            $method,
+            $scope
         );
 
         $this->clearPendingImport();
@@ -840,7 +883,14 @@ class ImportUsers
     /**
      * @param array<string, int> $fieldToIndex
      */
-    private function runMappedCsv(string $filePath, string $delimiter, array $fieldToIndex, string $keyField, string $method): bool
+    private function runMappedCsv(
+        string $filePath,
+        string $delimiter,
+        array $fieldToIndex,
+        string $keyField,
+        string $method,
+        string $scope
+    ): bool
     {
         $fp = fopen($filePath, 'r');
         if (!$fp) {
@@ -858,6 +908,9 @@ class ImportUsers
         $updated = 0;
         $skipped = 0;
         $errors = 0;
+        $formationsCreated = 0;
+        $formationsUpdated = 0;
+        $formationsDeleted = 0;
         $rows = 1;
         $this->data['report'] = [];
 
@@ -971,18 +1024,65 @@ class ImportUsers
                     }
                     $okCreate = $repo->createUser($payload);
                     if ($okCreate) {
+                        $formationAction = $scope === 'both'
+                            ? $this->applyMappedEducation((int) $okCreate, $row, $fieldToIndex, $raw)
+                            : null;
+                        if ($formationAction === 'created') {
+                            $formationsCreated++;
+                        } elseif ($formationAction === 'updated') {
+                            $formationsUpdated++;
+                        } elseif ($formationAction === 'deleted') {
+                            $formationsDeleted++;
+                        }
                         $created++;
                         $this->data['report'][] = [
                             'linha' => $rows,
                             'acao' => 'criado',
                             'email' => $email,
                             'usuario' => $username,
-                            'msg' => 'Usuário criado com os campos mapeados.',
+                            'msg' => 'Usuário criado com os campos mapeados.'
+                                . ($formationAction !== null ? ' Formação processada.' : ''),
                         ];
                     } else {
                         $errors++;
                         $this->data['report'][] = ['linha' => $rows, 'acao' => 'erro', 'email' => $email, 'msg' => 'Falha ao criar.'];
                     }
+                    continue;
+                }
+
+                if ($scope === 'educations') {
+                    $formationAction = $this->applyMappedEducation(
+                        (int) $existing['id'],
+                        $row,
+                        $fieldToIndex,
+                        $raw
+                    );
+                    if ($formationAction === null) {
+                        $errors++;
+                        $this->data['report'][] = [
+                            'linha' => $rows,
+                            'acao' => 'erro',
+                            'email' => (string) ($existing['email'] ?? ''),
+                            'usuario' => (string) ($existing['username'] ?? ''),
+                            'msg' => 'Nenhum dado de formação foi informado nesta linha.',
+                        ];
+                        continue;
+                    }
+                    if ($formationAction === 'created') {
+                        $formationsCreated++;
+                    } elseif ($formationAction === 'updated') {
+                        $formationsUpdated++;
+                    } elseif ($formationAction === 'deleted') {
+                        $formationsDeleted++;
+                    }
+                    $updated++;
+                    $this->data['report'][] = [
+                        'linha' => $rows,
+                        'acao' => 'atualizado',
+                        'email' => (string) ($existing['email'] ?? ''),
+                        'usuario' => (string) ($existing['username'] ?? ''),
+                        'msg' => 'Formação processada; dados exclusivos do usuário não foram alterados.',
+                    ];
                     continue;
                 }
 
@@ -1036,13 +1136,24 @@ class ImportUsers
 
                 $okUp = $repo->updateUser($payload);
                 if ($okUp) {
+                    $formationAction = $scope === 'both'
+                        ? $this->applyMappedEducation((int) $existing['id'], $row, $fieldToIndex, $raw)
+                        : null;
+                    if ($formationAction === 'created') {
+                        $formationsCreated++;
+                    } elseif ($formationAction === 'updated') {
+                        $formationsUpdated++;
+                    } elseif ($formationAction === 'deleted') {
+                        $formationsDeleted++;
+                    }
                     $updated++;
                     $this->data['report'][] = [
                         'linha' => $rows,
                         'acao' => 'atualizado',
                         'email' => (string)($payload['email'] ?? $existing['email'] ?? ''),
                         'usuario' => (string)($existing['username'] ?? $payload['username'] ?? ''),
-                        'msg' => 'Campos mapeados gravados no cadastro.',
+                        'msg' => 'Campos mapeados gravados no cadastro.'
+                            . ($formationAction !== null ? ' Formação processada.' : ''),
                     ];
                 } else {
                     $errors++;
@@ -1069,8 +1180,17 @@ class ImportUsers
         }
 
         fclose($fp);
-        $this->data['summary'] = compact('created', 'updated', 'skipped', 'errors');
-        $_SESSION['success'] = "Importação concluída: criados {$created}, atualizados {$updated}, ignorados {$skipped}, erros {$errors}.";
+        $this->data['summary'] = compact(
+            'created',
+            'updated',
+            'skipped',
+            'errors',
+            'formationsCreated',
+            'formationsUpdated',
+            'formationsDeleted'
+        );
+        $_SESSION['success'] = "Importação concluída: criados {$created}, atualizados {$updated}, ignorados {$skipped}, erros {$errors}; "
+            . "formações criadas {$formationsCreated}, atualizadas {$formationsUpdated}, excluídas {$formationsDeleted}.";
         return true;
     }
 
@@ -1179,9 +1299,129 @@ class ImportUsers
         return $payload;
     }
 
+    /**
+     * @param array<string, int> $fieldToIndex
+     * @param callable $raw
+     * @return 'created'|'updated'|'deleted'|null
+     */
+    private function applyMappedEducation(
+        int $userId,
+        array $row,
+        array $fieldToIndex,
+        callable $raw
+    ): ?string {
+        $fields = [
+            'formacao_id',
+            'formacao_acao',
+            'formacao_tipo',
+            'formacao_curso',
+            'formacao_instituicao',
+            'formacao_situacao',
+            'formacao_data_inicio',
+            'formacao_data_conclusao',
+            'formacao_carga_horaria',
+            'formacao_observacoes',
+        ];
+        $values = [];
+        foreach ($fields as $field) {
+            $values[$field] = $raw($row, $fieldToIndex, $field);
+        }
+        $hasEducation = false;
+        foreach ($values as $field => $value) {
+            if ($field !== 'formacao_acao' && trim((string) $value) !== '') {
+                $hasEducation = true;
+                break;
+            }
+        }
+        if (!$hasEducation) {
+            return null;
+        }
+
+        $educationId = (int) preg_replace('/\D+/', '', (string) $values['formacao_id']);
+        $action = mb_strtolower(trim((string) $values['formacao_acao']));
+        $repository = new UserEducationsRepository();
+        $actorId = (int) ($_SESSION['user_id'] ?? 0) ?: null;
+        if (in_array($action, ['excluir', 'delete', 'remover'], true)) {
+            if ($educationId <= 0) {
+                throw new \RuntimeException('Para excluir uma formação, informe formacao_id.');
+            }
+            $deleted = $repository->delete($educationId, $userId, $actorId);
+            if (!is_array($deleted)) {
+                throw new \RuntimeException('Formação não encontrada para exclusão.');
+            }
+            UserEducationService::deleteStoredFile((string) ($deleted['comprovante_path'] ?? ''));
+
+            return 'deleted';
+        }
+
+        $type = UserEducationHelper::normalizeType($values['formacao_tipo']);
+        $status = UserEducationHelper::normalizeStatus($values['formacao_situacao']);
+        $course = trim((string) $values['formacao_curso']);
+        if ($type === null || $course === '' || $status === null) {
+            throw new \RuntimeException(
+                'Formação inválida: informe formacao_tipo, formacao_curso e formacao_situacao válidos.'
+            );
+        }
+        $start = UserEducationHelper::normalizeDate($values['formacao_data_inicio']);
+        $end = UserEducationHelper::normalizeDate($values['formacao_data_conclusao']);
+        if (trim((string) $values['formacao_data_inicio']) !== '' && $start === null) {
+            throw new \RuntimeException('Data de início da formação inválida.');
+        }
+        if (trim((string) $values['formacao_data_conclusao']) !== '' && $end === null) {
+            throw new \RuntimeException('Data de conclusão da formação inválida.');
+        }
+        if ($start !== null && $end !== null && $end < $start) {
+            throw new \RuntimeException('A conclusão da formação não pode ser anterior ao início.');
+        }
+        $hoursRaw = trim((string) $values['formacao_carga_horaria']);
+        $hours = $hoursRaw !== '' ? (int) $hoursRaw : null;
+        if ($hours !== null && ($hours <= 0 || $hours > 100000)) {
+            throw new \RuntimeException('Carga horária da formação inválida.');
+        }
+
+        $data = [
+            'tipo' => $type,
+            'curso' => mb_substr($course, 0, 191),
+            'instituicao' => $this->nullableImportText($values['formacao_instituicao'], 191),
+            'situacao' => $status,
+            'data_inicio' => $start,
+            'data_conclusao' => $end,
+            'carga_horaria' => $hours,
+            'observacoes' => $this->nullableImportText($values['formacao_observacoes'], 2000),
+            'comprovante_path' => null,
+            'comprovante_nome_original' => null,
+            'comprovante_mime' => null,
+            'comprovante_tamanho' => null,
+        ];
+        if ($educationId > 0) {
+            $existing = $repository->getByIdForUser($educationId, $userId);
+            if (is_array($existing)) {
+                foreach (['comprovante_path', 'comprovante_nome_original', 'comprovante_mime', 'comprovante_tamanho'] as $field) {
+                    $data[$field] = $existing[$field] ?? null;
+                }
+            }
+        }
+        $result = $repository->upsertImported(
+            $userId,
+            $data,
+            $educationId > 0 ? $educationId : null,
+            $actorId
+        );
+
+        return $result['action'];
+    }
+
+    private function nullableImportText(mixed $value, int $limit): ?string
+    {
+        $value = trim((string) $value);
+
+        return $value === '' ? null : mb_substr($value, 0, $limit);
+    }
+
     private function processFile(): void
     {
         $file = $_FILES['file'];
+        $scope = $this->normalizeImportScope($this->data['form']['import_scope'] ?? 'users');
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $this->data['errors'][] = 'Falha ao enviar o arquivo.';
             $this->view();
@@ -1195,16 +1435,27 @@ class ImportUsers
             return;
         }
 
-        // Suporte inicial: CSV (UTF-8 com cabeçalho). Planilhas podem ser exportadas para CSV.
-        $handled = $this->processCsv($file['tmp_name']);
+        if (in_array($ext, ['xlsx', 'xls'], true)) {
+            $parsed = $this->parseExcelFile((string) $file['tmp_name']);
+            if ($parsed === null) {
+                $this->data['errors'][] = 'Não foi possível ler a planilha Excel. Verifique o cabeçalho.';
+                $this->view();
+                return;
+            }
+            $handled = $this->processCsv($parsed['normalized_path'], $scope);
+            @unlink($parsed['normalized_path']);
+        } else {
+            $handled = $this->processCsv((string) $file['tmp_name'], $scope);
+        }
         if (!$handled) {
             $this->data['errors'][] = 'Não foi possível processar o arquivo. Verifique o template.';
         }
         $this->view();
     }
 
-    private function processCsv(string $tmpPath): bool
+    private function processCsv(string $tmpPath, string $scope = 'users'): bool
     {
+        $scope = $this->normalizeImportScope($scope);
         // Detectar e tratar encoding do arquivo
         $content = file_get_contents($tmpPath);
         
@@ -1269,6 +1520,16 @@ class ImportUsers
             'bairro',
             'municipio',
             'uf',
+            'formacao_id',
+            'formacao_acao',
+            'formacao_tipo',
+            'formacao_curso',
+            'formacao_instituicao',
+            'formacao_situacao',
+            'formacao_data_inicio',
+            'formacao_data_conclusao',
+            'formacao_carga_horaria',
+            'formacao_observacoes',
         ];
         $map = [];
         foreach ($expected as $col) {
@@ -1278,11 +1539,102 @@ class ImportUsers
 
         $repo = new UsersRepository();
         $created = 0; $updated = 0; $skipped = 0; $errors = 0; $rows = 1;
+        $formationsCreated = 0; $formationsUpdated = 0; $formationsDeleted = 0;
+        $trackFormation = static function (?string $action) use (
+            &$formationsCreated,
+            &$formationsUpdated,
+            &$formationsDeleted
+        ): void {
+            if ($action === 'created') {
+                $formationsCreated++;
+            } elseif ($action === 'updated') {
+                $formationsUpdated++;
+            } elseif ($action === 'deleted') {
+                $formationsDeleted++;
+            }
+        };
         $this->data['report'] = [];
 
         while (($row = fgetcsv($fp, 0, ';')) !== false) {
             $rows++;
             if (count(array_filter($row, fn($v)=> trim((string)$v) !== '')) === 0) continue;
+
+            if ($scope === 'educations') {
+                $usernameIndex = $map['username'];
+                $username = $usernameIndex !== null ? trim((string) ($row[$usernameIndex] ?? '')) : '';
+                if ($username === '') {
+                    $errors++;
+                    $this->data['report'][] = [
+                        'linha' => $rows,
+                        'acao' => 'erro',
+                        'email' => '',
+                        'msg' => 'username vazio; ele é obrigatório para importar formações pelo template oficial.',
+                    ];
+                    continue;
+                }
+                $educationFieldToIndex = [];
+                foreach ([
+                    'formacao_id', 'formacao_acao', 'formacao_tipo', 'formacao_curso',
+                    'formacao_instituicao', 'formacao_situacao', 'formacao_data_inicio',
+                    'formacao_data_conclusao', 'formacao_carga_horaria', 'formacao_observacoes',
+                ] as $educationField) {
+                    if ($map[$educationField] !== null) {
+                        $educationFieldToIndex[$educationField] = (int) $map[$educationField];
+                    }
+                }
+                $rawEducation = static function (array $sourceRow, array $fieldToIndex, string $field): string {
+                    return isset($fieldToIndex[$field])
+                        ? trim((string) ($sourceRow[$fieldToIndex[$field]] ?? ''))
+                        : '';
+                };
+                try {
+                    $existingEducationUser = $repo->getUserByUsername($username);
+                    if (!$existingEducationUser) {
+                        $skipped++;
+                        $this->data['report'][] = [
+                            'linha' => $rows,
+                            'acao' => 'ignorado',
+                            'email' => '',
+                            'usuario' => $username,
+                            'msg' => 'Usuário não encontrado; formações só podem ser vinculadas a usuários existentes.',
+                        ];
+                        continue;
+                    }
+                    $formationAction = $this->applyMappedEducation(
+                        (int) $existingEducationUser['id'],
+                        $row,
+                        $educationFieldToIndex,
+                        $rawEducation
+                    );
+                    if ($formationAction === null) {
+                        throw new \RuntimeException('Nenhum dado de formação foi informado nesta linha.');
+                    }
+                    $trackFormation($formationAction);
+                    $updated++;
+                    $this->data['report'][] = [
+                        'linha' => $rows,
+                        'acao' => 'atualizado',
+                        'email' => (string) ($existingEducationUser['email'] ?? ''),
+                        'usuario' => (string) ($existingEducationUser['username'] ?? $username),
+                        'msg' => 'Formação processada; dados exclusivos do usuário não foram alterados.',
+                    ];
+                } catch (\Throwable $e) {
+                    $errors++;
+                    $this->data['report'][] = [
+                        'linha' => $rows,
+                        'acao' => 'erro',
+                        'email' => '',
+                        'usuario' => $username,
+                        'msg' => $e->getMessage(),
+                    ];
+                    GenerateLog::generateLog('error', 'Falha ao importar formação.', [
+                        'username' => $username,
+                        'linha' => $rows,
+                        'e' => $e->getMessage(),
+                    ]);
+                }
+                continue;
+            }
 
             // Helpers de normalização
             $toBoolLabel = function ($val): string {
@@ -1389,6 +1741,30 @@ class ImportUsers
                     return '';
                 }
                 return trim((string)($row[$map[$col]] ?? ''));
+            };
+            $educationFieldToIndex = [];
+            foreach ([
+                'formacao_id',
+                'formacao_acao',
+                'formacao_tipo',
+                'formacao_curso',
+                'formacao_instituicao',
+                'formacao_situacao',
+                'formacao_data_inicio',
+                'formacao_data_conclusao',
+                'formacao_carga_horaria',
+                'formacao_observacoes',
+            ] as $educationField) {
+                if ($map[$educationField] !== null) {
+                    $educationFieldToIndex[$educationField] = (int) $map[$educationField];
+                }
+            }
+            $rawOfficial = static function (array $sourceRow, array $fieldToIndex, string $field): string {
+                if (!isset($fieldToIndex[$field])) {
+                    return '';
+                }
+
+                return trim((string) ($sourceRow[$fieldToIndex[$field]] ?? ''));
             };
 
             $escolaridade = UserFormHelper::resolveEscolaridadeSlug($cell($row, $map, 'escolaridade'));
@@ -1600,15 +1976,48 @@ class ImportUsers
                     
 
                     if (!$hasDiff) {
-                        $skipped++;
-                        $this->data['report'][] = ['linha'=>$rows, 'acao'=>'ignorado', 'email'=>$payload['email']];
+                        $formationAction = $scope === 'both'
+                            ? $this->applyMappedEducation(
+                                (int) $existing['id'],
+                                $row,
+                                $educationFieldToIndex,
+                                $rawOfficial
+                            )
+                            : null;
+                        $trackFormation($formationAction);
+                        if ($formationAction === null) {
+                            $skipped++;
+                            $this->data['report'][] = ['linha'=>$rows, 'acao'=>'ignorado', 'email'=>$payload['email']];
+                        } else {
+                            $updated++;
+                            $this->data['report'][] = [
+                                'linha' => $rows,
+                                'acao' => 'atualizado',
+                                'email' => $payload['email'],
+                                'msg' => 'Formação processada; cadastro do usuário sem alterações.',
+                            ];
+                        }
                         continue;
                     }
 
                     $ok = $repo->updateUser($payload);
                     if ($ok) {
+                        $formationAction = $scope === 'both'
+                            ? $this->applyMappedEducation(
+                                (int) $existing['id'],
+                                $row,
+                                $educationFieldToIndex,
+                                $rawOfficial
+                            )
+                            : null;
+                        $trackFormation($formationAction);
                         $updated++;
-                        $this->data['report'][] = ['linha'=>$rows, 'acao'=>'atualizado', 'email'=>$payload['email']];
+                        $this->data['report'][] = [
+                            'linha' => $rows,
+                            'acao' => 'atualizado',
+                            'email' => $payload['email'],
+                            'msg' => $formationAction !== null ? 'Cadastro e formação processados.' : 'Cadastro atualizado.',
+                        ];
                     } else {
                         $errors++;
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'erro', 'email'=>$payload['email'], 'msg'=>'Falha ao atualizar (verifique logs DEBUG updateUser)'];
@@ -1633,8 +2042,22 @@ class ImportUsers
                     }
                     $ok = $repo->createUser($payload);
                     if ($ok) {
+                        $formationAction = $scope === 'both'
+                            ? $this->applyMappedEducation(
+                                (int) $ok,
+                                $row,
+                                $educationFieldToIndex,
+                                $rawOfficial
+                            )
+                            : null;
+                        $trackFormation($formationAction);
                         $created++;
-                        $this->data['report'][] = ['linha'=>$rows, 'acao'=>'criado', 'email'=>$payload['email']];
+                        $this->data['report'][] = [
+                            'linha' => $rows,
+                            'acao' => 'criado',
+                            'email' => $payload['email'],
+                            'msg' => $formationAction !== null ? 'Usuário e formação criados.' : 'Usuário criado.',
+                        ];
                     } else {
                         $errors++;
                         $this->data['report'][] = ['linha'=>$rows, 'acao'=>'erro', 'email'=>$payload['email'], 'msg'=>'Falha ao criar'];
@@ -1651,8 +2074,17 @@ class ImportUsers
         // Limpar arquivo temporário
         unlink($tempFile);
 
-        $this->data['summary'] = compact('created','updated','skipped','errors');
-        $_SESSION['success'] = "Importação concluída: criados {$created}, atualizados {$updated}, erros {$errors}.";
+        $this->data['summary'] = compact(
+            'created',
+            'updated',
+            'skipped',
+            'errors',
+            'formationsCreated',
+            'formationsUpdated',
+            'formationsDeleted'
+        );
+        $_SESSION['success'] = "Importação concluída: criados {$created}, atualizados {$updated}, ignorados {$skipped}, erros {$errors}; "
+            . "formações criadas {$formationsCreated}, atualizadas {$formationsUpdated}, excluídas {$formationsDeleted}.";
         return true;
     }
 
@@ -1706,6 +2138,16 @@ class ImportUsers
                 'bairro',
                 'municipio',
                 'uf',
+                'formacao_id',
+                'formacao_acao',
+                'formacao_tipo',
+                'formacao_curso',
+                'formacao_instituicao',
+                'formacao_situacao',
+                'formacao_data_inicio',
+                'formacao_data_conclusao',
+                'formacao_carga_horaria',
+                'formacao_observacoes',
             ],
             ';'
         );
@@ -1746,6 +2188,16 @@ class ImportUsers
                 'Centro',
                 'Curitiba',
                 'PR',
+                '',
+                'salvar',
+                'graduacao',
+                'Administração',
+                'Universidade Exemplo',
+                'concluido',
+                '01/02/2010',
+                '15/12/2013',
+                '3200',
+                '',
             ],
             ';'
         );
@@ -1782,6 +2234,64 @@ class ImportUsers
                 'Bela Vista',
                 'São Paulo',
                 'SP',
+                '',
+                'salvar',
+                'tecnico',
+                'Técnico em Segurança do Trabalho',
+                'Escola Técnica Exemplo',
+                'cursando',
+                '01/02/2026',
+                '',
+                '1200',
+                '',
+            ],
+            ';'
+        );
+        // Para várias formações, repita a chave do usuário em outra linha e preencha
+        // apenas as colunas de formação. formacao_id torna atualização/exclusão explícita.
+        fputcsv(
+            $out,
+            [
+                '',
+                '',
+                'maria.silva',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                '',
+                'salvar',
+                'pos_graduacao',
+                'Gestão de Pessoas',
+                'Faculdade Exemplo',
+                'concluido',
+                '01/03/2015',
+                '30/11/2016',
+                '420',
+                'Segunda formação da mesma usuária',
             ],
             ';'
         );

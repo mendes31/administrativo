@@ -138,4 +138,39 @@ final class WhistleblowingPermissionService
 
         return false;
     }
+
+    /**
+     * Somente Super Administrador / Super usuário pode atribuir ou remover
+     * os níveis do Canal de Denúncias no cadastro do usuário.
+     * (A concessão automática de Operador via comitê permanece separada.)
+     */
+    public static function canManageAccessLevelsAssignment(): bool
+    {
+        return UserAccessHelper::hasFullSystemAccess();
+    }
+
+    /**
+     * @return list<string>
+     */
+    public static function protectedAccessLevelNames(): array
+    {
+        return [self::OPERATOR_LEVEL_NAME, self::ADMIN_LEVEL_NAME];
+    }
+
+    /**
+     * @return list<int>
+     */
+    public static function protectedAccessLevelIds(): array
+    {
+        $repo = new UsersAccessLevelsRepository();
+        $ids = [];
+        foreach (self::protectedAccessLevelNames() as $name) {
+            $id = $repo->getAccessLevelIdByName($name);
+            if ($id !== null && $id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
 }

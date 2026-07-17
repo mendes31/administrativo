@@ -343,6 +343,70 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
     </div>
 
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0"><i class="fas fa-graduation-cap me-1"></i> Formações acadêmicas e cursos</h5>
+            <?php if (in_array('UpdateUser', $this->data['buttonPermission'] ?? [], true)): ?>
+                <a href="<?php echo $_ENV['URL_ADM']; ?>update-user/<?php echo (int)($this->data['user']['id'] ?? 0); ?>#tab-formacoes" class="btn btn-sm btn-outline-warning">
+                    <i class="fas fa-edit me-1"></i>Gerenciar
+                </a>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <?php if (!empty($this->data['educations'])): ?>
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Tipo</th>
+                                <th>Curso/Formação</th>
+                                <th>Instituição</th>
+                                <th>Situação</th>
+                                <th>Período</th>
+                                <th>Carga horária</th>
+                                <th>Comprovante</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($this->data['educations'] as $education): ?>
+                                <tr>
+                                    <td><?php echo htmlspecialchars(\App\adms\Helpers\UserEducationHelper::typeLabel((string)($education['tipo'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td>
+                                        <strong><?php echo htmlspecialchars((string)($education['curso'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
+                                        <?php if (!empty($education['observacoes'])): ?>
+                                            <div class="small text-muted"><?php echo nl2br(htmlspecialchars((string)$education['observacoes'], ENT_QUOTES, 'UTF-8')); ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?php echo !empty($education['instituicao']) ? htmlspecialchars((string)$education['instituicao'], ENT_QUOTES, 'UTF-8') : '—'; ?></td>
+                                    <td><?php echo htmlspecialchars(\App\adms\Helpers\UserEducationHelper::statusLabel((string)($education['situacao'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                    <td>
+                                        <?php
+                                        $start = !empty($education['data_inicio']) ? date('m/Y', strtotime((string)$education['data_inicio'])) : '';
+                                        $end = !empty($education['data_conclusao']) ? date('m/Y', strtotime((string)$education['data_conclusao'])) : '';
+                                        echo htmlspecialchars(trim($start . ($start !== '' && $end !== '' ? ' a ' : '') . $end) ?: '—');
+                                        ?>
+                                    </td>
+                                    <td><?php echo !empty($education['carga_horaria']) ? (int)$education['carga_horaria'] . ' h' : '—'; ?></td>
+                                    <td>
+                                        <?php if (!empty($education['comprovante_path'])): ?>
+                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo $_ENV['URL_ADM']; ?>view-user/download-formacao/<?php echo (int)$education['id']; ?>">
+                                                <i class="fas fa-download me-1"></i>Baixar
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">Não anexado</span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php else: ?>
+                <p class="text-muted mb-0">Nenhuma formação cadastrada.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <?php if (!empty($this->data['employmentHistory'])): ?>
         <div class="card mb-4 border-light shadow">
             <div class="card-header">
@@ -512,12 +576,23 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
 
                 if ($viewUserIsSuper) {
                     // formulário de níveis oculto para super usuário (alterações bloqueadas no controller)
-                } elseif ($this->data['userAllAccessLevelsArray'] ?? false) { ?>
+                } elseif ($this->data['userAllAccessLevelsArray'] ?? false) {
+                    $canManageWhistleblowingLevels = !empty($this->data['can_manage_whistleblowing_levels']);
+                    $whistleblowingLevelIds = array_map('intval', $this->data['whistleblowing_access_level_ids'] ?? []);
+                    ?>
 
                     <dl class='row'>
                         <dt class='col-sm-3'>Niveis de Acesso: </dt>
                         <dd class='col-sm-9'></dd>
                     </dl>
+
+                    <?php if (!$canManageWhistleblowingLevels): ?>
+                        <div class="alert alert-secondary small py-2" role="alert">
+                            Os níveis <strong>Canal de Denúncias — Operador</strong> e
+                            <strong>Canal de Denúncias — Administrador</strong> só podem ser atribuídos ou removidos por
+                            <em>Super Administrador</em> ou <em>Super usuário</em>. Membros de comitê recebem Operador automaticamente ao serem vinculados ao comitê.
+                        </div>
+                    <?php endif; ?>
 
                     <form action="<?php echo $_ENV['URL_ADM']; ?>update-user-access-levels" method="POST">
 
@@ -530,19 +605,28 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                         foreach ($this->data['userAllAccessLevelsArray'] as $userAllAccessLevelsArray) {
                             // Extrai variáveis do array de usuário
                             extract($userAllAccessLevelsArray);
-                            // var_dump($userAllAccessLevelsArray);
-                          
 
                             // Verifica se o nível de acesso atual ($id) está no array de níveis de acesso do usuário
                             $userAccessLevels = $this->data['userAccessLevelsArray'] ? $this->data['userAccessLevelsArray'] : [];
                             $checked = in_array($id, $userAccessLevels) ? 'checked' : '';
-
+                            $isWhistleblowingLevel = in_array((int) $id, $whistleblowingLevelIds, true);
+                            $locked = $isWhistleblowingLevel && !$canManageWhistleblowingLevels;
 
                             echo "<div class='form-check form-switch'>";
 
-                            echo "<input type='checkbox' name='userAccessLevelsArray[$id]' class='form-check-input' role='switch' id='userAccessLevelsArray$id' value='$id' $checked>";
+                            if ($locked && $checked !== '') {
+                                // Checkbox desabilitado não é enviado no POST — preserva o nível atual
+                                echo "<input type='hidden' name='userAccessLevelsArray[$id]' value='$id'>";
+                            }
 
-                            echo "<label class='form-check-label' for='userAccessLevelsArray$id'>$name</label>";
+                            $disabledAttr = $locked ? ' disabled' : '';
+                            echo "<input type='checkbox' name='userAccessLevelsArray[$id]' class='form-check-input' role='switch' id='userAccessLevelsArray$id' value='$id' $checked$disabledAttr>";
+
+                            echo "<label class='form-check-label' for='userAccessLevelsArray$id'>$name";
+                            if ($locked) {
+                                echo " <span class='badge text-bg-secondary'>Somente Super Administrador / Super usuário</span>";
+                            }
+                            echo "</label>";
                             
                             echo "</div>";
                         } ?>

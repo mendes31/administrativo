@@ -6,7 +6,7 @@
 $userFormMode = $userFormMode ?? 'create';
 $isUpdate = $userFormMode === 'update';
 $activeTab = (string)($_POST['user_form_active_tab'] ?? ($this->data['form']['user_form_active_tab'] ?? 'usuario'));
-$allowedTabs = ['usuario', 'pessoais', 'endereco', 'contratuais'];
+$allowedTabs = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes'];
 if (!in_array($activeTab, $allowedTabs, true)) {
     $activeTab = 'usuario';
 }
@@ -35,6 +35,13 @@ $form = $this->data['form'] ?? [];
             <i class="fas fa-briefcase me-1"></i>Dados Contratuais
         </button>
     </li>
+    <?php if ($isUpdate): ?>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link <?php echo $activeTab === 'formacoes' ? 'active' : ''; ?>" id="tab-formacoes-btn" data-bs-toggle="tab" data-bs-target="#tab-formacoes" type="button" role="tab" data-tab-key="formacoes">
+                <i class="fas fa-graduation-cap me-1"></i>Formações
+            </button>
+        </li>
+    <?php endif; ?>
 </ul>
 
 <div class="tab-content" id="userFormTabsContent">
@@ -492,4 +499,170 @@ $form = $this->data['form'] ?? [];
             <?php endif; ?>
         </div>
     </div>
+
+    <?php if ($isUpdate): ?>
+        <?php
+        $educationRows = is_array($this->data['educations'] ?? null) ? $this->data['educations'] : [];
+        $educationTypes = \App\adms\Helpers\UserEducationHelper::typeOptions();
+        $educationStatuses = \App\adms\Helpers\UserEducationHelper::statusOptions();
+        ?>
+        <div class="tab-pane fade <?php echo $activeTab === 'formacoes' ? 'show active' : ''; ?>" id="tab-formacoes" role="tabpanel">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h5 class="mb-1">Formações acadêmicas e cursos</h5>
+                    <p class="text-muted small mb-0">Cadastre quantas graduações, pós-graduações, cursos técnicos ou livres forem necessárias.</p>
+                </div>
+                <button type="button" class="btn btn-outline-success btn-sm" id="add-user-education">
+                    <i class="fas fa-plus me-1"></i>Adicionar formação
+                </button>
+            </div>
+
+            <div id="user-educations-list">
+                <?php foreach ($educationRows as $rowIndex => $education):
+                    if (!is_array($education)) {
+                        continue;
+                    }
+                    $educationId = (int)($education['id'] ?? 0);
+                    $rowKey = $educationId > 0 ? 'existing_' . $educationId : (string)$rowIndex;
+                    ?>
+                    <div class="card border mb-3 user-education-row" data-new="<?php echo $educationId > 0 ? '0' : '1'; ?>">
+                        <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                            <strong><i class="fas fa-graduation-cap me-1"></i>Formação</strong>
+                            <?php if ($educationId > 0): ?>
+                                <div class="form-check">
+                                    <input class="form-check-input education-delete" type="checkbox" name="educations[<?php echo htmlspecialchars($rowKey); ?>][delete]" value="1" id="education_delete_<?php echo $educationId; ?>">
+                                    <label class="form-check-label text-danger" for="education_delete_<?php echo $educationId; ?>">Excluir</label>
+                                </div>
+                            <?php else: ?>
+                                <button type="button" class="btn btn-outline-danger btn-sm remove-user-education"><i class="fas fa-trash"></i></button>
+                            <?php endif; ?>
+                        </div>
+                        <div class="card-body row g-3">
+                            <input type="hidden" name="educations[<?php echo htmlspecialchars($rowKey); ?>][id]" value="<?php echo $educationId; ?>">
+                            <div class="col-md-4">
+                                <label class="form-label">Tipo <span class="text-danger">*</span></label>
+                                <select name="educations[<?php echo htmlspecialchars($rowKey); ?>][tipo]" class="form-select">
+                                    <option value="">Selecione</option>
+                                    <?php foreach ($educationTypes as $slug => $label): ?>
+                                        <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo (string)($education['tipo'] ?? '') === $slug ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Curso/Formação <span class="text-danger">*</span></label>
+                                <input type="text" name="educations[<?php echo htmlspecialchars($rowKey); ?>][curso]" class="form-control" maxlength="191" value="<?php echo htmlspecialchars((string)($education['curso'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label">Situação <span class="text-danger">*</span></label>
+                                <select name="educations[<?php echo htmlspecialchars($rowKey); ?>][situacao]" class="form-select">
+                                    <?php foreach ($educationStatuses as $slug => $label): ?>
+                                        <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo (string)($education['situacao'] ?? 'concluido') === $slug ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Instituição</label>
+                                <input type="text" name="educations[<?php echo htmlspecialchars($rowKey); ?>][instituicao]" class="form-control" maxlength="191" value="<?php echo htmlspecialchars((string)($education['instituicao'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Início</label>
+                                <input type="date" name="educations[<?php echo htmlspecialchars($rowKey); ?>][data_inicio]" class="form-control" value="<?php echo htmlspecialchars((string)($education['data_inicio'] ?? '')); ?>">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Conclusão</label>
+                                <input type="date" name="educations[<?php echo htmlspecialchars($rowKey); ?>][data_conclusao]" class="form-control" value="<?php echo htmlspecialchars((string)($education['data_conclusao'] ?? '')); ?>">
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label">Carga horária</label>
+                                <input type="number" min="1" max="100000" name="educations[<?php echo htmlspecialchars($rowKey); ?>][carga_horaria]" class="form-control" value="<?php echo htmlspecialchars((string)($education['carga_horaria'] ?? '')); ?>">
+                            </div>
+                            <div class="col-md-7">
+                                <label class="form-label">Comprovante (opcional)</label>
+                                <input type="file" name="education_files[<?php echo htmlspecialchars($rowKey); ?>]" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx">
+                                <div class="form-text">PDF, imagem, DOC ou DOCX, até 10 MB.</div>
+                                <?php if ($educationId > 0 && !empty($education['comprovante_path'])): ?>
+                                    <div class="mt-1">
+                                        <a href="<?php echo $_ENV['URL_ADM']; ?>view-user/download-formacao/<?php echo $educationId; ?>" class="small">
+                                            <i class="fas fa-paperclip me-1"></i><?php echo htmlspecialchars((string)($education['comprovante_nome_original'] ?? 'Baixar comprovante')); ?>
+                                        </a>
+                                        <div class="form-check form-check-inline ms-2">
+                                            <input class="form-check-input" type="checkbox" name="educations[<?php echo htmlspecialchars($rowKey); ?>][remove_comprovante]" value="1" id="remove_proof_<?php echo $educationId; ?>">
+                                            <label class="form-check-label small text-danger" for="remove_proof_<?php echo $educationId; ?>">Remover comprovante</label>
+                                        </div>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                            <div class="col-md-5">
+                                <label class="form-label">Observações</label>
+                                <textarea name="educations[<?php echo htmlspecialchars($rowKey); ?>][observacoes]" class="form-control" rows="2" maxlength="2000"><?php echo htmlspecialchars((string)($education['observacoes'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></textarea>
+                            </div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+
+            <div id="user-educations-empty" class="alert alert-light border text-muted <?php echo $educationRows !== [] ? 'd-none' : ''; ?>">
+                Nenhuma formação cadastrada. Clique em “Adicionar formação”.
+            </div>
+        </div>
+
+        <template id="user-education-template">
+            <div class="card border mb-3 user-education-row" data-new="1">
+                <div class="card-header py-2 d-flex justify-content-between align-items-center">
+                    <strong><i class="fas fa-graduation-cap me-1"></i>Nova formação</strong>
+                    <button type="button" class="btn btn-outline-danger btn-sm remove-user-education"><i class="fas fa-trash"></i></button>
+                </div>
+                <div class="card-body row g-3">
+                    <input type="hidden" name="educations[__KEY__][id]" value="0">
+                    <div class="col-md-4"><label class="form-label">Tipo <span class="text-danger">*</span></label><select name="educations[__KEY__][tipo]" class="form-select"><option value="">Selecione</option><?php foreach ($educationTypes as $slug => $label): ?><option value="<?php echo htmlspecialchars($slug); ?>"><?php echo htmlspecialchars($label); ?></option><?php endforeach; ?></select></div>
+                    <div class="col-md-5"><label class="form-label">Curso/Formação <span class="text-danger">*</span></label><input type="text" name="educations[__KEY__][curso]" class="form-control" maxlength="191"></div>
+                    <div class="col-md-3"><label class="form-label">Situação <span class="text-danger">*</span></label><select name="educations[__KEY__][situacao]" class="form-select"><?php foreach ($educationStatuses as $slug => $label): ?><option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $slug === 'concluido' ? 'selected' : ''; ?>><?php echo htmlspecialchars($label); ?></option><?php endforeach; ?></select></div>
+                    <div class="col-md-6"><label class="form-label">Instituição</label><input type="text" name="educations[__KEY__][instituicao]" class="form-control" maxlength="191"></div>
+                    <div class="col-md-2"><label class="form-label">Início</label><input type="date" name="educations[__KEY__][data_inicio]" class="form-control"></div>
+                    <div class="col-md-2"><label class="form-label">Conclusão</label><input type="date" name="educations[__KEY__][data_conclusao]" class="form-control"></div>
+                    <div class="col-md-2"><label class="form-label">Carga horária</label><input type="number" min="1" max="100000" name="educations[__KEY__][carga_horaria]" class="form-control"></div>
+                    <div class="col-md-7"><label class="form-label">Comprovante (opcional)</label><input type="file" name="education_files[__KEY__]" class="form-control" accept=".pdf,.jpg,.jpeg,.png,.webp,.doc,.docx"><div class="form-text">PDF, imagem, DOC ou DOCX, até 10 MB.</div></div>
+                    <div class="col-md-5"><label class="form-label">Observações</label><textarea name="educations[__KEY__][observacoes]" class="form-control" rows="2" maxlength="2000"></textarea></div>
+                </div>
+            </div>
+        </template>
+    <?php endif; ?>
 </div>
+
+<?php if ($isUpdate): ?>
+<script>
+(function () {
+    var list = document.getElementById('user-educations-list');
+    var empty = document.getElementById('user-educations-empty');
+    var template = document.getElementById('user-education-template');
+    var add = document.getElementById('add-user-education');
+    if (!list || !template || !add) return;
+
+    function refreshEmpty() {
+        if (empty) empty.classList.toggle('d-none', list.querySelectorAll('.user-education-row').length > 0);
+    }
+    function bindRemove(scope) {
+        scope.querySelectorAll('.remove-user-education').forEach(function (button) {
+            button.addEventListener('click', function () {
+                var row = button.closest('.user-education-row');
+                if (row) row.remove();
+                refreshEmpty();
+            });
+        });
+    }
+    add.addEventListener('click', function () {
+        var key = 'new_' + Date.now() + '_' + Math.floor(Math.random() * 10000);
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = template.innerHTML.replaceAll('__KEY__', key).trim();
+        var row = wrapper.firstElementChild;
+        if (row) {
+            list.appendChild(row);
+            bindRemove(row);
+        }
+        refreshEmpty();
+    });
+    bindRemove(list);
+    refreshEmpty();
+})();
+</script>
+<?php endif; ?>

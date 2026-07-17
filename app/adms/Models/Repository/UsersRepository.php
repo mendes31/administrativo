@@ -313,6 +313,7 @@ class UsersRepository extends DbConnection
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         // Exportação: nomes de colunas alinhados ao pedido; cargo = pos.name integral (sem truncar / formatar na UI).
         $sql = 'SELECT
+                    usr.id AS user_id,
                     usr.name AS user_name,
                     dep.name AS department_name,
                     IFNULL(DATE_FORMAT(usr.data_admissao, \'%d/%m/%Y\'), \'\') AS data_admissao_br,

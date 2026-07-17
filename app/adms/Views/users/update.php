@@ -83,12 +83,25 @@ document.getElementById('cep')?.addEventListener('input', function(e) {
 document.querySelectorAll('#userFormTabs [data-tab-key]').forEach(function (btn) {
     btn.addEventListener('shown.bs.tab', function () {
         var key = btn.getAttribute('data-tab-key');
+        var target = btn.getAttribute('data-bs-target');
         var hidden = document.getElementById('user_form_active_tab');
         if (hidden && key) {
             hidden.value = key;
         }
+        if (target && target.charAt(0) === '#') {
+            window.history.replaceState(null, '', target);
+        }
     });
 });
+
+if (window.location.hash && /^#tab-[a-z-]+$/.test(window.location.hash)) {
+    var activeHashTab = document.querySelector(
+        '#userFormTabs [data-bs-target="' + window.location.hash + '"]'
+    );
+    if (activeHashTab && window.bootstrap && bootstrap.Tab) {
+        bootstrap.Tab.getOrCreateInstance(activeHashTab).show();
+    }
+}
 
 document.addEventListener('DOMContentLoaded', function() {
     const dataDesligamentoInput = document.getElementById('data_desligamento');

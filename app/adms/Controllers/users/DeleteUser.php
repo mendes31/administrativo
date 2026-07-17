@@ -4,8 +4,10 @@ namespace App\adms\Controllers\users;
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Models\Repository\UserEducationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\TrainingUsersRepository;
+use App\adms\Models\Services\UserEducationService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -69,6 +71,8 @@ class DeleteUser
             return;
         }
 
+        $educationFiles = (new UserEducationsRepository())->getByUserId((int) $this->data['form']['id']);
+
         // Instanciar o repositório para apagar o registro do banco de dados
         $result = $deleteUser->deleteUser($this->data['form']['id']);
 
@@ -76,6 +80,9 @@ class DeleteUser
         if ($result) {
             $trainingUsersRepo = new TrainingUsersRepository();
             $trainingUsersRepo->deleteByUserAndNotInTrainings($this->data['form']['id'], []);
+            foreach ($educationFiles as $education) {
+                UserEducationService::deleteStoredFile((string) ($education['comprovante_path'] ?? ''));
+            }
             // Criar a mensagem de sucesso
             $_SESSION['success'] = "Usuário apagado com suscesso!";
         } else {

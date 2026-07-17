@@ -1,5 +1,5 @@
 <h1>Listar Usuários</h1>
-<p>Lista e filtra registros de <strong>Listar Usuários</strong> no módulo Cadastro. Use esta tela para localizar itens, acessar visualização/edição e iniciar novos cadastros.</p>
+<p>É a área operacional do RH para localizar colaboradores, aplicar filtros, abrir cadastros, importar atualizações em lote e exportar informações cadastrais e formações.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Cadastro de usuários</em> (<code>cad-usuarios</code>) para o fluxo completo da área.</p>
 
@@ -8,17 +8,20 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Acesse o menu <strong>Cadastro</strong> e abra <strong>Listar Usuários</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
+    <li>Use os filtros no topo para restringir por nome, login, departamento, cargo, turno, status, bloqueio, desligamento, sexo, filhos ou período.</li>
     <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
     <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
+    <li>Para operação em lote, use <strong>Importar</strong>; para conferência externa, exporte Excel ou PDF. Os filtros ativos também limitam a exportação.</li>
     <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
+<div class="help-field"><strong>Filtros de busca</strong> Restringem a grade e as exportações; não alteram cadastros. O filtro de período pode considerar admissão, desligamento ou atualização de cargo.</div>
 <div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
 <div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
+<div class="help-field"><strong>Exportar Excel</strong> A planilha inclui um resumo das formações na aba Usuários e uma aba Formações com um registro por curso, incluindo o ID necessário para futuras atualizações por importação.</div>
+<div class="help-field"><strong>Exportar PDF</strong> Após a lista de usuários, apresenta uma seção detalhada de formações dos colaboradores selecionados pelos filtros.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -26,6 +29,8 @@
     <dd>Permissão <em>ListUsers</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Exportação veio com menos pessoas</dt>
+    <dd>Os filtros da listagem permanecem ativos na sessão e são aplicados ao Excel/PDF. Limpe os filtros e gere novamente.</dd>
+    <dt>A aba Formações do Excel está vazia</dt>
+    <dd>Somente formações cadastradas na aba <em>Formações</em> do usuário aparecem no detalhamento; o campo geral Escolaridade não cria uma formação automaticamente.</dd>
 </dl>

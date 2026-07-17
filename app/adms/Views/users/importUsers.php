@@ -5,6 +5,12 @@ $mapping = $this->data['mapping'] ?? null;
 $mappable = $this->data['mappable_fields'] ?? [];
 $suggested = $this->data['suggested_map'] ?? [];
 $hasMapping = is_array($mapping) && !empty($mapping['headers']);
+$mappingScope = is_array($mapping)
+    ? (string)($mapping['import_scope'] ?? 'users')
+    : (string)($this->data['form']['import_scope'] ?? 'users');
+if (!in_array($mappingScope, ['users', 'educations', 'both'], true)) {
+    $mappingScope = 'users';
+}
 
 /** @var array<string, int> $suggestedByField colIdx sugerido por campo */
 $suggestedByField = [];
@@ -71,6 +77,25 @@ if (is_array($suggested)) {
                     <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_import_users_map'); ?>">
                     <input type="hidden" name="apply_mapping" value="1">
 
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">O que importar</label>
+                        <div class="d-flex flex-wrap gap-3">
+                            <div class="form-check">
+                                <input class="form-check-input js-import-scope" type="radio" name="import_scope" id="scope_users_map" value="users" <?php echo $mappingScope === 'users' ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="scope_users_map"><strong>Somente dados do usuário</strong></label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input js-import-scope" type="radio" name="import_scope" id="scope_educations_map" value="educations" <?php echo $mappingScope === 'educations' ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="scope_educations_map"><strong>Somente formações</strong></label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input js-import-scope" type="radio" name="import_scope" id="scope_both_map" value="both" <?php echo $mappingScope === 'both' ? 'checked' : ''; ?>>
+                                <label class="form-check-label" for="scope_both_map"><strong>Dados do usuário + formações</strong></label>
+                            </div>
+                        </div>
+                        <div class="form-text" id="import-scope-help"></div>
+                    </div>
+
                     <div class="col-md-4">
                         <label class="form-label fw-semibold">Chave única</label>
                         <select name="key_field" class="form-select" required>
@@ -87,11 +112,11 @@ if (is_array($suggested)) {
                             <input class="form-check-input" type="radio" name="import_method" id="method_update" value="update_only" checked>
                             <label class="form-check-label" for="method_update">Somente atualizar existentes</label>
                         </div>
-                        <div class="form-check">
+                        <div class="form-check" id="method-upsert-wrapper">
                             <input class="form-check-input" type="radio" name="import_method" id="method_upsert" value="upsert">
                             <label class="form-check-label" for="method_upsert">Adicionar novos e atualizar existentes</label>
                         </div>
-                        <div class="form-text">Para criar novos, associe também nome, e-mail, usuário, departamento e cargo.</div>
+                        <div class="form-text" id="import-method-help">Para criar novos, associe também nome, e-mail, usuário, departamento e cargo.</div>
                     </div>
 
                     <div class="col-12">
@@ -110,9 +135,12 @@ if (is_array($suggested)) {
                                         if ($field === '') {
                                             continue;
                                         }
+                                        $fieldGroup = in_array($field, ['id', 'cpf', 'username'], true)
+                                            ? 'key'
+                                            : (str_starts_with((string)$field, 'formacao_') ? 'education' : 'user');
                                         $selectedCol = $suggestedByField[$field] ?? '';
                                         ?>
-                                        <tr>
+                                        <tr data-import-group="<?php echo $fieldGroup; ?>">
                                             <td>
                                                 <label class="form-label mb-0 fw-semibold" for="field_map_<?php echo htmlspecialchars((string)$field, ENT_QUOTES, 'UTF-8'); ?>">
                                                     <?php echo htmlspecialchars((string)$label, ENT_QUOTES, 'UTF-8'); ?>
@@ -166,6 +194,12 @@ if (is_array($suggested)) {
                 <script>
                 (function () {
                     var selects = Array.prototype.slice.call(document.querySelectorAll('.js-import-field-map'));
+                    var scopeRadios = Array.prototype.slice.call(document.querySelectorAll('.js-import-scope'));
+                    var scopeHelp = document.getElementById('import-scope-help');
+                    var upsertWrapper = document.getElementById('method-upsert-wrapper');
+                    var updateMethod = document.getElementById('method_update');
+                    var upsertMethod = document.getElementById('method_upsert');
+                    var methodHelp = document.getElementById('import-method-help');
 
                     function updateExample(sel) {
                         var opt = sel.options[sel.selectedIndex];
@@ -178,6 +212,7 @@ if (is_array($suggested)) {
                     function refreshAvailableColumns() {
                         var used = {};
                         selects.forEach(function (sel) {
+                            if (sel.disabled) return;
                             var v = sel.value;
                             if (v !== '') {
                                 used[v] = sel;
@@ -185,6 +220,7 @@ if (is_array($suggested)) {
                         });
 
                         selects.forEach(function (sel) {
+                            if (sel.disabled) return;
                             Array.prototype.forEach.call(sel.options, function (opt) {
                                 if (opt.value === '') {
                                     opt.disabled = false;
@@ -198,14 +234,48 @@ if (is_array($suggested)) {
                         });
                     }
 
+                    function refreshScope() {
+                        var checked = document.querySelector('.js-import-scope:checked');
+                        var scope = checked ? checked.value : 'users';
+                        document.querySelectorAll('tr[data-import-group]').forEach(function (row) {
+                            var group = row.getAttribute('data-import-group');
+                            var visible = group === 'key'
+                                || scope === 'both'
+                                || (scope === 'users' && group === 'user')
+                                || (scope === 'educations' && group === 'education');
+                            row.classList.toggle('d-none', !visible);
+                            row.querySelectorAll('select').forEach(function (select) {
+                                select.disabled = !visible;
+                            });
+                        });
+                        if (scope === 'educations') {
+                            if (updateMethod) updateMethod.checked = true;
+                            if (upsertMethod) upsertMethod.disabled = true;
+                            if (upsertWrapper) upsertWrapper.classList.add('d-none');
+                            if (methodHelp) methodHelp.textContent = 'As formações serão vinculadas somente a usuários já existentes.';
+                            if (scopeHelp) scopeHelp.textContent = 'Altera somente formações de usuários já existentes. Os demais campos da planilha são ignorados.';
+                        } else {
+                            if (upsertMethod) upsertMethod.disabled = false;
+                            if (upsertWrapper) upsertWrapper.classList.remove('d-none');
+                            if (methodHelp) methodHelp.textContent = 'Para criar novos, associe também nome, e-mail, usuário, departamento e cargo.';
+                            if (scopeHelp) scopeHelp.textContent = scope === 'both'
+                                ? 'Processa os dados exclusivos e uma formação por linha.'
+                                : 'Processa somente os campos exclusivos do cadastro; colunas de formação são ignoradas.';
+                        }
+                        refreshAvailableColumns();
+                    }
+
                     selects.forEach(function (sel) {
                         sel.addEventListener('change', function () {
                             updateExample(sel);
                             refreshAvailableColumns();
                         });
                     });
+                    scopeRadios.forEach(function (radio) {
+                        radio.addEventListener('change', refreshScope);
+                    });
 
-                    refreshAvailableColumns();
+                    refreshScope();
                 })();
                 </script>
 
@@ -219,6 +289,12 @@ if (is_array($suggested)) {
                         <li>Confirme a importação.</li>
                     </ol>
                 </div>
+                <div class="alert alert-light border small mb-3">
+                    <strong>Formações:</strong> cada linha aceita uma formação. Para importar várias para o mesmo usuário,
+                    repita a chave (CPF, usuário ou ID) em linhas diferentes. Sem <code>formacao_id</code>, o sistema cria
+                    ou atualiza pela combinação tipo + curso + instituição; com o ID, atualiza o registro exato.
+                    Use <code>formacao_acao=excluir</code> com o ID para remover. Comprovantes são anexados somente na edição manual do usuário.
+                </div>
 
                 <form action="" method="POST" enctype="multipart/form-data" class="row g-3">
                     <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_import_users'); ?>">
@@ -227,6 +303,28 @@ if (is_array($suggested)) {
                         <label class="form-label fw-semibold">Arquivo</label>
                         <input type="file" name="file" class="form-control" accept=".xlsx,.xls,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv" required>
                         <small class="text-muted">Recomendado: <strong>Salvar como → Pasta de Trabalho do Excel (.xlsx)</strong> e enviar esse arquivo. CSV também é aceito.</small>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold">O que importar</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="import_scope" id="scope_users" value="users" <?php echo $mappingScope === 'users' ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="scope_users">
+                                <strong>Somente dados do usuário</strong> — uma linha por usuário; ignora colunas <code>formacao_*</code>
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="import_scope" id="scope_educations" value="educations" <?php echo $mappingScope === 'educations' ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="scope_educations">
+                                <strong>Somente formações</strong> — várias linhas por usuário; não altera os dados exclusivos
+                            </label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="radio" name="import_scope" id="scope_both" value="both" <?php echo $mappingScope === 'both' ? 'checked' : ''; ?>>
+                            <label class="form-check-label" for="scope_both">
+                                <strong>Dados do usuário + formações</strong> — processa os dois grupos no mesmo arquivo
+                            </label>
+                        </div>
                     </div>
 
                     <div class="col-12">
@@ -282,6 +380,11 @@ if (is_array($suggested)) {
                         <span class="badge text-bg-secondary">Ignorados: <?php echo (int)$s['skipped']; ?></span>
                     <?php endif; ?>
                     <span class="badge text-bg-danger">Erros: <?php echo (int)$s['errors']; ?></span>
+                    <?php if (isset($s['formationsCreated'])): ?>
+                        <span class="badge text-bg-success">Formações criadas: <?php echo (int)$s['formationsCreated']; ?></span>
+                        <span class="badge text-bg-primary">Formações atualizadas: <?php echo (int)$s['formationsUpdated']; ?></span>
+                        <span class="badge text-bg-danger">Formações excluídas: <?php echo (int)$s['formationsDeleted']; ?></span>
+                    <?php endif; ?>
                 </div>
                 <div class="table-responsive">
                     <table class="table table-sm table-striped align-middle">

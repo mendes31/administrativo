@@ -1,5 +1,5 @@
 <h1>Visualizar Usuário</h1>
-<p>Exibe os dados de um registro de <strong>Visualizar Usuário</strong> em modo somente leitura, com atalhos para editar ou excluir quando permitido.</p>
+<p>Centraliza a conferência do colaborador: dados pessoais, endereço, vínculo, status, permissões, histórico de admissões e formações acadêmicas. A tela é somente leitura; alterações são feitas pelos atalhos autorizados.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Cadastro de usuários</em> (<code>cad-usuarios</code>) para o fluxo completo da área.</p>
 
@@ -8,13 +8,18 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, clique em <strong>Visualizar</strong> no registro desejado.</li>
-    <li>Revise ID, datas de cadastro/edição e observações.</li>
+    <li>Revise os dados cadastrais e a seção <strong>Formações acadêmicas e cursos</strong>.</li>
+    <li>Quando houver comprovante, clique em <strong>Baixar</strong>. O arquivo é entregue por rota autenticada e não por endereço público.</li>
     <li>Use os botões do cabeçalho para ir à listagem, editar ou consultar log de alterações.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Dados exibidos</strong> Espelham o estado atual do registro no banco; use Editar para modificar.</div>
+<div class="help-field"><strong>Dados cadastrais</strong> Mostra contatos, CPF, nascimento, escolaridade geral, endereço, departamento, cargo, turno, vínculo e condições de acesso.</div>
+<div class="help-field"><strong>Histórico de vínculos</strong> Apresenta admissões, desligamentos, duração e classificação de impacto mantidos pelo RH.</div>
+<div class="help-field"><strong>Formações acadêmicas e cursos</strong> Lista tipo, nome, instituição, situação, período, carga horária e existência de comprovante. Várias formações podem pertencer ao mesmo usuário.</div>
+<div class="help-field"><strong>Permissões / níveis de acesso</strong> Disponível com <em>UpdateUserAccessLevels</em>. Os níveis <em>Canal de Denúncias — Operador</em> e <em>Canal de Denúncias — Administrador</em> só podem ser marcados ou desmarcados por <em>Super Administrador</em> ou <em>Super usuário</em>; demais administradores veem esses switches bloqueados. Membros de comitê recebem Operador automaticamente ao serem vinculados ao comitê.</div>
+<div class="help-field"><strong>Gerenciar</strong> Disponível para quem possui <em>UpdateUser</em>; abre diretamente a aba Formações da edição.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -22,6 +27,8 @@
     <dd>Permissão <em>ViewUser</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Não consigo marcar níveis do Canal de Denúncias</dt>
+    <dd>Somente Super Administrador ou Super usuário pode atribuir esses níveis. Solicite a um administrador com acesso total ou inclua a pessoa no comitê correspondente (Operador é concedido automaticamente).</dd>
+    <dt>Comprovante não abre</dt>
+    <dd>O arquivo pode ter sido removido do armazenamento ou você não possui mais acesso à tela <em>ViewUser</em>. Solicite ao RH a conferência do cadastro.</dd>
 </dl>

@@ -8,14 +8,19 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Use as abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong> e <strong>Dados Contratuais</strong> para alterar só o necessário.</li>
+    <li>Use as abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong>, <strong>Dados Contratuais</strong> e <strong>Formações</strong> para alterar só o necessário.</li>
+    <li>Em <strong>Formações</strong>, clique em <em>Adicionar formação</em>, informe tipo, curso e situação; instituição, datas, carga horária, observações e comprovante são opcionais.</li>
     <li>Salve as alterações e confira a mensagem de retorno.</li>
     <li>Teste com um usuário do perfil impactado (logout/login) se mudou permissões ou status.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso), Dados Pessoais, Endereço e Dados Contratuais (empresa, matrícula, vínculo e desligamento).</div>
+<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso), Dados Pessoais, Endereço, Dados Contratuais (empresa, matrícula, vínculo e desligamento) e Formações.</div>
+<div class="help-field"><strong>Aba ativa</strong> A URL acompanha a aba selecionada. Ao atualizar o navegador, a edição permanece na mesma aba.</div>
+<div class="help-field"><strong>Formações</strong> Aceita vários cursos, graduações, pós-graduações, MBAs, mestrados e doutorados para o mesmo usuário. O campo geral <em>Escolaridade</em> continua representando o maior grau de instrução.</div>
+<div class="help-field"><strong>Comprovante</strong> Opcional por formação. Formatos: PDF, JPG, PNG, WEBP, DOC ou DOCX, até 10 MB. O arquivo é privado e baixado somente por usuário autenticado com acesso à visualização do cadastro.</div>
+<div class="help-field"><strong>Excluir ou substituir</strong> Marque <em>Excluir</em> para remover toda a formação. Para trocar o comprovante, selecione outro arquivo; para retirar apenas o arquivo, marque <em>Remover comprovante</em>.</div>
 <div class="help-field"><strong>E-mail pessoal e endereço</strong> Opcionais. Endereço: priorize busca por CEP (ViaCEP), como no CRM; e-mail pessoal é distinto do e-mail corporativo de login.</div>
 <div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
 
@@ -27,4 +32,8 @@
     <dd>Permissão <em>UpdateUser</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
+    <dt>Comprovante não foi aceito</dt>
+    <dd>Confira o formato e o limite de 10 MB. Renomear um arquivo para outra extensão não altera o tipo real e será rejeitado.</dd>
+    <dt>Não encontro a aba Formações</dt>
+    <dd>A aba aparece na edição de um usuário já cadastrado e exige a permissão <em>UpdateUser</em>.</dd>
 </dl>

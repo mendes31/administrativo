@@ -11,9 +11,11 @@ use App\adms\Helpers\UserFormHelper;
 use App\adms\Controllers\Services\SecurityService;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
+use App\adms\Models\Repository\UserEducationsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WorkShiftsRepository;
 use App\adms\Models\Services\SuperUsuarioAccessLevelsSyncService;
+use App\adms\Models\Services\UserEducationService;
 use App\adms\Views\Services\LoadViewService;
 
 // Reforço do carregamento do .env
@@ -115,6 +117,11 @@ class UpdateUser
         $listWorkShifts = new WorkShiftsRepository();
         $this->data['listWorkShifts'] = $listWorkShifts->getAllWorkShiftsSelect();
 
+        $postedEducations = $_POST['educations'] ?? null;
+        $this->data['educations'] = is_array($postedEducations)
+            ? $postedEducations
+            : (new UserEducationsRepository())->getByUserId((int) ($this->data['form']['id'] ?? 0));
+
         // Contar quantos subordinados este usuário tem
         $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
         $subordinatesInfo = $hierarchyService::checkSubordinates((int)$this->data['form']['id']);
@@ -162,6 +169,13 @@ class UpdateUser
         // Instanciar a classe validar os dados do formulário
         $validationUser = new ValidationUserRakitService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
+        $educationRows = is_array($_POST['educations'] ?? null) ? $_POST['educations'] : [];
+        $educationFiles = is_array($_FILES['education_files'] ?? null) ? $_FILES['education_files'] : null;
+        $educationService = new UserEducationService();
+        $this->data['errors'] = array_merge(
+            $this->data['errors'],
+            $educationService->validateRows($educationRows, $educationFiles)
+        );
 
         // Acessa o IF quando existir campo com dados incorretos
         if (!empty($this->data['errors'])) {
@@ -271,6 +285,24 @@ class UpdateUser
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
+            try {
+                $educationService->saveRows(
+                    $targetUserId,
+                    $educationRows,
+                    $educationFiles,
+                    (int) ($_SESSION['user_id'] ?? 0) ?: null
+                );
+            } catch (\Throwable $e) {
+                GenerateLog::generateLog('error', 'Falha ao guardar formações do usuário.', [
+                    'user_id' => $targetUserId,
+                    'error' => $e->getMessage(),
+                ]);
+                $_SESSION['error'] = 'Os dados do usuário foram atualizados, mas não foi possível guardar as formações: '
+                    . $e->getMessage();
+                header("Location: {$_ENV['URL_ADM']}update-user/{$targetUserId}");
+                return;
+            }
+
             $superLevelsSyncFailed = false;
             if ($oldSuperFlag !== $newSuperFlag) {
                 try {
