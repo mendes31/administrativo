@@ -458,6 +458,37 @@ class PagesRepository extends DbConnection
     }
 
     /**
+     * IDs das páginas ativas pertencentes a um grupo (por nome do grupo).
+     *
+     * @return list<int>
+     */
+    public function getPageIdsByGroupName(string $groupName): array
+    {
+        if ($groupName === '') {
+            return [];
+        }
+
+        $sql = 'SELECT ap.id
+                FROM adms_pages AS ap
+                INNER JOIN adms_groups_pages AS agp ON agp.id = ap.adms_groups_page_id
+                WHERE agp.name = :group_name';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':group_name', $groupName, PDO::PARAM_STR);
+        $stmt->execute();
+
+        $ids = $stmt->fetchAll(PDO::FETCH_COLUMN, 0);
+        if (!is_array($ids)) {
+            return [];
+        }
+
+        return array_values(array_filter(
+            array_map(static fn($v): int => (int) $v, $ids),
+            static fn(int $id): bool => $id > 0
+        ));
+    }
+
+    /**
      * Página ativa e (pública ou padrão na matriz): garante permission = 1 em todos os níveis de acesso.
      * Mesma regra da migration `20260418100000_sync_public_default_pages_permissions_all_levels` e do seed `SyncAccessLevelsPages`.
      */

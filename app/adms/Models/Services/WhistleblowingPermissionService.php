@@ -6,6 +6,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\MenuPermissionUserRepository;
+use App\adms\Models\Repository\PagesRepository;
 use App\adms\Models\Repository\UsersAccessLevelsRepository;
 use App\adms\Models\Repository\WhistleblowingCommitteesRepository;
 
@@ -17,6 +18,9 @@ final class WhistleblowingPermissionService
     public const OPERATOR_LEVEL_NAME = 'Canal de Denúncias — Operador';
 
     public const ADMIN_LEVEL_NAME = 'Canal de Denúncias — Administrador';
+
+    /** Nome do grupo de páginas do módulo no cadastro de páginas/permissões. */
+    public const GROUP_NAME = 'Canal de Denúncias';
 
     /** @var list<string> */
     private const ADMIN_CONTROLLERS = [
@@ -172,5 +176,16 @@ final class WhistleblowingPermissionService
         }
 
         return $ids;
+    }
+
+    /**
+     * IDs das páginas do grupo "Canal de Denúncias" (público + gestão interna).
+     * Usado para ocultar/bloquear o grupo na matriz de permissões de níveis.
+     *
+     * @return list<int>
+     */
+    public static function channelGroupPageIds(): array
+    {
+        return (new PagesRepository())->getPageIdsByGroupName(self::GROUP_NAME);
     }
 }

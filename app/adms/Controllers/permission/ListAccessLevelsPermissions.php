@@ -11,6 +11,7 @@ use App\adms\Models\Repository\AccessLevelsPagesRepository;
 use App\adms\Models\Repository\AccessLevelsRepository;
 use App\adms\Models\Repository\MenuPermissionUserRepository;
 use App\adms\Models\Repository\PagesRepository;
+use App\adms\Models\Services\WhistleblowingPermissionService;
 use App\adms\Views\Services\LoadViewService;
 
 class ListAccessLevelsPermissions
@@ -41,6 +42,16 @@ class ListAccessLevelsPermissions
         $permissions = isset($_POST['permissions']) && is_array($_POST['permissions']) ? $_POST['permissions'] : [];
         // Remover chave 0 para evitar Duplicate entry '0' na tabela adms_access_levels_pages
         unset($permissions[0]);
+
+        // As páginas do grupo Canal de Denúncias só podem ser concedidas/removidas por
+        // Super Administrador / Super usuário. Para os demais, descartamos qualquer alteração
+        // nessas páginas (as concessões atuais no banco são preservadas).
+        if (!WhistleblowingPermissionService::canManageAccessLevelsAssignment()) {
+            foreach (WhistleblowingPermissionService::channelGroupPageIds() as $protectedPageId) {
+                unset($permissions[$protectedPageId]);
+            }
+        }
+
         $this->data['form'] = [
             'csrf_token'            => $_POST['csrf_token'] ?? '',
             'adms_access_level_id'  => isset($_POST['adms_access_level_id']) ? (int) $_POST['adms_access_level_id'] : 0,
@@ -156,6 +167,18 @@ class ListAccessLevelsPermissions
         // Recuperar as páginas associadas ao nível de acesso
         $listPages = new PagesRepository();
         $this->data['pages'] = $listPages->getAllPagesFull();
+
+        // Ocultar o grupo Canal de Denúncias da matriz para quem não é Super Administrador /
+        // Super usuário: evita expor o módulo e reduz dúvidas quanto ao anonimato do canal.
+        if (!WhistleblowingPermissionService::canManageAccessLevelsAssignment()) {
+            $protectedPages = array_flip(WhistleblowingPermissionService::channelGroupPageIds());
+            if (!empty($protectedPages) && is_array($this->data['pages'])) {
+                $this->data['pages'] = array_values(array_filter(
+                    $this->data['pages'],
+                    static fn($page): bool => !isset($protectedPages[(int) ($page['id'] ?? 0)])
+                ));
+            }
+        }
         
         // Recuperar as permissões do nível de acesso
         $listAccessLevelsPages = new AccessLevelsPagesRepository();
