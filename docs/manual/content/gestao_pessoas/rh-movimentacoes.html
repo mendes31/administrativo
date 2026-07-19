@@ -1,0 +1,22 @@
+<h1>Movimentações organizacionais</h1>
+<p>Registra transferência, promoção e mudanças de cargo/departamento/gestor, aplicando a nova lotação em <code>adms_users</code>.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> cadastro de usuários (<code>view-user</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissões <em>RhMovimentacoes</em>, <em>RhMovimentacoesCreate</em> e <em>RhMovimentacoesView</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <em>Gestão de Pessoas → Recrutamento → Movimentações</em>.</li>
+    <li>Clique em <strong>Nova movimentação</strong>.</li>
+    <li>Escolha o colaborador, tipo, vigência, lotação de destino e motivo.</li>
+    <li>Salve: o sistema grava o histórico e atualiza departamento/cargo/gestor do usuário.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Erro “nenhuma alteração”</dt>
+    <dd>O destino precisa diferir da lotação atual em pelo menos um campo.</dd>
+    <dt>Página não encontrada</dt>
+    <dd>Execute a migration <code>20260719242000_create_rh_movimentacoes</code>.</dd>
+</dl>

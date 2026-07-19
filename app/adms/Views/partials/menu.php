@@ -947,6 +947,12 @@ $menus = [
                         'permission' => 'RhEntrevistas',
                         'icon' => 'fas fa-calendar-alt'
                     ],
+                    [
+                        'label' => 'Movimentações',
+                        'url' => $_ENV['URL_ADM'] . 'rh-movimentacoes',
+                        'permission' => 'RhMovimentacoes',
+                        'icon' => 'fas fa-people-arrows'
+                    ],
                 ]
             ],
         ]

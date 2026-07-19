@@ -1533,6 +1533,16 @@
                     "file": "gestao_pessoas/rh-onboarding.html"
                 },
                 {
+                    "id": "rh-experiencia",
+                    "title": "Período de experiência",
+                    "file": "gestao_pessoas/rh-experiencia.html"
+                },
+                {
+                    "id": "rh-movimentacoes",
+                    "title": "Movimentações organizacionais",
+                    "file": "gestao_pessoas/rh-movimentacoes.html"
+                },
+                {
                     "id": "rh-vagas-pipeline",
                     "title": "Pipeline da Vaga (Kanban)",
                     "file": "gestao_pessoas/rh-vagas-pipeline.html"

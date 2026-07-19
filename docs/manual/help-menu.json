@@ -1263,6 +1263,16 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "rh-experiencia",
+                                    "title": "Período de experiência"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "rh-movimentacoes",
+                                    "title": "Movimentações organizacionais"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "rh-personnel-requests",
                                     "title": "Requisições de Pessoal"
                                 }

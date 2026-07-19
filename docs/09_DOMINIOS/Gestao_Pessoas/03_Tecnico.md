@@ -107,6 +107,8 @@ Toda mudança estrutural deve:
 - [Oferta e pré-admissão — Expand](OFERTA_PREADMISSAO_EXPAND.md)
 - [Conversão oferta → colaborador — Expand](CONVERSAO_ADMISSAO_EXPAND.md)
 - [Onboarding pós-conversão — Expand](ONBOARDING_EXPAND.md)
+- [Período de experiência — Expand](EXPERIENCIA_EXPAND.md)
+- [Movimentações organizacionais — Expand](MOVIMENTACOES_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

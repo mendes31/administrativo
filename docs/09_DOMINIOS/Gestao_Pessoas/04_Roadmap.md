@@ -70,11 +70,11 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 ## Fase 4 — Núcleo de pessoas e jornada
 
-- Pessoa, Conta, Vínculo e Lotação por Expand/Contract;
 - [x] onboarding pós-conversão (checklist) — [ONBOARDING_EXPAND.md](ONBOARDING_EXPAND.md);
-- experiência;
-- movimentações;
+- [x] período de experiência (90 dias + avaliação/prorrogação) — [EXPERIENCIA_EXPAND.md](EXPERIENCIA_EXPAND.md);
+- [x] movimentações organizacionais (histórico + aplicação em `adms_users`) — [MOVIMENTACOES_EXPAND.md](MOVIMENTACOES_EXPAND.md);
 - offboarding;
+- Pessoa, Conta, Vínculo e Lotação por Expand/Contract;
 - integração progressiva com DP e SST.
 
 ## Fase 5 — Desenvolvimento
