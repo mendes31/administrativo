@@ -47,10 +47,12 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
-        $statusValidos = ['candidatado', 'em_entrevista', 'aprovado', 'reprovado', 'desistiu'];
-        if (!in_array($status, $statusValidos, true)) {
+        if (!\App\adms\Models\Services\RhPipelineStageCatalog::isValidCode($status)) {
             echo json_encode(['success' => false, 'message' => 'Status inválido.']);
             exit;
+        }
+        if ($status === 'em_analise') {
+            $status = 'em_entrevista';
         }
 
         if ($motivoCodigo === '') {

@@ -47,6 +47,10 @@ Linha do tempo na ficha do candidato (`RhCandidatosView`).
 
 Catálogo: `RhCandidaturaMotivoCatalog`. Pipeline e select da vaga exigem `motivo_codigo`; entrevista preenche automaticamente `APROVADO_ENTREVISTA` / `REPROVADO_ENTREVISTA`. `OUTRO` exige observação.
 
+## Etapas (Expand)
+
+Ver [ETAPAS_PIPELINE_EXPAND.md](ETAPAS_PIPELINE_EXPAND.md).
+
 ## Migration
 
 `database/migrations/20260719140000_create_rh_candidaturas_historico.php`

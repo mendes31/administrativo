@@ -35,6 +35,7 @@ class RhVagasView
         $this->data['vaga'] = $vaga;
         $this->data['candidatos'] = $repo->getCandidatosByVaga((int)$id);
         $this->data['can_manage_pipeline'] = RhPermissionService::canManagePipeline($vaga);
+        $this->data['pipeline_stages'] = \App\adms\Models\Services\RhPipelineStageCatalog::all();
         
         // Buscar todos os candidatos disponíveis para vincular (exceto os já vinculados)
         $candidatosVinculadosIds = array_column($this->data['candidatos'], 'rh_candidato_id');

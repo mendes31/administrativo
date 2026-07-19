@@ -34,6 +34,7 @@ class RhVagasPipeline
         // Carregar candidatos vinculados para o board Kanban
         $candidatos = $repo->getCandidatosByVaga($vagaId);
         $this->data['candidatos'] = $candidatos;
+        $this->data['pipeline_stages'] = \App\adms\Models\Services\RhPipelineStageCatalog::all();
 
         // Permissão para gerenciar pipeline (drag & drop)
         $this->data['can_manage_pipeline'] = RhPermissionService::canManagePipeline($vaga);

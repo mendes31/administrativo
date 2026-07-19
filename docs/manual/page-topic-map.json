@@ -235,6 +235,7 @@
     "rh-entrevistas-view": "rh-entrevistas",
     "rh-kpi-dashboard": "rh-kpi-dashboard",
     "rh-vagas": "rh-vagas",
+    "rh-vagas-view": "rh-vagas",
     "rh-vagas-pipeline": "rh-vagas-pipeline",
     "pipeline": "rh-vagas-pipeline",
     "rh-atualizar-status-candidatura": "rh-vagas-pipeline",

@@ -6,39 +6,21 @@ $csrfTokenStatus = CSRFHelper::generateCSRFToken('form_rh_atualizar_status_candi
 
 $vaga = $this->data['vaga'] ?? [];
 $candidatos = $this->data['candidatos'] ?? [];
+$pipelineStages = $this->data['pipeline_stages']
+    ?? \App\adms\Models\Services\RhPipelineStageCatalog::all();
 
-// Agrupar candidatos por status do vínculo
-$colunas = [
-    'candidatado' => [
-        'titulo' => 'Candidatado',
-        'classe' => 'bg-light',
-        'itens'  => [],
-    ],
-    'em_entrevista' => [
-        'titulo' => 'Em Entrevista',
-        'classe' => 'bg-warning-subtle',
-        'itens'  => [],
-    ],
-    'aprovado' => [
-        'titulo' => 'Aprovado',
-        'classe' => 'bg-success-subtle',
-        'itens'  => [],
-    ],
-    'reprovado' => [
-        'titulo' => 'Reprovado',
-        'classe' => 'bg-danger-subtle',
-        'itens'  => [],
-    ],
-    'desistiu' => [
-        'titulo' => 'Desistiu',
-        'classe' => 'bg-secondary-subtle',
-        'itens'  => [],
-    ],
-];
+// Agrupar candidatos por status do vínculo (etapas do catálogo)
+$colunas = [];
+foreach ($pipelineStages as $stage) {
+    $colunas[$stage['code']] = [
+        'titulo' => $stage['label'],
+        'classe' => $stage['column_class'],
+        'itens' => [],
+    ];
+}
 
 foreach ($candidatos as $cand) {
     $status = $cand['status'] ?? 'candidatado';
-    // Normalizar valor legado para exibição
     if ($status === 'em_analise') {
         $status = 'em_entrevista';
     }
@@ -202,13 +184,7 @@ foreach ($candidatos as $cand) {
 
 <script>
 const motivosPorStatus = <?= json_encode(\App\adms\Models\Services\RhCandidaturaMotivoCatalog::allGrouped(), JSON_UNESCAPED_UNICODE) ?>;
-const statusTitulos = {
-    candidatado: 'Candidatado',
-    em_entrevista: 'Em Entrevista',
-    aprovado: 'Aprovado',
-    reprovado: 'Reprovado',
-    desistiu: 'Desistiu'
-};
+const statusTitulos = <?= json_encode(\App\adms\Models\Services\RhPipelineStageCatalog::labelsMap(), JSON_UNESCAPED_UNICODE) ?>;
 
 let kanbanDraggedCard = null;
 let pendingKanbanMove = null;

@@ -214,15 +214,23 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                                         data-candidato-id="<?= $cand['rh_candidato_id'] ?>"
                                                         data-vaga-id="<?= (int)($this->data['vaga']['id'] ?? 0) ?>"
                                                         style="min-width: 140px;">
-                                                    <option value="candidatado" <?= ($cand['status'] ?? '') === 'candidatado' ? 'selected' : '' ?>>Candidatado</option>
-                                                    <option value="em_entrevista" <?= in_array($cand['status'] ?? '', ['em_entrevista', 'em_analise'], true) ? 'selected' : '' ?>>Em Entrevista</option>
-                                                    <option value="aprovado" <?= ($cand['status'] ?? '') === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
-                                                    <option value="reprovado" <?= ($cand['status'] ?? '') === 'reprovado' ? 'selected' : '' ?>>Reprovado</option>
-                                                    <option value="desistiu" <?= ($cand['status'] ?? '') === 'desistiu' ? 'selected' : '' ?>>Desistiu</option>
+                                                    <?php
+                                                    $statusAtualCand = ($cand['status'] ?? '') === 'em_analise'
+                                                        ? 'em_entrevista'
+                                                        : ($cand['status'] ?? 'candidatado');
+                                                    $stagesSelect = $this->data['pipeline_stages']
+                                                        ?? \App\adms\Models\Services\RhPipelineStageCatalog::all();
+                                                    foreach ($stagesSelect as $stage):
+                                                    ?>
+                                                        <option value="<?= htmlspecialchars($stage['code']) ?>"
+                                                            <?= $statusAtualCand === $stage['code'] ? 'selected' : '' ?>>
+                                                            <?= htmlspecialchars($stage['label']) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
                                                 </select>
                                             <?php else: ?>
                                                 <span class="badge bg-secondary">
-                                                    <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $cand['status'] ?? 'candidatado'))) ?>
+                                                    <?= htmlspecialchars(\App\adms\Models\Services\RhPipelineStageCatalog::label((string) ($cand['status'] ?? 'candidatado'))) ?>
                                                 </span>
                                             <?php endif; ?>
                                         </td>

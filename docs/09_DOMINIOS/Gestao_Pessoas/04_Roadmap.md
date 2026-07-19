@@ -41,7 +41,7 @@ Saída: recursos críticos possuem regra explícita e eventos têm proprietário
 - [x] histórico imutável (`rh_candidaturas_historico` + dual-write nas transições);
 - [x] motivos estruturados (catálogo PHP + obrigatório no pipeline);
 - [x] service transacional unificado de movimentação (entrevista + vínculo + histórico);
-- [ ] etapas configuráveis;
+- [x] etapas configuráveis (Expand: rótulo/ordem/classe dos 5 códigos em `rh_pipeline_stages`);
 - [ ] status geral como projeção documentada/consumida pelo histórico;
 - [ ] requisição de pessoal e aprovação.
 

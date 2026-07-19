@@ -93,6 +93,7 @@ Toda mudança estrutural deve:
 - [Matriz de autorização — Talentos](MATRIZ_AUTORIZACAO_TALENTOS.md)
 - [Catálogo de eventos — Talentos](CATALOGO_EVENTOS_TALENTOS.md)
 - [Histórico imutável — Expand](HISTORICO_CANDIDATURA_EXPAND.md)
+- [Etapas do pipeline — Expand](ETAPAS_PIPELINE_EXPAND.md)
 
 ## Referências
 
