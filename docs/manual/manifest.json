@@ -1493,6 +1493,11 @@
                     "file": "gestao_pessoas/list-performance-feedbacks.html"
                 },
                 {
+                    "id": "list-performance-cycles",
+                    "title": "Ciclos de Desempenho",
+                    "file": "gestao_pessoas/list-performance-cycles.html"
+                },
+                {
                     "id": "list-performance-goals",
                     "title": "Listar Metas de Desempenho",
                     "file": "gestao_pessoas/list-performance-goals.html"

@@ -60,13 +60,25 @@ use App\adms\Helpers\FormatHelper;
                     </select>
                 </div>
                 <div class="col-md-3">
+                    <label for="performance_cycle_id" class="form-label small">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <?php foreach ($this->data['cycles'] ?? [] as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>"
+                                <?= ((int) ($this->data['filters']['performance_cycle_id'] ?? 0) === (int) $cycle['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cycle['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label for="search" class="form-label small">Buscar</label>
                     <input type="text" name="search" id="search" class="form-control form-control-sm" 
                            placeholder="Título da meta..." value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
                 </div>
-                <div class="col-md-2 d-flex align-items-end gap-2">
+                <div class="col-md-1 d-flex align-items-end gap-2">
                     <button type="submit" class="btn btn-primary btn-sm">
-                        <i class="fas fa-search me-1"></i>Filtrar
+                        <i class="fas fa-search me-1"></i>
                     </button>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-performance-goals?limpar=1" class="btn btn-secondary btn-sm">
                         <i class="fas fa-times"></i>
@@ -87,6 +99,7 @@ use App\adms\Helpers\FormatHelper;
                             <tr>
                                 <th>Título</th>
                                 <th>Colaborador</th>
+                                <th>Ciclo</th>
                                 <th>Tipo</th>
                                 <th>Progresso</th>
                                 <th>Prazo</th>
@@ -131,6 +144,15 @@ use App\adms\Helpers\FormatHelper;
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars($goal['employee_name'] ?? '') ?></td>
+                                    <td>
+                                        <?php if (!empty($goal['cycle_name'])): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-performance-cycle/<?= (int) ($goal['performance_cycle_id'] ?? 0) ?>" class="text-decoration-none">
+                                                <?= htmlspecialchars($goal['cycle_name']) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td>
                                         <span class="badge bg-info"><?= $typeLabel ?></span>
                                     </td>

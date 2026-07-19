@@ -91,6 +91,18 @@ use App\adms\Helpers\CSRFHelper;
                             <p class="mb-0"><i class="fas fa-user me-2"></i><?= htmlspecialchars($goal['employee_name'] ?? '') ?></p>
                         </div>
                         <div class="col-md-6">
+                            <h6 class="text-muted">Ciclo</h6>
+                            <p class="mb-0">
+                                <?php if (!empty($goal['cycle_name'])): ?>
+                                    <a href="<?php echo $_ENV['URL_ADM']; ?>view-performance-cycle/<?= (int) ($goal['performance_cycle_id'] ?? 0) ?>">
+                                        <?= htmlspecialchars($goal['cycle_name']) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="text-muted">Sem ciclo</span>
+                                <?php endif; ?>
+                            </p>
+                        </div>
+                        <div class="col-md-6">
                             <h6 class="text-muted">Tipo</h6>
                             <p class="mb-0"><span class="badge bg-info"><?= $typeLabel ?></span></p>
                         </div>

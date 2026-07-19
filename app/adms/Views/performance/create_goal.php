@@ -36,6 +36,20 @@ use App\adms\Helpers\CSRFHelper;
                 </div>
                 
                 <div class="col-md-6">
+                    <label for="performance_cycle_id" class="form-label">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select">
+                        <option value="">Sem ciclo (legado)</option>
+                        <?php foreach (($this->data['cycles'] ?? []) as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>">
+                                <?= htmlspecialchars($cycle['name']) ?>
+                                (<?= htmlspecialchars($cycle['status']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="form-text text-muted">Somente ciclos em rascunho ou abertos.</small>
+                </div>
+                
+                <div class="col-md-6">
                     <label for="goal_type" class="form-label">Tipo de Meta <span class="text-danger">*</span></label>
                     <select name="goal_type" id="goal_type" class="form-select" required>
                         <option value="individual" selected>Individual</option>

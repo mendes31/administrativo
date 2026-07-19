@@ -1,0 +1,31 @@
+<h1>Ciclos de Desempenho</h1>
+<p>Cadastro e gestão de <strong>ciclos</strong> que agrupam metas e (futuramente) avaliações de desempenho no módulo Gestão de Pessoas.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Desempenho</em> (<code>gp-desempenho</code>) e <em>Listar Metas de Desempenho</em>.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ListPerformanceCycles</em>. Criar/editar exigem <em>CreatePerformanceCycle</em> e <em>UpdatePerformanceCycle</em>.</p>
+
+<h2>Fluxo principal (passo a passo)</h2>
+<ol>
+    <li>Acesse o menu <strong>Gestão de Pessoas → Desempenho → Ciclos</strong>.</li>
+    <li>Clique em <strong>Novo Ciclo</strong> e informe nome, ano, período e status (<em>Rascunho</em>, <em>Aberto</em> ou <em>Fechado</em>).</li>
+    <li>Abra o ciclo para acompanhar quantas metas e avaliações já estão vinculadas.</li>
+    <li>Ao cadastrar ou editar uma <strong>meta</strong>, selecione o ciclo (somente rascunho/aberto aceitam novos vínculos).</li>
+    <li>Feche o ciclo quando o período terminar — metas já vinculadas permanecem; novas não podem ser ligadas a ele.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Nome</strong> Identificação do ciclo (ex.: Ciclo 2026 H1).</div>
+<div class="help-field"><strong>Ano</strong> Ano civil de referência para filtros e relatórios.</div>
+<div class="help-field"><strong>Período (início/fim)</strong> Vigência do ciclo; a data final deve ser maior ou igual à inicial.</div>
+<div class="help-field"><strong>Status</strong> Rascunho (planejamento), Aberto (aceita metas), Fechado (somente leitura para novos vínculos; não reabre).</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu Ciclos</dt>
+    <dd>Permissão <em>ListPerformanceCycles</em> ausente. Após a migration, o acesso é espelhado de quem já tinha Metas; peça inclusão no nível de acesso se necessário.</dd>
+    <dt>Não consigo vincular meta ao ciclo</dt>
+    <dd>O ciclo está <em>Fechado</em> ou não existe. Abra um ciclo em rascunho/aberto ou crie um novo.</dd>
+    <dt>Erro 006 / página não encontrada</dt>
+    <dd>Confirme que a migration <code>20260719250000_create_adms_performance_cycles</code> rodou em produção e que o deploy enviou os controllers em <code>performance/</code>.</dd>
+</dl>

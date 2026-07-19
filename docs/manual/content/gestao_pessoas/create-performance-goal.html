@@ -1,30 +1,27 @@
 <h1>Criar Meta de Desempenho</h1>
-<p>Cadastra um novo registro em <strong>Criar Meta de Desempenho</strong>. Preencha os campos obrigatórios e salve; o registro passará a aparecer nas listagens e poderá receber permissões conforme o pacote.</p>
+<p>Cadastra uma nova <strong>meta (OKR)</strong> para um colaborador, com progresso, prazo e vínculo opcional a um <strong>ciclo</strong> de desempenho.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Desempenho</em> (<code>gp-desempenho</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral:</strong> veja também <em>Listar Metas</em> e <em>Ciclos de Desempenho</em>.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>CreatePerformanceGoal</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>CreatePerformanceGoal</em>.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-performance-goal</code>).</li>
-    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
-    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
-    <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
-    <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
+    <li>Em <strong>Metas (OKRs)</strong>, clique em <strong>Nova Meta</strong>.</li>
+    <li>Selecione o colaborador e, se desejar, o <strong>ciclo</strong> (somente rascunho/aberto).</li>
+    <li>Informe título, tipo, valores alvo/atual, prazo e status.</li>
+    <li>Salve e confira a meta na listagem (filtre pelo ciclo se necessário).</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
-<div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
+<div class="help-field"><strong>Ciclo</strong> Opcional. Agrupa a meta no período; ciclo fechado não aparece para novos vínculos.</div>
+<div class="help-field"><strong>Valor alvo / atual</strong> Se ambos forem informados, o progresso (%) é calculado automaticamente.</div>
+<div class="help-field"><strong>Peso</strong> Importância relativa da meta (padrão 1,0).</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>CreatePerformanceGoal</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Lista de ciclos vazia</dt>
+    <dd>Cadastre e abra um ciclo em <em>Desempenho → Ciclos</em>.</dd>
+    <dt>Mensagem “ciclo fechado”</dt>
+    <dd>Escolha outro ciclo ou reabra o período criando um ciclo novo (fechados não reabrem).</dd>
 </dl>

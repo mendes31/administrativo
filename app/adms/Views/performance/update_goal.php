@@ -37,6 +37,20 @@ $goal = $this->data['goal'] ?? [];
                         <?php endforeach; ?>
                     </select>
                 </div>
+
+                <div class="col-md-6">
+                    <label for="performance_cycle_id" class="form-label">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select">
+                        <option value="">Sem ciclo (legado)</option>
+                        <?php foreach (($this->data['cycles'] ?? []) as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>"
+                                <?= ((int) ($goal['performance_cycle_id'] ?? 0) === (int) $cycle['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cycle['name']) ?>
+                                (<?= htmlspecialchars($cycle['status']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 
                 <div class="col-md-6">
                     <label for="goal_type" class="form-label">Tipo de Meta <span class="text-danger">*</span></label>

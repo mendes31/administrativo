@@ -5,8 +5,10 @@ namespace App\adms\Controllers\performance;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceGoalsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PerformanceCycleService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -51,6 +53,25 @@ class UpdatePerformanceGoal
             });
         }
 
+        $cyclesRepo = new PerformanceCyclesRepository();
+        $this->data['cycles'] = $cyclesRepo->listLinkable();
+        $currentCycleId = (int) ($this->data['goal']['performance_cycle_id'] ?? 0);
+        if ($currentCycleId > 0) {
+            $currentCycle = $cyclesRepo->getById($currentCycleId);
+            if ($currentCycle) {
+                $alreadyListed = false;
+                foreach ($this->data['cycles'] as $c) {
+                    if ((int) $c['id'] === $currentCycleId) {
+                        $alreadyListed = true;
+                        break;
+                    }
+                }
+                if (!$alreadyListed) {
+                    $this->data['cycles'][] = $currentCycle;
+                }
+            }
+        }
+
         $pageElements = [
             'title_head' => 'Editar Meta de Desempenho',
             'menu' => 'update-performance-goal',
@@ -77,6 +98,7 @@ class UpdatePerformanceGoal
 
         $data = [
             'employee_id' => (int)($_POST['employee_id'] ?? 0),
+            'performance_cycle_id' => !empty($_POST['performance_cycle_id']) ? (int) $_POST['performance_cycle_id'] : null,
             'goal_title' => trim($_POST['goal_title'] ?? ''),
             'goal_description' => trim($_POST['goal_description'] ?? ''),
             'goal_type' => $_POST['goal_type'] ?? 'individual',
@@ -93,6 +115,19 @@ class UpdatePerformanceGoal
         if (empty($data['goal_title'])) {
             $_SESSION['error'] = 'Título da meta é obrigatório.';
             return;
+        }
+
+        $currentCycleId = !empty($this->data['goal']['performance_cycle_id'])
+            ? (int) $this->data['goal']['performance_cycle_id']
+            : null;
+        $requestedCycleId = $data['performance_cycle_id'];
+        if ($requestedCycleId !== $currentCycleId) {
+            $cycleCheck = (new PerformanceCycleService())->assertGoalMayLink($requestedCycleId);
+            if (!$cycleCheck['ok']) {
+                $_SESSION['error'] = $cycleCheck['error'] ?? 'Ciclo inválido.';
+                return;
+            }
+            $data['performance_cycle_id'] = $cycleCheck['cycle_id'];
         }
 
         // Calcular progresso se tiver valores

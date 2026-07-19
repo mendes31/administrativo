@@ -1110,6 +1110,17 @@
                         },
                         {
                             "type": "group",
+                            "label": "Ciclos de Desempenho",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-performance-cycles",
+                                    "title": "Ciclos de Desempenho"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
                             "label": "Metas (OKRs)",
                             "children": [
                                 {

@@ -4,6 +4,7 @@ namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceGoalsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -44,6 +45,9 @@ class ListPerformanceGoals
         }
         if (isset($_GET['goal_type']) && $_GET['goal_type'] !== '') {
             $filters['goal_type'] = $_GET['goal_type'];
+        }
+        if (!empty($_GET['performance_cycle_id'])) {
+            $filters['performance_cycle_id'] = (int) $_GET['performance_cycle_id'];
         }
         if (isset($_GET['search']) && !empty($_GET['search'])) {
             $filters['search'] = $_GET['search'];
@@ -88,6 +92,8 @@ class ListPerformanceGoals
                 return isset($user['immediate_supervisor']) && $user['immediate_supervisor'] == $userId;
             });
         }
+
+        $this->data['cycles'] = (new PerformanceCyclesRepository())->getAll([], 1, 200);
 
         // Configurar elementos da página
         $pageElements = [

@@ -10,6 +10,7 @@ Talentos, Jornada, Desenvolvimento, Portal e People Analytics.
 - Recrutamento possui núcleo funcional, mas pipeline e histórico são limitados;
 - Treinamentos e Folha Digital são os blocos mais consistentes;
 - Portal, solicitações, desempenho e analytics são parciais;
+- Ciclos de desempenho passam a ancorar metas (Expand Fase 5); avaliações ainda com período solto;
 - PDI possui preparação estrutural, sem módulo operacional;
 - onboarding e offboarding são ações pontuais;
 - `adms_users` centraliza corretamente o acesso, mas acumula identidade, vínculo

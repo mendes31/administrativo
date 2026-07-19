@@ -5,8 +5,10 @@ namespace App\adms\Controllers\performance;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceGoalsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PerformanceCycleService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -36,6 +38,9 @@ class CreatePerformanceGoal
             });
         }
 
+        $cyclesRepo = new PerformanceCyclesRepository();
+        $this->data['cycles'] = $cyclesRepo->listLinkable();
+
         $pageElements = [
             'title_head' => 'Criar Meta de Desempenho',
             'menu' => 'create-performance-goal',
@@ -62,6 +67,7 @@ class CreatePerformanceGoal
 
         $data = [
             'employee_id' => (int)($_POST['employee_id'] ?? 0),
+            'performance_cycle_id' => !empty($_POST['performance_cycle_id']) ? (int) $_POST['performance_cycle_id'] : null,
             'goal_title' => trim($_POST['goal_title'] ?? ''),
             'goal_description' => trim($_POST['goal_description'] ?? ''),
             'goal_type' => $_POST['goal_type'] ?? 'individual',
@@ -84,6 +90,13 @@ class CreatePerformanceGoal
             $_SESSION['error'] = 'Título da meta é obrigatório.';
             return;
         }
+
+        $cycleCheck = (new PerformanceCycleService())->assertGoalMayLink($data['performance_cycle_id']);
+        if (!$cycleCheck['ok']) {
+            $_SESSION['error'] = $cycleCheck['error'] ?? 'Ciclo inválido.';
+            return;
+        }
+        $data['performance_cycle_id'] = $cycleCheck['cycle_id'];
 
         // Calcular progresso se tiver valores
         if (!empty($data['target_value']) && !empty($data['current_value'])) {

@@ -17,14 +17,20 @@ class PerformanceGoalsRepository extends DbConnection
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_performance_goals 
-                (performance_review_id, employee_id, goal_title, goal_description, goal_type,
+                (performance_review_id, performance_cycle_id, employee_id, goal_title, goal_description, goal_type,
                  target_value, current_value, unit, deadline, weight, status, progress_percentage)
                 VALUES 
-                (:performance_review_id, :employee_id, :goal_title, :goal_description, :goal_type,
+                (:performance_review_id, :performance_cycle_id, :employee_id, :goal_title, :goal_description, :goal_type,
                  :target_value, :current_value, :unit, :deadline, :weight, :status, :progress_percentage)";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':performance_review_id', $data['performance_review_id'] ?? null, PDO::PARAM_INT);
+        $cycleId = $data['performance_cycle_id'] ?? null;
+        if ($cycleId === null || $cycleId === '' || (int) $cycleId <= 0) {
+            $stmt->bindValue(':performance_cycle_id', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':performance_cycle_id', (int) $cycleId, PDO::PARAM_INT);
+        }
         $stmt->bindValue(':employee_id', $data['employee_id'], PDO::PARAM_INT);
         $stmt->bindValue(':goal_title', $data['goal_title']);
         $stmt->bindValue(':goal_description', $data['goal_description'] ?? null);
@@ -64,9 +70,11 @@ class PerformanceGoalsRepository extends DbConnection
     public function getById(int $id): ?array
     {
         $sql = "SELECT pg.*, 
-                       e.name as employee_name, e.email as employee_email
+                       e.name as employee_name, e.email as employee_email,
+                       c.name as cycle_name, c.status as cycle_status
                 FROM adms_performance_goals pg
                 INNER JOIN adms_users e ON pg.employee_id = e.id
+                LEFT JOIN adms_performance_cycles c ON c.id = pg.performance_cycle_id
                 WHERE pg.id = :id";
         
         $stmt = $this->getConnection()->prepare($sql);
@@ -105,6 +113,11 @@ class PerformanceGoalsRepository extends DbConnection
             $where[] = 'pg.goal_type = :goal_type';
             $params[':goal_type'] = $filters['goal_type'];
         }
+
+        if (!empty($filters['performance_cycle_id'])) {
+            $where[] = 'pg.performance_cycle_id = :performance_cycle_id';
+            $params[':performance_cycle_id'] = (int) $filters['performance_cycle_id'];
+        }
         
         // Permissões
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
@@ -115,9 +128,10 @@ class PerformanceGoalsRepository extends DbConnection
             $params[':user_id'] = $userId;
         }
         
-        $sql = "SELECT pg.*, e.name as employee_name
+        $sql = "SELECT pg.*, e.name as employee_name, c.name as cycle_name
                 FROM adms_performance_goals pg
                 INNER JOIN adms_users e ON pg.employee_id = e.id
+                LEFT JOIN adms_performance_cycles c ON c.id = pg.performance_cycle_id
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY pg.deadline ASC, pg.created_at DESC
                 LIMIT :limit OFFSET :offset";
@@ -143,10 +157,10 @@ class PerformanceGoalsRepository extends DbConnection
         
         $allowedFields = ['goal_title', 'goal_description', 'goal_type', 'target_value', 
                          'current_value', 'unit', 'deadline', 'weight', 'status', 
-                         'progress_percentage', 'achieved_at'];
+                         'progress_percentage', 'achieved_at', 'performance_cycle_id'];
         
         foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $fields[] = "{$field} = :{$field}";
                 $values[":{$field}"] = $data[$field];
             }
@@ -165,8 +179,12 @@ class PerformanceGoalsRepository extends DbConnection
         $oldRow = $this->getById($id);
 
         foreach ($values as $key => $value) {
+            if ($key === ':performance_cycle_id' && ($value === null || $value === '' || (int) $value <= 0)) {
+                $stmt->bindValue($key, null, PDO::PARAM_NULL);
+                continue;
+            }
             $type = PDO::PARAM_STR;
-            if ($key === ':id' || $key === ':progress_percentage') {
+            if ($key === ':id' || $key === ':progress_percentage' || $key === ':performance_cycle_id') {
                 $type = PDO::PARAM_INT;
             }
             $stmt->bindValue($key, $value, $type);
@@ -237,6 +255,11 @@ class PerformanceGoalsRepository extends DbConnection
         if (!empty($filters['goal_type'])) {
             $where[] = 'pg.goal_type = :goal_type';
             $params[':goal_type'] = $filters['goal_type'];
+        }
+
+        if (!empty($filters['performance_cycle_id'])) {
+            $where[] = 'pg.performance_cycle_id = :performance_cycle_id';
+            $params[':performance_cycle_id'] = (int) $filters['performance_cycle_id'];
         }
         
         // Permissões

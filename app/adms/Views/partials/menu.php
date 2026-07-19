@@ -822,6 +822,11 @@ $menus = [
                 'icon' => 'fa-solid fa-chart-line',
                 'submenu' => [
                     [
+                        'label' => 'Ciclos',
+                        'url' => $_ENV['URL_ADM'] . 'list-performance-cycles',
+                        'permission' => 'ListPerformanceCycles'
+                    ],
+                    [
                         'label' => 'Avaliações de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-reviews',
                         'permission' => 'ListPerformanceReviews'
