@@ -111,6 +111,16 @@ final class RhConversaoAdmissaoService
                 $actorId
             );
 
+            $dataAdmissao = trim((string) ($input['data_admissao'] ?? ''));
+            $experiencia = (new RhExperienciaService())->criarAPartirDaConversao(
+                (int) $conversaoId,
+                $userId,
+                $candidatoId,
+                $onboarding['plano_id'],
+                $actorId,
+                $dataAdmissao !== '' ? $dataAdmissao : null
+            );
+
             $pdo->commit();
 
             return [
@@ -118,6 +128,7 @@ final class RhConversaoAdmissaoService
                 'adms_user_id' => $userId,
                 'modo' => $modo,
                 'onboarding_plano_id' => $onboarding['plano_id'],
+                'experiencia_id' => $experiencia['experiencia_id'],
             ];
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {

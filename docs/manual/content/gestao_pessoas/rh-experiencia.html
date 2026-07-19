@@ -1,0 +1,27 @@
+<h1>Período de experiência</h1>
+<p>Acompanha a vigência de 90 dias do colaborador convertido e registra aprovação, reprovação ou prorrogação única.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> <em>Onboarding</em> (<code>rh-onboarding</code>) e <em>Ofertas</em> (<code>rh-ofertas</code>).</p>
+
+<p><strong>Quem acessa:</strong> usuários com <em>RhExperienciaView</em> e permissão de gerenciar o pipeline da vaga de origem (ou Super Admin).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Após converter a oferta, o período é criado automaticamente (início = data de admissão; fim = +90 dias).</li>
+    <li>Abra pela oferta convertida (<em>Período de experiência</em>) ou pelo onboarding.</li>
+    <li>Quando chegar a hora, <strong>Aprove</strong>, <strong>Reprove</strong> (motivo obrigatório) ou <strong>Prorrogar</strong> uma vez (padrão 45 dias).</li>
+</ol>
+
+<h2>Regras importantes</h2>
+<ul>
+    <li>Só uma prorrogação por período.</li>
+    <li>Reprovar <strong>não</strong> desliga o usuário automaticamente neste incremento.</li>
+</ul>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o link</dt>
+    <dd>A conversão precisa ter ocorrido após a migration <code>20260719241000_create_rh_periodos_experiencia</code>.</dd>
+    <dt>Não consigo prorrogar de novo</dt>
+    <dd>A prorrogação é única por desenho.</dd>
+</dl>

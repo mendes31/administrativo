@@ -45,7 +45,7 @@ Status por item: `pendente|em_andamento|concluido|dispensado`.
 - templates por cargo/área;
 - notificações/outbox de tarefas;
 - portal do colaborador para auto-conclusão;
-- período de experiência formal;
+- período de experiência formal (ver [EXPERIENCIA_EXPAND.md](EXPERIENCIA_EXPAND.md));
 - tabelas Pessoa/Vínculo/Lotação.
 
 ## Migration

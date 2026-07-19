@@ -81,6 +81,12 @@ $statusClass = match ($status) {
                             Abrir onboarding
                         </a>
                     <?php endif; ?>
+                    <?php if (!empty($this->data['experiencia']['id'])): ?>
+                        ·
+                        <a href="<?= htmlspecialchars((string) ($_ENV['URL_ADM'] ?? '') . 'rh-experiencia-view/' . (int) $this->data['experiencia']['id'], ENT_QUOTES, 'UTF-8') ?>">
+                            Período de experiência
+                        </a>
+                    <?php endif; ?>
                 </div>
             <?php elseif ($canManage && $status === RhOfertasRepository::STATUS_ACEITA && !empty($this->data['buttonPermission']['RhOfertasConvert'])): ?>
                 <div class="mt-3">

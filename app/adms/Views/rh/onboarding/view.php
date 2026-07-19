@@ -50,6 +50,20 @@ $statusClass = match ($status) {
             </div>
             <p class="small text-muted mb-0">O plano conclui automaticamente quando todos os itens obrigatórios estiverem concluídos ou dispensados.</p>
 
+            <?php
+            $experienciaLink = null;
+            if (!empty($p['rh_conversao_id'])) {
+                $experienciaLink = (new \App\adms\Models\Repository\RhPeriodosExperienciaRepository())
+                    ->getByConversaoId((int) $p['rh_conversao_id']);
+            }
+            if (!empty($experienciaLink['id'])): ?>
+                <p class="mt-2 mb-0">
+                    <a href="<?= htmlspecialchars((string) ($_ENV['URL_ADM'] ?? '') . 'rh-experiencia-view/' . (int) $experienciaLink['id'], ENT_QUOTES, 'UTF-8') ?>">
+                        Ver período de experiência
+                    </a>
+                </p>
+            <?php endif; ?>
+
             <?php if ($canManage && $status === RhOnboardingRepository::STATUS_EM_ANDAMENTO): ?>
                 <form method="post" class="mt-3">
                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">

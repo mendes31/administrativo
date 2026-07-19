@@ -43,23 +43,28 @@ final class RhOfertasView
         $canManage = RhPermissionService::canManagePipelineByVagaId((int) $oferta['rh_vaga_id']);
         $conversao = null;
         $onboardingPlano = null;
+        $experiencia = null;
         if (!empty($oferta['rh_conversao_id'])) {
+            $conversaoId = (int) $oferta['rh_conversao_id'];
             $conversao = (new \App\adms\Models\Repository\RhConversoesAdmissaoRepository())
                 ->getByOfertaId($ofertaId);
             $onboardingPlano = (new \App\adms\Models\Repository\RhOnboardingRepository())
-                ->getPlanoByConversaoId((int) $oferta['rh_conversao_id']);
+                ->getPlanoByConversaoId($conversaoId);
+            $experiencia = (new \App\adms\Models\Repository\RhPeriodosExperienciaRepository())
+                ->getByConversaoId($conversaoId);
         }
 
         $this->data = [
             'title_head' => 'Oferta #' . $ofertaId,
             'menu' => 'rh-ofertas-view',
-            'buttonPermission' => ['RhOfertasView', 'RhOfertasConvert', 'RhOnboardingView', 'RhCandidatos', 'RhVagas'],
+            'buttonPermission' => ['RhOfertasView', 'RhOfertasConvert', 'RhOnboardingView', 'RhExperienciaView', 'RhCandidatos', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_oferta_action'),
             'oferta' => $oferta,
             'documentos' => $repo->listDocumentos($ofertaId),
             'can_manage' => $canManage,
             'conversao' => $conversao,
             'onboarding_plano' => $onboardingPlano,
+            'experiencia' => $experiencia,
         ];
 
         $pageLayout = new PageLayoutService();
