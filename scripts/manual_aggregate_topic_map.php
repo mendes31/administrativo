@@ -154,6 +154,7 @@ function buildManualAggregateTopicMap(): array
     $add([
         'rh-kpi-dashboard', 'rh-candidatos', 'rh-vagas', 'rh-entrevistas',
         'rh-entrevistas-resend-comunicacao', 'rh-entrevistas-view-all', 'rh-entrevistas-delete',
+        'vagas-abertas',
         'create-rh-vaga', 'update-rh-vaga', 'view-rh-candidato',
     ], 'gp-recrutamento');
 

@@ -1513,6 +1513,11 @@
                     "file": "gestao_pessoas/rh-vagas.html"
                 },
                 {
+                    "id": "vagas-abertas",
+                    "title": "Vagas abertas (portal público)",
+                    "file": "gestao_pessoas/vagas-abertas.html"
+                },
+                {
                     "id": "rh-vagas-pipeline",
                     "title": "Pipeline da Vaga (Kanban)",
                     "file": "gestao_pessoas/rh-vagas-pipeline.html"

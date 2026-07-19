@@ -148,7 +148,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                 <?php if (!empty($v['publicado_em'])): ?>
                                     <small class="text-muted">(desde <?= FormatHelper::formatDateTime($v['publicado_em']) ?>)</small>
                                 <?php endif; ?>
-                                <br><small class="text-muted">Portal público ainda não está ativo; a flag prepara a vaga.</small>
+                                <br><small class="text-muted">Visível em <code>vagas-abertas</code> (somente leitura; candidatura online ainda não).</small>
                             <?php else: ?>
                                 Não
                             <?php endif; ?>

@@ -47,6 +47,7 @@ class LoadPageAdm
     private array $listPgPublic = [
         "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin",
         "MeetingBookingRsvp",
+        "RhVagasPublicas",
         // Servidor de arquivos foi tornado público para evitar problemas
         // de permissão com avatares e imagens em dashboards, mantendo ainda
         // toda a validação de caminho dentro do próprio FileServer.
@@ -165,7 +166,7 @@ class LoadPageAdm
         "RhCandidatosViewAll",
         "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete", "RhVagasPipeline",
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
-        "RhVagasViewAll",
+        "RhVagasViewAll", "RhVagasPublicas",
         "RhPersonnelRequests", "RhPersonnelRequestsCreate", "RhPersonnelRequestsView",
         "RhPersonnelRequestsApprove", "RhPersonnelRequestsReject", "RhPersonnelRequestsConvert",
         "RhKpiDashboard",

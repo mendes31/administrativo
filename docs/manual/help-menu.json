@@ -1243,6 +1243,11 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "vagas-abertas",
+                                    "title": "Vagas abertas (portal público)"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "rh-personnel-requests",
                                     "title": "Requisições de Pessoal"
                                 }

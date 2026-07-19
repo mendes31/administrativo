@@ -63,7 +63,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 ## Fase 3 — Portal público e pré-admissão
 
-- [x] publicação de vagas (flag admin `publicada`/`publicado_em`; portal ainda não) — [PUBLICACAO_VAGAS_EXPAND.md](PUBLICACAO_VAGAS_EXPAND.md);
+- [x] publicação de vagas (flag admin `publicada`/`publicado_em` + listagem pública somente leitura em `vagas-abertas`) — [PUBLICACAO_VAGAS_EXPAND.md](PUBLICACAO_VAGAS_EXPAND.md);
 - candidatura e consentimento;
 - CAPTCHA e deduplicação;
 - oferta, aceite e documentos;

@@ -221,6 +221,98 @@ class RhVagasRepository extends DbConnection
     }
 
     /**
+     * Colunas seguras para o portal público (sem observações/responsável internos).
+     */
+    private const PUBLIC_SELECT = 'v.id, v.titulo, v.descricao, v.requisitos, v.beneficios,
+                    v.tipo_contrato, v.salario_min, v.salario_max, v.mostrar_salario,
+                    v.quantidade_vagas, v.local_trabalho, v.jornada_trabalho,
+                    v.data_abertura, v.data_limite_inscricao,
+                    d.name AS area_nome,
+                    p.name AS cargo_nome';
+
+    /**
+     * Listagem pública: publicada + aberta + dentro do prazo (se houver).
+     *
+     * @param array{titulo?: string} $filters
+     * @return array{data: list<array<string, mixed>>, total: int}
+     */
+    public function listPublicadas(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(50, $perPage));
+        $offset = ($page - 1) * $perPage;
+        $where = [
+            'v.publicada = 1',
+            "v.status = 'aberta'",
+            '(v.data_limite_inscricao IS NULL OR v.data_limite_inscricao >= NOW())',
+        ];
+        $params = [];
+
+        if (!empty($filters['titulo'])) {
+            $where[] = 'v.titulo LIKE :titulo';
+            $params[':titulo'] = '%' . $filters['titulo'] . '%';
+        }
+
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) AS total FROM rh_vagas v {$whereSql}";
+        $stmtCount = $this->getConnection()->prepare($sqlCount);
+        foreach ($params as $key => $value) {
+            $stmtCount->bindValue($key, $value);
+        }
+        $stmtCount->execute();
+        $total = (int) ($stmtCount->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        $sql = 'SELECT ' . self::PUBLIC_SELECT . "
+                FROM rh_vagas v
+                LEFT JOIN adms_departments d ON d.id = v.area_id
+                LEFT JOIN adms_positions p ON p.id = v.cargo_id
+                {$whereSql}
+                ORDER BY v.publicado_em DESC, v.data_abertura DESC, v.id DESC
+                LIMIT :limit OFFSET :offset";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [],
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Detalhe público. Retorna null se não publicada/aberta/fora do prazo (evita IDOR).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getPublicadaById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $sql = 'SELECT ' . self::PUBLIC_SELECT . "
+                FROM rh_vagas v
+                LEFT JOIN adms_departments d ON d.id = v.area_id
+                LEFT JOIN adms_positions p ON p.id = v.cargo_id
+                WHERE v.id = :id
+                  AND v.publicada = 1
+                  AND v.status = 'aberta'
+                  AND (v.data_limite_inscricao IS NULL OR v.data_limite_inscricao >= NOW())
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
      * Lista vagas com filtros e paginação.
      */
     public function getAll(array $filters, int $page, int $perPage): array

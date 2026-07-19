@@ -36,7 +36,7 @@ final class VagasPublicacaoContractTest extends TestCase
         self::assertStringContainsString('status Aberta', $validation);
     }
 
-    public function testAdminUiExposesToggleAndFilterWithoutPublicRoute(): void
+    public function testAdminUiExposesToggleAndFilter(): void
     {
         $create = $this->readProjectFile('app/adms/Views/rh/vagas/create.php');
         $edit = $this->readProjectFile('app/adms/Views/rh/vagas/edit.php');
@@ -47,10 +47,6 @@ final class VagasPublicacaoContractTest extends TestCase
         self::assertStringContainsString('form[publicada]', $edit);
         self::assertStringContainsString('name="publicada"', $list);
         self::assertStringContainsString("'publicada'", $controller);
-
-        $routes = $this->readProjectFile('routes/LoadPageAdm.php');
-        self::assertStringNotContainsString('RhVagasPublic', $routes);
-        self::assertStringNotContainsString('portal-vagas', $routes);
     }
 
     private function readProjectFile(string $relativePath): string

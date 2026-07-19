@@ -1,0 +1,23 @@
+<h1>Vagas abertas (portal público)</h1>
+<p>Página pública (sem login) que lista e detalha vagas marcadas como publicadas no ATS.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> gestão interna em <em>Listar Vagas</em> (<code>rh-vagas</code>).</p>
+
+<p><strong>Quem acessa:</strong> qualquer visitante (página pública). Não exige permissão ACL.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <code>{URL_ADM}vagas-abertas</code>.</li>
+    <li>Busque por título, se quiser, e abra o detalhe da vaga.</li>
+    <li>Consulte descrição, requisitos e benefícios. O salário só aparece se o RH marcou <em>Mostrar salário</em>.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo a vaga que o RH publicou</dt>
+    <dd>A vaga precisa estar <em>publicada</em>, com status <em>Aberta</em> e dentro do prazo de inscrição (se houver). Peça ao RH para conferir esses campos.</dd>
+    <dt>Não consigo me candidatar pela página</dt>
+    <dd>A candidatura online ainda não está disponível neste incremento. Use os canais oficiais do RH.</dd>
+    <dt>Erro 006 / página não encontrada após deploy</dt>
+    <dd>Execute a migration <code>20260719236000_register_rh_vagas_publicas_page</code>.</dd>
+</dl>

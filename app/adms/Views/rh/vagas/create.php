@@ -124,7 +124,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_vaga');
                             <input type="checkbox" name="form[publicada]" id="publicada" class="form-check-input" value="1"
                                    <?= !empty($this->data['form']['publicada']) ? 'checked' : '' ?>>
                         </div>
-                        <div class="form-text">Só com status Aberta. O portal público ainda não está ativo.</div>
+                        <div class="form-text">Só com status Aberta. Aparece em <code>vagas-abertas</code> (somente leitura).</div>
                     </div>
                     <div class="col-md-3 mb-2">
                         <label for="quantidade_vagas" class="form-label">Quantidade de Vagas</label>
