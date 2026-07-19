@@ -12,13 +12,19 @@ Saída: conceitos e ownership registrados; conflitos conhecidos explicitados.
 
 ## Fase 0 — Segurança, LGPD, integridade e testes
 
-- storage privado e download autorizado de currículos;
-- MIME, tamanho, CSRF e proteção de uploads;
-- retenção, anonimização e exclusão física;
-- FKs, constraints, estados e transações críticas;
-- testes de candidatos, vagas, pipeline, entrevistas e autorização.
+- [x] storage privado e download autorizado de currículos;
+- [x] MIME, tamanho, CSRF e proteção de uploads (currículos);
+- [x] retenção, anonimização e exclusão física (currículos);
+- [x] movimentação de pipeline atômica + autorização/CSRF de vagas/entrevistas;
+- [ ] FKs/constraints adicionais e substituições em massa atômicas;
+- [x] testes de caracterização de currículos e pipeline.
 
 Saída: riscos críticos contidos e regressões principais protegidas.
+
+Diagnósticos:
+
+- [Currículos](SEG_CURRICULOS_DIAGNOSTICO.md)
+- [Pipeline / integridade](SEG_PIPELINE_INTEGRIDADE.md)
 
 ## Fase 0.5 — Autorização e eventos
 

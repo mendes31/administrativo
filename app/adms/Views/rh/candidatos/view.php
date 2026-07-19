@@ -1,5 +1,7 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\CSRFHelper;
+$csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -336,6 +338,7 @@ use App\adms\Helpers\FormatHelper;
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
                         <form id="formVincularVaga">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfVincular) ?>">
                             <div class="modal-body">
                                 <input type="hidden" name="candidato_id" value="<?= (int)($this->data['candidato']['id'] ?? 0) ?>">
                                 <div class="mb-3">

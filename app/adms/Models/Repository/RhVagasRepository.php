@@ -339,7 +339,17 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':status', 'candidatado', PDO::PARAM_STR);
             $stmt->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
-            return $stmt->execute();
+            if (!$stmt->execute()) {
+                return false;
+            }
+
+            $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
+            $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
+            if ($novoStatus) {
+                $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatus);
+            }
+
+            return true;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao vincular candidato à vaga.', [
                 'vaga_id'     => $vagaId,
@@ -351,14 +361,15 @@ class RhVagasRepository extends DbConnection
     }
 
     /**
-     * Atualiza status do vínculo candidato-vaga.
+     * Atualiza status do vínculo candidato-vaga de forma atômica:
+     * UPDATE do vínculo + recalculo do status geral + reflexos de entrevista.
      */
     public function atualizarStatusVinculo(int $vagaId, int $candidatoId, string $status, ?string $observacoes = null): bool
     {
-        try {
-            $pdo = $this->getConnection();
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
 
-            // Bloquear movimentação de pipeline para vagas encerradas/canceladas
+        try {
             $vaga = $this->getById($vagaId);
             if (!$vaga) {
                 throw new Exception('Vaga não encontrada.');
@@ -381,45 +392,44 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
             $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
 
-            $ok = $stmt->execute();
-            if (!$ok) {
+            if (!$stmt->execute()) {
                 $errorInfo = $stmt->errorInfo();
-                $msg = $errorInfo[2] ?? 'Erro desconhecido ao atualizar vínculo candidato-vaga.';
-                throw new Exception($msg);
+                throw new Exception($errorInfo[2] ?? 'Erro desconhecido ao atualizar vínculo candidato-vaga.');
             }
 
-            // Se atualizou o vínculo, recalcular o status_processo geral do candidato
-            // baseado em todos os seus vínculos (considerando múltiplas vagas)
-            if ($ok) {
-                $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
-                $novoStatusProcesso = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
-                
-                if ($novoStatusProcesso) {
-                    $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatusProcesso);
-                }
+            if ($stmt->rowCount() < 1) {
+                throw new Exception('Candidato não está vinculado a esta vaga.');
+            }
 
-                // Ao mover para "Em Entrevista", criar registro de entrevista (padrão em ATS)
-                if ($status === 'em_entrevista') {
-                    $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
-                    $entrevistasRepo->criarAoMoverParaEmEntrevista($candidatoId, $vagaId);
-                }
-
-                // Ao mover para Aprovado/Reprovado no pipeline, refletir na entrevista
-                if (in_array($status, ['aprovado', 'reprovado'], true)) {
-                    $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
-                    $entrevistasRepo->atualizarResultadoPorCandidatoVaga($candidatoId, $vagaId, $status);
+            $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
+            $novoStatusProcesso = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
+            if ($novoStatusProcesso) {
+                if (!$candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatusProcesso)) {
+                    throw new Exception('Falha ao recalcular o status geral do candidato.');
                 }
             }
 
-            return $ok;
+            $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
+            if ($status === 'em_entrevista') {
+                $entrevistasRepo->criarAoMoverParaEmEntrevista($candidatoId, $vagaId);
+            }
+            if (in_array($status, ['aprovado', 'reprovado'], true)) {
+                $entrevistasRepo->atualizarResultadoPorCandidatoVaga($candidatoId, $vagaId, $status);
+            }
+
+            $pdo->commit();
+
+            return true;
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             GenerateLog::generateLog('error', 'Erro ao atualizar status do vínculo.', [
-                'vaga_id'      => $vagaId,
+                'vaga_id' => $vagaId,
                 'candidato_id' => $candidatoId,
-                'status'       => $status,
-                'error'        => $e->getMessage(),
+                'status' => $status,
+                'error' => $e->getMessage(),
             ]);
-            // Propagar a exceção para que o controller possa retornar a mensagem ao frontend
             throw $e;
         }
     }
@@ -476,7 +486,20 @@ class RhVagasRepository extends DbConnection
             $stmt = $pdo->prepare('DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id');
             $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
             $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
-            return $stmt->execute();
+            if (!$stmt->execute()) {
+                return false;
+            }
+
+            $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
+            $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
+            if ($novoStatus) {
+                $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatus);
+            } else {
+                // Sem vínculos ativos: volta ao estado base de recebido/candidatado
+                $candRepo->atualizarStatusProcessoSimples($candidatoId, 'candidatado');
+            }
+
+            return true;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao desvincular candidato da vaga.', [
                 'vaga_id'      => $vagaId,

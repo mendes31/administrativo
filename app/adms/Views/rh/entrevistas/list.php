@@ -1,5 +1,7 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\CSRFHelper;
+$csrfDeleteEntrevista = CSRFHelper::generateCSRFToken('form_delete_rh_entrevista');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -198,6 +200,7 @@ function confirmarExclusao(id, label) {
     document.getElementById('btnConfirmarExcluir').onclick = function() {
         const formData = new FormData();
         formData.append('id', id);
+        formData.append('csrf_token', <?= json_encode($csrfDeleteEntrevista) ?>);
         fetch('<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-delete', {
             method: 'POST',
             body: formData

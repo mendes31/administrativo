@@ -103,5 +103,29 @@ class RhPermissionService extends DbConnection
 
         return self::canManagePipeline($vaga);
     }
+
+    /**
+     * Verifica se o usuário pode gerenciar a entrevista (pela vaga ou pelo candidato).
+     *
+     * @param array<string, mixed> $entrevista
+     */
+    public static function canManageEntrevista(array $entrevista): bool
+    {
+        if (self::isSuperAdmin()) {
+            return true;
+        }
+
+        $vagaId = (int) ($entrevista['rh_vaga_id'] ?? 0);
+        if ($vagaId > 0) {
+            return self::canManagePipelineByVagaId($vagaId);
+        }
+
+        $candidatoId = (int) ($entrevista['rh_candidato_id'] ?? 0);
+        if ($candidatoId > 0) {
+            return \App\adms\Models\Services\RhCandidatoPermissionService::canAccessCandidato($candidatoId);
+        }
+
+        return false;
+    }
 }
 

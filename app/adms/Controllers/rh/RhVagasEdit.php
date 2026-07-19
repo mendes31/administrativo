@@ -4,6 +4,7 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\LogJustificativasRepository;
@@ -78,13 +79,26 @@ class RhVagasEdit
 
     private function update(RhVagasRepository $repo): void
     {
+        $csrfToken = $_POST['csrf_token'] ?? '';
+        if (!CSRFHelper::validateCSRFToken('form_edit_rh_vaga', $csrfToken)) {
+            $_SESSION['error'] = 'Token de segurança inválido ou expirado. Recarregue a página e tente novamente.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas');
+            return;
+        }
+
         $form = $_POST['form'] ?? [];
         $this->data['form'] = $form;
 
-        $id = (int)($form['id'] ?? 0);
+        $id = (int) ($form['id'] ?? 0);
         if ($id <= 0) {
             $_SESSION['error'] = "ID inválido.";
             header("Location: {$_ENV['URL_ADM']}rh-vagas");
+            return;
+        }
+
+        if (!RhPermissionService::canEditVagaById($id)) {
+            $_SESSION['error'] = 'Você não tem permissão para editar esta vaga.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas-view/' . $id);
             return;
         }
 

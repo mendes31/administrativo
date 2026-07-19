@@ -31,6 +31,12 @@ class RhEntrevistasEdit
             return;
         }
 
+        if (!\App\adms\Models\Services\RhPermissionService::canManageEntrevista($entrevista)) {
+            $_SESSION['error'] = 'Você não tem permissão para editar esta entrevista.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-entrevistas');
+            return;
+        }
+
         $this->data['entrevista'] = $entrevista;
         $this->data['form'] = $_POST['form'] ?? [
             'rh_candidato_id'   => $entrevista['rh_candidato_id'],
@@ -65,14 +71,12 @@ class RhEntrevistasEdit
                 $form['resultado'] = 'agendado';
             }
             if ($repo->update($id, $form)) {
-                // Refletir resultado da entrevista no pipeline (vínculo candidato-vaga)
-                $candidatoId = (int)($entrevista['rh_candidato_id'] ?? 0);
-                $vagaId = (int)($entrevista['rh_vaga_id'] ?? 0);
+                // Refletir resultado da entrevista no pipeline (mesma autorização já validada)
+                $candidatoId = (int) ($entrevista['rh_candidato_id'] ?? 0);
+                $vagaId = (int) ($entrevista['rh_vaga_id'] ?? 0);
                 if ($candidatoId > 0 && $vagaId > 0 && in_array($resultadoForm, ['aprovado', 'reprovado'], true)) {
-                    if (\App\adms\Models\Services\RhPermissionService::canManagePipelineByVagaId($vagaId)) {
-                        $vagaRepo = new RhVagasRepository();
-                        $vagaRepo->atualizarStatusVinculo($vagaId, $candidatoId, $resultadoForm, null);
-                    }
+                    $vagaRepo = new RhVagasRepository();
+                    $vagaRepo->atualizarStatusVinculo($vagaId, $candidatoId, $resultadoForm, null);
                 }
                 $_SESSION['success'] = "Entrevista atualizada com sucesso!";
                 header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");

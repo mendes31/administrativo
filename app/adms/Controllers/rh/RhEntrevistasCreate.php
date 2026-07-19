@@ -37,6 +37,17 @@ class RhEntrevistasCreate
                 return;
             }
 
+            $entrevistaAuth = [
+                'rh_candidato_id' => (int) ($form['rh_candidato_id'] ?? 0),
+                'rh_vaga_id' => (int) ($form['rh_vaga_id'] ?? 0),
+            ];
+            if (!\App\adms\Models\Services\RhPermissionService::canManageEntrevista($entrevistaAuth)) {
+                $_SESSION['error'] = 'Você não tem permissão para agendar entrevista neste contexto.';
+                $this->data['form'] = $form;
+                $this->viewForm();
+                return;
+            }
+
             $repo = new RhEntrevistasRepository();
             $id = $repo->create($form);
             if ($id) {

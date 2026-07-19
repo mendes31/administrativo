@@ -87,6 +87,7 @@ Toda mudança estrutural deve:
 ## Diagnósticos
 
 - [Segurança e LGPD — Currículos (ATS)](SEG_CURRICULOS_DIAGNOSTICO.md)
+- [Integridade — Pipeline ATS](SEG_PIPELINE_INTEGRIDADE.md)
 
 ## Referências
 
