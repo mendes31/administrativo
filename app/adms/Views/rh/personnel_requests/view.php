@@ -1,4 +1,5 @@
 <?php
+/** Detalhe da requisição de pessoal (aprovação / conversão). */
 use App\adms\Helpers\FormatHelper;
 $r = $this->data['request'] ?? [];
 $status = $r['status'] ?? '';

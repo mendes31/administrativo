@@ -54,6 +54,26 @@ function deployFeatureManifestMap(): array
             'app/adms/Views/policies/view.php',
             'app/adms/Views/portal/my_payroll_documents.php',
         ],
+        /** Re-deploy da requisição de pessoal (migration + telas) se o push parcial omitiu ficheiros. */
+        'rh-personnel-requests' => [
+            'app/adms/Controllers/rh/RhPersonnelRequests.php',
+            'app/adms/Controllers/rh/RhPersonnelRequestsApprove.php',
+            'app/adms/Controllers/rh/RhPersonnelRequestsConvert.php',
+            'app/adms/Controllers/rh/RhPersonnelRequestsCreate.php',
+            'app/adms/Controllers/rh/RhPersonnelRequestsReject.php',
+            'app/adms/Controllers/rh/RhPersonnelRequestsView.php',
+            'app/adms/Controllers/Services/PageLayoutService.php',
+            'app/adms/Models/Repository/RhPersonnelRequestsRepository.php',
+            'app/adms/Models/Repository/RhVagasRepository.php',
+            'app/adms/Models/Services/RhPersonnelRequestService.php',
+            'app/adms/Views/partials/menu.php',
+            'app/adms/Views/rh/personnel_requests/create.php',
+            'app/adms/Views/rh/personnel_requests/list.php',
+            'app/adms/Views/rh/personnel_requests/view.php',
+            'app/adms/Views/rh/vagas/list.php',
+            'database/migrations/20260719160000_create_rh_personnel_requests.php',
+            'routes/LoadPageAdm.php',
+        ],
     ];
 }
 

@@ -930,6 +930,12 @@ $menus = [
                         'icon' => 'fas fa-briefcase'
                     ],
                     [
+                        'label' => 'Requisições de Pessoal',
+                        'url' => $_ENV['URL_ADM'] . 'rh-personnel-requests',
+                        'permission' => 'RhPersonnelRequests',
+                        'icon' => 'fas fa-user-plus'
+                    ],
+                    [
                         'label' => 'Entrevistas',
                         'url' => $_ENV['URL_ADM'] . 'rh-entrevistas',
                         'permission' => 'RhEntrevistas',

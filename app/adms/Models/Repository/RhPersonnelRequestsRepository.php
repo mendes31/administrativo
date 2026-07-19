@@ -10,6 +10,7 @@ use App\adms\Models\Services\LogAlteracaoService;
 use Exception;
 use PDO;
 
+/** Persistência de requisições de pessoal (Talentos). */
 class RhPersonnelRequestsRepository extends DbConnection
 {
     public const STATUS_PENDING = 'pending_approval';

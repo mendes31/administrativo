@@ -6,6 +6,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\RhPersonnelRequestService;
 
+/** Rejeita requisição de pessoal (POST). */
 class RhPersonnelRequestsReject
 {
     public function index(int|string $id): void

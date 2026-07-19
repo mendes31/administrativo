@@ -12,6 +12,7 @@ use Exception;
 
 /**
  * Casos de uso de requisição de pessoal (aprovação e conversão em vaga).
+ * Deploy: incluir via manifesto `rh-personnel-requests` se o push parcial omitir.
  */
 final class RhPersonnelRequestService
 {

@@ -1,4 +1,5 @@
 <?php
+/** Formulário de nova requisição de pessoal. */
 use App\adms\Helpers\CSRFHelper;
 $csrf = CSRFHelper::generateCSRFToken('form_create_rh_personnel_request');
 $form = $this->data['form'] ?? [];

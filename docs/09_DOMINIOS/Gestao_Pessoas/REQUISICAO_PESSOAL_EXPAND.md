@@ -25,3 +25,10 @@ Estados: `pending_approval` → `approved` | `rejected` → `converted`.
 ## Migration
 
 `database/migrations/20260719160000_create_rh_personnel_requests.php`
+
+Após deploy parcial, reenvie o manifesto `rh-personnel-requests`
+(`scripts/deploy_feature_manifests.php`) e rode:
+
+```bash
+php vendor/bin/phinx migrate -c database/phinx.php -e production
+```

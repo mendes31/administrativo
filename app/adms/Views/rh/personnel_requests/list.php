@@ -1,4 +1,5 @@
 <?php
+/** Listagem de requisições de pessoal (Talentos). */
 use App\adms\Helpers\FormatHelper;
 use App\adms\Helpers\CSRFHelper;
 ?>

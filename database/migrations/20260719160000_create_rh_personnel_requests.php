@@ -6,6 +6,9 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Fase 1 — requisição de pessoal (Talentos) + vínculo opcional com rh_vagas.
+ *
+ * Obrigatória em produção: sem este ficheiro o Phinx não cria rh_personnel_requests.
+ * Re-deploy: manifesto `rh-personnel-requests` em scripts/deploy_feature_manifests.php.
  */
 final class CreateRhPersonnelRequests extends AbstractMigration
 {

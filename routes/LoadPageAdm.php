@@ -164,6 +164,7 @@ class LoadPageAdm
         "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete", "RhCandidatosVagas",
         "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete", "RhVagasPipeline",
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
+        // RH — Requisições de Pessoal (headcount → vaga)
         "RhPersonnelRequests", "RhPersonnelRequestsCreate", "RhPersonnelRequestsView",
         "RhPersonnelRequestsApprove", "RhPersonnelRequestsReject", "RhPersonnelRequestsConvert",
         "RhKpiDashboard",

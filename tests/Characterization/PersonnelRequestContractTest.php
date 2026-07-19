@@ -49,9 +49,20 @@ final class PersonnelRequestContractTest extends TestCase
             'app/adms/Controllers/rh/RhPersonnelRequestsApprove.php',
             'app/adms/Controllers/rh/RhPersonnelRequestsReject.php',
             'app/adms/Controllers/rh/RhPersonnelRequestsConvert.php',
+            'database/migrations/20260719160000_create_rh_personnel_requests.php',
         ] as $file) {
             self::assertFileExists(PROJECT_ROOT . '/' . $file);
         }
+
+        $layout = $this->readProjectFile('app/adms/Controllers/Services/PageLayoutService.php');
+        self::assertStringContainsString('RhPersonnelRequests', $layout);
+
+        $menu = $this->readProjectFile('app/adms/Views/partials/menu.php');
+        self::assertStringContainsString('rh-personnel-requests', $menu);
+
+        $manifest = $this->readProjectFile('scripts/deploy_feature_manifests.php');
+        self::assertStringContainsString("'rh-personnel-requests'", $manifest);
+        self::assertStringContainsString('20260719160000_create_rh_personnel_requests.php', $manifest);
     }
 
     private function readProjectFile(string $relativePath): string

@@ -6,6 +6,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Services\RhPersonnelRequestService;
 
+/** Converte requisição aprovada em vaga (POST). */
 class RhPersonnelRequestsConvert
 {
     public function index(int|string $id): void

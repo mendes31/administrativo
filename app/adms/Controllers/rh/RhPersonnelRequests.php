@@ -7,6 +7,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhPersonnelRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
 
+/** Listagem de requisições de pessoal (Talentos). */
 class RhPersonnelRequests
 {
     private array|string|null $data = null;

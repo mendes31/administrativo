@@ -7,6 +7,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\RhPersonnelRequestsRepository;
 use App\adms\Views\Services\LoadViewService;
 
+/** Detalhe / aprovação / conversão de requisição de pessoal. */
 class RhPersonnelRequestsView
 {
     private array|string|null $data = null;
