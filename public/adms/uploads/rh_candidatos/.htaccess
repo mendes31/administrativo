@@ -1,0 +1,2 @@
+# Bloqueia acesso direto — download somente via serve-file autenticado.
+Require all denied

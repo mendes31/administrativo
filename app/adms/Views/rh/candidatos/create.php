@@ -196,7 +196,42 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_candidato');
                 <div class="mb-3">
                     <label for="curriculo" class="form-label">Currículo (PDF, DOC, DOCX)</label>
                     <input type="file" name="curriculo" id="curriculo" class="form-control" accept=".pdf,.doc,.docx">
-                    <small class="text-muted">Opcional. Máximo conforme configuração do servidor.</small>
+                    <small class="text-muted">Opcional. Máximo 10 MB. Arquivo armazenado em área privada.</small>
+                </div>
+
+                <?php
+                $lgpdTermo = $this->data['lgpd_termo'] ?? null;
+                $termoTitulo = htmlspecialchars((string) ($lgpdTermo['titulo'] ?? 'Termo de tratamento de dados — currículos'));
+                $termoVersao = htmlspecialchars((string) ($lgpdTermo['versao'] ?? ''));
+                ?>
+                <div class="mb-3 p-3 border rounded bg-light">
+                    <h6 class="mb-2"><i class="fas fa-shield-alt me-1"></i>Consentimento LGPD</h6>
+                    <?php if ($lgpdTermo): ?>
+                        <p class="small mb-2">
+                            Termo ativo: <strong><?= $termoTitulo ?></strong>
+                            <?php if ($termoVersao !== ''): ?>
+                                (versão <?= $termoVersao ?>)
+                            <?php endif; ?>
+                        </p>
+                        <?php if (!empty($lgpdTermo['conteudo'])): ?>
+                            <div class="small text-muted mb-2" style="max-height: 120px; overflow:auto;">
+                                <?= nl2br(htmlspecialchars((string) $lgpdTermo['conteudo'])) ?>
+                            </div>
+                        <?php endif; ?>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" value="1" id="lgpd_consent" name="lgpd_consent"
+                                <?= !empty($_POST['lgpd_consent']) ? 'checked' : '' ?> required>
+                            <label class="form-check-label" for="lgpd_consent">
+                                Declaro que o titular (candidato) consentiu o tratamento dos dados pessoais e do currículo
+                                conforme o termo acima, para fins de recrutamento e seleção.
+                            </label>
+                        </div>
+                    <?php else: ?>
+                        <div class="alert alert-warning mb-0 small">
+                            Não há termo LGPD ativo do tipo <code>curriculo_candidato</code>.
+                            Cadastre o termo no módulo LGPD antes de incluir candidatos.
+                        </div>
+                    <?php endif; ?>
                 </div>
 
                 <div class="mt-3 d-flex justify-content-end gap-2">

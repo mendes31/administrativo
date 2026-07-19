@@ -51,6 +51,7 @@ mirror -R --parallel=2 --only-newer --continue --no-perms --verbose \
   --exclude-glob storage/sst/attachments/** \
   --exclude-glob storage/lgpd/consentimentos/** \
   --exclude-glob storage/private/payroll/** \
+  --exclude-glob storage/private/rh_candidatos/** \
   --exclude-glob storage/cache/** \
   --exclude-glob storage/logs/** \
   --exclude-glob logs/** \

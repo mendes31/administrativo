@@ -31,6 +31,12 @@ class RhCandidatosView
             return;
         }
 
+        if (!\App\adms\Models\Services\RhCandidatoPermissionService::canAccessCandidato((int) $id)) {
+            $_SESSION['error'] = 'Acesso não autorizado a este candidato.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-candidatos');
+            return;
+        }
+
         $this->data['candidato'] = $candidato;
         $this->data['anexos']    = $repo->getAnexosByCandidato((int)$id);
 

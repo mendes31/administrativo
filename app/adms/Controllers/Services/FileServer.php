@@ -129,6 +129,60 @@ class FileServer
             return;
         }
 
+        // Currículos: sessão + autorização por objeto; dual-read (privado/legado).
+        $normalizedForAuth = str_replace('\\', '/', strtolower(ltrim($path, '/')));
+        if (str_starts_with($normalizedForAuth, 'rh_candidatos/')) {
+            if (empty($_SESSION['user_id'])) {
+                $this->sendError('Acesso não autorizado', 401);
+                return;
+            }
+
+            $candidatoId = \App\adms\Models\Services\RhCandidatoPermissionService::extractCandidatoIdFromAnexoPath($path);
+            if ($candidatoId === null
+                || !\App\adms\Models\Services\RhCandidatoPermissionService::canDownloadAnexo($candidatoId)
+            ) {
+                $this->sendError('Acesso não autorizado a este currículo', 403);
+                return;
+            }
+
+            $fullPath = \App\adms\Models\Services\RhCandidatoAnexoService::resolvePhysicalPath($path);
+            if ($fullPath === null || !is_readable($fullPath)) {
+                $this->sendError('Arquivo não encontrado', 404);
+                return;
+            }
+
+            $extension = strtolower(pathinfo($fullPath, PATHINFO_EXTENSION));
+            if (!in_array($extension, $this->allowedExtensions, true)) {
+                $this->sendError('Tipo de arquivo não permitido', 403);
+                return;
+            }
+
+            $mimeTypes = [
+                'pdf' => 'application/pdf',
+                'doc' => 'application/msword',
+                'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            ];
+            $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
+            $disposition = $extension === 'pdf' ? 'inline' : 'attachment';
+            $filename = basename($fullPath);
+            $fileSize = (int) filesize($fullPath);
+
+            if ($extension === 'pdf') {
+                $this->serveStreamableWithRange($fullPath, $mimeType, $fileSize, $filename, true);
+                return;
+            }
+
+            while (ob_get_level()) {
+                ob_end_clean();
+            }
+            header('Content-Type: ' . $mimeType);
+            header('Content-Length: ' . $fileSize);
+            header('Content-Disposition: ' . $disposition . '; filename="' . $filename . '"');
+            header('Cache-Control: private, no-store');
+            readfile($fullPath);
+            exit;
+        }
+
         // Ajuste para imagem padrão de usuário:
         // se vier apenas "icon_user.png", redirecionar para o caminho correto "users/icon_user.png"
         $basename = basename($path);

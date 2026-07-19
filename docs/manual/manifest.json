@@ -1468,6 +1468,21 @@
                     "file": "gestao_pessoas/rh-candidatos.html"
                 },
                 {
+                    "id": "rh-candidatos-create",
+                    "title": "Cadastrar Candidato",
+                    "file": "gestao_pessoas/rh-candidatos-create.html"
+                },
+                {
+                    "id": "rh-candidatos-edit",
+                    "title": "Editar Candidato",
+                    "file": "gestao_pessoas/rh-candidatos-edit.html"
+                },
+                {
+                    "id": "rh-candidatos-view",
+                    "title": "Visualizar Candidato",
+                    "file": "gestao_pessoas/rh-candidatos-view.html"
+                },
+                {
                     "id": "rh-entrevistas",
                     "title": "Listar Entrevistas",
                     "file": "gestao_pessoas/rh-entrevistas.html"
@@ -1569,8 +1584,8 @@
                 },
                 {
                     "id": "view-rh-candidato",
-                    "title": "Visualizar — Rh Candidato",
-                    "file": "gestao_pessoas/view-rh-candidato.html"
+                    "title": "Visualizar Candidato",
+                    "file": "gestao_pessoas/rh-candidatos-view.html"
                 }
             ]
         },

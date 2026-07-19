@@ -78,6 +78,7 @@ substitui dados de runtime gerados pelos utilizadores**.
 - `storage/sst/epi_fichas/**`, `storage/sst/attachments/**`,
   `storage/sst/treinamento_certificados/**`
 - `storage/lgpd/consentimentos/**`, `storage/private/payroll/**` (excepto `.gitkeep`)
+- `storage/private/rh_candidatos/**` — currículos ATS (excepto `.gitkeep`)
 - `.git/`, `.github/`, `node_modules/`, ficheiros `*.log`
 
 Lista canónica: `scripts/deploy_excludes.php` e `scripts/deploy_lftp_upload.sh`.

@@ -131,6 +131,8 @@ jobs:
             storage/lgpd/consentimentos/**
             storage/private/payroll/**
             !storage/private/payroll/.gitkeep
+            storage/private/rh_candidatos/**
+            !storage/private/rh_candidatos/.gitkeep
             storage/cache/**
             storage/logs/**
             logs/**
@@ -181,6 +183,8 @@ jobs:
             storage/lgpd/consentimentos/**
             storage/private/payroll/**
             !storage/private/payroll/.gitkeep
+            storage/private/rh_candidatos/**
+            !storage/private/rh_candidatos/.gitkeep
             storage/cache/**
             storage/logs/**
             logs/**

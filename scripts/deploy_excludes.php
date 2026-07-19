@@ -22,6 +22,7 @@ function deployExcludePrefixes(): array
         'storage/sst/attachments/',
         'storage/lgpd/consentimentos/',
         'storage/private/payroll/',
+        'storage/private/rh_candidatos/',
         'storage/cache/',
         'storage/logs/',
         'logs/',
@@ -69,7 +70,9 @@ function deployPathExcluded(string $relPath): bool
             return true;
         }
         if (str_starts_with($relPath, $prefix)) {
-            if ($relPath === 'storage/private/payroll/.gitkeep') {
+            if ($relPath === 'storage/private/payroll/.gitkeep'
+                || $relPath === 'storage/private/rh_candidatos/.gitkeep'
+            ) {
                 return false;
             }
 
@@ -108,6 +111,8 @@ function deployExcludeYamlBlock(): string
         'storage/lgpd/consentimentos/**',
         'storage/private/payroll/**',
         '!storage/private/payroll/.gitkeep',
+        'storage/private/rh_candidatos/**',
+        '!storage/private/rh_candidatos/.gitkeep',
         'storage/cache/**',
         'storage/logs/**',
         'logs/**',

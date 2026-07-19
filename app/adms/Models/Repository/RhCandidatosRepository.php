@@ -88,8 +88,13 @@ class RhCandidatosRepository extends DbConnection
             $stmt->bindValue(':lgpd_consentimento_id', $lgpdConsentId, $lgpdConsentId !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $stmt->bindValue(':lgpd_status', 'Ativo', PDO::PARAM_STR);
 
-            $dataConsent = $data['lgpd_data_consentimento'] ?? $dataCadastro->format('Y-m-d H:i:s');
-            $stmt->bindValue(':lgpd_data_consentimento', $dataConsent, PDO::PARAM_STR);
+            // Só registra data de consentimento quando houver evidência explícita (checkbox + termo).
+            $dataConsent = $data['lgpd_data_consentimento'] ?? null;
+            $stmt->bindValue(
+                ':lgpd_data_consentimento',
+                $dataConsent,
+                $dataConsent !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
             $stmt->bindValue(':lgpd_data_expiracao', $dataExpiracao->format('Y-m-d H:i:s'), PDO::PARAM_STR);
 
             if (!$stmt->execute()) {
@@ -308,34 +313,12 @@ class RhCandidatosRepository extends DbConnection
         try {
             $id = (int) $candidato['id'];
 
-            // 1) Buscar anexos para remover arquivos físicos
-            $sqlAnexos = 'SELECT id, arquivo_caminho FROM rh_candidatos_anexos WHERE rh_candidato_id = :id';
-            $stmtAnexos = $pdo->prepare($sqlAnexos);
-            $stmtAnexos->bindValue(':id', $id, PDO::PARAM_INT);
-            $stmtAnexos->execute();
-            $anexos = $stmtAnexos->fetchAll(PDO::FETCH_ASSOC) ?: [];
-
-            $projectRoot = dirname(__DIR__, 4);
-
-            foreach ($anexos as $anexo) {
-                if (!empty($anexo['arquivo_caminho'])) {
-                    $path = $projectRoot . DIRECTORY_SEPARATOR . ltrim($anexo['arquivo_caminho'], DIRECTORY_SEPARATOR);
-                    if (file_exists($path) && is_file($path)) {
-                        @unlink($path);
-                    }
-                }
-            }
-
-            // Opcional: manter registros de anexos ou apagar
-            if (!empty($anexos)) {
-                $delStmt = $pdo->prepare('DELETE FROM rh_candidatos_anexos WHERE rh_candidato_id = :id');
-                $delStmt->bindValue(':id', $id, PDO::PARAM_INT);
-                $delStmt->execute();
-            }
+            // 1) Remover anexos físicos (caminho correto: public/adms/uploads/...) e registros
+            $this->deleteAnexosByCandidatoId($id);
 
             $dadosAntes = $candidato;
 
-            // 2) Anonimizar campos pessoais do candidato
+            // 2) Anonimizar campos pessoais do candidato (incl. textos livres com possível PII)
             $sqlUpdate = "UPDATE rh_candidatos
                           SET 
                               nome = 'Anonimizado',
@@ -344,6 +327,12 @@ class RhCandidatosRepository extends DbConnection
                               cidade = NULL,
                               estado = NULL,
                               observacoes = NULL,
+                              area_interesse = NULL,
+                              graduacao = NULL,
+                              ultima_experiencia = NULL,
+                              score = NULL,
+                              classificacao = NULL,
+                              classificacao_observacoes = NULL,
                               lgpd_status = 'Anonimizado',
                               lgpd_motivo_anonimizacao = :motivo,
                               updated_at = NOW()
@@ -364,6 +353,12 @@ class RhCandidatosRepository extends DbConnection
             $dadosDepois['cidade'] = null;
             $dadosDepois['estado'] = null;
             $dadosDepois['observacoes'] = null;
+            $dadosDepois['area_interesse'] = null;
+            $dadosDepois['graduacao'] = null;
+            $dadosDepois['ultima_experiencia'] = null;
+            $dadosDepois['score'] = null;
+            $dadosDepois['classificacao'] = null;
+            $dadosDepois['classificacao_observacoes'] = null;
             $dadosDepois['lgpd_status'] = 'Anonimizado';
             $dadosDepois['lgpd_motivo_anonimizacao'] = $motivo;
 
@@ -437,6 +432,64 @@ class RhCandidatosRepository extends DbConnection
             ]);
             return 12;
         }
+    }
+
+    /**
+     * Remove arquivos físicos e registros de anexos do candidato.
+     * O caminho físico é resolvido via {@see \App\adms\Models\Services\RhCandidatoAnexoService}.
+     */
+    public function deleteAnexosByCandidatoId(int $candidatoId): void
+    {
+        $pdo = $this->getConnection();
+        $sqlAnexos = 'SELECT id, arquivo_caminho FROM rh_candidatos_anexos WHERE rh_candidato_id = :id';
+        $stmtAnexos = $pdo->prepare($sqlAnexos);
+        $stmtAnexos->bindValue(':id', $candidatoId, PDO::PARAM_INT);
+        $stmtAnexos->execute();
+        $anexos = $stmtAnexos->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        foreach ($anexos as $anexo) {
+            $caminho = (string) ($anexo['arquivo_caminho'] ?? '');
+            if ($caminho === '') {
+                continue;
+            }
+            if (!\App\adms\Models\Services\RhCandidatoAnexoService::deletePhysicalFile($caminho)) {
+                GenerateLog::generateLog('warning', 'Falha ao excluir arquivo físico de currículo.', [
+                    'rh_candidato_id' => $candidatoId,
+                    'arquivo_caminho' => $caminho,
+                ]);
+            }
+        }
+
+        if ($anexos !== []) {
+            $delStmt = $pdo->prepare('DELETE FROM rh_candidatos_anexos WHERE rh_candidato_id = :id');
+            $delStmt->bindValue(':id', $candidatoId, PDO::PARAM_INT);
+            $delStmt->execute();
+        }
+
+        foreach ([
+            \App\adms\Models\Services\RhCandidatoAnexoService::privateBaseDir()
+                . DIRECTORY_SEPARATOR . $candidatoId,
+            \App\adms\Models\Services\RhCandidatoAnexoService::legacyPublicBaseDir()
+                . DIRECTORY_SEPARATOR . $candidatoId,
+        ] as $candDir) {
+            if (is_dir($candDir)) {
+                @rmdir($candDir);
+            }
+        }
+    }
+
+    /**
+     * Retorna um anexo pelo ID.
+     */
+    public function getAnexoById(int $anexoId): ?array
+    {
+        $sql = 'SELECT * FROM rh_candidatos_anexos WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $anexoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
     }
 
     /**

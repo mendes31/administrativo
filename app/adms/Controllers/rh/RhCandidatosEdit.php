@@ -7,6 +7,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Models\Repository\LogAlteracoesRepository;
 use App\adms\Models\Repository\LogJustificativasRepository;
+use App\adms\Models\Services\RhCandidatoAnexoService;
 use App\adms\Models\Services\SensitiveActionService;
 use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\Validation\ValidationRhCandidatoService;
@@ -40,6 +41,12 @@ class RhCandidatosEdit
             return;
         }
 
+        if (!\App\adms\Models\Services\RhCandidatoPermissionService::canEditCandidato((int) $id)) {
+            $_SESSION['error'] = 'Acesso não autorizado a este candidato.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-candidatos');
+            return;
+        }
+
         $this->data['form']   = $candidato;
         $this->data['anexos'] = $repo->getAnexosByCandidato((int)$id);
         $this->viewForm();
@@ -69,6 +76,12 @@ class RhCandidatosEdit
         if ($id <= 0) {
             $_SESSION['error'] = "ID inválido.";
             header("Location: {$_ENV['URL_ADM']}rh-candidatos");
+            return;
+        }
+
+        if (!\App\adms\Models\Services\RhCandidatoPermissionService::canEditCandidato($id)) {
+            $_SESSION['error'] = 'Acesso não autorizado a este candidato.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-candidatos');
             return;
         }
 
@@ -152,48 +165,27 @@ class RhCandidatosEdit
     private function handleUploadCurriculo(int $candidatoId, array $file): void
     {
         try {
-            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) === UPLOAD_ERR_NO_FILE
+                && trim((string) ($file['name'] ?? '')) === '') {
                 return;
             }
 
-            $allowed = ['pdf', 'doc', 'docx'];
-            $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
-            if (!in_array($ext, $allowed, true)) {
-                $_SESSION['error'] = "Tipo de arquivo não permitido para currículo. Use PDF ou DOC/DOCX.";
+            $stored = RhCandidatoAnexoService::storeCurriculo($candidatoId, $file);
+            if (!($stored['ok'] ?? false)) {
+                $_SESSION['error'] = $stored['error'] ?? 'Erro ao salvar currículo.';
                 return;
             }
-
-            $projectRoot = dirname(__DIR__, 4);
-            $baseDir = $projectRoot . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'adms' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'rh_candidatos';
-            if (!is_dir($baseDir)) {
-                mkdir($baseDir, 0775, true);
-            }
-
-            $candDir = $baseDir . DIRECTORY_SEPARATOR . $candidatoId;
-            if (!is_dir($candDir)) {
-                mkdir($candDir, 0775, true);
-            }
-
-            $safeName = uniqid('cv_', true) . '.' . $ext;
-            $destPath = $candDir . DIRECTORY_SEPARATOR . $safeName;
-
-            if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-                $_SESSION['error'] = "Erro ao salvar arquivo de currículo.";
-                return;
-            }
-
-            $relativePath = 'rh_candidatos/' . $candidatoId . '/' . $safeName;
 
             $repo = new RhCandidatosRepository();
             $repo->addAnexo($candidatoId, [
-                'tipo'           => 'curriculo',
-                'arquivo_caminho'=> $relativePath,
-                'nome_original'  => $file['name'],
+                'tipo' => 'curriculo',
+                'arquivo_caminho' => $stored['relative_path'],
+                'nome_original' => $stored['original_name'],
             ]);
         } catch (\Throwable $e) {
             GenerateLog::generateLog('error', 'Erro ao fazer upload de currículo (edição).', [
                 'candidato_id' => $candidatoId,
-                'error'        => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
         }
     }

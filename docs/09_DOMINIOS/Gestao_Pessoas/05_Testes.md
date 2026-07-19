@@ -20,6 +20,15 @@ Em 19/07/2026 foi criada a primeira suíte PHPUnit sem conexão ao banco:
 
 Resultado inicial: 26 testes e 52 asserções aprovados.
 
+Em 19/07/2026 foram adicionados (e depois atualizados) testes de
+caracterização do fluxo de currículos (`CurriculoStorageContractTest`) e
+testes unitários de `RhCandidatoAnexoService`. Ver
+[diagnóstico de currículos](SEG_CURRICULOS_DIAGNOSTICO.md).
+
+Correções iniciais da Fase 0 (caminho físico LGPD, auth em currículos,
+validação de upload, exclusão sem GET, `.htaccess`, anonimização ampliada)
+estão cobertas por esses testes.
+
 Essa suíte caracteriza o funcionamento atual; não altera autenticação, sessão,
 ACL, banco ou Portal.
 

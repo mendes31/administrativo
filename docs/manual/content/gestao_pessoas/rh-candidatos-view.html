@@ -1,0 +1,20 @@
+<h1>Visualizar Candidato</h1>
+<p>Exibe dados do candidato, vagas vinculadas, entrevistas e currículos anexados.</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>RhCandidatosView</em>, além da autorização por objeto (operadores RH, gestores ou responsável da vaga).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Na listagem, abra <strong>Visualizar</strong>.</li>
+    <li>Revise dados pessoais, classificação e status do processo.</li>
+    <li>Baixe o currículo pelo link do anexo (rota autorizada <code>rh-candidatos-download-anexo</code>).</li>
+    <li>Vincule vagas ou consulte entrevistas quando aplicável.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Acesso não autorizado a este candidato</dt>
+    <dd>Seu usuário não tem ACL de RH nem vínculo de responsável/gestor com a vaga do candidato.</dd>
+    <dt>Arquivo não encontrado</dt>
+    <dd>O anexo pode ter sido removido pela retenção LGPD ou exclusão. Verifique o status LGPD do candidato.</dd>
+</dl>

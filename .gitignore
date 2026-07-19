@@ -33,6 +33,12 @@ storage/private/payroll/*
 !storage/private/payroll/.gitkeep
 storage/private/payroll/signed_bundles/**
 
+# Currículos de candidatos (ATS) — storage privado
+storage/private/rh_candidatos/**
+!storage/private/rh_candidatos/.gitkeep
+storage/private/user-educations/**
+!storage/private/user-educations/.gitkeep
+
 # Arquivos gerados em runtime (SST, LGPD) — não versionar
 storage/sst/epi_fichas/**
 !storage/sst/epi_fichas/.gitkeep

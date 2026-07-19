@@ -28,7 +28,7 @@ class RhCandidatosDelete
             exit;
         }
 
-        $id = (int)$id;
+        $id = (int) $id;
         $repo = new RhCandidatosRepository();
         $candidato = $repo->getById($id);
 
@@ -44,76 +44,89 @@ class RhCandidatosDelete
             exit;
         }
 
-        // Fluxo com confirmação via senha + justificativa (AJAX)
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            header('Content-Type: application/json');
-
-            $motivo   = trim($_POST['motivo'] ?? '');
-            $password = $_POST['password'] ?? '';
-
-            $validacao = SensitiveActionService::validarConfirmacao($password, $motivo, true);
-            if (!$validacao['success']) {
-                echo json_encode(['success' => false, 'message' => $validacao['message']]);
+        if (!\App\adms\Models\Services\RhCandidatoPermissionService::canEditCandidato($id)) {
+            if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+                header('Content-Type: application/json');
+                echo json_encode(['success' => false, 'message' => 'Acesso não autorizado a este candidato.']);
                 exit;
             }
 
-            // Exclusão "hard" de candidato (repositório deve registrar log de alteração)
-            $conn = $repo->getConnection();
+            $_SESSION['error'] = 'Acesso não autorizado a este candidato.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-candidatos');
+            exit;
+        }
+
+        // Exclusão exige POST com senha + justificativa (sem fallback GET).
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            $_SESSION['error'] = 'Exclusão de candidato exige confirmação com senha e justificativa.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-candidatos-view/' . $id);
+            exit;
+        }
+
+        header('Content-Type: application/json');
+
+        $motivo = trim($_POST['motivo'] ?? '');
+        $password = $_POST['password'] ?? '';
+
+        $validacao = SensitiveActionService::validarConfirmacao($password, $motivo, true);
+        if (!$validacao['success']) {
+            echo json_encode(['success' => false, 'message' => $validacao['message']]);
+            exit;
+        }
+
+        $conn = $repo->getConnection();
+        $conn->beginTransaction();
+
+        try {
+            // Remove currículos físicos e registros de anexo antes do candidato
+            $repo->deleteAnexosByCandidatoId($id);
+
             $stmtDel = $conn->prepare('DELETE FROM rh_candidatos WHERE id = :id');
             $stmtDel->bindValue(':id', $id, \PDO::PARAM_INT);
             $ok = $stmtDel->execute();
 
-            if ($ok) {
-                // Buscar último log de alteração para este registro/usuário
-                if (!empty($_SESSION['user_id'])) {
-                    $logsRepo = new LogAlteracoesRepository();
-                    $sql = 'SELECT id FROM adms_log_alteracoes 
-                            WHERE tabela = :tabela 
-                              AND objeto_id = :objeto_id 
-                              AND usuario_id = :usuario_id 
-                            ORDER BY id DESC 
-                            LIMIT 1';
-                    $stmt = $logsRepo->getConnection()->prepare($sql);
-                    $stmt->bindValue(':tabela', 'rh_candidatos', \PDO::PARAM_STR);
-                    $stmt->bindValue(':objeto_id', $id, \PDO::PARAM_INT);
-                    $stmt->bindValue(':usuario_id', (int)$_SESSION['user_id'], \PDO::PARAM_INT);
-                    $stmt->execute();
-                    $ultimoLog = $stmt->fetch(\PDO::FETCH_ASSOC);
-
-                    if ($ultimoLog && isset($ultimoLog['id'])) {
-                        $logJustRepo = new LogJustificativasRepository();
-                        $logJustRepo->insert([
-                            'log_alteracao_id'  => $ultimoLog['id'],
-                            'justificativa'     => $motivo,
-                            'assinatura'        => $_SESSION['user_name'] ?? 'Usuário não identificado',
-                            'data_justificativa'=> date('Y-m-d H:i:s'),
-                        ]);
-                    }
-                }
-
-                echo json_encode(['success' => true, 'message' => 'Candidato excluído com sucesso!']);
+            if (!$ok) {
+                $conn->rollBack();
+                echo json_encode(['success' => false, 'message' => 'Erro ao excluir candidato.']);
                 exit;
             }
 
-            echo json_encode(['success' => false, 'message' => 'Erro ao excluir candidato.']);
+            $conn->commit();
+        } catch (\Throwable $e) {
+            if ($conn->inTransaction()) {
+                $conn->rollBack();
+            }
+            echo json_encode(['success' => false, 'message' => 'Erro ao excluir candidato e anexos.']);
             exit;
         }
 
-        // Fallback simples (GET) – mantém compatibilidade se for chamado via link direto
-        $conn = $repo->getConnection();
-        $stmtDel = $conn->prepare('DELETE FROM rh_candidatos WHERE id = :id');
-        $stmtDel->bindValue(':id', $id, \PDO::PARAM_INT);
-        $ok = $stmtDel->execute();
+        if (!empty($_SESSION['user_id'])) {
+            $logsRepo = new LogAlteracoesRepository();
+            $sql = 'SELECT id FROM adms_log_alteracoes 
+                    WHERE tabela = :tabela 
+                      AND objeto_id = :objeto_id 
+                      AND usuario_id = :usuario_id 
+                    ORDER BY id DESC 
+                    LIMIT 1';
+            $stmt = $logsRepo->getConnection()->prepare($sql);
+            $stmt->bindValue(':tabela', 'rh_candidatos', \PDO::PARAM_STR);
+            $stmt->bindValue(':objeto_id', $id, \PDO::PARAM_INT);
+            $stmt->bindValue(':usuario_id', (int) $_SESSION['user_id'], \PDO::PARAM_INT);
+            $stmt->execute();
+            $ultimoLog = $stmt->fetch(\PDO::FETCH_ASSOC);
 
-        if ($ok) {
-            $_SESSION['success'] = "Candidato excluído com sucesso!";
-        } else {
-            $_SESSION['error'] = "Erro ao excluir candidato!";
+            if ($ultimoLog && isset($ultimoLog['id'])) {
+                $logJustRepo = new LogJustificativasRepository();
+                $logJustRepo->insert([
+                    'log_alteracao_id' => $ultimoLog['id'],
+                    'justificativa' => $motivo,
+                    'assinatura' => $_SESSION['user_name'] ?? 'Usuário não identificado',
+                    'data_justificativa' => date('Y-m-d H:i:s'),
+                ]);
+            }
         }
 
-        header("Location: " . $_ENV['URL_ADM'] . "rh-candidatos");
+        echo json_encode(['success' => true, 'message' => 'Candidato excluído com sucesso!']);
         exit;
     }
 }
-
-

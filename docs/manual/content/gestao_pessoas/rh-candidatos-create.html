@@ -1,0 +1,24 @@
+<h1>Cadastrar Candidato</h1>
+<p>Inclui um candidato/currículo no banco de recrutamento, com registro de consentimento LGPD.</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>RhCandidatosCreate</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Preencha nome e demais dados do candidato.</li>
+    <li>(Opcional) Anexe o currículo em PDF, DOC ou DOCX (máx. 10&nbsp;MB).</li>
+    <li>Leia o termo LGPD exibido e marque o checkbox de consentimento do titular.</li>
+    <li>Salve. O sistema grava o consentimento em <em>lgpd_consentimentos</em> e vincula ao candidato.</li>
+</ol>
+
+<h2>Campos importantes</h2>
+<div class="help-field"><strong>Currículo</strong> Arquivo opcional; armazenado em área privada.</div>
+<div class="help-field"><strong>Consentimento LGPD</strong> Obrigatório. Declara que o titular consentiu o tratamento para recrutamento.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Mensagem pedindo termo LGPD</dt>
+    <dd>Cadastre/ative um termo do tipo <code>curriculo_candidato</code> no módulo LGPD (a migration de segurança já cria um termo padrão).</dd>
+    <dt>Arquivo rejeitado</dt>
+    <dd>Use PDF/DOC/DOCX até 10&nbsp;MB; o conteúdo precisa corresponder à extensão.</dd>
+</dl>

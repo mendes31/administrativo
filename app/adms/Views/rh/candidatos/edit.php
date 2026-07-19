@@ -22,7 +22,7 @@
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <form method="POST" action="">
+            <form method="POST" action="" enctype="multipart/form-data">
                 <input type="hidden" name="form[id]" value="<?= (int)($this->data['form']['id'] ?? 0) ?>">
 
                 <div class="row mb-3">
@@ -219,7 +219,7 @@
                                         <td><?= htmlspecialchars($anexo['tipo'] ?? '') ?></td>
                                         <td>
                                             <?php if (!empty($anexo['arquivo_caminho'])): ?>
-                                                <a href="<?php echo $_ENV['URL_ADM']; ?>serve-file?path=<?= urlencode($anexo['arquivo_caminho']); ?>"
+                                                <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-download-anexo/<?= (int)$anexo['id']; ?>"
                                                    target="_blank"
                                                    class="text-decoration-underline fw-semibold">
                                                     <i class="fas fa-download me-1"></i>

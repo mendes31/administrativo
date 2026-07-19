@@ -84,6 +84,10 @@ Toda mudança estrutural deve:
 - analytics sobre fontes divergentes;
 - ausência de testes de regressão.
 
+## Diagnósticos
+
+- [Segurança e LGPD — Currículos (ATS)](SEG_CURRICULOS_DIAGNOSTICO.md)
+
 ## Referências
 
 - [Modelo de identidade](../../04_IDENTIDADE/MODELO_IDENTIDADE.md)
