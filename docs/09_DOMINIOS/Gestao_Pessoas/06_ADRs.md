@@ -11,11 +11,14 @@
 
 - [ADR-0002 — Separar Pessoa e Conta](../../08_ADR/ADR-0002_PESSOA_E_CONTA.md)
 
+## Aceitos neste domínio
+
+- [ADR-0006 — Modelo físico Pessoa/Vínculo/Lotação](../../08_ADR/ADR-0006_MODELO_FISICO_IDENTIDADE.md)
+
 ## Decisões que ainda exigirão ADR
 
-- modelo físico de Pessoa, Vínculo e Lotação;
 - fonte canônica de empresa e filial;
-- estratégia de IDs e compatibilidade com `adms_users`;
+- estratégia de IDs e compatibilidade plena com `adms_users` (Contract);
 - máquina de estados e histórico do recrutamento;
 - fronteira entre Treinamentos e SST;
 - separação de Departamento Pessoal;

@@ -123,6 +123,8 @@ final class RhConversaoAdmissaoService
 
             $pdo->commit();
 
+            (new RhIdentidadeSyncService())->tentarSincronizar($userId, 'conversao');
+
             return [
                 'conversao_id' => (int) $conversaoId,
                 'adms_user_id' => $userId,

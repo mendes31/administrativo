@@ -1,0 +1,21 @@
+<h1>Pessoas (identidade)</h1>
+<p>Consulta somente leitura de Pessoa, Vínculo e Lotação sincronizados a partir de <code>adms_users</code> (Expand ADR-0006). A conta continua sendo a fonte operacional do Portal.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> usuários (<code>view-user</code>), movimentações, offboarding.</p>
+
+<p><strong>Quem acessa:</strong> permissões <em>RhPessoas</em> e <em>RhPessoasView</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <em>Gestão de Pessoas → Recrutamento → Pessoas</em>.</li>
+    <li>Filtre por nome, e-mail ou CPF.</li>
+    <li>Abra o detalhe para ver vínculo e lotação vigente.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Lista vazia</dt>
+    <dd>Execute a migration <code>20260719244000_create_rh_identidade_pessoa_vinculo_lotacao</code> (faz backfill).</dd>
+    <dt>Dados desatualizados após movimentação</dt>
+    <dd>O dual-write roda após conversão, movimentação e offboarding; se falhar, fica registrado em log.</dd>
+</dl>

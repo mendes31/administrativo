@@ -1,0 +1,24 @@
+<h1>Offboarding</h1>
+<p>Conduz o desligamento com checklist auditável e, ao concluir, inativa o colaborador em <code>adms_users</code> (status, bloqueio, data/motivo/classificação).</p>
+
+<p class="help-note"><strong>Relacionado:</strong> cadastro de usuários (<code>view-user</code>), movimentações.</p>
+
+<p><strong>Quem acessa:</strong> permissões <em>RhOffboardings</em>, <em>RhOffboardingsCreate</em> e <em>RhOffboardingsView</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <em>Gestão de Pessoas → Recrutamento → Offboarding</em>.</li>
+    <li>Clique em <strong>Iniciar offboarding</strong> e escolha colaborador, tipo, motivo e classificação.</li>
+    <li>Atualize o checklist (itens obrigatórios devem ficar concluídos ou dispensados).</li>
+    <li>Clique em <strong>Concluir desligamento</strong>: o sistema grava a data efetiva e inativa a conta.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Botão de concluir desabilitado</dt>
+    <dd>Ainda há itens obrigatórios pendentes.</dd>
+    <dt>“Já existe um offboarding em andamento”</dt>
+    <dd>Finalize ou cancele o plano aberto antes de iniciar outro.</dd>
+    <dt>Página não encontrada</dt>
+    <dd>Execute a migration <code>20260719243000_create_rh_offboarding</code>.</dd>
+</dl>

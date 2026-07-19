@@ -109,6 +109,8 @@ Toda mudança estrutural deve:
 - [Onboarding pós-conversão — Expand](ONBOARDING_EXPAND.md)
 - [Período de experiência — Expand](EXPERIENCIA_EXPAND.md)
 - [Movimentações organizacionais — Expand](MOVIMENTACOES_EXPAND.md)
+- [Offboarding — Expand](OFFBOARDING_EXPAND.md)
+- [Identidade (Pessoa/Vínculo/Lotação) — Expand](IDENTIDADE_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

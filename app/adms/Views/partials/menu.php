@@ -953,6 +953,18 @@ $menus = [
                         'permission' => 'RhMovimentacoes',
                         'icon' => 'fas fa-people-arrows'
                     ],
+                    [
+                        'label' => 'Offboarding',
+                        'url' => $_ENV['URL_ADM'] . 'rh-offboardings',
+                        'permission' => 'RhOffboardings',
+                        'icon' => 'fas fa-user-minus'
+                    ],
+                    [
+                        'label' => 'Pessoas',
+                        'url' => $_ENV['URL_ADM'] . 'rh-pessoas',
+                        'permission' => 'RhPessoas',
+                        'icon' => 'fas fa-id-card'
+                    ],
                 ]
             ],
         ]

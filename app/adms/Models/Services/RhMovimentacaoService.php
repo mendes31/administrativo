@@ -109,6 +109,8 @@ final class RhMovimentacaoService
 
             $pdo->commit();
 
+            (new RhIdentidadeSyncService())->tentarSincronizar($userId, 'movimentacao');
+
             return ['movimentacao_id' => $id];
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {

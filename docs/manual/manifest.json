@@ -1543,6 +1543,16 @@
                     "file": "gestao_pessoas/rh-movimentacoes.html"
                 },
                 {
+                    "id": "rh-offboardings",
+                    "title": "Offboarding",
+                    "file": "gestao_pessoas/rh-offboardings.html"
+                },
+                {
+                    "id": "rh-pessoas",
+                    "title": "Pessoas (identidade)",
+                    "file": "gestao_pessoas/rh-pessoas.html"
+                },
+                {
                     "id": "rh-vagas-pipeline",
                     "title": "Pipeline da Vaga (Kanban)",
                     "file": "gestao_pessoas/rh-vagas-pipeline.html"

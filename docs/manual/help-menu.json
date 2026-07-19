@@ -1273,6 +1273,16 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "rh-offboardings",
+                                    "title": "Offboarding"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "rh-pessoas",
+                                    "title": "Pessoas (identidade)"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "rh-personnel-requests",
                                     "title": "Requisições de Pessoal"
                                 }
