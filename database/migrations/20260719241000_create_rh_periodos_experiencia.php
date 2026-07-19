@@ -6,6 +6,7 @@ use Phinx\Migration\AbstractMigration;
 
 /**
  * Período de experiência pós-conversão (Expand Fase 4).
+ * Reenvio FTP: garantir ficheiro em produção após deploy multi-commit incompleto.
  */
 final class CreateRhPeriodosExperiencia extends AbstractMigration
 {
