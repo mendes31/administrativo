@@ -124,6 +124,12 @@ final class RhConversaoAdmissaoService
             $pdo->commit();
 
             (new RhIdentidadeSyncService())->tentarSincronizar($userId, 'conversao');
+            (new RhJornadaIntegracaoService())->aposAdmissao(
+                $userId,
+                (int) $conversaoId,
+                $actorId,
+                ['data_admissao' => $dataAdmissao !== '' ? $dataAdmissao : null]
+            );
 
             return [
                 'conversao_id' => (int) $conversaoId,

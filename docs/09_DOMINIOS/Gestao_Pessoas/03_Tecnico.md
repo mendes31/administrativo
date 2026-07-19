@@ -111,6 +111,7 @@ Toda mudança estrutural deve:
 - [Movimentações organizacionais — Expand](MOVIMENTACOES_EXPAND.md)
 - [Offboarding — Expand](OFFBOARDING_EXPAND.md)
 - [Identidade (Pessoa/Vínculo/Lotação) — Expand](IDENTIDADE_EXPAND.md)
+- [Integração DP/SST (jornada) — Expand](INTEGRACAO_DP_SST_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

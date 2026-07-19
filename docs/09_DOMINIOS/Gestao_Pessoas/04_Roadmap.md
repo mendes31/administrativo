@@ -75,7 +75,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] movimentações organizacionais (histórico + aplicação em `adms_users`) — [MOVIMENTACOES_EXPAND.md](MOVIMENTACOES_EXPAND.md);
 - [x] offboarding (checklist + desligamento em `adms_users`) — [OFFBOARDING_EXPAND.md](OFFBOARDING_EXPAND.md);
 - [x] Pessoa / Vínculo / Lotação (schema sombra + dual-write) — [IDENTIDADE_EXPAND.md](IDENTIDADE_EXPAND.md) / [ADR-0006](../../08_ADR/ADR-0006_MODELO_FISICO_IDENTIDADE.md);
-- integração progressiva com DP e SST.
+- [x] integração progressiva com DP/SST (LNT + outbox de jornada) — [INTEGRACAO_DP_SST_EXPAND.md](INTEGRACAO_DP_SST_EXPAND.md).
 
 ## Fase 5 — Desenvolvimento
 

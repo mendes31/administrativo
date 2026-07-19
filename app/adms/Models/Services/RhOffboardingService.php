@@ -183,6 +183,15 @@ final class RhOffboardingService
             $pdo->commit();
 
             (new RhIdentidadeSyncService())->tentarSincronizar($userId, 'offboarding');
+            (new RhJornadaIntegracaoService())->aposDesligamento(
+                $userId,
+                $planoId,
+                $actorId,
+                [
+                    'data_desligamento' => $data,
+                    'tipo' => $plano['tipo'] ?? null,
+                ]
+            );
 
             return ['plano_id' => $planoId];
         } catch (\Throwable $e) {

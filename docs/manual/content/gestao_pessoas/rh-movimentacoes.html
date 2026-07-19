@@ -19,4 +19,6 @@
     <dd>O destino precisa diferir da lotação atual em pelo menos um campo.</dd>
     <dt>Página não encontrada</dt>
     <dd>Execute a migration <code>20260719242000_create_rh_movimentacoes</code>.</dd>
+    <dt>Treinamentos / LNT</dt>
+    <dd>Se o cargo mudar, o sistema registra evento de alteração de cargo no LNT e publica <code>jornada.LotacaoAlterada</code> na outbox.</dd>
 </dl>

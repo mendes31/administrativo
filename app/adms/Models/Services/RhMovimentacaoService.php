@@ -110,6 +110,19 @@ final class RhMovimentacaoService
             $pdo->commit();
 
             (new RhIdentidadeSyncService())->tentarSincronizar($userId, 'movimentacao');
+            (new RhJornadaIntegracaoService())->aposMovimentacao(
+                $userId,
+                $id,
+                $cargoAntes,
+                $cargoDepois,
+                $actorId,
+                [
+                    'tipo' => $tipo,
+                    'departamento_id_depois' => $depDepois,
+                    'gestor_id_depois' => $gestorDepois,
+                    'data_vigencia' => $vigencia,
+                ]
+            );
 
             return ['movimentacao_id' => $id];
         } catch (\Throwable $e) {
