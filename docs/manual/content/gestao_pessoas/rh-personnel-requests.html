@@ -1,0 +1,23 @@
+<h1>Requisições de Pessoal</h1>
+<p>Solicita e aprova necessidade de contratação (headcount) antes de abrir a vaga no ATS.</p>
+
+<p class="help-note"><strong>Visão geral:</strong> <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissões <em>RhPersonnelRequests*</em> (mesmos níveis que já acessam Vagas, após a migration).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Crie a requisição com área, cargo, quantidade e justificativa.</li>
+    <li>Outro usuário com permissão <strong>aprova</strong> ou <strong>rejeita</strong> (não pode ser o solicitante).</li>
+    <li>Se aprovada, use <strong>Converter em vaga</strong> — a vaga nasce <em>pausada</em> para completar detalhes e abrir o pipeline.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não é permitido aprovar a própria requisição</dt>
+    <dd>Peça a outro aprovador RH/gestor com a permissão.</dd>
+    <dt>Erro ao carregar requisições</dt>
+    <dd>Rode a migration <code>20260719160000_create_rh_personnel_requests</code>.</dd>
+    <dt>Já foi convertida</dt>
+    <dd>Cada requisição gera no máximo uma vaga; abra a vaga vinculada.</dd>
+</dl>

@@ -94,6 +94,8 @@ Toda mudança estrutural deve:
 - [Catálogo de eventos — Talentos](CATALOGO_EVENTOS_TALENTOS.md)
 - [Histórico imutável — Expand](HISTORICO_CANDIDATURA_EXPAND.md)
 - [Etapas do pipeline — Expand](ETAPAS_PIPELINE_EXPAND.md)
+- [Status geral — projeção](STATUS_PROCESSO_PROJECAO.md)
+- [Requisição de pessoal — Expand](REQUISICAO_PESSOAL_EXPAND.md)
 
 ## Referências
 

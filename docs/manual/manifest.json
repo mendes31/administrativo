@@ -1518,6 +1518,11 @@
                     "file": "gestao_pessoas/rh-vagas-pipeline.html"
                 },
                 {
+                    "id": "rh-personnel-requests",
+                    "title": "Requisições de Pessoal",
+                    "file": "gestao_pessoas/rh-personnel-requests.html"
+                },
+                {
                     "id": "list-payroll-signing-pendencies",
                     "title": "Listar — Payroll Signing Pendencies",
                     "file": "gestao_pessoas/list-payroll-signing-pendencies.html"

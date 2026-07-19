@@ -42,8 +42,10 @@ Saída: recursos críticos possuem regra explícita e eventos têm proprietário
 - [x] motivos estruturados (catálogo PHP + obrigatório no pipeline);
 - [x] service transacional unificado de movimentação (entrevista + vínculo + histórico);
 - [x] etapas configuráveis (Expand: rótulo/ordem/classe dos 5 códigos em `rh_pipeline_stages`);
-- [ ] status geral como projeção documentada/consumida pelo histórico;
-- [ ] requisição de pessoal e aprovação.
+- [x] status geral como projeção (`RhCandidatoStatusProcessoProjector` + cadastro sem edição livre);
+- [x] requisição de pessoal e aprovação (`rh_personnel_requests` → conversão em vaga).
+
+Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeção de status e requisição aprovável.
 
 ## Fase 2 — Entrevistas e comunicação
 

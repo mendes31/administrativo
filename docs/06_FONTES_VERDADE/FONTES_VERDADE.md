@@ -31,10 +31,10 @@ tabela. Não usar `adms_jobs` como sinônimo de Cargo sem decisão formal.
 | Gestor atual | `immediate_supervisor_id` | Lotação/relação vigente | Organização | Legado funcional |
 | Admissão/desligamento | usuário + histórico | Vínculo | Organização/DP | Duplicada |
 | Candidato | `rh_candidatos` | Candidato | Talentos | Confirmada |
-| Vaga | `rh_vagas` | Vaga autorizada | Talentos | Sem requisição |
+| Vaga | `rh_vagas` (+ `personnel_request_id` opcional) | Vaga autorizada | Talentos | Expand: requisição → vaga |
 | Candidatura | `rh_candidatos_vagas` (projeção) + `rh_candidaturas_historico` (transições) | Candidatura | Talentos | Expand em curso |
 | Etapa seletiva | status mutável em `rh_candidatos_vagas` | histórico + projeção | Talentos | Dual-write ativo |
-| Status geral do candidato | `status_processo` | projeção | Talentos | Não deve ser primária |
+| Status geral do candidato | `status_processo` (projeção agregada) | projeção | Talentos | Confirmada (`STATUS_PROCESSO_PROJECAO.md`) |
 | Entrevista | `rh_entrevistas` | entrevista estruturada | Talentos | Parcial |
 | Treinamento corporativo | `adms_trainings` | catálogo de Desenvolvimento | Desenvolvimento | Fronteira SST pendente |
 | Documento de folha | payroll + storage privado | documento de DP | DP | Operacional |

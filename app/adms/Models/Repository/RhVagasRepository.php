@@ -28,14 +28,14 @@ class RhVagasRepository extends DbConnection
                          salario_min, salario_max, mostrar_salario,
                          status, data_abertura, data_limite_inscricao,
                          quantidade_vagas, local_trabalho, jornada_trabalho,
-                         observacoes, responsavel_id, created_at)
+                         observacoes, responsavel_id, personnel_request_id, created_at)
                     VALUES
                         (:titulo, :descricao, :requisitos, :beneficios,
                          :area_id, :cargo_id, :tipo_contrato,
                          :salario_min, :salario_max, :mostrar_salario,
                          :status, :data_abertura, :data_limite_inscricao,
                          :quantidade_vagas, :local_trabalho, :jornada_trabalho,
-                         :observacoes, :responsavel_id, NOW())';
+                         :observacoes, :responsavel_id, :personnel_request_id, NOW())';
 
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':titulo', $titulo, PDO::PARAM_STR);
@@ -56,6 +56,11 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':jornada_trabalho', $data['jornada_trabalho'] ?? null, $data['jornada_trabalho'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':observacoes', $data['observacoes'] ?? null, $data['observacoes'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':responsavel_id', !empty($data['responsavel_id']) ? (int)$data['responsavel_id'] : null, PDO::PARAM_INT);
+            $stmt->bindValue(
+                ':personnel_request_id',
+                !empty($data['personnel_request_id']) ? (int) $data['personnel_request_id'] : null,
+                !empty($data['personnel_request_id']) ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
 
             if (!$stmt->execute()) {
                 return false;

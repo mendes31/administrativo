@@ -17,6 +17,9 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-header hstack gap-2 flex-wrap">
             <span><i class="fas fa-briefcase me-2"></i>Listar Vagas</span>
             <span class="ms-auto d-sm-flex flex-row flex-wrap gap-1">
+                <a href="<?php echo $_ENV['URL_ADM']; ?>rh-personnel-requests" class="btn btn-outline-primary btn-sm mb-1">
+                    <i class="fas fa-user-plus"></i> Requisições
+                </a>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-create" class="btn btn-success btn-sm mb-1 btn-min-width-90">
                     <i class="fa-solid fa-plus"></i> Cadastrar
                 </a>

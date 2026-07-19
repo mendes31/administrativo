@@ -164,6 +164,8 @@ class LoadPageAdm
         "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete", "RhCandidatosVagas",
         "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete", "RhVagasPipeline",
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
+        "RhPersonnelRequests", "RhPersonnelRequestsCreate", "RhPersonnelRequestsView",
+        "RhPersonnelRequestsApprove", "RhPersonnelRequestsReject", "RhPersonnelRequestsConvert",
         "RhKpiDashboard",
         "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete",
         "CalendarConfig",
