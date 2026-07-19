@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Reenvio FTP experiencia/movimentacoes (controllers ausentes no servidor).
+
 use App\adms\Helpers\FormatHelper;
 use App\adms\Models\Repository\RhPeriodosExperienciaRepository;
 use App\adms\Models\Services\RhExperienciaService;

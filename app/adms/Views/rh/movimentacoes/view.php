@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Reenvio FTP experiencia/movimentacoes (controllers ausentes no servidor).
+
 use App\adms\Helpers\FormatHelper;
 
 $m = $this->data['movimentacao'] ?? [];

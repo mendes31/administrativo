@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Reenvio FTP experiencia/movimentacoes (controllers ausentes no servidor).
+
 namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;

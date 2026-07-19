@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+// Reenvio FTP experiencia/movimentacoes (controllers ausentes no servidor).
+
 $form = $this->data['form'] ?? [];
 $tipos = $this->data['tipos'] ?? [];
 $users = $this->data['listUsers'] ?? [];
