@@ -529,6 +529,7 @@ class PageLayoutService
             'RhOfertasCreate',
             'RhOfertasView',
             'RhOfertasConvert',
+            'RhOnboardingView',
             'RhVincularCandidatoVaga',
             'RhAtualizarStatusCandidatura',
             'RhPersonnelRequests',

@@ -1,0 +1,22 @@
+<h1>Onboarding do colaborador</h1>
+<p>Checklist operacional criado automaticamente após a conversão de uma oferta em colaborador.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> <em>Ofertas e pré-admissão</em> (<code>rh-ofertas</code>).</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>RhOnboardingView</em> e capacidade de gerenciar o pipeline da vaga de origem (ou Super Admin).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Conclua a conversão da oferta aceita (documentos obrigatórios aprovados).</li>
+    <li>Na oferta convertida, clique em <strong>Abrir onboarding</strong>.</li>
+    <li>Atualize cada item (pendente, em andamento, concluído ou dispensado).</li>
+    <li>Quando todos os itens obrigatórios estiverem concluídos/dispensados, o plano muda para <em>concluído</em>.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o link de onboarding</dt>
+    <dd>A oferta precisa ter sido convertida após a migration de onboarding. Conversões antigas não geram plano automático.</dd>
+    <dt>Página não encontrada</dt>
+    <dd>Execute a migration <code>20260719240000_create_rh_onboarding</code>.</dd>
+</dl>

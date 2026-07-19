@@ -18,6 +18,30 @@ class RhConversoesAdmissaoRepository extends DbConnection
     /**
      * @return array<string, mixed>|null
      */
+    public function getById(int $id): ?array
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'SELECT * FROM rh_conversoes_admissao WHERE id = :id LIMIT 1'
+            );
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return is_array($row) ? $row : null;
+        } catch (PDOException $e) {
+            GenerateLog::generateLog('error', 'Erro ao buscar conversão por id.', [
+                'id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
     public function getByOfertaId(int $ofertaId): ?array
     {
         try {

@@ -75,6 +75,12 @@ $statusClass = match ($status) {
                             <?= (int) $this->data['conversao']['adms_user_id'] ?>
                         </a>
                     <?php endif; ?>
+                    <?php if (!empty($this->data['onboarding_plano']['id'])): ?>
+                        ·
+                        <a href="<?= htmlspecialchars((string) ($_ENV['URL_ADM'] ?? '') . 'rh-onboarding-view/' . (int) $this->data['onboarding_plano']['id'], ENT_QUOTES, 'UTF-8') ?>">
+                            Abrir onboarding
+                        </a>
+                    <?php endif; ?>
                 </div>
             <?php elseif ($canManage && $status === RhOfertasRepository::STATUS_ACEITA && !empty($this->data['buttonPermission']['RhOfertasConvert'])): ?>
                 <div class="mt-3">

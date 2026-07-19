@@ -61,6 +61,11 @@ Pessoa/Vínculo físicas antes do Expand de identidade (ADR-0002).
 - upload de documentos da pré-admissão;
 - reverter conversão.
 
+## Integração
+
+A conversão bem-sucedida dispara automaticamente o plano de onboarding
+([ONBOARDING_EXPAND.md](ONBOARDING_EXPAND.md)).
+
 ## Migration
 
 `database/migrations/20260719239000_create_rh_conversoes_admissao.php`

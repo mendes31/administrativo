@@ -104,12 +104,20 @@ final class RhConversaoAdmissaoService
                 'observacoes' => 'Conversão para colaborador (usuário #' . $userId . ', modo ' . $modo . ').',
             ]);
 
+            $onboarding = (new RhOnboardingService())->criarAPartirDaConversao(
+                (int) $conversaoId,
+                $userId,
+                $candidatoId,
+                $actorId
+            );
+
             $pdo->commit();
 
             return [
                 'conversao_id' => (int) $conversaoId,
                 'adms_user_id' => $userId,
                 'modo' => $modo,
+                'onboarding_plano_id' => $onboarding['plano_id'],
             ];
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
