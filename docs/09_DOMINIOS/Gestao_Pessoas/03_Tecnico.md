@@ -96,6 +96,8 @@ Toda mudança estrutural deve:
 - [Etapas do pipeline — Expand](ETAPAS_PIPELINE_EXPAND.md)
 - [Status geral — projeção](STATUS_PROCESSO_PROJECAO.md)
 - [Requisição de pessoal — Expand](REQUISICAO_PESSOAL_EXPAND.md)
+- [Scorecard de entrevista — Expand](SCORECARD_ENTREVISTA_EXPAND.md)
+- [Painel de avaliadores — Expand](AVALIADORES_ENTREVISTA_EXPAND.md)
 
 ## Referências
 

@@ -49,11 +49,10 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 ## Fase 2 — Entrevistas e comunicação
 
-- scorecards;
-- critérios e pesos;
-- múltiplos avaliadores;
-- agenda e reagendamento;
-- templates, outbox e histórico de entrega.
+- [x] scorecards + critérios/pesos na edição da entrevista ([SCORECARD_ENTREVISTA_EXPAND.md](SCORECARD_ENTREVISTA_EXPAND.md));
+- [x] painel interno de múltiplos avaliadores ([AVALIADORES_ENTREVISTA_EXPAND.md](AVALIADORES_ENTREVISTA_EXPAND.md));
+- [ ] agenda e reagendamento;
+- [ ] templates, outbox e histórico de entrega.
 
 ## Fase 3 — Portal público e pré-admissão
 

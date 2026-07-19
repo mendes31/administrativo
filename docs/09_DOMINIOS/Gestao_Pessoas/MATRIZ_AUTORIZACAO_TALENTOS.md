@@ -14,7 +14,7 @@
 | Operador RH (ACL) | Permissão em páginas `RhCandidatos*` / `RhVagas*` / `RhEntrevistas*` |
 | Responsável da vaga | `rh_vagas.responsavel_id = user_id` |
 | Gestor | `CrmPermissionService::isManager()` (hierarquia) |
-| Entrevistador | Campo `entrevistador_id` (ainda sem policy exclusiva de leitura) |
+| Entrevistador | Campo `entrevistador_id` + painel `rh_entrevista_avaliadores` (ainda sem policy exclusiva de leitura) |
 
 ## Matriz
 
@@ -40,9 +40,10 @@
 ## Lacunas conhecidas (próximos incrementos)
 
 1. Listagens de candidatos/vagas ainda sem escopo por objeto (operador RH vê tudo).
-2. Entrevistador designado ainda não tem policy “somente suas entrevistas”.
+2. Entrevistador/avaliador designado ainda não tem policy “somente suas entrevistas” (painel existe; ACL separada).
 3. Log de download de currículo ainda não existe.
 4. Escopo de gestor não valida área da vaga (qualquer gestor CRM passa).
+5. Convite/aceite de avaliador ainda não existe (painel é interno, sem comunicação).
 
 ## Referências
 

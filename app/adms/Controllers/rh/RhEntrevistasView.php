@@ -5,7 +5,10 @@ namespace App\adms\Controllers\rh;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhEntrevistasRepository;
+use App\adms\Models\Repository\RhEntrevistaAvaliadoresRepository;
+use App\adms\Models\Repository\RhEntrevistaScorecardRepository;
 use App\adms\Models\Services\LogResumoService;
+use App\adms\Models\Services\RhPermissionService;
 use App\adms\Views\Services\LoadViewService;
 
 class RhEntrevistasView
@@ -30,7 +33,37 @@ class RhEntrevistasView
             return;
         }
 
+        if (!RhPermissionService::canManageEntrevista($entrevista)) {
+            $_SESSION['error'] = 'Você não tem permissão para visualizar esta entrevista.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-entrevistas');
+            return;
+        }
+
         $this->data['entrevista'] = $entrevista;
+        $this->data['scorecards'] = [];
+        $this->data['painel_avaliadores'] = [];
+        try {
+            $this->data['scorecards'] = (new RhEntrevistaScorecardRepository())->listByEntrevista((int) $id);
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('warning', 'Scorecards indisponíveis na visualização de entrevista.', [
+                'entrevista_id' => (int) $id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+        try {
+            $this->data['painel_avaliadores'] = (new RhEntrevistaAvaliadoresRepository())->listPainelByEntrevista((int) $id);
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('warning', 'Painel de avaliadores indisponível na visualização.', [
+                'entrevista_id' => (int) $id,
+                'error' => $e->getMessage(),
+            ]);
+            // Fallback sem JOIN de scorecard (migration parcial).
+            try {
+                $this->data['painel_avaliadores'] = (new RhEntrevistaAvaliadoresRepository())->listByEntrevista((int) $id);
+            } catch (\Throwable $ignored) {
+                $this->data['painel_avaliadores'] = [];
+            }
+        }
 
         $idInt = (int) $id;
         $returnUrl = $_ENV['URL_ADM'] . 'rh-entrevistas-view/' . $idInt;

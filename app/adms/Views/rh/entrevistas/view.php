@@ -96,4 +96,105 @@ $e = $this->data['entrevista'] ?? [];
             </dl>
         </div>
     </div>
+
+    <?php $painel = $this->data['painel_avaliadores'] ?? []; ?>
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header"><i class="fas fa-users me-2"></i>Painel de avaliadores</div>
+        <div class="card-body">
+            <?php if (empty($painel)): ?>
+                <p class="text-muted mb-0">Nenhum avaliador no painel. Defina o entrevistador principal e adicionais na edição.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Avaliador</th>
+                                <th>Papel</th>
+                                <th>Status</th>
+                                <th>Scorecard</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($painel as $av): ?>
+                                <?php
+                                $scStatus = $av['scorecard_status'] ?? null;
+                                if ($scStatus === null || $scStatus === '') {
+                                    $scLabel = 'ausente';
+                                    $scClass = 'bg-light text-dark';
+                                } elseif ($scStatus === 'finalizado') {
+                                    $scLabel = 'finalizado';
+                                    $scClass = 'bg-success';
+                                } else {
+                                    $scLabel = 'rascunho';
+                                    $scClass = 'bg-secondary';
+                                }
+                                ?>
+                                <tr class="<?= ($av['status'] ?? '') === 'removido' ? 'text-muted' : '' ?>">
+                                    <td><?= htmlspecialchars($av['avaliador_nome'] ?? ('#' . (int) ($av['avaliador_id'] ?? 0))) ?></td>
+                                    <td><?= htmlspecialchars($av['papel'] ?? 'avaliador') ?></td>
+                                    <td><?= htmlspecialchars($av['status'] ?? 'ativo') ?></td>
+                                    <td>
+                                        <span class="badge <?= $scClass ?>"><?= htmlspecialchars($scLabel) ?></span>
+                                        <?php if (isset($av['scorecard_nota']) && $av['scorecard_nota'] !== null && $av['scorecard_nota'] !== ''): ?>
+                                            <span class="small text-muted ms-1"><?= number_format((float) $av['scorecard_nota'], 2, ',', '.') ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="small text-muted mt-2 mb-0">A designação no painel não concede acesso automático à entrevista.</p>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php $scorecards = $this->data['scorecards'] ?? []; ?>
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header"><i class="fas fa-clipboard-check me-2"></i>Scorecards</div>
+        <div class="card-body">
+            <?php if (empty($scorecards)): ?>
+                <p class="text-muted mb-0">Nenhum scorecard registrado ainda. Edite a entrevista para lançar sua avaliação.</p>
+            <?php else: ?>
+                <?php foreach ($scorecards as $sc): ?>
+                    <div class="mb-4 pb-3 border-bottom">
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <strong><?= htmlspecialchars($sc['avaliador_nome'] ?? ('Avaliador #' . (int) ($sc['avaliador_id'] ?? 0))) ?></strong>
+                            <span class="badge bg-<?= ($sc['status'] ?? '') === 'finalizado' ? 'success' : 'secondary' ?>">
+                                <?= htmlspecialchars($sc['status'] ?? 'rascunho') ?>
+                            </span>
+                            <?php if ($sc['nota_ponderada'] !== null && $sc['nota_ponderada'] !== ''): ?>
+                                <span class="text-muted">Nota ponderada: <strong><?= number_format((float) $sc['nota_ponderada'], 2, ',', '.') ?></strong></span>
+                            <?php endif; ?>
+                        </div>
+                        <?php if (!empty($sc['parecer'])): ?>
+                            <p class="mb-2"><?= nl2br(htmlspecialchars((string) $sc['parecer'])) ?></p>
+                        <?php endif; ?>
+                        <div class="table-responsive">
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Critério</th>
+                                        <th>Peso</th>
+                                        <th>Nota</th>
+                                        <th>Comentário</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach (($sc['itens'] ?? []) as $item): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars((string) ($item['criterio_label'] ?? $item['criterio_codigo'] ?? '')) ?></td>
+                                            <td><?= (int) ($item['peso'] ?? 0) ?></td>
+                                            <td><?= $item['nota'] !== null && $item['nota'] !== '' ? (int) $item['nota'] : '—' ?></td>
+                                            <td><?= htmlspecialchars((string) ($item['comentario'] ?? '')) ?></td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            <?php endif; ?>
+        </div>
+    </div>
 </div>

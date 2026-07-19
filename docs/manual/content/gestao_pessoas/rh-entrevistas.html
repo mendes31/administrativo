@@ -3,22 +3,25 @@
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga.</p>
+<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A visualização também exige permissão sobre o objeto.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Abra <strong>Listar Entrevistas</strong> ou agende a partir do candidato/vaga.</li>
-    <li>Preencha data/hora, tipo, entrevistador e local.</li>
+    <li>Preencha data/hora, tipo, entrevistador principal, local e, se quiser, <strong>avaliadores adicionais</strong> (painel interno — sem e-mail automático).</li>
+    <li>Na edição, use o <strong>scorecard</strong> para lançar notas (0–10) por critério e parecer. A nota ponderada é só informativa — não muda o resultado nem o pipeline.</li>
     <li>Ao salvar resultado <strong>aprovado</strong> ou <strong>reprovado</strong>, o status da candidatura no pipeline é atualizado na mesma operação (com motivo automático e histórico).</li>
-    <li>Consulte a linha do tempo do candidato para auditar a transição.</li>
+    <li>Na visualização, consulte o <strong>painel de avaliadores</strong> (papel, status e scorecard), os scorecards detalhados e a linha do tempo do candidato.</li>
 </ol>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Candidato não está vinculado a esta vaga</dt>
     <dd>O resultado aprovado/reprovado exige vínculo ativo candidato–vaga. Vincule o candidato antes de registrar o resultado, ou a edição é revertida por completo.</dd>
-    <dt>Você não tem permissão para editar esta entrevista</dt>
-    <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga.</dd>
+    <dt>Você não tem permissão para editar/visualizar esta entrevista</dt>
+    <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga. Estar no painel de avaliadores <em>não</em> libera acesso sozinho.</dd>
+    <dt>Entrevista atualizada, porém falhou ao salvar painel/scorecard</dt>
+    <dd>Rode as migrations <code>20260719170000_create_rh_entrevista_scorecards</code> e <code>20260719180000_create_rh_entrevista_avaliadores</code>; salve novamente na edição.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhEntrevistas</em> ausente no nível de acesso.</dd>
 </dl>
