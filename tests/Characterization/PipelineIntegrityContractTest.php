@@ -20,7 +20,7 @@ final class PipelineIntegrityContractTest extends TestCase
         );
 
         self::assertStringContainsString('beginTransaction()', $source);
-        self::assertStringContainsString('rowCount()', $source);
+        self::assertStringContainsString('$ownsTransaction', $source);
         self::assertStringContainsString(
             'Candidato não está vinculado a esta vaga.',
             $source

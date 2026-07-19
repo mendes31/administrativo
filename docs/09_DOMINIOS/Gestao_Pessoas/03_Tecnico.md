@@ -12,7 +12,8 @@
 - status de candidatura e candidato podem divergir;
 - operações compostas nem sempre usam transação;
 - não há suíte automatizada abrangente;
-- histórico de candidatura em `rh_candidaturas_historico` (append-only), com dual-write nas transições.
+- histórico de candidatura em `rh_candidaturas_historico` (append-only), com dual-write nas transições;
+- service `RhCandidaturaMovimentacaoService` para entrevista + pipeline na mesma transação.
 
 ## Direção arquitetural
 

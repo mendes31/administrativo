@@ -1,28 +1,24 @@
 <h1>Listar Entrevistas</h1>
-<p>Tela <strong>Listar Entrevistas</strong> do módulo Gestão de Pessoas. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
+<p>Agenda, edita e registra resultados de entrevistas vinculadas a candidatos e vagas.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>RhEntrevistas</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <strong>Listar Entrevistas</strong> pelo menu Gestão de Pessoas.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Abra <strong>Listar Entrevistas</strong> ou agende a partir do candidato/vaga.</li>
+    <li>Preencha data/hora, tipo, entrevistador e local.</li>
+    <li>Ao salvar resultado <strong>aprovado</strong> ou <strong>reprovado</strong>, o status da candidatura no pipeline é atualizado na mesma operação (com motivo automático e histórico).</li>
+    <li>Consulte a linha do tempo do candidato para auditar a transição.</li>
 </ol>
-
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Candidato não está vinculado a esta vaga</dt>
+    <dd>O resultado aprovado/reprovado exige vínculo ativo candidato–vaga. Vincule o candidato antes de registrar o resultado, ou a edição é revertida por completo.</dd>
+    <dt>Você não tem permissão para editar esta entrevista</dt>
+    <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga.</dd>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>RhEntrevistas</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão <em>RhEntrevistas</em> ausente no nível de acesso.</dd>
 </dl>

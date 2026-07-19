@@ -70,28 +70,22 @@ class RhEntrevistasEdit
             if (($resultadoAtual === '' || $resultadoAtual === 'pendente') && $resultadoForm !== 'aprovado' && $resultadoForm !== 'reprovado') {
                 $form['resultado'] = 'agendado';
             }
-            if ($repo->update($id, $form)) {
-                // Refletir resultado da entrevista no pipeline (mesma autorização já validada)
-                $candidatoId = (int) ($entrevista['rh_candidato_id'] ?? 0);
-                $vagaId = (int) ($entrevista['rh_vaga_id'] ?? 0);
-                if ($candidatoId > 0 && $vagaId > 0 && in_array($resultadoForm, ['aprovado', 'reprovado'], true)) {
-                    $vagaRepo = new RhVagasRepository();
-                    $vagaRepo->atualizarStatusVinculo(
-                        $vagaId,
-                        $candidatoId,
-                        $resultadoForm,
-                        null,
-                        \App\adms\Models\Repository\RhCandidaturaHistoricoRepository::ORIGEM_ENTREVISTA,
-                        $id,
-                        \App\adms\Models\Services\RhCandidaturaMotivoCatalog::forEntrevistaResultado($resultadoForm)
-                    );
-                }
+            try {
+                $movimentacao = new \App\adms\Models\Services\RhCandidaturaMovimentacaoService();
+                $movimentacao->atualizarEntrevistaComReflexoPipeline($id, $form);
                 $_SESSION['success'] = "Entrevista atualizada com sucesso!";
                 header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");
                 return;
+            } catch (\Throwable $e) {
+                GenerateLog::generateLog('error', 'Erro ao atualizar entrevista com reflexo no pipeline.', [
+                    'entrevista_id' => $id,
+                    'error' => $e->getMessage(),
+                ]);
+                $_SESSION['error'] = $e->getMessage() !== ''
+                    ? $e->getMessage()
+                    : 'Erro ao atualizar entrevista.';
+                $this->data['form'] = $form;
             }
-            $_SESSION['error'] = "Erro ao atualizar entrevista.";
-            $this->data['form'] = $form;
         }
 
         $this->viewForm($id);

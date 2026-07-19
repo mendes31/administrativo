@@ -37,8 +37,11 @@ Linha do tempo na ficha do candidato (`RhCandidatosView`).
 
 1. Encerramento lógico do vínculo (evitar DELETE físico).
 2. FK rígida `rh_candidatura_id → rh_candidatos_vagas`.
-3. Service único entrevista + movimentação + histórico.
-4. Etapas configuráveis.
+3. Etapas configuráveis.
+
+## Service transacional
+
+`RhCandidaturaMovimentacaoService::atualizarEntrevistaComReflexoPipeline` atualiza entrevista + pipeline + histórico na mesma transação. `atualizarStatusVinculo` participa de transação externa (`$ownsTransaction`) e não ressincroniza entrevistas quando a origem já é `entrevista`.
 
 ## Motivos estruturados
 

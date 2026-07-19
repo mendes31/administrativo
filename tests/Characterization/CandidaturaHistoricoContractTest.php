@@ -40,13 +40,18 @@ final class CandidaturaHistoricoContractTest extends TestCase
 
     public function testEntrevistaEditPassesOrigemAndEntrevistaId(): void
     {
-        $source = $this->readProjectFile(
+        $controller = $this->readProjectFile(
             'app/adms/Controllers/rh/RhEntrevistasEdit.php'
         );
+        $service = $this->readProjectFile(
+            'app/adms/Models/Services/RhCandidaturaMovimentacaoService.php'
+        );
 
-        self::assertStringContainsString('ORIGEM_ENTREVISTA', $source);
-        self::assertStringContainsString('atualizarStatusVinculo(', $source);
-        self::assertStringContainsString('forEntrevistaResultado', $source);
+        self::assertStringContainsString('RhCandidaturaMovimentacaoService', $controller);
+        self::assertStringContainsString('atualizarEntrevistaComReflexoPipeline', $controller);
+        self::assertStringContainsString('ORIGEM_ENTREVISTA', $service);
+        self::assertStringContainsString('forEntrevistaResultado', $service);
+        self::assertStringContainsString('beginTransaction()', $service);
     }
 
     public function testPipelineControllerRequiresStructuredMotivo(): void

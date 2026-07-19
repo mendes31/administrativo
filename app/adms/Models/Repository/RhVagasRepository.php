@@ -398,7 +398,10 @@ class RhVagasRepository extends DbConnection
         ?string $motivoCodigo = null
     ): bool {
         $pdo = $this->getConnection();
-        $pdo->beginTransaction();
+        $ownsTransaction = !$pdo->inTransaction();
+        if ($ownsTransaction) {
+            $pdo->beginTransaction();
+        }
 
         try {
             $vaga = $this->getById($vagaId);
@@ -477,19 +480,26 @@ class RhVagasRepository extends DbConnection
                 }
             }
 
-            $entrevistasRepo = new RhEntrevistasRepository();
-            if ($status === 'em_entrevista') {
-                $entrevistasRepo->criarAoMoverParaEmEntrevista($candidatoId, $vagaId);
-            }
-            if (in_array($status, ['aprovado', 'reprovado'], true)) {
-                $entrevistasRepo->atualizarResultadoPorCandidatoVaga($candidatoId, $vagaId, $status);
+            // Quando a origem já é a própria entrevista, o resultado já foi persistido pelo service.
+            if ($origem !== RhCandidaturaHistoricoRepository::ORIGEM_ENTREVISTA) {
+                $entrevistasRepo = new RhEntrevistasRepository();
+                if ($status === 'em_entrevista') {
+                    $entrevistasRepo->criarAoMoverParaEmEntrevista($candidatoId, $vagaId);
+                }
+                if (in_array($status, ['aprovado', 'reprovado'], true)) {
+                    if (!$entrevistasRepo->atualizarResultadoPorCandidatoVaga($candidatoId, $vagaId, $status)) {
+                        throw new Exception('Falha ao sincronizar resultado das entrevistas do vínculo.');
+                    }
+                }
             }
 
-            $pdo->commit();
+            if ($ownsTransaction) {
+                $pdo->commit();
+            }
 
             return true;
         } catch (Exception $e) {
-            if ($pdo->inTransaction()) {
+            if ($ownsTransaction && $pdo->inTransaction()) {
                 $pdo->rollBack();
             }
             GenerateLog::generateLog('error', 'Erro ao atualizar status do vínculo.', [
