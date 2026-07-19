@@ -120,7 +120,15 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_edit_rh_vaga');
                                    <?= !empty($this->data['form']['mostrar_salario']) ? 'checked' : '' ?>>
                         </div>
                     </div>
-                    <div class="col-md-3 mb-2">
+                    <div class="col-md-2 mb-2">
+                        <label for="publicada" class="form-label">Publicar (portal)</label>
+                        <div class="form-check form-switch mt-2">
+                            <input type="checkbox" name="form[publicada]" id="publicada" class="form-check-input" value="1"
+                                   <?= !empty($this->data['form']['publicada']) ? 'checked' : '' ?>>
+                        </div>
+                        <div class="form-text">Só com status Aberta. O portal público ainda não está ativo.</div>
+                    </div>
+                    <div class="col-md-2 mb-2">
                         <label for="quantidade_vagas" class="form-label">Quantidade de Vagas</label>
                         <input type="number" name="form[quantidade_vagas]" id="quantidade_vagas" class="form-control" min="1" value="<?= $this->data['form']['quantidade_vagas'] ?? 1 ?>">
                     </div>

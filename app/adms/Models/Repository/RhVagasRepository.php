@@ -22,17 +22,20 @@ class RhVagasRepository extends DbConnection
                 throw new Exception('Título da vaga é obrigatório.');
             }
 
+            $status = (string) ($data['status'] ?? 'aberta');
+            $publicada = $this->normalizePublicadaFlag($data, $status);
+
             $sql = 'INSERT INTO rh_vagas 
                         (titulo, descricao, requisitos, beneficios,
                          area_id, cargo_id, tipo_contrato,
-                         salario_min, salario_max, mostrar_salario,
+                         salario_min, salario_max, mostrar_salario, publicada, publicado_em,
                          status, data_abertura, data_limite_inscricao,
                          quantidade_vagas, local_trabalho, jornada_trabalho,
                          observacoes, responsavel_id, personnel_request_id, created_at)
                     VALUES
                         (:titulo, :descricao, :requisitos, :beneficios,
                          :area_id, :cargo_id, :tipo_contrato,
-                         :salario_min, :salario_max, :mostrar_salario,
+                         :salario_min, :salario_max, :mostrar_salario, :publicada, :publicado_em,
                          :status, :data_abertura, :data_limite_inscricao,
                          :quantidade_vagas, :local_trabalho, :jornada_trabalho,
                          :observacoes, :responsavel_id, :personnel_request_id, NOW())';
@@ -48,7 +51,13 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':salario_min', !empty($data['salario_min']) ? $data['salario_min'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':salario_max', !empty($data['salario_max']) ? $data['salario_max'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':mostrar_salario', !empty($data['mostrar_salario']) ? 1 : 0, PDO::PARAM_BOOL);
-            $stmt->bindValue(':status', $data['status'] ?? 'aberta', PDO::PARAM_STR);
+            $stmt->bindValue(':publicada', $publicada, PDO::PARAM_INT);
+            $stmt->bindValue(
+                ':publicado_em',
+                $publicada === 1 ? date('Y-m-d H:i:s') : null,
+                $publicada === 1 ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
+            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             $stmt->bindValue(':data_abertura', $data['data_abertura'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
             $stmt->bindValue(':data_limite_inscricao', !empty($data['data_limite_inscricao']) ? $data['data_limite_inscricao'] : null, $data['data_limite_inscricao'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':quantidade_vagas', !empty($data['quantidade_vagas']) ? (int)$data['quantidade_vagas'] : 1, PDO::PARAM_INT);
@@ -110,6 +119,17 @@ class RhVagasRepository extends DbConnection
                 throw new Exception('Título da vaga é obrigatório.');
             }
 
+            $status = (string) ($data['status'] ?? 'aberta');
+            $publicada = $this->normalizePublicadaFlag($data, $status);
+            $wasPublicada = (int) ($dadosAntes['publicada'] ?? 0) === 1;
+            $publicadoEmSql = '';
+            if ($publicada === 1 && !$wasPublicada) {
+                $publicadoEmSql = ', publicado_em = NOW()';
+            } elseif ($publicada === 0) {
+                // Mantém histórico de publicado_em; só desliga a flag.
+                $publicadoEmSql = '';
+            }
+
             $sql = 'UPDATE rh_vagas SET
                         titulo = :titulo,
                         descricao = :descricao,
@@ -121,6 +141,7 @@ class RhVagasRepository extends DbConnection
                         salario_min = :salario_min,
                         salario_max = :salario_max,
                         mostrar_salario = :mostrar_salario,
+                        publicada = :publicada' . $publicadoEmSql . ',
                         status = :status,
                         data_limite_inscricao = :data_limite_inscricao,
                         quantidade_vagas = :quantidade_vagas,
@@ -143,7 +164,8 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':salario_min', !empty($data['salario_min']) ? $data['salario_min'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':salario_max', !empty($data['salario_max']) ? $data['salario_max'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':mostrar_salario', !empty($data['mostrar_salario']) ? 1 : 0, PDO::PARAM_BOOL);
-            $stmt->bindValue(':status', $data['status'] ?? 'aberta', PDO::PARAM_STR);
+            $stmt->bindValue(':publicada', $publicada, PDO::PARAM_INT);
+            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             $stmt->bindValue(':data_limite_inscricao', !empty($data['data_limite_inscricao']) ? $data['data_limite_inscricao'] : null, $data['data_limite_inscricao'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':quantidade_vagas', !empty($data['quantidade_vagas']) ? (int)$data['quantidade_vagas'] : 1, PDO::PARAM_INT);
             $stmt->bindValue(':local_trabalho', $data['local_trabalho'] ?? null, $data['local_trabalho'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
@@ -214,6 +236,10 @@ class RhVagasRepository extends DbConnection
         if (!empty($filters['status'])) {
             $where[] = 'v.status = :status';
             $params[':status'] = $filters['status'];
+        }
+        if (isset($filters['publicada']) && $filters['publicada'] !== '' && $filters['publicada'] !== null) {
+            $where[] = 'v.publicada = :publicada';
+            $params[':publicada'] = (int) $filters['publicada'] === 1 ? 1 : 0;
         }
         if (!empty($filters['area_id'])) {
             $where[] = 'v.area_id = :area_id';
@@ -649,6 +675,7 @@ class RhVagasRepository extends DbConnection
 
             $sql = 'UPDATE rh_vagas
                     SET status = :status,
+                        publicada = 0,
                         data_fechamento = NOW(),
                         observacoes = CONCAT(COALESCE(observacoes, ""), "\n\nVaga fechada em: ", NOW(), IF(:motivo IS NOT NULL, CONCAT("\nMotivo: ", :motivo), ""))
                     WHERE id = :id';
@@ -904,6 +931,20 @@ class RhVagasRepository extends DbConnection
             ]);
             throw $e;
         }
+    }
+
+    /**
+     * Publicação só é permitida com status aberta (portal futuro).
+     *
+     * @param array<string, mixed> $data
+     */
+    private function normalizePublicadaFlag(array $data, string $status): int
+    {
+        if ($status !== 'aberta') {
+            return 0;
+        }
+
+        return !empty($data['publicada']) ? 1 : 0;
     }
 }
 

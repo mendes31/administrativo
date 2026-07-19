@@ -16,6 +16,7 @@ class RhVagas
         $filters = [
             'titulo'        => $_GET['titulo'] ?? '',
             'status'        => $_GET['status'] ?? '',
+            'publicada'     => $_GET['publicada'] ?? '',
             'area_id'       => $_GET['area_id'] ?? '',
             'cargo_id'      => $_GET['cargo_id'] ?? '',
             'tipo_contrato' => $_GET['tipo_contrato'] ?? '',
@@ -43,11 +44,12 @@ class RhVagas
             array_filter([
                 'titulo'        => $filters['titulo'],
                 'status'        => $filters['status'],
+                'publicada'     => $filters['publicada'],
                 'area_id'       => $filters['area_id'],
                 'cargo_id'      => $filters['cargo_id'],
                 'tipo_contrato' => $filters['tipo_contrato'],
                 'per_page'      => $perPage,
-            ])
+            ], static fn ($v) => $v !== '' && $v !== null)
         );
         $this->data['paginator'] = $pagination['html'] ?? '';
 

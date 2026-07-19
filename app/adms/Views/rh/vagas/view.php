@@ -68,6 +68,11 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                         <span class="<?= $statusClass ?>">
                             <?= htmlspecialchars(ucfirst($v['status'] ?? '')) ?>
                         </span>
+                        <?php if (!empty($v['publicada'])): ?>
+                            <span class="badge bg-primary">Publicada (portal)</span>
+                        <?php else: ?>
+                            <span class="badge bg-light text-dark">Não publicada</span>
+                        <?php endif; ?>
                         <?php if (!empty($v['area_nome'])): ?>
                             <span class="badge bg-info"><?= htmlspecialchars($v['area_nome']) ?></span>
                         <?php endif; ?>
@@ -135,6 +140,19 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
 
                         <dt class="col-sm-5">Data de Fechamento</dt>
                         <dd class="col-sm-7"><?= FormatHelper::formatDateTime($v['data_fechamento'] ?? null) ?></dd>
+
+                        <dt class="col-sm-5">Publicação (portal)</dt>
+                        <dd class="col-sm-7">
+                            <?php if (!empty($v['publicada'])): ?>
+                                Sim
+                                <?php if (!empty($v['publicado_em'])): ?>
+                                    <small class="text-muted">(desde <?= FormatHelper::formatDateTime($v['publicado_em']) ?>)</small>
+                                <?php endif; ?>
+                                <br><small class="text-muted">Portal público ainda não está ativo; a flag prepara a vaga.</small>
+                            <?php else: ?>
+                                Não
+                            <?php endif; ?>
+                        </dd>
 
                         <dt class="col-sm-5">Status</dt>
                         <dd class="col-sm-7">

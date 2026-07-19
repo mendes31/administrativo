@@ -1,5 +1,5 @@
 <h1>Listar Vagas</h1>
-<p>Consulta e gerencia vagas do recrutamento (ATS), com filtros por status, área e cargo.</p>
+<p>Consulta e gerencia vagas do recrutamento (ATS), com filtros por status, publicação, área e cargo.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
@@ -8,7 +8,8 @@
 <h2>Fluxo principal</h2>
 <ol>
     <li>Acesse <strong>Vagas de Emprego</strong> no menu Recrutamento.</li>
-    <li>Use filtros (título, status, área, cargo) e abra o detalhe ou o pipeline.</li>
+    <li>Use filtros (título, status, publicação, área, cargo) e abra o detalhe ou o pipeline.</li>
+    <li>Na criação/edição, marque <strong>Publicar (portal)</strong> apenas se o status for <em>Aberta</em>. Isso registra a intenção de exibir a vaga no portal futuro; o portal público ainda não está ativo.</li>
     <li>Para abrir uma vaga a partir de headcount aprovado, use <strong>Requisições</strong>.</li>
 </ol>
 
@@ -16,8 +17,12 @@
 <dl>
     <dt>Só vejo minhas vagas</dt>
     <dd>Falta a permissão <em>RhVagasViewAll</em> no nível de acesso. Após a migration de escopo, quem já tinha <em>RhVagas</em> recebe ViewAll automaticamente; se foi removida depois, solicite a inclusão.</dd>
+    <dt>Não consigo marcar a vaga como publicada</dt>
+    <dd>O status precisa ser <em>Aberta</em>. Vagas pausadas, fechadas ou canceladas não podem ficar publicadas; ao fechar, a publicação é desligada automaticamente.</dd>
+    <dt>Marquei como publicada e o candidato não vê a vaga</dt>
+    <dd>O portal público ainda não está disponível. A flag prepara a vaga para o próximo incremento.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhVagas</em> ausente no seu nível de acesso.</dd>
     <dt>Erro ao carregar após deploy</dt>
-    <dd>Rode a migration <code>20260719210000_register_rh_vagas_view_all_scope</code>.</dd>
+    <dd>Rode as migrations <code>20260719210000_register_rh_vagas_view_all_scope</code> e <code>20260719235000_add_rh_vagas_publicacao_flag</code>.</dd>
 </dl>

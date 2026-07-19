@@ -1,28 +1,22 @@
-<h1>Update Rh Vaga</h1>
-<p>Altera um registro existente de <strong>Update Rh Vaga</strong>. Mudanças em campos de status ou vínculos podem afetar menu, permissões ou integrações.</p>
+<h1>Editar Vaga</h1>
+<p>Altera uma vaga existente do recrutamento (ATS), incluindo status e a flag de publicação para o portal futuro.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral:</strong> consulte também <em>Listar Vagas</em> (<code>rh-vagas</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>UpdateRhVaga</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>UpdateRhVaga</em> / <em>RhVagasEdit</em> e autorização sobre a vaga.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Altere apenas os campos necessários; observe campos que afetam permissões ou integrações.</li>
-    <li>Salve as alterações e confira a mensagem de retorno.</li>
-    <li>Teste com um usuário do perfil impactado (logout/login) se mudou permissões ou status.</li>
+    <li>Na listagem, abra <strong>Editar</strong> na vaga desejada.</li>
+    <li>Ajuste status, dados e, se quiser, <strong>Publicar (portal)</strong> (somente com status <em>Aberta</em>).</li>
+    <li>Ao mudar o status para pausada/fechada/cancelada, a publicação é desligada automaticamente.</li>
+    <li>Salve e confira badges na visualização e na listagem.</li>
 </ol>
-
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Não consigo manter a vaga publicada</dt>
+    <dd>O status precisa permanecer <em>Aberta</em>.</dd>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>UpdateRhVaga</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão de editar vaga ausente no nível de acesso.</dd>
 </dl>

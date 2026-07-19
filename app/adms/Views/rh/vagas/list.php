@@ -62,6 +62,15 @@ use App\adms\Helpers\FormatHelper;
                     </select>
                 </div>
                 <div class="col-md-2 mb-2">
+                    <label for="publicada" class="form-label mb-1">Publicação</label>
+                    <?php $publicadaFiltro = $_GET['publicada'] ?? ''; ?>
+                    <select name="publicada" id="publicada" class="form-select form-select-sm">
+                        <option value="" <?= $publicadaFiltro === '' ? 'selected' : '' ?>>Todas</option>
+                        <option value="1" <?= $publicadaFiltro === '1' ? 'selected' : '' ?>>Publicadas</option>
+                        <option value="0" <?= $publicadaFiltro === '0' ? 'selected' : '' ?>>Não publicadas</option>
+                    </select>
+                </div>
+                <div class="col-md-2 mb-2">
                     <label for="area_id" class="form-label mb-1">Área/Departamento</label>
                     <select name="area_id" id="area_id" class="form-select form-select-sm">
                         <option value="">Todas</option>
@@ -113,6 +122,7 @@ use App\adms\Helpers\FormatHelper;
                             <th>Cargo</th>
                             <th>Tipo Contrato</th>
                             <th>Status</th>
+                            <th>Portal</th>
                             <th>Candidatos</th>
                             <th>Data Abertura</th>
                             <th class="text-center">Ações</th>
@@ -121,7 +131,7 @@ use App\adms\Helpers\FormatHelper;
                     <tbody>
                         <?php if (empty($this->data['vagas'])): ?>
                             <tr>
-                                <td colspan="9" class="text-center text-muted py-4">
+                                <td colspan="10" class="text-center text-muted py-4">
                                     <i class="fas fa-inbox fa-2x mb-2 d-block"></i>
                                     Nenhuma vaga encontrada.
                                 </td>
@@ -149,6 +159,13 @@ use App\adms\Helpers\FormatHelper;
                                         <span class="<?= $statusClass ?>">
                                             <?= htmlspecialchars(ucfirst($vaga['status'])) ?>
                                         </span>
+                                    </td>
+                                    <td>
+                                        <?php if (!empty($vaga['publicada'])): ?>
+                                            <span class="badge bg-primary">Publicada</span>
+                                        <?php else: ?>
+                                            <span class="badge bg-light text-dark">Não</span>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="text-center">
                                         <span class="badge bg-info">

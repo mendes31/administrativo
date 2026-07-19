@@ -78,12 +78,15 @@ class ValidationRhVagaService
             $data['salario_max'] !== '' &&
             is_numeric($data['salario_min']) &&
             is_numeric($data['salario_max']) &&
-            (float)$data['salario_max'] < (float)$data['salario_min']
+            (float) $data['salario_max'] < (float) $data['salario_min']
         ) {
             $errors['salario_max'] = 'Salário máximo não pode ser menor que o salário mínimo.';
+        }
+
+        if (!empty($data['publicada']) && (string) ($data['status'] ?? '') !== 'aberta') {
+            $errors['publicada'] = 'Somente vagas com status Aberta podem ser marcadas como publicadas.';
         }
 
         return $errors;
     }
 }
-
