@@ -98,6 +98,8 @@ Toda mudança estrutural deve:
 - [Requisição de pessoal — Expand](REQUISICAO_PESSOAL_EXPAND.md)
 - [Scorecard de entrevista — Expand](SCORECARD_ENTREVISTA_EXPAND.md)
 - [Painel de avaliadores — Expand](AVALIADORES_ENTREVISTA_EXPAND.md)
+- [Agenda e reagendamento — Expand](AGENDA_ENTREVISTA_EXPAND.md)
+- [Comunicação + outbox — Expand](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md)
 
 ## Referências
 

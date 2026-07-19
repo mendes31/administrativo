@@ -163,6 +163,30 @@ class RhEntrevistasRepository extends DbConnection
     }
 
     /**
+     * Busca entrevista por ID com bloqueio (FOR UPDATE) para atualização atômica.
+     */
+    public function lockById(int $id): ?array
+    {
+        $sql = 'SELECT e.*,
+                    c.nome AS candidato_nome, c.email AS candidato_email,
+                    v.titulo AS vaga_titulo,
+                    u.name AS entrevistador_nome
+                FROM rh_entrevistas e
+                INNER JOIN rh_candidatos c ON c.id = e.rh_candidato_id
+                LEFT JOIN rh_vagas v ON v.id = e.rh_vaga_id
+                LEFT JOIN adms_users u ON u.id = e.entrevistador_id
+                WHERE e.id = :id
+                LIMIT 1
+                FOR UPDATE';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
      * Busca entrevista por ID (com joins para candidato, vaga e entrevistador).
      */
     public function getById(int $id): ?array

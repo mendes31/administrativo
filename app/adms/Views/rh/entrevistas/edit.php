@@ -85,6 +85,18 @@ if ($dataHora && strpos($dataHora, ' ') !== false) {
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12 mb-2">
+                        <label for="motivo_reagendamento" class="form-label">Motivo da alteração de data/hora</label>
+                        <input type="text" name="form[motivo_reagendamento]" id="motivo_reagendamento" class="form-control"
+                               maxlength="500"
+                               value="<?= htmlspecialchars((string) ($form['motivo_reagendamento'] ?? '')) ?>"
+                               placeholder="Obrigatório ao reagendar entrevista já agendada">
+                        <div class="form-text">
+                            No primeiro agendamento (pendente → agendada) o motivo não é exigido. Em reagendamentos posteriores, é obrigatório e fica no histórico.
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12 mb-2">
                         <label for="avaliadores_adicionais" class="form-label">Avaliadores adicionais</label>
                         <?php
                         $avaliadoresSel = array_map('intval', (array) ($form['avaliadores_adicionais'] ?? []));

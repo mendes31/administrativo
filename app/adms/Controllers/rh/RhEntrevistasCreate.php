@@ -4,7 +4,6 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
-use App\adms\Models\Repository\RhEntrevistasRepository;
 use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -48,15 +47,18 @@ class RhEntrevistasCreate
                 return;
             }
 
-            $repo = new RhEntrevistasRepository();
-            $id = $repo->create($form);
-            if ($id) {
+            try {
+                $movimentacao = new \App\adms\Models\Services\RhCandidaturaMovimentacaoService();
+                $id = $movimentacao->criarEntrevista($form);
                 $_SESSION['success'] = "Entrevista cadastrada com sucesso!";
                 header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");
                 return;
+            } catch (\Throwable $e) {
+                $_SESSION['error'] = $e->getMessage() !== ''
+                    ? $e->getMessage()
+                    : 'Erro ao cadastrar entrevista.';
+                $this->data['form'] = $form;
             }
-            $_SESSION['error'] = "Erro ao cadastrar entrevista.";
-            $this->data['form'] = $form;
         }
 
         $this->viewForm();

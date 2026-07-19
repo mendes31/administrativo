@@ -52,6 +52,7 @@ class RhEntrevistasEdit
             'resultado'         => $entrevista['resultado'] ?? '',
             'feedback'          => $entrevista['feedback'] ?? '',
             'avaliadores_adicionais' => $this->loadAvaliadoresAdicionaisIds($id),
+            'motivo_reagendamento' => '',
         ];
         if (!isset($this->data['form']['avaliadores_adicionais'])) {
             $this->data['form']['avaliadores_adicionais'] = [];

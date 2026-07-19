@@ -6,6 +6,8 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhEntrevistasRepository;
 use App\adms\Models\Repository\RhEntrevistaAvaliadoresRepository;
+use App\adms\Models\Repository\RhEntrevistaComunicacoesRepository;
+use App\adms\Models\Repository\RhEntrevistaReagendamentosRepository;
 use App\adms\Models\Repository\RhEntrevistaScorecardRepository;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Models\Services\RhPermissionService;
@@ -42,6 +44,8 @@ class RhEntrevistasView
         $this->data['entrevista'] = $entrevista;
         $this->data['scorecards'] = [];
         $this->data['painel_avaliadores'] = [];
+        $this->data['reagendamentos'] = [];
+        $this->data['comunicacoes'] = [];
         try {
             $this->data['scorecards'] = (new RhEntrevistaScorecardRepository())->listByEntrevista((int) $id);
         } catch (\Throwable $e) {
@@ -63,6 +67,22 @@ class RhEntrevistasView
             } catch (\Throwable $ignored) {
                 $this->data['painel_avaliadores'] = [];
             }
+        }
+        try {
+            $this->data['reagendamentos'] = (new RhEntrevistaReagendamentosRepository())->listByEntrevista((int) $id);
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('warning', 'Histórico de reagendamentos indisponível.', [
+                'entrevista_id' => (int) $id,
+                'error' => $e->getMessage(),
+            ]);
+        }
+        try {
+            $this->data['comunicacoes'] = (new RhEntrevistaComunicacoesRepository())->listByEntrevista((int) $id);
+        } catch (\Throwable $e) {
+            GenerateLog::generateLog('warning', 'Histórico de comunicações indisponível.', [
+                'entrevista_id' => (int) $id,
+                'error' => $e->getMessage(),
+            ]);
         }
 
         $idInt = (int) $id;

@@ -31,7 +31,7 @@ Diagnósticos:
 - [x] matriz de autorização de Talentos ([MATRIZ_AUTORIZACAO_TALENTOS.md](MATRIZ_AUTORIZACAO_TALENTOS.md));
 - [x] catálogo de eventos de Talentos ([CATALOGO_EVENTOS_TALENTOS.md](CATALOGO_EVENTOS_TALENTOS.md));
 - [ ] policies/escopos de listagem (filtrar por objeto);
-- [ ] outbox + emissão real dos eventos;
+- [x] outbox + emissão real dos eventos de entrevista (registro `pending`; worker/SMTP ainda não) — [COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md);
 - [ ] ADRs das correções estruturais de Fase 0 (opcional formalizar).
 
 Saída: recursos críticos possuem regra explícita e eventos têm proprietário.
@@ -51,8 +51,9 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 - [x] scorecards + critérios/pesos na edição da entrevista ([SCORECARD_ENTREVISTA_EXPAND.md](SCORECARD_ENTREVISTA_EXPAND.md));
 - [x] painel interno de múltiplos avaliadores ([AVALIADORES_ENTREVISTA_EXPAND.md](AVALIADORES_ENTREVISTA_EXPAND.md));
-- [ ] agenda e reagendamento;
-- [ ] templates, outbox e histórico de entrega.
+- [x] agenda e reagendamento auditável ([AGENDA_ENTREVISTA_EXPAND.md](AGENDA_ENTREVISTA_EXPAND.md));
+- [x] templates + registro de intenção/outbox de entrevista ([COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md));
+- [ ] worker de publicação, SMTP e histórico de entrega (`sent`/`failed`).
 
 ## Fase 3 — Portal público e pré-admissão
 

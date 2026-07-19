@@ -9,19 +9,25 @@
 <ol>
     <li>Abra <strong>Listar Entrevistas</strong> ou agende a partir do candidato/vaga.</li>
     <li>Preencha data/hora, tipo, entrevistador principal, local e, se quiser, <strong>avaliadores adicionais</strong> (painel interno — sem e-mail automático).</li>
+    <li>Ao agendar ou reagendar, o sistema registra um evento na outbox e uma <strong>intenção de e-mail</strong> (template com snapshot). O envio SMTP ainda <em>não</em> está habilitado.</li>
+    <li>Para <strong>reagendar</strong> uma entrevista já agendada, altere a data/hora e informe o <strong>motivo</strong> (obrigatório). O histórico fica na visualização.</li>
     <li>Na edição, use o <strong>scorecard</strong> para lançar notas (0–10) por critério e parecer. A nota ponderada é só informativa — não muda o resultado nem o pipeline.</li>
     <li>Ao salvar resultado <strong>aprovado</strong> ou <strong>reprovado</strong>, o status da candidatura no pipeline é atualizado na mesma operação (com motivo automático e histórico).</li>
-    <li>Na visualização, consulte o <strong>painel de avaliadores</strong> (papel, status e scorecard), os scorecards detalhados e a linha do tempo do candidato.</li>
+    <li>Na visualização, consulte comunicações, reagendamentos, painel de avaliadores, scorecards e a linha do tempo do candidato.</li>
 </ol>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Informe o motivo do reagendamento ao alterar a data/hora</dt>
+    <dd>A entrevista já estava agendada (ou com resultado). Preencha o campo de motivo na edição. No primeiro agendamento a partir de <em>pendente</em>, o motivo não é exigido.</dd>
+    <dt>Comunicação aparece como recorded e não chega e-mail</dt>
+    <dd>Comportamento esperado neste incremento: a intenção é só registrada. O worker/SMTP será habilitado depois.</dd>
     <dt>Candidato não está vinculado a esta vaga</dt>
     <dd>O resultado aprovado/reprovado exige vínculo ativo candidato–vaga. Vincule o candidato antes de registrar o resultado, ou a edição é revertida por completo.</dd>
     <dt>Você não tem permissão para editar/visualizar esta entrevista</dt>
     <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga. Estar no painel de avaliadores <em>não</em> libera acesso sozinho.</dd>
-    <dt>Entrevista atualizada, porém falhou ao salvar painel/scorecard</dt>
-    <dd>Rode as migrations <code>20260719170000_create_rh_entrevista_scorecards</code> e <code>20260719180000_create_rh_entrevista_avaliadores</code>; salve novamente na edição.</dd>
+    <dt>Entrevista atualizada, porém falhou ao salvar painel/scorecard/reagendamento/comunicação</dt>
+    <dd>Rode as migrations <code>20260719170000</code> a <code>20260719200000</code>; salve novamente na edição.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhEntrevistas</em> ausente no nível de acesso.</dd>
 </dl>

@@ -97,6 +97,99 @@ $e = $this->data['entrevista'] ?? [];
         </div>
     </div>
 
+    <?php $reagendamentos = $this->data['reagendamentos'] ?? []; ?>
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header"><i class="fas fa-history me-2"></i>Histórico de reagendamentos</div>
+        <div class="card-body">
+            <?php if (empty($reagendamentos)): ?>
+                <p class="text-muted mb-0">Nenhum reagendamento registrado.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>De</th>
+                                <th>Para</th>
+                                <th>Motivo</th>
+                                <th>Por</th>
+                                <th>Em</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($reagendamentos as $rg): ?>
+                                <tr>
+                                    <td><?= FormatHelper::formatDateTime($rg['data_hora_anterior'] ?? '') ?></td>
+                                    <td><?= FormatHelper::formatDateTime($rg['data_hora_nova'] ?? '') ?></td>
+                                    <td><?= htmlspecialchars((string) ($rg['motivo'] ?? '')) ?></td>
+                                    <td><?= htmlspecialchars((string) ($rg['reagendado_por_nome'] ?? '—')) ?></td>
+                                    <td><?= FormatHelper::formatDateTime($rg['created_at'] ?? '') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <?php
+    $comunicacoes = $this->data['comunicacoes'] ?? [];
+    $maskEmail = static function (?string $email): string {
+        $email = trim((string) $email);
+        if ($email === '' || !str_contains($email, '@')) {
+            return '—';
+        }
+        [$local, $domain] = explode('@', $email, 2);
+        $prefix = mb_substr($local, 0, 1);
+        return $prefix . '***@' . $domain;
+    };
+    ?>
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header"><i class="fas fa-envelope me-2"></i>Histórico de comunicações</div>
+        <div class="card-body">
+            <p class="small text-muted">Envio automático ainda não habilitado — registros ficam em estado <code>recorded</code>.</p>
+            <?php if (empty($comunicacoes)): ?>
+                <p class="text-muted mb-0">Nenhuma intenção de comunicação registrada.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Finalidade</th>
+                                <th>Destinatário</th>
+                                <th>Template</th>
+                                <th>Status</th>
+                                <th>Outbox</th>
+                                <th>Registrado em</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($comunicacoes as $com): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars((string) ($com['purpose'] ?? '')) ?></td>
+                                    <td>
+                                        <?= htmlspecialchars((string) ($com['recipient_name'] ?? '—')) ?>
+                                        <br><small class="text-muted"><?= htmlspecialchars($maskEmail($com['recipient_address'] ?? null)) ?></small>
+                                    </td>
+                                    <td>
+                                        <?= htmlspecialchars((string) ($com['template_key'] ?? '')) ?>
+                                        <small class="text-muted">v<?= (int) ($com['template_version'] ?? 1) ?></small>
+                                    </td>
+                                    <td><span class="badge bg-secondary"><?= htmlspecialchars((string) ($com['status'] ?? 'recorded')) ?></span></td>
+                                    <td>
+                                        <?= htmlspecialchars((string) ($com['event_name'] ?? '—')) ?>
+                                        <small class="text-muted">(<?= htmlspecialchars((string) ($com['outbox_status'] ?? '—')) ?>)</small>
+                                    </td>
+                                    <td><?= FormatHelper::formatDateTime($com['created_at'] ?? '') ?></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <?php $painel = $this->data['painel_avaliadores'] ?? []; ?>
     <div class="card mb-4 border-light shadow">
         <div class="card-header"><i class="fas fa-users me-2"></i>Painel de avaliadores</div>
