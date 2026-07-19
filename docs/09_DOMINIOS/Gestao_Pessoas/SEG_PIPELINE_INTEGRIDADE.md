@@ -15,12 +15,13 @@
 | Entrevistas mutáveis sem autorização de vaga/candidato | `canManageEntrevista` em create/edit/delete |
 | Exclusão de entrevista sem CSRF | Token + validação |
 | Modal de vínculo na view do candidato sem CSRF | Token no formulário AJAX |
+| Substituições em massa parciais | `sincronizarCandidatosDaVaga` / `sincronizarVagasDoCandidato` atômicos |
+| GET sem autorização nas telas de vínculos | Auth no `index` de `RhVagasCandidatos` e `RhCandidatosVagas` |
 
 ## Pendências (próximos incrementos)
 
-- Transação atômica nas substituições em massa (`RhVagasCandidatos` / `RhCandidatosVagas`).
-- Autorização GET em telas de gestão de vínculos.
 - Histórico imutável de etapas (Fase 1).
+- Matrizes/eventos detalhados (Fase 0.5).
 
 ## Testes
 

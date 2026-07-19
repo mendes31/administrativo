@@ -16,6 +16,12 @@ class RhVagasCandidatos
 
     public function index(int $vagaId): void
     {
+        if (!RhPermissionService::canManagePipelineByVagaId($vagaId)) {
+            $_SESSION['error'] = 'Você não tem permissão para gerenciar candidatos desta vaga.';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas-view/' . $vagaId);
+            exit;
+        }
+
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->saveVagaCandidatos($vagaId);
         }
@@ -26,7 +32,6 @@ class RhVagasCandidatos
 
     private function saveVagaCandidatos(int $vagaId): void
     {
-        // Validação CSRF do formulário de vínculo em massa
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!CSRFHelper::validateCSRFToken('form_rh_vincular_candidato_vaga', $csrfToken)) {
             $_SESSION['error'] = 'Token de segurança inválido ou expirado. Recarregue a página e tente novamente.';
@@ -34,7 +39,6 @@ class RhVagasCandidatos
             exit;
         }
 
-        // Verificar permissão para gerenciar pipeline desta vaga
         if (!RhPermissionService::canManagePipelineByVagaId($vagaId)) {
             $_SESSION['error'] = 'Você não tem permissão para gerenciar candidatos desta vaga.';
             header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas-view/' . $vagaId);
@@ -42,69 +46,29 @@ class RhVagasCandidatos
         }
 
         $candidatosIds = $_POST['candidato_id'] ?? [];
-        $observacoes = trim($_POST['observacoes'] ?? '');
-
-        // Garantir que seja array
         if (!is_array($candidatosIds)) {
             $candidatosIds = [$candidatosIds];
         }
         $candidatosIds = array_filter(array_map('intval', $candidatosIds));
+        $observacoes = trim($_POST['observacoes'] ?? '');
 
         try {
-            $vagaRepo = new RhVagasRepository();
-            $sucessos = 0;
-            $erros = 0;
-            $mensagens = [];
-
-            // Buscar candidatos já vinculados
-            $candidatosVinculados = $vagaRepo->getCandidatosByVaga($vagaId);
-            $candidatosVinculadosIds = array_column($candidatosVinculados, 'rh_candidato_id');
-
-            // Remover vínculos que não estão mais na lista
-            foreach ($candidatosVinculadosIds as $candidatoIdVinculado) {
-                if (!in_array($candidatoIdVinculado, $candidatosIds, true)) {
-                    try {
-                        $vagaRepo->desvincularCandidato($vagaId, $candidatoIdVinculado);
-                    } catch (\Exception $e) {
-                        $erros++;
-                        $mensagens[] = "Erro ao desvincular candidato ID {$candidatoIdVinculado}: " . $e->getMessage();
-                    }
-                }
-            }
-
-            // Adicionar novos vínculos
-            foreach ($candidatosIds as $candidatoId) {
-                if ($candidatoId <= 0) {
-                    continue;
-                }
-                try {
-                    // Verificar se já está vinculado
-                    if (!in_array($candidatoId, $candidatosVinculadosIds, true)) {
-                        $ok = $vagaRepo->vincularCandidato($vagaId, $candidatoId, $observacoes ?: null);
-                        if ($ok) {
-                            $sucessos++;
-                        } else {
-                            $erros++;
-                            $mensagens[] = "Candidato ID {$candidatoId} não pôde ser vinculado.";
-                        }
-                    }
-                } catch (\Exception $e) {
-                    $erros++;
-                    $mensagens[] = "Candidato ID {$candidatoId}: " . $e->getMessage();
-                }
-            }
-
-            if ($sucessos > 0 || $erros === 0) {
-                $_SESSION['success'] = "Vínculos atualizados com sucesso! {$sucessos} candidato(s) vinculado(s).";
-            } else {
-                $_SESSION['error'] = 'Erro ao atualizar vínculos: ' . implode(' ', $mensagens);
-            }
+            $resultado = (new RhVagasRepository())->sincronizarCandidatosDaVaga(
+                $vagaId,
+                $candidatosIds,
+                $observacoes !== '' ? $observacoes : null
+            );
+            $_SESSION['success'] = sprintf(
+                'Vínculos atualizados com sucesso! %d adicionado(s), %d removido(s).',
+                $resultado['added'],
+                $resultado['removed']
+            );
         } catch (\Throwable $e) {
             GenerateLog::generateLog('error', 'Erro ao salvar vínculos de candidatos à vaga.', [
                 'vaga_id' => $vagaId,
-                'error'   => $e->getMessage(),
+                'error' => $e->getMessage(),
             ]);
-            $_SESSION['error'] = 'Erro inesperado ao atualizar vínculos!';
+            $_SESSION['error'] = 'Erro ao atualizar vínculos: ' . $e->getMessage();
         }
 
         header('Location: ' . $_ENV['URL_ADM'] . 'rh-vagas-candidatos/' . $vagaId);
@@ -124,26 +88,22 @@ class RhVagasCandidatos
             exit;
         }
 
-        // Buscar todos os candidatos com filtros
         $filters = [
-            'nome'            => $_GET['nome'] ?? '',
-            'email'           => $_GET['email'] ?? '',
-            'area_interesse'  => $_GET['area_interesse'] ?? '',
+            'nome' => $_GET['nome'] ?? '',
+            'email' => $_GET['email'] ?? '',
+            'area_interesse' => $_GET['area_interesse'] ?? '',
             'status_processo' => $_GET['status_processo'] ?? '',
-            'score_min'       => $_GET['score_min'] ?? '',
-            'score_max'       => $_GET['score_max'] ?? '',
-            'classificacao'   => $_GET['classificacao'] ?? '',
+            'score_min' => $_GET['score_min'] ?? '',
+            'score_max' => $_GET['score_max'] ?? '',
+            'classificacao' => $_GET['classificacao'] ?? '',
         ];
 
-        // Buscar todos os candidatos (sem paginação para a tabela de seleção)
         $candidatos = $candidatosRepo->getAll($filters, 1, 10000);
         $allCandidatos = $candidatos['data'] ?? [];
 
-        // Buscar candidatos já vinculados à vaga
         $candidatosVinculados = $vagaRepo->getCandidatosByVaga($vagaId);
         $candidatosVinculadosIds = array_column($candidatosVinculados, 'rh_candidato_id');
 
-        // Buscar áreas de interesse únicas para o filtro
         $pdo = $candidatosRepo->getConnection();
         $stmtAreas = $pdo->query("SELECT DISTINCT area_interesse FROM rh_candidatos WHERE area_interesse IS NOT NULL AND area_interesse != '' ORDER BY area_interesse");
         $areas = $stmtAreas->fetchAll(\PDO::FETCH_COLUMN);
@@ -159,7 +119,7 @@ class RhVagasCandidatos
     {
         $pageElements = [
             'title_head' => 'Vincular Candidatos à Vaga',
-            'menu'       => 'rh-vagas',
+            'menu' => 'rh-vagas',
             'buttonPermission' => ['RhVagasCandidatos'],
         ];
         $pageLayoutService = new PageLayoutService();
@@ -169,4 +129,3 @@ class RhVagasCandidatos
         $loadView->loadView();
     }
 }
-

@@ -16,7 +16,7 @@ Saída: conceitos e ownership registrados; conflitos conhecidos explicitados.
 - [x] MIME, tamanho, CSRF e proteção de uploads (currículos);
 - [x] retenção, anonimização e exclusão física (currículos);
 - [x] movimentação de pipeline atômica + autorização/CSRF de vagas/entrevistas;
-- [ ] FKs/constraints adicionais e substituições em massa atômicas;
+- [x] sincronização em massa atômica de vínculos + auth nas telas;
 - [x] testes de caracterização de currículos e pipeline.
 
 Saída: riscos críticos contidos e regressões principais protegidas.

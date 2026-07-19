@@ -92,6 +92,26 @@ final class PipelineIntegrityContractTest extends TestCase
         self::assertStringContainsString('name="csrf_token"', $source);
     }
 
+    public function testMassLinkSyncIsTransactional(): void
+    {
+        $repo = $this->readProjectFile(
+            'app/adms/Models/Repository/RhVagasRepository.php'
+        );
+        $vagaCtrl = $this->readProjectFile(
+            'app/adms/Controllers/rh/RhVagasCandidatos.php'
+        );
+        $candCtrl = $this->readProjectFile(
+            'app/adms/Controllers/rh/RhCandidatosVagas.php'
+        );
+
+        self::assertStringContainsString('function sincronizarCandidatosDaVaga', $repo);
+        self::assertStringContainsString('function sincronizarVagasDoCandidato', $repo);
+        self::assertStringContainsString('sincronizarCandidatosDaVaga', $vagaCtrl);
+        self::assertStringContainsString('canManagePipelineByVagaId', $vagaCtrl);
+        self::assertStringContainsString('sincronizarVagasDoCandidato', $candCtrl);
+        self::assertStringContainsString('RhCandidatoPermissionService::canAccessCandidato', $candCtrl);
+    }
+
     private function readProjectFile(string $relativePath): string
     {
         $source = file_get_contents(PROJECT_ROOT . '/' . $relativePath);

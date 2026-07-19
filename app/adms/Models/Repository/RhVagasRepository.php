@@ -553,5 +553,171 @@ class RhVagasRepository extends DbConnection
             return false;
         }
     }
+
+    /**
+     * Sincroniza (substitui) o conjunto de candidatos vinculados a uma vaga em uma única transação.
+     *
+     * @param list<int> $candidatoIds
+     * @return array{added: int, removed: int}
+     */
+    public function sincronizarCandidatosDaVaga(int $vagaId, array $candidatoIds, ?string $observacoes = null): array
+    {
+        $candidatoIds = array_values(array_unique(array_filter(array_map('intval', $candidatoIds))));
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
+
+        try {
+            $vaga = $this->getById($vagaId);
+            if (!$vaga) {
+                throw new Exception('Vaga não encontrada.');
+            }
+            if (in_array($vaga['status'] ?? '', ['fechada', 'cancelada'], true)) {
+                throw new Exception('Não é possível alterar vínculos de uma vaga fechada ou cancelada.');
+            }
+
+            $atuais = array_map(
+                'intval',
+                array_column($this->getCandidatosByVaga($vagaId), 'rh_candidato_id')
+            );
+            $aRemover = array_diff($atuais, $candidatoIds);
+            $aAdicionar = array_diff($candidatoIds, $atuais);
+            $afetados = [];
+
+            foreach ($aRemover as $candidatoId) {
+                $stmt = $pdo->prepare(
+                    'DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id'
+                );
+                $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+                $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+                $stmt->execute();
+                $afetados[$candidatoId] = true;
+            }
+
+            $ins = $pdo->prepare(
+                'INSERT INTO rh_candidatos_vagas
+                    (rh_candidato_id, rh_vaga_id, status, data_candidatura, observacoes, created_at)
+                 VALUES
+                    (:candidato_id, :vaga_id, :status, NOW(), :observacoes, NOW())'
+            );
+            foreach ($aAdicionar as $candidatoId) {
+                if ($candidatoId <= 0) {
+                    continue;
+                }
+                $ins->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+                $ins->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+                $ins->bindValue(':status', 'candidatado', PDO::PARAM_STR);
+                $ins->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $ins->execute();
+                $afetados[$candidatoId] = true;
+            }
+
+            $candRepo = new RhCandidatosRepository();
+            foreach (array_keys($afetados) as $candidatoId) {
+                $novoStatus = $candRepo->calcularStatusGeralPorVinculos((int) $candidatoId);
+                $candRepo->atualizarStatusProcessoSimples(
+                    (int) $candidatoId,
+                    $novoStatus ?: 'candidatado'
+                );
+            }
+
+            $pdo->commit();
+
+            return [
+                'added' => count($aAdicionar),
+                'removed' => count($aRemover),
+            ];
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            GenerateLog::generateLog('error', 'Erro ao sincronizar candidatos da vaga.', [
+                'vaga_id' => $vagaId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
+     * Sincroniza (substitui) o conjunto de vagas vinculadas a um candidato em uma única transação.
+     * Apenas as vagas em $vagasPermitidasIds são alteradas (outras permanecem intactas).
+     *
+     * @param list<int> $vagaIds desejadas (apenas entre as permitidas)
+     * @param list<int> $vagasPermitidasIds vagas que o usuário pode gerenciar
+     * @return array{added: int, removed: int}
+     */
+    public function sincronizarVagasDoCandidato(
+        int $candidatoId,
+        array $vagaIds,
+        array $vagasPermitidasIds,
+        ?string $observacoes = null
+    ): array {
+        $vagaIds = array_values(array_unique(array_filter(array_map('intval', $vagaIds))));
+        $vagasPermitidasIds = array_values(array_unique(array_filter(array_map('intval', $vagasPermitidasIds))));
+        $vagaIds = array_values(array_intersect($vagaIds, $vagasPermitidasIds));
+
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
+
+        try {
+            $atuais = array_map(
+                'intval',
+                array_column($this->getVagasByCandidato($candidatoId), 'rh_vaga_id')
+            );
+            $atuaisPermitidos = array_values(array_intersect($atuais, $vagasPermitidasIds));
+            $aRemover = array_diff($atuaisPermitidos, $vagaIds);
+            $aAdicionar = array_diff($vagaIds, $atuais);
+
+            foreach ($aRemover as $vagaId) {
+                $stmt = $pdo->prepare(
+                    'DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id'
+                );
+                $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+                $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+                $stmt->execute();
+            }
+
+            $ins = $pdo->prepare(
+                'INSERT INTO rh_candidatos_vagas
+                    (rh_candidato_id, rh_vaga_id, status, data_candidatura, observacoes, created_at)
+                 VALUES
+                    (:candidato_id, :vaga_id, :status, NOW(), :observacoes, NOW())'
+            );
+            foreach ($aAdicionar as $vagaId) {
+                $vaga = $this->getById($vagaId);
+                if (!$vaga) {
+                    throw new Exception("Vaga ID {$vagaId} não encontrada.");
+                }
+                if (in_array($vaga['status'] ?? '', ['fechada', 'cancelada'], true)) {
+                    throw new Exception("Vaga ID {$vagaId} está fechada ou cancelada.");
+                }
+                $ins->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+                $ins->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+                $ins->bindValue(':status', 'candidatado', PDO::PARAM_STR);
+                $ins->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
+                $ins->execute();
+            }
+
+            $candRepo = new RhCandidatosRepository();
+            $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
+            $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatus ?: 'candidatado');
+
+            $pdo->commit();
+
+            return [
+                'added' => count($aAdicionar),
+                'removed' => count($aRemover),
+            ];
+        } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            GenerateLog::generateLog('error', 'Erro ao sincronizar vagas do candidato.', [
+                'candidato_id' => $candidatoId,
+                'error' => $e->getMessage(),
+            ]);
+            throw $e;
+        }
+    }
 }
 
