@@ -3,7 +3,7 @@
 - Domínio: Gestão de Pessoas / Talentos.
 - Fase: 0.5.
 - Data: 19/07/2026.
-- Status: **contratos documentados**; outbox genérica criada; emissão de `EntrevistaAgendada` / `EntrevistaReagendada` no fluxo de entrevista (sem worker/SMTP).
+- Status: contratos documentados; outbox genérica e worker SMTP de entrevistas entregues.
 - Os nomes abaixo são o alvo. Parte dos fatos ainda só gera log de alteração ou efeito colateral síncrono.
 
 ## Eventos
@@ -17,8 +17,8 @@
 | `CandidaturaMovimentada` | Talentos | Comunicação, Analytics | `candidato_id`, `vaga_id`, `status_de`, `status_para` | 1 | Pessoal | `vinculo_id`+`status`+`ts` | Alta | pipeline → `rh_candidaturas_historico` (sem outbox ainda) |
 | `CandidaturaVinculada` | Talentos | Comunicação, Analytics | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id` | Normal | vincular/sync → histórico |
 | `CandidaturaDesvinculada` | Talentos | Analytics | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id`+`ts` | Normal | desvincular/sync → histórico |
-| `EntrevistaAgendada` | Talentos | Comunicação | `entrevista_id`, `candidato_id`, `vaga_id?`, `data_hora` | 1 | Pessoal | `talentos.entrevista.{id}.agendada.v1` | Normal | create/edit → outbox `pending` |
-| `EntrevistaReagendada` | Talentos | Comunicação | `entrevista_id`, `candidato_id`, `vaga_id?`, `data_hora_anterior`, `data_hora_nova`, `reagendamento_id` | 1 | Pessoal | `talentos.entrevista.{id}.reagendamento.{reagendamento_id}.v1` | Normal | reagendamento → outbox `pending` |
+| `EntrevistaAgendada` | Talentos | Comunicação | `entrevista_id`, `candidato_id`, `vaga_id?`, `data_hora` | 1 | Pessoal | `talentos.entrevista.{id}.agendada.v1` | Normal | create/edit → outbox → worker SMTP |
+| `EntrevistaReagendada` | Talentos | Comunicação | `entrevista_id`, `candidato_id`, `vaga_id?`, `data_hora_anterior`, `data_hora_nova`, `reagendamento_id` | 1 | Pessoal | `talentos.entrevista.{id}.reagendamento.{reagendamento_id}.v1` | Normal | reagendamento → outbox → worker SMTP |
 | `EntrevistaResultadaRegistrada` | Talentos | Pipeline, Analytics | `entrevista_id`, `resultado` | 1 | Pessoal | `entrevista_id`+`resultado` | Alta | edit entrevista / pipeline |
 | `CurriculoAnexado` | Talentos | Auditoria | `candidato_id`, `anexo_id` | 1 | Pessoal | `anexo_id` | Normal | upload |
 | `CurriculoBaixado` | Talentos | Auditoria LGPD | `candidato_id`, `anexo_id`, `actor_id` | 1 | Pessoal | `anexo_id`+`actor`+`ts` | Alta | `rh_candidato_anexo_access_logs` (download autorizado) |
@@ -32,7 +32,8 @@ Usar `correlation_id` por jornada: requisição → vaga → candidatura → ent
 
 - Não incluir arquivo de currículo, PII excessiva nem parecer textual completo no payload público.
 - Preferir IDs; consumidores buscam detalhes com autorização própria.
-- Outbox na mesma transação da alteração (padrão do Plano Diretor) — tabela `adms_domain_event_outbox` criada; worker de publicação ainda pendente.
+- Outbox na mesma transação da alteração (padrão do Plano Diretor). O worker
+  atual publica apenas eventos vinculados às comunicações de entrevista.
 
 ## Referências
 

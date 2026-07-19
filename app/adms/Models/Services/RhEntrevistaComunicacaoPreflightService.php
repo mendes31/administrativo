@@ -100,6 +100,10 @@ final class RhEntrevistaComunicacaoPreflightService
             $reasons[] = 'body_html_snapshot vazio';
         }
 
+        if ((int) ($row['template_version'] ?? 0) < 2) {
+            $reasons[] = 'template_version anterior à versão SMTP (v2)';
+        }
+
         $email = trim((string) ($row['recipient_address'] ?? ''));
         if ($email === '') {
             $reasons[] = 'recipient_address ausente';

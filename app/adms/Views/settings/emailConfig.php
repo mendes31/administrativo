@@ -110,6 +110,22 @@ $config = $this->data['email_config'] ?? [];
                                 Se vazio, o teste será enviado para o usuário SMTP configurado.
                             </div>
                         </div>
+
+                        <div class="mb-3 border rounded p-3 bg-light">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" role="switch"
+                                       id="RH_ENTREVISTA_SEND_ENABLED" name="RH_ENTREVISTA_SEND_ENABLED" value="1"
+                                       <?= (int) ($config['rh_entrevista_send_enabled'] ?? 0) === 1 ? 'checked' : '' ?>>
+                                <label class="form-check-label fw-bold" for="RH_ENTREVISTA_SEND_ENABLED">
+                                    Envio automático de comunicações de entrevista (Recrutamento)
+                                </label>
+                            </div>
+                            <div class="form-text">
+                                Controle <strong>específico</strong> das mensagens de agendamento/reagendamento de
+                                entrevista (ATS). Não afeta os demais e-mails do sistema (senha, treinamentos, salas etc.).
+                                Desligado, o worker registra as intenções mas <strong>não envia</strong>.
+                            </div>
+                        </div>
                         
                         <div class="d-grid gap-2">
                             <button type="submit" class="btn btn-success">

@@ -43,7 +43,8 @@ final class EntrevistaComunicacaoOutboxContractTest extends TestCase
 
         $view = $this->readProjectFile('app/adms/Views/rh/entrevistas/view.php');
         self::assertStringContainsString('Histórico de comunicações', $view);
-        self::assertStringContainsString('Envio automático ainda não habilitado', $view);
+        self::assertStringContainsString('worker SMTP', $view);
+        self::assertStringContainsString("'processing' => 'processando'", $view);
     }
 
     private function readProjectFile(string $relativePath): string

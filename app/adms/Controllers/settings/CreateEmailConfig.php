@@ -23,6 +23,7 @@ class CreateEmailConfig
             'from_email'     => $_POST['EMAIL_TI'] ?? '',
             'from_name'      => $_POST['NAME_EMAIL_TI'] ?? '',
             'test_recipient' => $_POST['TEST_RECIPIENT'] ?? '',
+            'rh_entrevista_send_enabled' => isset($_POST['RH_ENTREVISTA_SEND_ENABLED']) ? 1 : 0,
         ];
 
         $ok = $repo->saveConfig($config);

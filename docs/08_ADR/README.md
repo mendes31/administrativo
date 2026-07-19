@@ -31,5 +31,6 @@ outro ADR e referencia o anterior.
 | [ADR-0002](ADR-0002_PESSOA_E_CONTA.md) | Separar Pessoa e Conta | Proposto |
 | [ADR-0003](ADR-0003_STORAGE_PRIVADO_CURRICULOS.md) | Storage privado e retenção de currículos | Aprovado |
 | [ADR-0004](ADR-0004_ESCOPO_VIEWALL_ATS.md) | Escopo ATS via ViewAll (Expand/Contract) | Aprovado |
+| [ADR-0005](ADR-0005_WORKER_SMTP_ENTREVISTAS.md) | Worker SMTP de entrevistas com outbox | Aprovado |
 
 Use [TEMPLATE.md](TEMPLATE.md) para novos registros.

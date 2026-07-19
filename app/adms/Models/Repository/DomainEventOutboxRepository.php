@@ -11,7 +11,7 @@ use PDO;
 
 /**
  * Outbox genérica de eventos de domínio (Expand Fase 0.5).
- * Neste incremento apenas enqueue com status pending — sem worker/publicação.
+ * O worker de entrevistas consome os eventos vinculados às comunicações SMTP.
  */
 class DomainEventOutboxRepository extends DbConnection
 {

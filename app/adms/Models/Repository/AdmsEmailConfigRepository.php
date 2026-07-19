@@ -8,6 +8,8 @@ use PDO;
 
 class AdmsEmailConfigRepository extends DbConnection
 {
+    private static ?bool $hasRhEntrevistaToggle = null;
+
     public function getConfig(): array
     {
         $sql = 'SELECT * FROM adms_email_config ORDER BY id DESC LIMIT 1';
@@ -17,11 +19,28 @@ class AdmsEmailConfigRepository extends DbConnection
         return $config ?: [];
     }
 
+    /**
+     * Interruptor específico do envio automático de comunicações de entrevista (ATS).
+     * Sem a coluna (migration pendente) o envio fica desligado.
+     */
+    public function isRhEntrevistaSendEnabled(): bool
+    {
+        if (!$this->hasRhEntrevistaToggleColumn()) {
+            return false;
+        }
+
+        $config = $this->getConfig();
+
+        return (int) ($config['rh_entrevista_send_enabled'] ?? 0) === 1;
+    }
+
     public function saveConfig(array $data): bool
     {
         // Se já existe, faz update, senão faz insert
         $oldData = $this->getConfig();
         $isUpdate = $oldData && !empty($oldData['id']);
+        $hasToggle = $this->hasRhEntrevistaToggleColumn();
+        $toggleUpdate = $hasToggle ? ', rh_entrevista_send_enabled = :rh_entrevista_send_enabled' : '';
         if ($isUpdate) {
             $sql = 'UPDATE adms_email_config 
                        SET host = :host, 
@@ -31,16 +50,18 @@ class AdmsEmailConfigRepository extends DbConnection
                            encryption = :encryption, 
                            from_email = :from_email, 
                            from_name = :from_name,
-                           test_recipient = :test_recipient,
+                           test_recipient = :test_recipient' . $toggleUpdate . ',
                            updated_at = NOW() 
                      WHERE id = :id';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':id', $oldData['id'], PDO::PARAM_INT);
         } else {
+            $toggleColumn = $hasToggle ? ', rh_entrevista_send_enabled' : '';
+            $togglePlaceholder = $hasToggle ? ', :rh_entrevista_send_enabled' : '';
             $sql = 'INSERT INTO adms_email_config 
-                        (host, username, password, port, encryption, from_email, from_name, test_recipient, created_at, updated_at) 
+                        (host, username, password, port, encryption, from_email, from_name, test_recipient' . $toggleColumn . ', created_at, updated_at) 
                     VALUES 
-                        (:host, :username, :password, :port, :encryption, :from_email, :from_name, :test_recipient, NOW(), NOW())';
+                        (:host, :username, :password, :port, :encryption, :from_email, :from_name, :test_recipient' . $togglePlaceholder . ', NOW(), NOW())';
             $stmt = $this->getConnection()->prepare($sql);
         }
         $stmt->bindValue(':host', $data['host']);
@@ -51,6 +72,13 @@ class AdmsEmailConfigRepository extends DbConnection
         $stmt->bindValue(':from_email', $data['from_email']);
         $stmt->bindValue(':from_name', $data['from_name']);
         $stmt->bindValue(':test_recipient', $data['test_recipient'] ?? null);
+        if ($hasToggle) {
+            $stmt->bindValue(
+                ':rh_entrevista_send_enabled',
+                (int) ($data['rh_entrevista_send_enabled'] ?? 0) === 1 ? 1 : 0,
+                PDO::PARAM_INT
+            );
+        }
         $result = $stmt->execute();
 
         if ($result) {
@@ -78,5 +106,23 @@ class AdmsEmailConfigRepository extends DbConnection
         }
 
         return $result;
+    }
+
+    private function hasRhEntrevistaToggleColumn(): bool
+    {
+        if (self::$hasRhEntrevistaToggle !== null) {
+            return self::$hasRhEntrevistaToggle;
+        }
+
+        try {
+            $stmt = $this->getConnection()->query(
+                "SHOW COLUMNS FROM adms_email_config LIKE 'rh_entrevista_send_enabled'"
+            );
+            self::$hasRhEntrevistaToggle = $stmt !== false && $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+        } catch (\Throwable) {
+            self::$hasRhEntrevistaToggle = false;
+        }
+
+        return self::$hasRhEntrevistaToggle;
     }
 } 

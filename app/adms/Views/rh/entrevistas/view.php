@@ -147,7 +147,11 @@ $e = $this->data['entrevista'] ?? [];
     <div class="card mb-4 border-light shadow">
         <div class="card-header"><i class="fas fa-envelope me-2"></i>Histórico de comunicações</div>
         <div class="card-body">
-            <p class="small text-muted">Envio automático ainda não habilitado — registros ficam em estado <code>recorded</code>.</p>
+            <p class="small text-muted">
+                O envio passa por preflight e worker SMTP:
+                <code>recorded</code> → <code>ready</code> → <code>processing</code> →
+                <code>sent</code> ou <code>failed</code>.
+            </p>
             <?php if (empty($comunicacoes)): ?>
                 <p class="text-muted mb-0">Nenhuma intenção de comunicação registrada.</p>
             <?php else: ?>
@@ -180,6 +184,7 @@ $e = $this->data['entrevista'] ?? [];
                                         $stLabel = match ($stCom) {
                                             'ready' => 'pronta',
                                             'blocked' => 'bloqueada',
+                                            'processing' => 'processando',
                                             'sent' => 'enviada',
                                             'failed' => 'falhou',
                                             'cancelled' => 'cancelada',

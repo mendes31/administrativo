@@ -1,28 +1,44 @@
 <h1>Configuração de E-mail</h1>
-<p>Tela <strong>Configuração de E-mail</strong> do módulo Administração. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
+<p>Tela <strong>Configuração de E-mail</strong> do módulo Administração. Define o servidor SMTP usado por todos os e-mails do sistema e concentra o interruptor específico do envio automático de comunicações de entrevista (Recrutamento). O primeiro cadastro é feito em <strong>Cadastrar Configuração de E-mail</strong>; depois, esta tela edita a configuração existente.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>) para o fluxo completo da área.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>EmailConfig</em>.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>EmailConfig</em> (e <em>CreateEmailConfig</em> para o primeiro cadastro).</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Acesse <strong>Configuração de E-mail</strong> pelo menu Administração.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Informe servidor SMTP, usuário, senha, porta e criptografia fornecidos pela equipe de TI ou provedor.</li>
+    <li>Defina o e-mail e o nome do remetente que aparecerão nas mensagens.</li>
+    <li>Opcionalmente, preencha o <strong>destinatário de teste</strong>.</li>
+    <li>Salve e use <strong>Testar Configuração</strong> para validar a conexão SMTP.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<div class="help-field"><strong>Servidor SMTP, usuário, senha, porta e criptografia</strong> Credenciais usadas por todos os e-mails do sistema (recuperação de senha, treinamentos, salas etc.).</div>
+<div class="help-field"><strong>E-mail e nome do remetente</strong> Aparecem no campo "De" das mensagens enviadas.</div>
+<div class="help-field"><strong>Destinatário de teste</strong> Se preenchido, o botão <em>Testar Configuração</em> envia para este endereço; fora de produção, o worker de entrevistas também usa este destinatário no lugar do candidato.</div>
+<div class="help-field"><strong>Envio automático de comunicações de entrevista (Recrutamento)</strong> Interruptor <em>específico</em> das mensagens de agendamento/reagendamento de entrevista (módulo Talentos). Desligado (padrão), o sistema apenas registra as intenções de e-mail e o worker não envia nada. Ligado, o worker técnico pode enviar essas mensagens. Não afeta os demais e-mails do sistema.</div>
+
+<h2>Fluxo: ativar o envio de comunicações de entrevista</h2>
+<ol>
+    <li>Confirme que a configuração SMTP está válida (use <strong>Testar Configuração</strong>).</li>
+    <li>Marque o interruptor <strong>Envio automático de comunicações de entrevista</strong> e salve.</li>
+    <li>A equipe técnica executa o worker com <code>--send</code>; sem o interruptor ligado, o worker permanece em modo de simulação.</li>
+    <li>Para suspender apenas essas mensagens, desligue o interruptor — os demais e-mails continuam funcionando.</li>
+</ol>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>EmailConfig</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dt>Worker de entrevistas informa "envio bloqueado"</dt>
+    <dd>O interruptor <em>Envio automático de comunicações de entrevista</em> está desligado nesta tela, ou a migration <code>20260719233000</code> ainda não foi executada no ambiente.</dd>
+    <dt>Interruptor de entrevistas não aparece na tela</dt>
+    <dd>Execute a migration <code>20260719233000_add_rh_entrevista_send_toggle_to_adms_email_config</code>; sem a coluna, o envio fica desligado por segurança.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>E-mail de teste não chega</dt>
+    <dd>Verifique credenciais SMTP, porta/criptografia e caixa de spam. O log técnico do envio registra o erro detalhado.</dd>
 </dl>

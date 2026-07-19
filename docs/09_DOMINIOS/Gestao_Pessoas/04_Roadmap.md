@@ -32,7 +32,8 @@ Diagnósticos:
 - [x] matriz de autorização de Talentos ([MATRIZ_AUTORIZACAO_TALENTOS.md](MATRIZ_AUTORIZACAO_TALENTOS.md));
 - [x] catálogo de eventos de Talentos ([CATALOGO_EVENTOS_TALENTOS.md](CATALOGO_EVENTOS_TALENTOS.md));
 - [x] policies/escopos de listagem — piloto vagas + entrevistas + candidatos ([ESCOPO_LISTAGEM_VAGAS_EXPAND.md](ESCOPO_LISTAGEM_VAGAS_EXPAND.md), [ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md](ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md), [ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md); Contract ainda pendente);
-- [x] outbox + emissão real dos eventos de entrevista (registro `pending`; worker/SMTP ainda não) — [COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md);
+- [x] outbox + emissão dos eventos de entrevista e consumo pelo worker SMTP —
+  [COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md);
 - [x] ADRs das correções estruturais de Fase 0 / 0.5 ([ADR-0003](../../08_ADR/ADR-0003_STORAGE_PRIVADO_CURRICULOS.md), [ADR-0004](../../08_ADR/ADR-0004_ESCOPO_VIEWALL_ATS.md)).
 
 Saída: recursos críticos possuem regra explícita e eventos têm proprietário.
@@ -55,7 +56,9 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] agenda e reagendamento auditável ([AGENDA_ENTREVISTA_EXPAND.md](AGENDA_ENTREVISTA_EXPAND.md));
 - [x] templates + registro de intenção/outbox de entrevista ([COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md));
 - [x] preflight CLI `recorded → ready|blocked` (sem SMTP) — script `rh_entrevista_comunicacoes_preflight.php`;
-- [ ] worker de publicação, SMTP e histórico de entrega (`sent`/`failed`).
+- [x] worker CLI SMTP e histórico de entrega (`sent`/`failed`), com dry-run,
+  flag explícita de envio, claim atômico e redirecionamento para destinatário
+  de teste fora de produção.
 
 ## Fase 3 — Portal público e pré-admissão
 

@@ -28,6 +28,7 @@ final class EntrevistaComunicacaoPreflightContractTest extends TestCase
 
         self::assertStringContainsString('STATUS_READY', $service);
         self::assertStringContainsString('STATUS_BLOCKED', $service);
+        self::assertStringContainsString('template_version anterior à versão SMTP (v2)', $service);
         self::assertStringNotContainsString('SendEmailService', $service);
         self::assertStringNotContainsString('mail(', $service);
     }

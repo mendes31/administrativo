@@ -23,10 +23,11 @@ final class RhEntrevistaEmailTemplateCatalogTest extends TestCase
         );
 
         self::assertSame(RhEntrevistaEmailTemplateCatalog::KEY_AGENDADA, $tpl['key']);
-        self::assertSame(1, $tpl['version']);
+        self::assertSame(2, $tpl['version']);
         self::assertStringContainsString('agendada', mb_strtolower($tpl['subject']));
         self::assertStringContainsString('Ana', $tpl['body_text']);
-        self::assertStringContainsString('não é enviada', $tpl['body_text']);
+        self::assertStringNotContainsString('não é enviada', $tpl['body_text']);
+        self::assertStringContainsString('mensagem automática', $tpl['body_text']);
     }
 
     public function testRendersReagendadaTemplate(): void
@@ -41,6 +42,7 @@ final class RhEntrevistaEmailTemplateCatalogTest extends TestCase
         );
 
         self::assertSame(RhEntrevistaEmailTemplateCatalog::KEY_REAGENDADA, $tpl['key']);
+        self::assertSame(2, $tpl['version']);
         self::assertStringContainsString('reagendamento', mb_strtolower($tpl['subject']));
         self::assertStringContainsString('2026-07-20 10:00:00', $tpl['body_text']);
         self::assertStringContainsString('reagendada', mb_strtolower($tpl['body_text']));

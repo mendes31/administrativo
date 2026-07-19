@@ -26,6 +26,7 @@
     "create-department": "create-department",
     "create-document": "create-document",
     "create-dynamic-report": "create-dynamic-report",
+    "create-email-config": "email-config",
     "create-employee-request": "create-employee-request",
     "create-employee-ticket": "create-employee-ticket",
     "create-evaluation-model-with-questions": "create-evaluation-model-with-questions",

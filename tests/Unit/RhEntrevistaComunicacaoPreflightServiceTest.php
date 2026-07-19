@@ -16,6 +16,7 @@ final class RhEntrevistaComunicacaoPreflightServiceTest extends TestCase
         $result = $service->evaluate([
             'subject_snapshot' => 'Entrevista agendada',
             'has_body_html' => 1,
+            'template_version' => 2,
             'recipient_address' => 'ana@example.com',
             'outbox_event_id' => 10,
             'event_name' => 'EntrevistaAgendada',
@@ -32,6 +33,7 @@ final class RhEntrevistaComunicacaoPreflightServiceTest extends TestCase
         $result = $service->evaluate([
             'subject_snapshot' => 'Entrevista agendada',
             'has_body_html' => 1,
+            'template_version' => 2,
             'recipient_address' => '',
             'outbox_event_id' => 10,
             'event_name' => 'EntrevistaAgendada',
@@ -49,6 +51,7 @@ final class RhEntrevistaComunicacaoPreflightServiceTest extends TestCase
         $result = $service->evaluate([
             'subject_snapshot' => 'Entrevista agendada',
             'has_body_html' => 1,
+            'template_version' => 2,
             'recipient_address' => 'ana@example.com',
             'outbox_event_id' => 10,
             'event_name' => 'EntrevistaAgendada',

@@ -10,14 +10,17 @@ use Exception;
 use PDO;
 
 /**
- * Intenções de comunicação de entrevista (Expand Fase 2).
- * Status inicial: recorded — sem envio SMTP neste incremento.
+ * Intenções e histórico de comunicação de entrevista (Expand Fase 2).
+ * Fluxo: recorded → ready|blocked → processing → sent|failed.
  */
 class RhEntrevistaComunicacoesRepository extends DbConnection
 {
     public const STATUS_RECORDED = 'recorded';
     public const STATUS_READY = 'ready';
     public const STATUS_BLOCKED = 'blocked';
+    public const STATUS_PROCESSING = 'processing';
+    public const STATUS_SENT = 'sent';
+    public const STATUS_FAILED = 'failed';
     public const PURPOSE_AGENDAMENTO = 'agendamento';
     public const PURPOSE_REAGENDAMENTO = 'reagendamento';
 
@@ -88,6 +91,171 @@ class RhEntrevistaComunicacoesRepository extends DbConnection
         $stmt->bindValue(':expected', self::STATUS_RECORDED, PDO::PARAM_STR);
 
         return $stmt->execute() && $stmt->rowCount() > 0;
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listReadyForWorker(int $limit = 20): array
+    {
+        $limit = max(1, min(100, $limit));
+        $sql = 'SELECT c.*, o.event_name, o.status AS outbox_status, o.idempotency_key
+                FROM rh_entrevista_comunicacoes c
+                INNER JOIN adms_domain_event_outbox o ON o.id = c.outbox_event_id
+                WHERE c.status = :status
+                  AND o.status = :outbox_status
+                  AND (o.available_at IS NULL OR o.available_at <= NOW())
+                ORDER BY c.id ASC
+                LIMIT ' . $limit;
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':status', self::STATUS_READY, PDO::PARAM_STR);
+        $stmt->bindValue(':outbox_status', 'pending', PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Claim atômico: somente um worker promove ready → processing.
+     */
+    public function claimForProcessing(int $id, int $outboxEventId): bool
+    {
+        $pdo = $this->getConnection();
+        $startedTransaction = !$pdo->inTransaction();
+        if ($startedTransaction) {
+            $pdo->beginTransaction();
+        }
+
+        try {
+            $stmt = $pdo->prepare(
+                'UPDATE rh_entrevista_comunicacoes
+                 SET status = :processing,
+                     attempt_count = attempt_count + 1,
+                     processing_at = NOW(),
+                     failed_at = NULL,
+                     last_error = NULL,
+                     updated_at = NOW()
+                 WHERE id = :id AND status = :ready'
+            );
+            $stmt->execute([
+                ':processing' => self::STATUS_PROCESSING,
+                ':id' => $id,
+                ':ready' => self::STATUS_READY,
+            ]);
+            if ($stmt->rowCount() !== 1) {
+                if ($startedTransaction) {
+                    $pdo->rollBack();
+                }
+                return false;
+            }
+
+            $outbox = $pdo->prepare(
+                'UPDATE adms_domain_event_outbox
+                 SET status = :processing,
+                     attempt_count = attempt_count + 1,
+                     locked_at = NOW(),
+                     last_error = NULL,
+                     updated_at = NOW()
+                 WHERE id = :id AND status = :pending'
+            );
+            $outbox->execute([
+                ':processing' => 'processing',
+                ':id' => $outboxEventId,
+                ':pending' => 'pending',
+            ]);
+            if ($outbox->rowCount() !== 1) {
+                if ($startedTransaction) {
+                    $pdo->rollBack();
+                }
+                return false;
+            }
+
+            if ($startedTransaction) {
+                $pdo->commit();
+            }
+            return true;
+        } catch (\Throwable $e) {
+            if ($startedTransaction && $pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
+    }
+
+    public function markSent(int $id, int $outboxEventId): void
+    {
+        $this->finishProcessing($id, $outboxEventId, true, null);
+    }
+
+    public function markFailed(int $id, int $outboxEventId, string $error): void
+    {
+        $this->finishProcessing($id, $outboxEventId, false, $error);
+    }
+
+    private function finishProcessing(
+        int $id,
+        int $outboxEventId,
+        bool $sent,
+        ?string $error
+    ): void {
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
+
+        try {
+            $status = $sent ? self::STATUS_SENT : self::STATUS_FAILED;
+            $timestampColumn = $sent ? 'sent_at' : 'failed_at';
+            $stmt = $pdo->prepare(
+                "UPDATE rh_entrevista_comunicacoes
+                 SET status = :status,
+                     {$timestampColumn} = NOW(),
+                     last_error = :last_error,
+                     updated_at = NOW()
+                 WHERE id = :id AND status = :processing"
+            );
+            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+            $stmt->bindValue(
+                ':last_error',
+                $error !== null && $error !== '' ? mb_substr($error, 0, 2000) : null,
+                $error !== null && $error !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $stmt->bindValue(':processing', self::STATUS_PROCESSING, PDO::PARAM_STR);
+            $stmt->execute();
+            if ($stmt->rowCount() !== 1) {
+                throw new Exception('Comunicação não estava em processing ao finalizar.');
+            }
+
+            $outboxStatus = $sent ? 'published' : 'failed';
+            $outboxTimestamp = $sent ? 'published_at = NOW(),' : '';
+            $outbox = $pdo->prepare(
+                "UPDATE adms_domain_event_outbox
+                 SET status = :status,
+                     {$outboxTimestamp}
+                     last_error = :last_error,
+                     locked_at = NULL,
+                     updated_at = NOW()
+                 WHERE id = :id AND status = :processing"
+            );
+            $outbox->bindValue(':status', $outboxStatus, PDO::PARAM_STR);
+            $outbox->bindValue(
+                ':last_error',
+                $error !== null && $error !== '' ? mb_substr($error, 0, 2000) : null,
+                $error !== null && $error !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+            );
+            $outbox->bindValue(':id', $outboxEventId, PDO::PARAM_INT);
+            $outbox->bindValue(':processing', 'processing', PDO::PARAM_STR);
+            $outbox->execute();
+            if ($outbox->rowCount() !== 1) {
+                throw new Exception('Evento outbox não estava em processing ao finalizar.');
+            }
+
+            $pdo->commit();
+        } catch (\Throwable $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            throw $e;
+        }
     }
 
     /**

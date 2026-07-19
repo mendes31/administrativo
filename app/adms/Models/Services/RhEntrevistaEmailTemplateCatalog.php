@@ -6,7 +6,6 @@ namespace App\adms\Models\Services;
 
 /**
  * Templates versionados de e-mail de entrevista (catálogo PHP — Expand Fase 2).
- * Sem envio; apenas renderização de snapshot.
  */
 final class RhEntrevistaEmailTemplateCatalog
 {
@@ -45,18 +44,18 @@ final class RhEntrevistaEmailTemplateCatalog
                 . "Novo horário: {$dataHora}\n"
                 . "{$vagaLine}\n{$localLine}\n"
                 . ($tipoLine !== '' ? "{$tipoLine}\n" : '')
-                . "\nEsta mensagem ainda não é enviada automaticamente (registro interno).";
+                . "\nEsta é uma mensagem automática. Em caso de dúvida, entre em contato com o RH.";
             $bodyHtml = '<p>Olá, ' . htmlspecialchars($candidato) . '.</p>'
                 . '<p>Sua entrevista foi <strong>reagendada</strong>.</p>'
                 . ($dataAnterior !== '' ? '<p>Horário anterior: ' . htmlspecialchars($dataAnterior) . '</p>' : '')
                 . '<p>Novo horário: <strong>' . htmlspecialchars($dataHora) . '</strong></p>'
                 . '<p>' . htmlspecialchars($vagaLine) . '<br>' . htmlspecialchars($localLine)
                 . ($tipoLine !== '' ? '<br>' . htmlspecialchars($tipoLine) : '') . '</p>'
-                . '<p><em>Envio automático ainda não habilitado.</em></p>';
+                . '<p><small>Esta é uma mensagem automática. Em caso de dúvida, entre em contato com o RH.</small></p>';
 
             return [
                 'key' => self::KEY_REAGENDADA,
-                'version' => 1,
+                'version' => 2,
                 'subject' => $subject,
                 'body_html' => $bodyHtml,
                 'body_text' => $bodyText,
@@ -69,17 +68,17 @@ final class RhEntrevistaEmailTemplateCatalog
             . "Horário: {$dataHora}\n"
             . "{$vagaLine}\n{$localLine}\n"
             . ($tipoLine !== '' ? "{$tipoLine}\n" : '')
-            . "\nEsta mensagem ainda não é enviada automaticamente (registro interno).";
+            . "\nEsta é uma mensagem automática. Em caso de dúvida, entre em contato com o RH.";
         $bodyHtml = '<p>Olá, ' . htmlspecialchars($candidato) . '.</p>'
             . '<p>Sua entrevista foi <strong>agendada</strong>.</p>'
             . '<p>Horário: <strong>' . htmlspecialchars($dataHora) . '</strong></p>'
             . '<p>' . htmlspecialchars($vagaLine) . '<br>' . htmlspecialchars($localLine)
             . ($tipoLine !== '' ? '<br>' . htmlspecialchars($tipoLine) : '') . '</p>'
-            . '<p><em>Envio automático ainda não habilitado.</em></p>';
+            . '<p><small>Esta é uma mensagem automática. Em caso de dúvida, entre em contato com o RH.</small></p>';
 
         return [
             'key' => self::KEY_AGENDADA,
-            'version' => 1,
+            'version' => 2,
             'subject' => $subject,
             'body_html' => $bodyHtml,
             'body_text' => $bodyText,
