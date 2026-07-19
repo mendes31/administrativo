@@ -53,6 +53,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] painel interno de múltiplos avaliadores ([AVALIADORES_ENTREVISTA_EXPAND.md](AVALIADORES_ENTREVISTA_EXPAND.md));
 - [x] agenda e reagendamento auditável ([AGENDA_ENTREVISTA_EXPAND.md](AGENDA_ENTREVISTA_EXPAND.md));
 - [x] templates + registro de intenção/outbox de entrevista ([COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md));
+- [x] preflight CLI `recorded → ready|blocked` (sem SMTP) — script `rh_entrevista_comunicacoes_preflight.php`;
 - [ ] worker de publicação, SMTP e histórico de entrega (`sent`/`failed`).
 
 ## Fase 3 — Portal público e pré-admissão

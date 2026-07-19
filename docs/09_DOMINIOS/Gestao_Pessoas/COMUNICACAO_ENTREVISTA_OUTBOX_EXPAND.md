@@ -31,6 +31,17 @@ Idempotência:
 - Botão reenviar
 - Outros eventos do catálogo
 
+## Preflight (CLI)
+
+```bash
+php scripts/rh_entrevista_comunicacoes_preflight.php
+php scripts/rh_entrevista_comunicacoes_preflight.php --limit=20
+# somente com RH_ENTREVISTA_PREFLIGHT_APPLY=true no .env:
+php scripts/rh_entrevista_comunicacoes_preflight.php --apply
+```
+
+Promove `recorded → ready|blocked` sem enviar e-mail. Destinatário inválido ou outbox inconsistente → `blocked`.
+
 ## Migration
 
 `database/migrations/20260719200000_create_domain_event_outbox_and_rh_entrevista_comunicacoes.php`

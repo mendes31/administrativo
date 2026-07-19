@@ -16,6 +16,8 @@ use PDO;
 class RhEntrevistaComunicacoesRepository extends DbConnection
 {
     public const STATUS_RECORDED = 'recorded';
+    public const STATUS_READY = 'ready';
+    public const STATUS_BLOCKED = 'blocked';
     public const PURPOSE_AGENDAMENTO = 'agendamento';
     public const PURPOSE_REAGENDAMENTO = 'reagendamento';
 
@@ -35,6 +37,57 @@ class RhEntrevistaComunicacoesRepository extends DbConnection
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * Lote de intenções recorded para preflight (sem corpo completo no SELECT mínimo).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listRecordedForPreflight(int $limit = 20): array
+    {
+        $limit = max(1, min(100, $limit));
+        $sql = 'SELECT c.id, c.rh_entrevista_id, c.outbox_event_id, c.purpose, c.template_key,
+                       c.template_version, c.recipient_name, c.recipient_address, c.status,
+                       c.subject_snapshot,
+                       CASE WHEN c.body_html_snapshot IS NULL OR c.body_html_snapshot = \'\' THEN 0 ELSE 1 END AS has_body_html,
+                       CASE WHEN c.body_text_snapshot IS NULL OR c.body_text_snapshot = \'\' THEN 0 ELSE 1 END AS has_body_text,
+                       o.event_name, o.status AS outbox_status, o.idempotency_key
+                FROM rh_entrevista_comunicacoes c
+                LEFT JOIN adms_domain_event_outbox o ON o.id = c.outbox_event_id
+                WHERE c.status = :status
+                ORDER BY c.id ASC
+                LIMIT ' . $limit;
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':status', self::STATUS_RECORDED, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    public function updateStatus(int $id, string $status, ?string $lastError = null): bool
+    {
+        if (!in_array($status, [self::STATUS_READY, self::STATUS_BLOCKED], true)) {
+            throw new Exception('Status de preflight inválido.');
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE rh_entrevista_comunicacoes
+             SET status = :status,
+                 last_error = :last_error,
+                 updated_at = NOW()
+             WHERE id = :id AND status = :expected'
+        );
+        $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+        $stmt->bindValue(
+            ':last_error',
+            $lastError !== null && $lastError !== '' ? $lastError : null,
+            $lastError !== null && $lastError !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':expected', self::STATUS_RECORDED, PDO::PARAM_STR);
+
+        return $stmt->execute() && $stmt->rowCount() > 0;
     }
 
     /**

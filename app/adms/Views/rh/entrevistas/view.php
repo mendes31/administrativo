@@ -175,7 +175,18 @@ $e = $this->data['entrevista'] ?? [];
                                         <?= htmlspecialchars((string) ($com['template_key'] ?? '')) ?>
                                         <small class="text-muted">v<?= (int) ($com['template_version'] ?? 1) ?></small>
                                     </td>
-                                    <td><span class="badge bg-secondary"><?= htmlspecialchars((string) ($com['status'] ?? 'recorded')) ?></span></td>
+                                    <td><span class="badge bg-secondary"><?php
+                                        $stCom = (string) ($com['status'] ?? 'recorded');
+                                        $stLabel = match ($stCom) {
+                                            'ready' => 'pronta',
+                                            'blocked' => 'bloqueada',
+                                            'sent' => 'enviada',
+                                            'failed' => 'falhou',
+                                            'cancelled' => 'cancelada',
+                                            default => 'registrada',
+                                        };
+                                        echo htmlspecialchars($stLabel . ' (' . $stCom . ')');
+                                    ?></span></td>
                                     <td>
                                         <?= htmlspecialchars((string) ($com['event_name'] ?? '—')) ?>
                                         <small class="text-muted">(<?= htmlspecialchars((string) ($com['outbox_status'] ?? '—')) ?>)</small>
