@@ -228,6 +228,18 @@ class RhVagasRepository extends DbConnection
             $params[':tipo_contrato'] = $filters['tipo_contrato'];
         }
 
+        // Escopo de listagem (Expand): responsible = somente responsavel_id.
+        $scopeMode = (string) ($filters['scope_mode'] ?? 'all');
+        $scopeUserId = (int) ($filters['scope_user_id'] ?? 0);
+        if ($scopeMode === 'responsible') {
+            if ($scopeUserId <= 0) {
+                $where[] = '1 = 0';
+            } else {
+                $where[] = 'v.responsavel_id = :scope_user_id';
+                $params[':scope_user_id'] = $scopeUserId;
+            }
+        }
+
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 
         // Query para contar total

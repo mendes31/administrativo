@@ -3,7 +3,7 @@
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A visualização também exige permissão sobre o objeto.</p>
+<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A visualização também exige permissão sobre o objeto. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, apenas entrevistas em que o usuário é entrevistador, avaliador no painel ou responsável da vaga.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
@@ -18,6 +18,8 @@
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Só vejo parte das entrevistas</dt>
+    <dd>Falta <em>RhEntrevistasViewAll</em>. Após a migration de escopo, quem já tinha <em>RhEntrevistas</em> recebe ViewAll automaticamente.</dd>
     <dt>Informe o motivo do reagendamento ao alterar a data/hora</dt>
     <dd>A entrevista já estava agendada (ou com resultado). Preencha o campo de motivo na edição. No primeiro agendamento a partir de <em>pendente</em>, o motivo não é exigido.</dd>
     <dt>Comunicação aparece como recorded/pronta/bloqueada e não chega e-mail</dt>
@@ -26,8 +28,8 @@
     <dd>O resultado aprovado/reprovado exige vínculo ativo candidato–vaga. Vincule o candidato antes de registrar o resultado, ou a edição é revertida por completo.</dd>
     <dt>Você não tem permissão para editar/visualizar esta entrevista</dt>
     <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga. Estar no painel de avaliadores <em>não</em> libera acesso sozinho.</dd>
-    <dt>Entrevista atualizada, porém falhou ao salvar painel/scorecard/reagendamento/comunicação</dt>
-    <dd>Rode as migrations <code>20260719170000</code> a <code>20260719200000</code>; salve novamente na edição.</dd>
+    <dt>Erro ao carregar após deploy</dt>
+    <dd>Rode as migrations <code>20260719210000</code> (vagas) e <code>20260719220000</code> (entrevistas) de escopo ViewAll, além das de entrevista/outbox se ainda faltarem.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhEntrevistas</em> ausente no nível de acesso.</dd>
 </dl>

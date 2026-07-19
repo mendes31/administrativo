@@ -28,6 +28,14 @@ $csrfTokenVinculoFromCandidato = CSRFHelper::generateCSRFToken('form_rh_vincular
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+            <?php if (($this->data['list_scope']['mode'] ?? 'all') === 'related'): ?>
+                <div class="alert alert-info py-2 mb-3">
+                    Você está vendo apenas candidatos vinculados a vagas em que é <strong>responsável</strong>.
+                    Candidatos sem vaga não aparecem neste modo.
+                    Para listar todos, solicite a permissão <em>RhCandidatosViewAll</em>.
+                </div>
+            <?php endif; ?>
+
             <form method="GET" class="row g-2 mb-3 align-items-end">
                 <div class="col-md-3 mb-2">
                     <label for="nome" class="form-label mb-1">Nome</label>

@@ -591,13 +591,31 @@ class RhCandidatosRepository extends DbConnection
             $params[':classificacao'] = $filters['classificacao'];
         }
 
+        // Escopo de listagem (Expand): related = vinculado a vaga do responsável.
+        $scopeMode = (string) ($filters['scope_mode'] ?? 'all');
+        $scopeUserId = (int) ($filters['scope_user_id'] ?? 0);
+        if ($scopeMode === 'related') {
+            if ($scopeUserId <= 0) {
+                $where[] = '1 = 0';
+            } else {
+                $where[] = 'EXISTS (
+                    SELECT 1
+                    FROM rh_candidatos_vagas cv_scope
+                    INNER JOIN rh_vagas v_scope ON v_scope.id = cv_scope.rh_vaga_id
+                    WHERE cv_scope.rh_candidato_id = c.id
+                      AND v_scope.responsavel_id = :scope_user_id
+                )';
+                $params[':scope_user_id'] = $scopeUserId;
+            }
+        }
+
         $whereSql = implode(' AND ', $where);
 
         // Contar quantas vagas cada candidato possui vinculadas
-        $sql = "SELECT c.*, 
+        $sql = "SELECT c.*,
                        (
-                           SELECT COUNT(*) 
-                           FROM rh_candidatos_vagas cv 
+                           SELECT COUNT(*)
+                           FROM rh_candidatos_vagas cv
                            WHERE cv.rh_candidato_id = c.id
                        ) AS total_vagas_vinculadas
                 FROM rh_candidatos c
@@ -607,7 +625,7 @@ class RhCandidatosRepository extends DbConnection
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
             $paramType = PDO::PARAM_STR;
-            if (strpos($k, 'score') !== false) {
+            if (strpos($k, 'score') !== false || $k === ':scope_user_id') {
                 $paramType = PDO::PARAM_INT;
             }
             $stmt->bindValue($k, $v, $paramType);
@@ -617,11 +635,11 @@ class RhCandidatosRepository extends DbConnection
         $stmt->execute();
         $data = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
 
-        $sqlCount = "SELECT COUNT(*) FROM rh_candidatos WHERE {$whereSql}";
+        $sqlCount = "SELECT COUNT(*) FROM rh_candidatos c WHERE {$whereSql}";
         $stmtCount = $this->getConnection()->prepare($sqlCount);
         foreach ($params as $k => $v) {
             $paramType = PDO::PARAM_STR;
-            if (strpos($k, 'score') !== false) {
+            if (strpos($k, 'score') !== false || $k === ':scope_user_id') {
                 $paramType = PDO::PARAM_INT;
             }
             $stmtCount->bindValue($k, $v, $paramType);

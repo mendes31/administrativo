@@ -20,14 +20,16 @@
 
 | Recurso | Ação | Quem pode | Escopo | Condições | Auditoria |
 |---------|------|-----------|--------|-----------|-----------|
-| Candidato | `list` | ACL `RhCandidatos` | Todos (sem filtro por objeto na listagem) | Página privada | Não |
+| Candidato | `list` | ACL `RhCandidatos` | `all` se `RhCandidatosViewAll` / Super; senão `related` (vaga sob responsabilidade) | Expand compatível; sem vaga só em `all` | Não |
 | Candidato | `view` / `update` / `delete` | ACL RH **ou** gestor **ou** responsável de vaga vinculada | Objeto | Sessão; delete exige POST+senha+justificativa | Sim (delete/update sensível) |
 | Candidato | `create` | ACL `RhCandidatosCreate` | — | Consentimento LGPD obrigatório + termo `curriculo_candidato` | Consentimento em `lgpd_consentimentos` |
 | Anexo/currículo | `download` | Mesma regra de acesso ao candidato | Objeto | Storage privado; rota `rh-candidatos-download-anexo` | Não (futuro: log de acesso) |
-| Vaga | `view` | ACL `RhVagas*` | Todos na listagem | — | Não |
+| Vaga | `list` | ACL `RhVagas` | `all` se `RhVagasViewAll` / Super; senão `responsible` | Expand compatível: ViewAll concedida a quem já tem RhVagas | Não |
+| Vaga | `view` | ACL `RhVagas*` | Objeto (detalhe) | — | Não |
 | Vaga | `update` / `delete` | Super, responsável ou gestor | Objeto | CSRF no update; delete com senha+justificativa | Sim |
 | Candidatura (vínculo) | `create` / `delete` / `sync` | `canManagePipeline` da vaga | Vaga | Vaga não fechada/cancelada; sync atômico | Parcial |
 | Candidatura | `transition` (pipeline) | `canManagePipelineByVagaId` | Vínculo existente | CSRF; status válido; transação | Log de status do candidato |
+| Entrevista | `list` | ACL `RhEntrevistas` | `all` se `RhEntrevistasViewAll` / Super; senão `related` | Expand compatível | Não |
 | Entrevista | `create` / `update` / `delete` | `canManageEntrevista` (vaga ou candidato) | Objeto | CSRF; delete só POST | Parcial |
 
 ## Negação
@@ -39,11 +41,12 @@
 
 ## Lacunas conhecidas (próximos incrementos)
 
-1. Listagens de candidatos/vagas ainda sem escopo por objeto (operador RH vê tudo).
-2. Entrevistador/avaliador designado ainda não tem policy “somente suas entrevistas” (painel existe; ACL separada).
+1. Contract de `RhVagasViewAll` / `RhEntrevistasViewAll` / `RhCandidatosViewAll`: retirar de perfis restritos quando a regra de negócio estiver definida.
+2. Entrevistador/avaliador designado ainda não tem policy “somente suas entrevistas” na **visualização/edição** (listagem já tem modo `related`).
 3. Log de download de currículo ainda não existe.
-4. Escopo de gestor não valida área da vaga (qualquer gestor CRM passa).
+4. Escopo de gestor não valida área da vaga (qualquer gestor CRM passa na edição/pipeline).
 5. Convite/aceite de avaliador ainda não existe (painel é interno, sem comunicação).
+6. `RhCandidatoPermissionService` ainda trata ACL de candidatos como acesso total ao objeto (Contract alinhado à listagem).
 
 ## Referências
 

@@ -3,7 +3,7 @@
 
 <p class="help-note"><strong>Visão geral:</strong> veja também <em>Recrutamento e currículos</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>RhCandidatos</em>. Download de anexos exige também <em>RhCandidatosDownloadAnexo</em> (concedida junto com a visualização após a migration de segurança).</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>RhCandidatos</em>. Com <em>RhCandidatosViewAll</em> a listagem mostra todos; sem ela, apenas candidatos vinculados a vagas em que o usuário é responsável (candidatos sem vaga não aparecem). Download de anexos exige também <em>RhCandidatosDownloadAnexo</em> (concedida junto com a visualização após a migration de segurança).</p>
 
 <h2>Fluxo principal</h2>
 <ol>
@@ -24,6 +24,8 @@
 <dl>
     <dt>Não vejo o menu</dt>
     <dd>Falta a permissão <em>RhCandidatos</em> no nível de acesso.</dd>
+    <dt>Só vejo candidatos das minhas vagas</dt>
+    <dd>Falta <em>RhCandidatosViewAll</em>. Após a migration de escopo, quem já tinha <em>RhCandidatos</em> recebe ViewAll automaticamente. Candidatos sem vínculo com vaga só aparecem com ViewAll.</dd>
     <dt>Não consigo baixar o currículo</dt>
     <dd>Confirme a permissão <em>RhCandidatosDownloadAnexo</em> e se está logado. Links antigos <code>serve-file</code> também exigem autorização.</dd>
     <dt>Cadastro bloqueado por LGPD</dt>

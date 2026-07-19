@@ -100,6 +100,9 @@ Toda mudança estrutural deve:
 - [Painel de avaliadores — Expand](AVALIADORES_ENTREVISTA_EXPAND.md)
 - [Agenda e reagendamento — Expand](AGENDA_ENTREVISTA_EXPAND.md)
 - [Comunicação + outbox — Expand](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md)
+- [Escopo listagem de vagas — Expand](ESCOPO_LISTAGEM_VAGAS_EXPAND.md)
+- [Escopo listagem de entrevistas — Expand](ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md)
+- [Escopo listagem de candidatos — Expand](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md)
 
 ## Referências
 

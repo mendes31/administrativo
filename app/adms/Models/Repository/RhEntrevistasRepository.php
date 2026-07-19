@@ -246,10 +246,36 @@ class RhEntrevistasRepository extends DbConnection
             $params[':entrevistador_id'] = (int) $filters['entrevistador_id'];
         }
 
+        // Escopo Expand: related = entrevistador, avaliador ativo ou responsável da vaga.
+        $scopeMode = (string) ($filters['scope_mode'] ?? 'all');
+        $scopeUserId = (int) ($filters['scope_user_id'] ?? 0);
+        if ($scopeMode === 'related') {
+            if ($scopeUserId <= 0) {
+                $where[] = '1 = 0';
+            } else {
+                $where[] = '(
+                    e.entrevistador_id = :scope_user_entrevistador
+                    OR v.responsavel_id = :scope_user_responsavel
+                    OR EXISTS (
+                        SELECT 1 FROM rh_entrevista_avaliadores ea
+                        WHERE ea.rh_entrevista_id = e.id
+                          AND ea.avaliador_id = :scope_user_avaliador
+                          AND ea.status = \'ativo\'
+                    )
+                )';
+                $params[':scope_user_entrevistador'] = $scopeUserId;
+                $params[':scope_user_responsavel'] = $scopeUserId;
+                $params[':scope_user_avaliador'] = $scopeUserId;
+            }
+        }
+
         $whereSql = implode(' AND ', $where);
         $offset = ($page - 1) * $perPage;
 
-        $sqlCount = "SELECT COUNT(*) AS total FROM rh_entrevistas e WHERE $whereSql";
+        $sqlCount = "SELECT COUNT(*) AS total
+                     FROM rh_entrevistas e
+                     LEFT JOIN rh_vagas v ON v.id = e.rh_vaga_id
+                     WHERE $whereSql";
         $stmtCount = $pdo->prepare($sqlCount);
         foreach ($params as $k => $v) {
             $stmtCount->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);

@@ -34,6 +34,14 @@ $csrfDeleteEntrevista = CSRFHelper::generateCSRFToken('form_delete_rh_entrevista
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+            <?php if (($this->data['list_scope']['mode'] ?? 'all') === 'related'): ?>
+                <div class="alert alert-info py-2 mb-3">
+                    Você está vendo apenas entrevistas em que é <strong>entrevistador</strong>,
+                    <strong>avaliador</strong> no painel ou <strong>responsável da vaga</strong>.
+                    Para listar todas, solicite a permissão <em>RhEntrevistasViewAll</em>.
+                </div>
+            <?php endif; ?>
+
             <form method="GET" class="row g-2 mb-3 align-items-end">
                 <div class="col-md-2 mb-2">
                     <label for="data_de" class="form-label mb-1">Data de</label>

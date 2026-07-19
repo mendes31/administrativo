@@ -127,5 +127,96 @@ class RhPermissionService extends DbConnection
 
         return false;
     }
+
+    /**
+     * Escopo da listagem de vagas (Expand Fase 0.5).
+     *
+     * - `all`: Super Admin ou permissão técnica RhVagasViewAll
+     * - `responsible`: apenas vagas em que o usuário é responsavel_id
+     *
+     * Por padrão a migration concede RhVagasViewAll a quem já tem RhVagas,
+     * preservando o comportamento anterior (ver todas).
+     *
+     * @return array{mode: 'all'|'responsible', user_id: int}
+     */
+    public static function resolveVagasListScope(?int $userId = null): array
+    {
+        $userId = $userId ?? (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return ['mode' => 'responsible', 'user_id' => 0];
+        }
+
+        if (self::isSuperAdmin()) {
+            return ['mode' => 'all', 'user_id' => $userId];
+        }
+
+        if (self::userHasController('RhVagasViewAll')) {
+            return ['mode' => 'all', 'user_id' => $userId];
+        }
+
+        return ['mode' => 'responsible', 'user_id' => $userId];
+    }
+
+    /**
+     * Escopo da listagem de entrevistas (Expand Fase 0.5).
+     *
+     * - `all`: Super Admin ou RhEntrevistasViewAll
+     * - `related`: entrevistador principal, avaliador ativo no painel ou responsável da vaga
+     *
+     * @return array{mode: 'all'|'related', user_id: int}
+     */
+    public static function resolveEntrevistasListScope(?int $userId = null): array
+    {
+        $userId = $userId ?? (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return ['mode' => 'related', 'user_id' => 0];
+        }
+
+        if (self::isSuperAdmin()) {
+            return ['mode' => 'all', 'user_id' => $userId];
+        }
+
+        if (self::userHasController('RhEntrevistasViewAll')) {
+            return ['mode' => 'all', 'user_id' => $userId];
+        }
+
+        return ['mode' => 'related', 'user_id' => $userId];
+    }
+
+    /**
+     * Escopo da listagem de candidatos (Expand Fase 0.5).
+     *
+     * - `all`: Super Admin ou RhCandidatosViewAll
+     * - `related`: candidato vinculado a vaga cujo responsavel_id é o usuário
+     *   (candidatos sem vaga só aparecem em `all`)
+     *
+     * @return array{mode: 'all'|'related', user_id: int}
+     */
+    public static function resolveCandidatosListScope(?int $userId = null): array
+    {
+        $userId = $userId ?? (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return ['mode' => 'related', 'user_id' => 0];
+        }
+
+        if (self::isSuperAdmin()) {
+            return ['mode' => 'all', 'user_id' => $userId];
+        }
+
+        if (self::userHasController('RhCandidatosViewAll')) {
+            return ['mode' => 'all', 'user_id' => $userId];
+        }
+
+        return ['mode' => 'related', 'user_id' => $userId];
+    }
+
+    private static function userHasController(string $controller): bool
+    {
+        $allowed = array_flip(
+            (new \App\adms\Models\Repository\MenuPermissionUserRepository())->getAllowedControllersForUser()
+        );
+
+        return isset($allowed[$controller]);
+    }
 }
 

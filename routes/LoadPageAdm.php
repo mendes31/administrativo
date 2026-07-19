@@ -162,13 +162,15 @@ class LoadPageAdm
         "SalesDashboard", "SalesDashboardData",
         // RH - Currículos / Candidatos
         "RhCandidatos", "RhCandidatosView", "RhCandidatosCreate", "RhCandidatosEdit", "RhCandidatosDelete", "RhCandidatosVagas",
+        "RhCandidatosViewAll",
         "RhVagas", "RhVagasView", "RhVagasCreate", "RhVagasEdit", "RhVagasDelete", "RhVagasPipeline",
         "RhVagasCandidatos", "RhVincularCandidatoVaga", "RhAtualizarStatusCandidatura",
-        // RH — Requisições de Pessoal (headcount → vaga)
+        "RhVagasViewAll",
         "RhPersonnelRequests", "RhPersonnelRequestsCreate", "RhPersonnelRequestsView",
         "RhPersonnelRequestsApprove", "RhPersonnelRequestsReject", "RhPersonnelRequestsConvert",
         "RhKpiDashboard",
         "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete",
+        "RhEntrevistasViewAll",
         "CalendarConfig",
         // Reserva de Salas - Tipos de Solicitação (Salas)
         "RoomsListRequestTypes", "RoomsCreateRequestType", "RoomsUpdateRequestType", "RoomsDeleteRequestType",

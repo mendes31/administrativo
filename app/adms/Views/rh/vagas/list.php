@@ -28,6 +28,13 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+            <?php if (($this->data['list_scope']['mode'] ?? 'all') === 'responsible'): ?>
+                <div class="alert alert-info py-2 mb-3">
+                    Você está vendo apenas as vagas em que é <strong>responsável</strong>.
+                    Para listar todas, solicite a permissão <em>RhVagasViewAll</em>.
+                </div>
+            <?php endif; ?>
+
             <form method="GET" class="row g-2 mb-3 align-items-end">
                 <div class="col-md-3 mb-2">
                     <label for="titulo" class="form-label mb-1">Título</label>

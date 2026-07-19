@@ -25,9 +25,14 @@ class RhVagas
         $perPage = isset($_GET['per_page']) ? (int)$_GET['per_page'] : 10;
         $perPage = in_array($perPage, [10, 20, 50, 100], true) ? $perPage : 10;
 
+        $scope = \App\adms\Models\Services\RhPermissionService::resolveVagasListScope();
+        $filters['scope_mode'] = $scope['mode'];
+        $filters['scope_user_id'] = $scope['user_id'];
+
         $repo = new RhVagasRepository();
         $result = $repo->getAll($filters, $page, $perPage);
         $this->data['vagas'] = $result['data'] ?? [];
+        $this->data['list_scope'] = $scope;
         $total = $result['total'] ?? 0;
 
         $pagination = PaginationService::generatePagination(
