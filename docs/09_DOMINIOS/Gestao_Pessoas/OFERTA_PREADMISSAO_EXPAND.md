@@ -53,8 +53,8 @@ Checklist gerado no aceite (catálogo PHP default). Status por item:
 - e-mail/outbox de envio da oferta;
 - aceite pelo candidato (token/portal);
 - upload de arquivos dos documentos;
-- conversão auditável Pessoa/Vínculo;
-- novas colunas no Kanban.
+- tabelas físicas Pessoa/Vínculo (conversão usa fachada `adms_users` — ver [CONVERSAO_ADMISSAO_EXPAND.md](CONVERSAO_ADMISSAO_EXPAND.md));
+- reverter conversão.
 
 ## Migration
 

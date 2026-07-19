@@ -528,6 +528,7 @@ class PageLayoutService
             'RhVagasPublicasConfig',
             'RhOfertasCreate',
             'RhOfertasView',
+            'RhOfertasConvert',
             'RhVincularCandidatoVaga',
             'RhAtualizarStatusCandidatura',
             'RhPersonnelRequests',

@@ -66,6 +66,24 @@ $statusClass = match ($status) {
                 Aceite inicia pré-admissão (checklist). Não cria vínculo empregatício automaticamente.
             </p>
 
+            <?php if (!empty($o['rh_conversao_id'])): ?>
+                <div class="alert alert-success mt-3 mb-0">
+                    Oferta convertida (conversão #<?= (int) $o['rh_conversao_id'] ?>).
+                    <?php if (!empty($this->data['conversao']['adms_user_id'])): ?>
+                        Usuário #
+                        <a href="<?= htmlspecialchars((string) ($_ENV['URL_ADM'] ?? '') . 'view-user/' . (int) $this->data['conversao']['adms_user_id'], ENT_QUOTES, 'UTF-8') ?>">
+                            <?= (int) $this->data['conversao']['adms_user_id'] ?>
+                        </a>
+                    <?php endif; ?>
+                </div>
+            <?php elseif ($canManage && $status === RhOfertasRepository::STATUS_ACEITA && !empty($this->data['buttonPermission']['RhOfertasConvert'])): ?>
+                <div class="mt-3">
+                    <a class="btn btn-primary btn-sm" href="<?= htmlspecialchars((string) ($_ENV['URL_ADM'] ?? '') . 'rh-ofertas-convert/' . $ofertaId, ENT_QUOTES, 'UTF-8') ?>">
+                        <i class="fas fa-user-check me-1"></i>Converter em colaborador
+                    </a>
+                </div>
+            <?php endif; ?>
+
             <?php if ($canManage && in_array($status, [RhOfertasRepository::STATUS_RASCUNHO, RhOfertasRepository::STATUS_ENVIADA], true)): ?>
                 <hr>
                 <form method="post" class="row g-2 align-items-end">

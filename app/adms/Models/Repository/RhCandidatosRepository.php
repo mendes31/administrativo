@@ -917,5 +917,57 @@ class RhCandidatosRepository extends DbConnection
             'lgpd_resumo'        => $lgpdResumo,
         ];
     }
+
+    /**
+     * Vincula candidato ao usuário após conversão de oferta (Expand).
+     */
+    public function vincularUsuarioConversao(int $candidatoId, int $userId): bool
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'UPDATE rh_candidatos
+                 SET adms_user_id = :user_id, data_ultimo_movimento = NOW(), updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+            $stmt->bindValue(':id', $candidatoId, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao vincular adms_user_id ao candidato.', [
+                'candidato_id' => $candidatoId,
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Força status_processo (ex.: contratado na conversão), inclusive sobre estados protegidos do pipeline.
+     */
+    public function forcarStatusProcesso(int $id, string $novoStatus): bool
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'UPDATE rh_candidatos
+                 SET status_processo = :status_processo, data_ultimo_movimento = NOW(), updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $stmt->bindValue(':status_processo', $novoStatus, PDO::PARAM_STR);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Erro ao forçar status_processo do candidato.', [
+                'id' => $id,
+                'status' => $novoStatus,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
 }
 

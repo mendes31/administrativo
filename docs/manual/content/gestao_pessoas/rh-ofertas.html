@@ -13,11 +13,13 @@
     <li>Marque como <em>enviada</em> quando apresentar a oferta ao candidato.</li>
     <li>Registre <em>aceite</em> ou <em>recusa</em>. No aceite, o sistema gera a checklist de pré-admissão.</li>
     <li>Atualize o status de cada documento (pendente, recebido, aprovado, recusado).</li>
+    <li>Com os obrigatórios <em>aprovados</em>, clique em <strong>Converter em colaborador</strong> para criar ou vincular um usuário do Portal.</li>
 </ol>
 
 <h2>Regras importantes</h2>
 <ul>
-    <li>Aceite <strong>não</strong> marca o candidato como contratado nem cria Pessoa/Vínculo.</li>
+    <li>Aceite <strong>não</strong> marca o candidato como contratado nem cria Pessoa/Vínculo físicos.</li>
+    <li>A conversão cria/vincula <code>adms_users</code> (fachada atual), marca o candidato como <em>contratado</em> e grava auditoria em <code>rh_conversoes_admissao</code>.</li>
     <li>Só uma oferta ativa (rascunho/enviada/aceita) por candidatura.</li>
     <li>Upload de arquivos dos documentos ainda não está disponível.</li>
 </ul>
@@ -26,6 +28,8 @@
 <dl>
     <dt>Não aparece o botão de criar oferta</dt>
     <dd>O vínculo precisa estar <em>Aprovado</em> e você precisa da permissão <em>RhOfertasCreate</em>.</dd>
+    <dt>Não consigo converter</dt>
+    <dd>A oferta precisa estar <em>aceita</em>, com documentos obrigatórios <em>aprovados</em>, e permissão <em>RhOfertasConvert</em>. Se o e-mail já existir no Portal, use o modo <em>Vincular usuário existente</em>.</dd>
     <dt>Erro ao salvar / página não encontrada</dt>
-    <dd>Execute a migration <code>20260719238000_create_rh_ofertas_pre_admissao</code>.</dd>
+    <dd>Execute as migrations <code>20260719238000_create_rh_ofertas_pre_admissao</code> e <code>20260719239000_create_rh_conversoes_admissao</code>.</dd>
 </dl>

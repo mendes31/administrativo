@@ -50,7 +50,7 @@ Regras:
 1. [x] Listagem pública read-only
 2. [x] Candidatura pública + consentimento LGPD + CAPTCHA + deduplicação
 3. [x] Oferta / pré-admissão (aceite RH + checklist; sem conversão Pessoa)
-4. Conversão auditável Pessoa/Vínculo
+4. Conversão auditável Pessoa/Vínculo — entregue via fachada `adms_users` ([CONVERSAO_ADMISSAO_EXPAND.md](CONVERSAO_ADMISSAO_EXPAND.md)); tabelas físicas ficam na Fase 4.
 
 ## Migrations
 

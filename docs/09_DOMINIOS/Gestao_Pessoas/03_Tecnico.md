@@ -105,6 +105,7 @@ Toda mudança estrutural deve:
 - [Escopo listagem de candidatos — Expand](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md)
 - [Publicação de vagas — Expand](PUBLICACAO_VAGAS_EXPAND.md) (inclui candidatura pública LGPD/CAPTCHA)
 - [Oferta e pré-admissão — Expand](OFERTA_PREADMISSAO_EXPAND.md)
+- [Conversão oferta → colaborador — Expand](CONVERSAO_ADMISSAO_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências
