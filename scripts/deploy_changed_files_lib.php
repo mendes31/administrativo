@@ -42,8 +42,17 @@ function deployCollectChangedFiles(string $root, string $gitBefore, string $gitA
     $output = [];
     exec($cmd, $output, $code);
 
+    // Se GIT_BEFORE não está no clone (shallow antigo) ou o range falhou,
+    // tenta HEAD~1..HEAD em vez de fingir sucesso com lista vazia.
     if ($code !== 0 || $output === []) {
-        return [];
+        if (!$invalidBefore) {
+            fwrite(STDERR, "⚠️ git diff {$gitBefore}..{$gitAfter} falhou (code={$code}); tentando HEAD~1..HEAD.\n");
+            $output = [];
+            exec('git diff --name-only --diff-filter=ACMRT HEAD~1 HEAD 2>/dev/null', $output, $code);
+        }
+        if ($code !== 0 || $output === []) {
+            return [];
+        }
     }
 
     $files = [];

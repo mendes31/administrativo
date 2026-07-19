@@ -48,7 +48,9 @@ jobs:
       - name: Checkout código
         uses: actions/checkout@v6
         with:
-          fetch-depth: ${{ github.event_name == 'workflow_dispatch' && 0 || 2 }}
+          # Precisa do commit `before` do push (multi-commit). Depth 2 falhava o
+          # git diff e o deploy rápido saía verde sem enviar ficheiros.
+          fetch-depth: 0
 
       - name: Verificar Secrets FTP
         run: |
