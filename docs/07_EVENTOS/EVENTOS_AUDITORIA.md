@@ -57,6 +57,9 @@ Eventos usam nomes no passado: `VinculoEncerrado`, não `EncerrarVinculo`.
 
 Eventos tornam-se vigentes somente no documento técnico do produtor.
 
+Catálogo detalhado de Talentos (contratos e lacunas de emissão):
+[`docs/09_DOMINIOS/Gestao_Pessoas/CATALOGO_EVENTOS_TALENTOS.md`](../09_DOMINIOS/Gestao_Pessoas/CATALOGO_EVENTOS_TALENTOS.md).
+
 ## Regras de payload
 
 - incluir somente o necessário;

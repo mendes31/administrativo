@@ -28,11 +28,11 @@ Diagnósticos:
 
 ## Fase 0.5 — Autorização e eventos
 
-- matrizes de autorização;
-- policies e escopos;
-- catálogo de eventos do domínio;
-- convenções de auditoria;
-- ADRs das mudanças estruturais.
+- [x] matriz de autorização de Talentos ([MATRIZ_AUTORIZACAO_TALENTOS.md](MATRIZ_AUTORIZACAO_TALENTOS.md));
+- [x] catálogo de eventos de Talentos ([CATALOGO_EVENTOS_TALENTOS.md](CATALOGO_EVENTOS_TALENTOS.md));
+- [ ] policies/escopos de listagem (filtrar por objeto);
+- [ ] outbox + emissão real dos eventos;
+- [ ] ADRs das correções estruturais de Fase 0 (opcional formalizar).
 
 Saída: recursos críticos possuem regra explícita e eventos têm proprietário.
 

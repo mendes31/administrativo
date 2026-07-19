@@ -69,8 +69,8 @@ Papéis não bastam. Exemplos:
 
 ## Prioridades
 
-1. currículos e anexos;
-2. candidatos, vagas, candidaturas e entrevistas;
+1. currículos e anexos — **matriz Talentos publicada**;
+2. candidatos, vagas, candidaturas e entrevistas — **matriz Talentos publicada**;
 3. documentos de folha;
 4. solicitações do colaborador;
 5. desempenho, feedbacks e PDI;
@@ -78,6 +78,8 @@ Papéis não bastam. Exemplos:
 7. SST e dados médicos;
 8. Canal de Denúncias;
 9. exportações e analytics.
+
+Matriz detalhada vigente: [`docs/09_DOMINIOS/Gestao_Pessoas/MATRIZ_AUTORIZACAO_TALENTOS.md`](../09_DOMINIOS/Gestao_Pessoas/MATRIZ_AUTORIZACAO_TALENTOS.md).
 
 ## Critério de saída
 

@@ -88,6 +88,8 @@ Toda mudança estrutural deve:
 
 - [Segurança e LGPD — Currículos (ATS)](SEG_CURRICULOS_DIAGNOSTICO.md)
 - [Integridade — Pipeline ATS](SEG_PIPELINE_INTEGRIDADE.md)
+- [Matriz de autorização — Talentos](MATRIZ_AUTORIZACAO_TALENTOS.md)
+- [Catálogo de eventos — Talentos](CATALOGO_EVENTOS_TALENTOS.md)
 
 ## Referências
 
