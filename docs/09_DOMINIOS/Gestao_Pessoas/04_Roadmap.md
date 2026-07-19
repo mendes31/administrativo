@@ -65,8 +65,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 - [x] publicação de vagas (flag admin `publicada`/`publicado_em` + listagem pública em `vagas-abertas`) — [PUBLICACAO_VAGAS_EXPAND.md](PUBLICACAO_VAGAS_EXPAND.md);
 - [x] candidatura pública + consentimento LGPD + CAPTCHA + dedupe (e-mail+vaga) — sem upload de currículo;
-
-- oferta, aceite e documentos;
+- [x] oferta + aceite/recusa (RH) + checklist de pré-admissão — [OFERTA_PREADMISSAO_EXPAND.md](OFERTA_PREADMISSAO_EXPAND.md);
 - conversão auditável para Pessoa/Vínculo.
 
 ## Fase 4 — Núcleo de pessoas e jornada

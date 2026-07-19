@@ -19,6 +19,7 @@ class RhCandidaturaHistoricoRepository extends DbConnection
     public const TIPO_MOVIMENTADA = 'movimentada';
     public const TIPO_DESVINCULADA = 'desvinculada';
     public const TIPO_BACKFILL = 'backfill';
+    public const TIPO_OFERTA = 'oferta';
 
     public const ORIGEM_PIPELINE = 'pipeline';
     public const ORIGEM_VAGA = 'vaga';
@@ -27,6 +28,7 @@ class RhCandidaturaHistoricoRepository extends DbConnection
     public const ORIGEM_SYNC = 'sync';
     public const ORIGEM_BACKFILL = 'backfill';
     public const ORIGEM_PORTAL = 'portal';
+    public const ORIGEM_OFERTA = 'oferta';
 
     /**
      * @param array{

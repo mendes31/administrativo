@@ -49,7 +49,7 @@ Regras:
 
 1. [x] Listagem pública read-only
 2. [x] Candidatura pública + consentimento LGPD + CAPTCHA + deduplicação
-3. Oferta / pré-admissão
+3. [x] Oferta / pré-admissão (aceite RH + checklist; sem conversão Pessoa)
 4. Conversão auditável Pessoa/Vínculo
 
 ## Migrations

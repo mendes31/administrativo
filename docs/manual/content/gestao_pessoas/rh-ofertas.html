@@ -1,0 +1,31 @@
+<h1>Ofertas e pré-admissão</h1>
+<p>Registra oferta formal para candidatura aprovada, aceite/recusa pelo RH e checklist de documentos — sem criar vínculo empregatício automaticamente.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> <em>Visualizar Candidato</em> (<code>rh-candidatos-view</code>) e pipeline da vaga.</p>
+
+<p><strong>Quem acessa:</strong> usuários com <em>RhOfertasCreate</em> / <em>RhOfertasView</em> (espelhadas dos níveis com <em>RhVagas</em>) e permissão de gerenciar o pipeline da vaga.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>No pipeline, mova a candidatura para <em>Aprovado</em>.</li>
+    <li>Abra o candidato e, na linha da vaga, clique em <strong>Criar oferta</strong> (ícone de aperto de mão).</li>
+    <li>Preencha salário, contrato, datas e salve o rascunho.</li>
+    <li>Marque como <em>enviada</em> quando apresentar a oferta ao candidato.</li>
+    <li>Registre <em>aceite</em> ou <em>recusa</em>. No aceite, o sistema gera a checklist de pré-admissão.</li>
+    <li>Atualize o status de cada documento (pendente, recebido, aprovado, recusado).</li>
+</ol>
+
+<h2>Regras importantes</h2>
+<ul>
+    <li>Aceite <strong>não</strong> marca o candidato como contratado nem cria Pessoa/Vínculo.</li>
+    <li>Só uma oferta ativa (rascunho/enviada/aceita) por candidatura.</li>
+    <li>Upload de arquivos dos documentos ainda não está disponível.</li>
+</ul>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não aparece o botão de criar oferta</dt>
+    <dd>O vínculo precisa estar <em>Aprovado</em> e você precisa da permissão <em>RhOfertasCreate</em>.</dd>
+    <dt>Erro ao salvar / página não encontrada</dt>
+    <dd>Execute a migration <code>20260719238000_create_rh_ofertas_pre_admissao</code>.</dd>
+</dl>

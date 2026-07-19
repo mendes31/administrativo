@@ -1523,6 +1523,11 @@
                     "file": "gestao_pessoas/rh-vagas-publicas-config.html"
                 },
                 {
+                    "id": "rh-ofertas",
+                    "title": "Ofertas e pré-admissão",
+                    "file": "gestao_pessoas/rh-ofertas.html"
+                },
+                {
                     "id": "rh-vagas-pipeline",
                     "title": "Pipeline da Vaga (Kanban)",
                     "file": "gestao_pessoas/rh-vagas-pipeline.html"

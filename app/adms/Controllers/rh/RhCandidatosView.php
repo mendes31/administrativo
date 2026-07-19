@@ -44,6 +44,29 @@ class RhCandidatosView
         $vagaRepo = new \App\adms\Models\Repository\RhVagasRepository();
         $this->data['vagas'] = $vagaRepo->getVagasByCandidato((int)$id);
 
+        $ofertas = (new \App\adms\Models\Repository\RhOfertasRepository())->listByCandidato((int)$id);
+        $ofertasPorCandidatura = [];
+        foreach ($ofertas as $oferta) {
+            $cid = (int) ($oferta['rh_candidatura_id'] ?? 0);
+            if ($cid <= 0) {
+                continue;
+            }
+            $isAtiva = in_array(
+                (string) ($oferta['status'] ?? ''),
+                \App\adms\Models\Repository\RhOfertasRepository::ATIVOS,
+                true
+            );
+            if ($isAtiva) {
+                $ofertasPorCandidatura[$cid] = $oferta;
+                continue;
+            }
+            if (!isset($ofertasPorCandidatura[$cid])) {
+                $ofertasPorCandidatura[$cid] = $oferta;
+            }
+        }
+        $this->data['ofertas'] = $ofertas;
+        $this->data['ofertas_por_candidatura'] = $ofertasPorCandidatura;
+
         // Histórico de entrevistas do candidato
         $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
         $this->data['entrevistas'] = $entrevistasRepo->getByCandidato((int)$id);
@@ -64,7 +87,7 @@ class RhCandidatosView
         $pageElements = [
             'title_head' => 'Visualizar Candidato',
             'menu'       => 'rh-candidatos',
-            'buttonPermission' => ['RhCandidatos', 'RhCandidatosEdit', 'RhCandidatosDelete'],
+            'buttonPermission' => ['RhCandidatos', 'RhCandidatosEdit', 'RhCandidatosDelete', 'RhOfertasCreate', 'RhOfertasView'],
         ];
 
         $pageLayoutService = new PageLayoutService();

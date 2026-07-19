@@ -1253,6 +1253,11 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "rh-ofertas",
+                                    "title": "Ofertas e pré-admissão"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "rh-personnel-requests",
                                     "title": "Requisições de Pessoal"
                                 }

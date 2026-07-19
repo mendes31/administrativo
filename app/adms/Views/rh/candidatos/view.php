@@ -218,6 +218,22 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                                    class="btn btn-sm btn-info" title="Ver vaga">
                                                     <i class="fas fa-eye"></i>
                                                 </a>
+                                                <?php
+                                                $ofertaAtiva = $this->data['ofertas_por_candidatura'][(int)($vaga['id'] ?? 0)] ?? null;
+                                                $ofertaStatus = (string) ($ofertaAtiva['status'] ?? '');
+                                                $ofertaEhAtiva = $ofertaAtiva
+                                                    && in_array($ofertaStatus, \App\adms\Models\Repository\RhOfertasRepository::ATIVOS, true);
+                                                if ($ofertaEhAtiva): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-ofertas-view/<?= (int)$ofertaAtiva['id'] ?>"
+                                                       class="btn btn-sm btn-success" title="Ver oferta">
+                                                        <i class="fas fa-file-signature"></i>
+                                                    </a>
+                                                <?php elseif (($vaga['status'] ?? '') === 'aprovado' && !empty($this->data['buttonPermission']['RhOfertasCreate'])): ?>
+                                                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-ofertas-create/<?= (int)($vaga['id'] ?? 0) ?>"
+                                                       class="btn btn-sm btn-outline-success" title="Criar oferta">
+                                                        <i class="fas fa-handshake"></i>
+                                                    </a>
+                                                <?php endif; ?>
                                             </td>
                                         </tr>
                                     <?php endforeach; ?>

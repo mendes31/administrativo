@@ -526,6 +526,8 @@ class PageLayoutService
             'RhVagasDelete',
             'RhVagasViewAll',
             'RhVagasPublicasConfig',
+            'RhOfertasCreate',
+            'RhOfertasView',
             'RhVincularCandidatoVaga',
             'RhAtualizarStatusCandidatura',
             'RhPersonnelRequests',
