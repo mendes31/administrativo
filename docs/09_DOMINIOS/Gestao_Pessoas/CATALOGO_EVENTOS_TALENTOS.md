@@ -14,9 +14,9 @@
 | `VagaEncerrada` | Talentos | Portal, Analytics | `vaga_id`, `status`, `motivo?` | 1 | Interna | `vaga_id`+`closed_at` | Normal | fechar/excluir |
 | `CandidatoCadastrado` | Talentos | LGPD, Analytics | `candidato_id`, `lgpd_consentimento_id` | 1 | Pessoal | `candidato_id` | Alta | create candidato |
 | `CandidatoAnonimizado` | Talentos | Analytics, Auditoria | `candidato_id`, `motivo` | 1 | Pessoal | `candidato_id`+`anon_at` | Crítica | retenção LGPD |
-| `CandidaturaVinculada` | Talentos | Comunicação, Analytics | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id` | Normal | vincular/sync |
-| `CandidaturaDesvinculada` | Talentos | Analytics | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id`+`ts` | Normal | desvincular/sync |
-| `CandidaturaMovimentada` | Talentos | Comunicação, Analytics | `candidato_id`, `vaga_id`, `status_de`, `status_para` | 1 | Pessoal | `vinculo_id`+`status`+`ts` | Alta | pipeline |
+| `CandidaturaMovimentada` | Talentos | Comunicação, Analytics | `candidato_id`, `vaga_id`, `status_de`, `status_para` | 1 | Pessoal | `vinculo_id`+`status`+`ts` | Alta | pipeline → `rh_candidaturas_historico` (sem outbox ainda) |
+| `CandidaturaVinculada` | Talentos | Comunicação, Analytics | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id` | Normal | vincular/sync → histórico |
+| `CandidaturaDesvinculada` | Talentos | Analytics | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id`+`ts` | Normal | desvincular/sync → histórico |
 | `EntrevistaAgendada` | Talentos | Comunicação | `entrevista_id`, `candidato_id`, `vaga_id?`, `data_hora` | 1 | Pessoal | `entrevista_id` | Normal | create/edit entrevista |
 | `EntrevistaResultadaRegistrada` | Talentos | Pipeline, Analytics | `entrevista_id`, `resultado` | 1 | Pessoal | `entrevista_id`+`resultado` | Alta | edit entrevista / pipeline |
 | `CurriculoAnexado` | Talentos | Auditoria | `candidato_id`, `anexo_id` | 1 | Pessoal | `anexo_id` | Normal | upload |

@@ -11,7 +11,8 @@
 - autorização por objeto varia por controller;
 - status de candidatura e candidato podem divergir;
 - operações compostas nem sempre usam transação;
-- não há suíte automatizada abrangente.
+- não há suíte automatizada abrangente;
+- histórico de candidatura em `rh_candidaturas_historico` (append-only), com dual-write nas transições.
 
 ## Direção arquitetural
 
@@ -79,7 +80,7 @@ Toda mudança estrutural deve:
 - exclusão/anonimização física inconsistente;
 - ACL sem escopo de registro;
 - duas fontes de status;
-- ausência de histórico de candidatura;
+- ausência de histórico de candidatura (mitigado: Expand com `rh_candidaturas_historico`);
 - `adms_users` como entidade híbrida;
 - analytics sobre fontes divergentes;
 - ausência de testes de regressão.
@@ -90,6 +91,7 @@ Toda mudança estrutural deve:
 - [Integridade — Pipeline ATS](SEG_PIPELINE_INTEGRIDADE.md)
 - [Matriz de autorização — Talentos](MATRIZ_AUTORIZACAO_TALENTOS.md)
 - [Catálogo de eventos — Talentos](CATALOGO_EVENTOS_TALENTOS.md)
+- [Histórico imutável — Expand](HISTORICO_CANDIDATURA_EXPAND.md)
 
 ## Referências
 

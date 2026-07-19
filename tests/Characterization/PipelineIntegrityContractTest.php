@@ -36,15 +36,17 @@ final class PipelineIntegrityContractTest extends TestCase
 
         $vincularPos = strpos($source, 'function vincularCandidato');
         $desvincularPos = strpos($source, 'function desvincularCandidato');
+        $fecharPos = strpos($source, 'function fecharVaga');
         self::assertNotFalse($vincularPos);
         self::assertNotFalse($desvincularPos);
+        self::assertNotFalse($fecharPos);
 
         $vincularBlock = substr($source, $vincularPos, $desvincularPos - $vincularPos);
+        $desvincularBlock = substr($source, $desvincularPos, $fecharPos - $desvincularPos);
         self::assertStringContainsString('calcularStatusGeralPorVinculos', $vincularBlock);
-        self::assertStringContainsString(
-            'calcularStatusGeralPorVinculos',
-            substr($source, $desvincularPos, 1200)
-        );
+        self::assertStringContainsString('calcularStatusGeralPorVinculos', $desvincularBlock);
+        self::assertStringContainsString('beginTransaction()', $vincularBlock);
+        self::assertStringContainsString('beginTransaction()', $desvincularBlock);
     }
 
     public function testVagaEditPostRequiresCsrfAndObjectPermission(): void
@@ -110,6 +112,33 @@ final class PipelineIntegrityContractTest extends TestCase
         self::assertStringContainsString('canManagePipelineByVagaId', $vagaCtrl);
         self::assertStringContainsString('sincronizarVagasDoCandidato', $candCtrl);
         self::assertStringContainsString('RhCandidatoPermissionService::canAccessCandidato', $candCtrl);
+    }
+
+    public function testStatusUpdateWritesImmutableHistory(): void
+    {
+        $source = $this->readProjectFile(
+            'app/adms/Models/Repository/RhVagasRepository.php'
+        );
+
+        self::assertStringContainsString('FOR UPDATE', $source);
+        self::assertStringContainsString('RhCandidaturaHistoricoRepository', $source);
+        self::assertStringContainsString('TIPO_MOVIMENTADA', $source);
+        self::assertStringContainsString('TIPO_VINCULADA', $source);
+        self::assertStringContainsString('TIPO_DESVINCULADA', $source);
+    }
+
+    public function testCandidatoViewLoadsHistoricoTimeline(): void
+    {
+        $controller = $this->readProjectFile(
+            'app/adms/Controllers/rh/RhCandidatosView.php'
+        );
+        $view = $this->readProjectFile(
+            'app/adms/Views/rh/candidatos/view.php'
+        );
+
+        self::assertStringContainsString('listByCandidato', $controller);
+        self::assertStringContainsString('historico_candidatura', $controller);
+        self::assertStringContainsString('Linha do tempo da candidatura', $view);
     }
 
     private function readProjectFile(string $relativePath): string

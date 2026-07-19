@@ -76,7 +76,14 @@ class RhEntrevistasEdit
                 $vagaId = (int) ($entrevista['rh_vaga_id'] ?? 0);
                 if ($candidatoId > 0 && $vagaId > 0 && in_array($resultadoForm, ['aprovado', 'reprovado'], true)) {
                     $vagaRepo = new RhVagasRepository();
-                    $vagaRepo->atualizarStatusVinculo($vagaId, $candidatoId, $resultadoForm, null);
+                    $vagaRepo->atualizarStatusVinculo(
+                        $vagaId,
+                        $candidatoId,
+                        $resultadoForm,
+                        null,
+                        \App\adms\Models\Repository\RhCandidaturaHistoricoRepository::ORIGEM_ENTREVISTA,
+                        $id
+                    );
                 }
                 $_SESSION['success'] = "Entrevista atualizada com sucesso!";
                 header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");

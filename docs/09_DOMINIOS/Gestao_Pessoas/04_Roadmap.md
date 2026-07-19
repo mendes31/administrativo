@@ -38,12 +38,12 @@ Saída: recursos críticos possuem regra explícita e eventos têm proprietário
 
 ## Fase 1 — Recrutamento confiável
 
-- etapas configuráveis;
-- histórico imutável;
-- service transacional de movimentação;
-- motivos estruturados;
-- status geral como projeção;
-- requisição de pessoal e aprovação.
+- [x] histórico imutável (`rh_candidaturas_historico` + dual-write nas transições);
+- [ ] etapas configuráveis;
+- [ ] service transacional unificado de movimentação (entrevista + vínculo + histórico);
+- [ ] motivos estruturados;
+- [ ] status geral como projeção documentada/consumida pelo histórico;
+- [ ] requisição de pessoal e aprovação.
 
 ## Fase 2 — Entrevistas e comunicação
 

@@ -1,5 +1,5 @@
 <h1>Visualizar Candidato</h1>
-<p>Exibe dados do candidato, vagas vinculadas, entrevistas e currículos anexados.</p>
+<p>Exibe dados do candidato, vagas vinculadas, linha do tempo da candidatura, entrevistas e currículos anexados.</p>
 
 <p><strong>Quem acessa:</strong> permissão <em>RhCandidatosView</em>, além da autorização por objeto (operadores RH, gestores ou responsável da vaga).</p>
 
@@ -8,8 +8,16 @@
     <li>Na listagem, abra <strong>Visualizar</strong>.</li>
     <li>Revise dados pessoais, classificação e status do processo.</li>
     <li>Baixe o currículo pelo link do anexo (rota autorizada <code>rh-candidatos-download-anexo</code>).</li>
+    <li>Consulte a <strong>Linha do tempo da candidatura</strong> para ver vínculos, movimentações no pipeline e desvínculos (histórico imutável).</li>
     <li>Vincule vagas ou consulte entrevistas quando aplicável.</li>
 </ol>
+
+<h2>Linha do tempo</h2>
+<p>Cada movimentação no Kanban, vínculo/desvínculo ou resultado de entrevista gera um evento append-only. O status atual da vaga continua sendo a projeção; a linha do tempo é a fonte das transições.</p>
+<ul>
+    <li><strong>Estado inicial</strong> — captura do status vigente na implantação do histórico (backfill).</li>
+    <li><strong>Origem</strong> — pipeline, entrevista, sync, vaga ou candidato.</li>
+</ul>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -17,4 +25,6 @@
     <dd>Seu usuário não tem ACL de RH nem vínculo de responsável/gestor com a vaga do candidato.</dd>
     <dt>Arquivo não encontrado</dt>
     <dd>O anexo pode ter sido removido pela retenção LGPD ou exclusão. Verifique o status LGPD do candidato.</dd>
+    <dt>Linha do tempo vazia</dt>
+    <dd>Rode a migration <code>20260719140000_create_rh_candidaturas_historico</code> e movimente o candidato no pipeline; eventos novos passam a aparecer.</dd>
 </dl>

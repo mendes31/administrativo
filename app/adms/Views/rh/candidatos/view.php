@@ -223,9 +223,89 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                 </tbody>
                             </table>
                         </div>
+            <?php else: ?>
+                        <p class="text-muted mb-0">Nenhuma vaga vinculada.</p>
+            <?php endif; ?>
                     </div>
                 </div>
-            <?php endif; ?>
+            </div>
+
+            <!-- Linha do tempo da candidatura (histórico imutável) -->
+            <div class="row mt-4">
+                <div class="col-12">
+                    <div class="card border-light shadow-sm">
+                        <div class="card-header">
+                            <h5 class="mb-0">
+                                <i class="fas fa-history me-2"></i>
+                                Linha do tempo da candidatura (<?= count($this->data['historico_candidatura'] ?? []) ?>)
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <?php if (!empty($this->data['historico_candidatura'])): ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm table-striped align-middle mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Quando</th>
+                                                <th>Evento</th>
+                                                <th>Vaga</th>
+                                                <th>Status</th>
+                                                <th>Origem</th>
+                                                <th>Por</th>
+                                                <th>Observações</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <?php foreach ($this->data['historico_candidatura'] as $evento): ?>
+                                                <?php
+                                                $tipoLabel = match ($evento['tipo_evento'] ?? '') {
+                                                    'vinculada' => 'Vinculada',
+                                                    'movimentada' => 'Movimentada',
+                                                    'desvinculada' => 'Desvinculada',
+                                                    'backfill' => 'Estado inicial',
+                                                    default => ucfirst((string) ($evento['tipo_evento'] ?? '-')),
+                                                };
+                                                $de = $evento['status_anterior'] ?? null;
+                                                $para = $evento['status_novo'] ?? null;
+                                                $statusTxt = '-';
+                                                if ($de && $para) {
+                                                    $statusTxt = ucfirst(str_replace('_', ' ', (string) $de))
+                                                        . ' → '
+                                                        . ucfirst(str_replace('_', ' ', (string) $para));
+                                                } elseif ($para) {
+                                                    $statusTxt = ucfirst(str_replace('_', ' ', (string) $para));
+                                                } elseif ($de) {
+                                                    $statusTxt = ucfirst(str_replace('_', ' ', (string) $de)) . ' → (encerrado)';
+                                                }
+                                                ?>
+                                                <tr>
+                                                    <td><?= FormatHelper::formatDateTime($evento['ocorrido_em'] ?? null) ?></td>
+                                                    <td><?= htmlspecialchars($tipoLabel) ?></td>
+                                                    <td>
+                                                        <?php if (!empty($evento['rh_vaga_id'])): ?>
+                                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-view/<?= (int) $evento['rh_vaga_id'] ?>">
+                                                                <?= htmlspecialchars($evento['vaga_titulo'] ?? ('Vaga #' . (int) $evento['rh_vaga_id'])) ?>
+                                                            </a>
+                                                        <?php else: ?>
+                                                            <span class="text-muted">-</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td><?= htmlspecialchars($statusTxt) ?></td>
+                                                    <td><?= htmlspecialchars(ucfirst((string) ($evento['origem'] ?? '-'))) ?></td>
+                                                    <td><?= htmlspecialchars($evento['alterado_por_nome'] ?? '-') ?></td>
+                                                    <td><?= htmlspecialchars(mb_strimwidth((string) ($evento['observacoes'] ?? ''), 0, 80, '…')) ?></td>
+                                                </tr>
+                                            <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                            <?php else: ?>
+                                <p class="text-muted mb-0">Nenhum evento de candidatura registrado ainda.</p>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
             <!-- Histórico de Entrevistas -->
             <div class="row mt-4">

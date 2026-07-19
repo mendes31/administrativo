@@ -32,8 +32,8 @@ tabela. Não usar `adms_jobs` como sinônimo de Cargo sem decisão formal.
 | Admissão/desligamento | usuário + histórico | Vínculo | Organização/DP | Duplicada |
 | Candidato | `rh_candidatos` | Candidato | Talentos | Confirmada |
 | Vaga | `rh_vagas` | Vaga autorizada | Talentos | Sem requisição |
-| Candidatura | `rh_candidatos_vagas` | Candidatura | Talentos | Confirmada |
-| Etapa seletiva | status mutável | histórico + projeção | Talentos | Pendente |
+| Candidatura | `rh_candidatos_vagas` (projeção) + `rh_candidaturas_historico` (transições) | Candidatura | Talentos | Expand em curso |
+| Etapa seletiva | status mutável em `rh_candidatos_vagas` | histórico + projeção | Talentos | Dual-write ativo |
 | Status geral do candidato | `status_processo` | projeção | Talentos | Não deve ser primária |
 | Entrevista | `rh_entrevistas` | entrevista estruturada | Talentos | Parcial |
 | Treinamento corporativo | `adms_trainings` | catálogo de Desenvolvimento | Desenvolvimento | Fronteira SST pendente |

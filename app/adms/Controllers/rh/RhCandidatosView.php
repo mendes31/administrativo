@@ -47,6 +47,9 @@ class RhCandidatosView
         // Histórico de entrevistas do candidato
         $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
         $this->data['entrevistas'] = $entrevistasRepo->getByCandidato((int)$id);
+
+        $historicoRepo = new \App\adms\Models\Repository\RhCandidaturaHistoricoRepository();
+        $this->data['historico_candidatura'] = $historicoRepo->listByCandidato((int)$id);
         
         // Buscar todas as vagas disponíveis para vincular (exceto as já vinculadas)
         $vagasVinculadasIds = array_column($this->data['vagas'], 'rh_vaga_id');

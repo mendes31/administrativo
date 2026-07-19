@@ -305,12 +305,16 @@ class RhVagasRepository extends DbConnection
     /**
      * Vincula um candidato a uma vaga.
      */
-    public function vincularCandidato(int $vagaId, int $candidatoId, ?string $observacoes = null): bool
-    {
-        try {
-            $pdo = $this->getConnection();
+    public function vincularCandidato(
+        int $vagaId,
+        int $candidatoId,
+        ?string $observacoes = null,
+        string $origem = RhCandidaturaHistoricoRepository::ORIGEM_VAGA
+    ): bool {
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
 
-            // Garantir que a vaga esteja em status que permita novos vínculos
+        try {
             $vaga = $this->getById($vagaId);
             if (!$vaga) {
                 throw new Exception('Vaga não encontrada.');
@@ -319,8 +323,10 @@ class RhVagasRepository extends DbConnection
                 throw new Exception('Não é possível vincular candidatos a uma vaga fechada ou cancelada.');
             }
 
-            // Verificar se já existe vínculo
-            $stmtCheck = $pdo->prepare('SELECT id FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id');
+            $stmtCheck = $pdo->prepare(
+                'SELECT id FROM rh_candidatos_vagas
+                 WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id'
+            );
             $stmtCheck->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
             $stmtCheck->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
             $stmtCheck->execute();
@@ -340,17 +346,35 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
             if (!$stmt->execute()) {
-                return false;
+                throw new Exception('Erro ao inserir vínculo candidato-vaga.');
             }
 
-            $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
+            $candidaturaId = (int) $pdo->lastInsertId();
+            $historicoRepo = new RhCandidaturaHistoricoRepository();
+            $historicoRepo->registrar([
+                'rh_candidatura_id' => $candidaturaId,
+                'rh_candidato_id' => $candidatoId,
+                'rh_vaga_id' => $vagaId,
+                'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_VINCULADA,
+                'status_anterior' => null,
+                'status_novo' => 'candidatado',
+                'origem' => $origem,
+                'observacoes' => $observacoes,
+            ]);
+
+            $candRepo = new RhCandidatosRepository();
             $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
             if ($novoStatus) {
                 $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatus);
             }
 
+            $pdo->commit();
+
             return true;
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             GenerateLog::generateLog('error', 'Erro ao vincular candidato à vaga.', [
                 'vaga_id'     => $vagaId,
                 'candidato_id' => $candidatoId,
@@ -362,10 +386,16 @@ class RhVagasRepository extends DbConnection
 
     /**
      * Atualiza status do vínculo candidato-vaga de forma atômica:
-     * UPDATE do vínculo + recalculo do status geral + reflexos de entrevista.
+     * UPDATE do vínculo + histórico imutável + recalculo do status geral + reflexos de entrevista.
      */
-    public function atualizarStatusVinculo(int $vagaId, int $candidatoId, string $status, ?string $observacoes = null): bool
-    {
+    public function atualizarStatusVinculo(
+        int $vagaId,
+        int $candidatoId,
+        string $status,
+        ?string $observacoes = null,
+        string $origem = RhCandidaturaHistoricoRepository::ORIGEM_PIPELINE,
+        ?int $entrevistaId = null
+    ): bool {
         $pdo = $this->getConnection();
         $pdo->beginTransaction();
 
@@ -378,30 +408,56 @@ class RhVagasRepository extends DbConnection
                 throw new Exception('Não é possível alterar o status de candidaturas de uma vaga fechada ou cancelada.');
             }
 
+            $stmtLock = $pdo->prepare(
+                'SELECT id, status, observacoes
+                 FROM rh_candidatos_vagas
+                 WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id
+                 FOR UPDATE'
+            );
+            $stmtLock->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+            $stmtLock->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+            $stmtLock->execute();
+            $vinculo = $stmtLock->fetch(PDO::FETCH_ASSOC);
+            if (!$vinculo) {
+                throw new Exception('Candidato não está vinculado a esta vaga.');
+            }
+
+            $statusAnterior = (string) ($vinculo['status'] ?? '');
+            $candidaturaId = (int) $vinculo['id'];
+
             $sql = 'UPDATE rh_candidatos_vagas
                     SET status = :status,
                         observacoes = :observacoes,
                         data_ultima_atualizacao = NOW(),
                         updated_at = NOW()
-                    WHERE rh_candidato_id = :candidato_id
-                      AND rh_vaga_id = :vaga_id';
+                    WHERE id = :id';
 
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             $stmt->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
-            $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+            $stmt->bindValue(':id', $candidaturaId, PDO::PARAM_INT);
 
             if (!$stmt->execute()) {
                 $errorInfo = $stmt->errorInfo();
                 throw new Exception($errorInfo[2] ?? 'Erro desconhecido ao atualizar vínculo candidato-vaga.');
             }
 
-            if ($stmt->rowCount() < 1) {
-                throw new Exception('Candidato não está vinculado a esta vaga.');
+            if ($statusAnterior !== $status) {
+                $historicoRepo = new RhCandidaturaHistoricoRepository();
+                $historicoRepo->registrar([
+                    'rh_candidatura_id' => $candidaturaId,
+                    'rh_candidato_id' => $candidatoId,
+                    'rh_vaga_id' => $vagaId,
+                    'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_MOVIMENTADA,
+                    'status_anterior' => $statusAnterior !== '' ? $statusAnterior : null,
+                    'status_novo' => $status,
+                    'origem' => $origem,
+                    'rh_entrevista_id' => $entrevistaId,
+                    'observacoes' => $observacoes,
+                ]);
             }
 
-            $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
+            $candRepo = new RhCandidatosRepository();
             $novoStatusProcesso = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
             if ($novoStatusProcesso) {
                 if (!$candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatusProcesso)) {
@@ -409,7 +465,7 @@ class RhVagasRepository extends DbConnection
                 }
             }
 
-            $entrevistasRepo = new \App\adms\Models\Repository\RhEntrevistasRepository();
+            $entrevistasRepo = new RhEntrevistasRepository();
             if ($status === 'em_entrevista') {
                 $entrevistasRepo->criarAoMoverParaEmEntrevista($candidatoId, $vagaId);
             }
@@ -479,28 +535,60 @@ class RhVagasRepository extends DbConnection
     /**
      * Desvincula um candidato de uma vaga.
      */
-    public function desvincularCandidato(int $vagaId, int $candidatoId): bool
-    {
+    public function desvincularCandidato(
+        int $vagaId,
+        int $candidatoId,
+        string $origem = RhCandidaturaHistoricoRepository::ORIGEM_VAGA
+    ): bool {
+        $pdo = $this->getConnection();
+        $pdo->beginTransaction();
+
         try {
-            $pdo = $this->getConnection();
-            $stmt = $pdo->prepare('DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id');
-            $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
-            $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
-            if (!$stmt->execute()) {
+            $stmtLock = $pdo->prepare(
+                'SELECT id, status
+                 FROM rh_candidatos_vagas
+                 WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id
+                 FOR UPDATE'
+            );
+            $stmtLock->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+            $stmtLock->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+            $stmtLock->execute();
+            $vinculo = $stmtLock->fetch(PDO::FETCH_ASSOC);
+            if (!$vinculo) {
+                $pdo->rollBack();
                 return false;
             }
 
-            $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
-            $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
-            if ($novoStatus) {
-                $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatus);
-            } else {
-                // Sem vínculos ativos: volta ao estado base de recebido/candidatado
-                $candRepo->atualizarStatusProcessoSimples($candidatoId, 'candidatado');
+            $historicoRepo = new RhCandidaturaHistoricoRepository();
+            $historicoRepo->registrar([
+                'rh_candidatura_id' => (int) $vinculo['id'],
+                'rh_candidato_id' => $candidatoId,
+                'rh_vaga_id' => $vagaId,
+                'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_DESVINCULADA,
+                'status_anterior' => $vinculo['status'] ?? null,
+                'status_novo' => null,
+                'origem' => $origem,
+            ]);
+
+            $stmt = $pdo->prepare(
+                'DELETE FROM rh_candidatos_vagas WHERE id = :id'
+            );
+            $stmt->bindValue(':id', (int) $vinculo['id'], PDO::PARAM_INT);
+            if (!$stmt->execute()) {
+                throw new Exception('Erro ao desvincular candidato da vaga.');
             }
+
+            $candRepo = new RhCandidatosRepository();
+            $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
+            $candRepo->atualizarStatusProcessoSimples($candidatoId, $novoStatus ?: 'candidatado');
+
+            $pdo->commit();
 
             return true;
         } catch (Exception $e) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
             GenerateLog::generateLog('error', 'Erro ao desvincular candidato da vaga.', [
                 'vaga_id'      => $vagaId,
                 'candidato_id' => $candidatoId,
@@ -583,13 +671,32 @@ class RhVagasRepository extends DbConnection
             $aAdicionar = array_diff($candidatoIds, $atuais);
             $afetados = [];
 
+            $historicoRepo = new RhCandidaturaHistoricoRepository();
+
             foreach ($aRemover as $candidatoId) {
-                $stmt = $pdo->prepare(
-                    'DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id'
+                $stmtLock = $pdo->prepare(
+                    'SELECT id, status FROM rh_candidatos_vagas
+                     WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id
+                     FOR UPDATE'
                 );
-                $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
-                $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
-                $stmt->execute();
+                $stmtLock->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+                $stmtLock->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+                $stmtLock->execute();
+                $vinculo = $stmtLock->fetch(PDO::FETCH_ASSOC);
+                if ($vinculo) {
+                    $historicoRepo->registrar([
+                        'rh_candidatura_id' => (int) $vinculo['id'],
+                        'rh_candidato_id' => (int) $candidatoId,
+                        'rh_vaga_id' => $vagaId,
+                        'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_DESVINCULADA,
+                        'status_anterior' => $vinculo['status'] ?? null,
+                        'status_novo' => null,
+                        'origem' => RhCandidaturaHistoricoRepository::ORIGEM_SYNC,
+                    ]);
+                    $stmt = $pdo->prepare('DELETE FROM rh_candidatos_vagas WHERE id = :id');
+                    $stmt->bindValue(':id', (int) $vinculo['id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                }
                 $afetados[$candidatoId] = true;
             }
 
@@ -608,6 +715,16 @@ class RhVagasRepository extends DbConnection
                 $ins->bindValue(':status', 'candidatado', PDO::PARAM_STR);
                 $ins->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
                 $ins->execute();
+                $historicoRepo->registrar([
+                    'rh_candidatura_id' => (int) $pdo->lastInsertId(),
+                    'rh_candidato_id' => (int) $candidatoId,
+                    'rh_vaga_id' => $vagaId,
+                    'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_VINCULADA,
+                    'status_anterior' => null,
+                    'status_novo' => 'candidatado',
+                    'origem' => RhCandidaturaHistoricoRepository::ORIGEM_SYNC,
+                    'observacoes' => $observacoes,
+                ]);
                 $afetados[$candidatoId] = true;
             }
 
@@ -668,13 +785,32 @@ class RhVagasRepository extends DbConnection
             $aRemover = array_diff($atuaisPermitidos, $vagaIds);
             $aAdicionar = array_diff($vagaIds, $atuais);
 
+            $historicoRepo = new RhCandidaturaHistoricoRepository();
+
             foreach ($aRemover as $vagaId) {
-                $stmt = $pdo->prepare(
-                    'DELETE FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id'
+                $stmtLock = $pdo->prepare(
+                    'SELECT id, status FROM rh_candidatos_vagas
+                     WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id
+                     FOR UPDATE'
                 );
-                $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
-                $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
-                $stmt->execute();
+                $stmtLock->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+                $stmtLock->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+                $stmtLock->execute();
+                $vinculo = $stmtLock->fetch(PDO::FETCH_ASSOC);
+                if ($vinculo) {
+                    $historicoRepo->registrar([
+                        'rh_candidatura_id' => (int) $vinculo['id'],
+                        'rh_candidato_id' => $candidatoId,
+                        'rh_vaga_id' => (int) $vagaId,
+                        'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_DESVINCULADA,
+                        'status_anterior' => $vinculo['status'] ?? null,
+                        'status_novo' => null,
+                        'origem' => RhCandidaturaHistoricoRepository::ORIGEM_SYNC,
+                    ]);
+                    $stmt = $pdo->prepare('DELETE FROM rh_candidatos_vagas WHERE id = :id');
+                    $stmt->bindValue(':id', (int) $vinculo['id'], PDO::PARAM_INT);
+                    $stmt->execute();
+                }
             }
 
             $ins = $pdo->prepare(
@@ -696,6 +832,16 @@ class RhVagasRepository extends DbConnection
                 $ins->bindValue(':status', 'candidatado', PDO::PARAM_STR);
                 $ins->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
                 $ins->execute();
+                $historicoRepo->registrar([
+                    'rh_candidatura_id' => (int) $pdo->lastInsertId(),
+                    'rh_candidato_id' => $candidatoId,
+                    'rh_vaga_id' => (int) $vagaId,
+                    'tipo_evento' => RhCandidaturaHistoricoRepository::TIPO_VINCULADA,
+                    'status_anterior' => null,
+                    'status_novo' => 'candidatado',
+                    'origem' => RhCandidaturaHistoricoRepository::ORIGEM_SYNC,
+                    'observacoes' => $observacoes,
+                ]);
             }
 
             $candRepo = new RhCandidatosRepository();
