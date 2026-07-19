@@ -74,9 +74,28 @@ final class CurriculoStorageContractTest extends TestCase
 
         self::assertStringContainsString('canDownloadAnexo', $download);
         self::assertStringContainsString('RhCandidatoAnexoService::resolvePhysicalPath', $download);
+        self::assertStringContainsString('RhCandidatoAnexoAccessLogRepository', $download);
+        self::assertStringContainsString('logDownload', $download);
         self::assertStringContainsString('canAccessCandidato', $permission);
         self::assertStringContainsString('canDownloadAnexo', $fileServer);
+        self::assertStringContainsString('RhCandidatoAnexoAccessLogRepository', $fileServer);
         self::assertStringContainsString('rh-candidatos-download-anexo/', $view);
+    }
+
+    public function testAccessLogMigrationAndRepositoryExist(): void
+    {
+        $migration = $this->readProjectFile(
+            'database/migrations/20260719231000_create_rh_candidato_anexo_access_logs.php'
+        );
+        $repo = $this->readProjectFile(
+            'app/adms/Models/Repository/RhCandidatoAnexoAccessLogRepository.php'
+        );
+
+        self::assertStringContainsString('rh_candidato_anexo_access_logs', $migration);
+        self::assertStringContainsString('path_hash', $migration);
+        self::assertStringContainsString('function logDownload', $repo);
+        self::assertStringContainsString('GenerateLog::generateLog', $repo);
+        self::assertStringContainsString('hasRecentEntry', $repo);
     }
 
     public function testRetentionAnonymizationUsesAnexoServicePhysicalPath(): void

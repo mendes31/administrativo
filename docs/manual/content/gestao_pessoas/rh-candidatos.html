@@ -3,7 +3,7 @@
 
 <p class="help-note"><strong>Visão geral:</strong> veja também <em>Recrutamento e currículos</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>RhCandidatos</em>. Com <em>RhCandidatosViewAll</em> a listagem mostra todos; sem ela, apenas candidatos vinculados a vagas em que o usuário é responsável (candidatos sem vaga não aparecem). Download de anexos exige também <em>RhCandidatosDownloadAnexo</em> (concedida junto com a visualização após a migration de segurança).</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>RhCandidatos</em> para a listagem. Com <em>RhCandidatosViewAll</em> (ou Super) a listagem e a ficha mostram qualquer candidato; sem ViewAll, apenas vinculados a vagas em que o usuário é responsável — gestores CRM ainda acessam fichas. Candidatos sem vaga não aparecem no modo restrito. Download de anexos exige também <em>RhCandidatosDownloadAnexo</em> e a mesma autorização por objeto.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
@@ -17,6 +17,7 @@
 <ul>
     <li>Currículos novos ficam em armazenamento <strong>privado</strong> (não acessíveis por URL pública).</li>
     <li>Download só para quem tem permissão de RH/recrutamento ou é responsável/gestor da vaga.</li>
+    <li>Cada download autorizado é registrado para auditoria LGPD (sem tela de consulta nesta versão).</li>
     <li>Após o prazo de retenção, o sistema anonimiza dados e remove os arquivos físicos.</li>
 </ul>
 

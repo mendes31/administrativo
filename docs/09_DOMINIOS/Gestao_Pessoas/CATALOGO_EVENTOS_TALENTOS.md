@@ -21,7 +21,7 @@
 | `EntrevistaReagendada` | Talentos | Comunicação | `entrevista_id`, `candidato_id`, `vaga_id?`, `data_hora_anterior`, `data_hora_nova`, `reagendamento_id` | 1 | Pessoal | `talentos.entrevista.{id}.reagendamento.{reagendamento_id}.v1` | Normal | reagendamento → outbox `pending` |
 | `EntrevistaResultadaRegistrada` | Talentos | Pipeline, Analytics | `entrevista_id`, `resultado` | 1 | Pessoal | `entrevista_id`+`resultado` | Alta | edit entrevista / pipeline |
 | `CurriculoAnexado` | Talentos | Auditoria | `candidato_id`, `anexo_id` | 1 | Pessoal | `anexo_id` | Normal | upload |
-| `CurriculoBaixado` | Talentos | Auditoria LGPD | `candidato_id`, `anexo_id`, `actor_id` | 1 | Pessoal | `anexo_id`+`actor`+`ts` | Alta | **ainda não emitido** |
+| `CurriculoBaixado` | Talentos | Auditoria LGPD | `candidato_id`, `anexo_id`, `actor_id` | 1 | Pessoal | `anexo_id`+`actor`+`ts` | Alta | `rh_candidato_anexo_access_logs` (download autorizado) |
 | `OfertaAceita` | Talentos | Pré-admissão, Organização | `candidato_id`, `vaga_id` | 1 | Pessoal | `candidato_id`+`vaga_id` | Crítica | **futuro Fase 1+** |
 
 ## Correlação

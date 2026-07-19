@@ -15,9 +15,11 @@
 4. Leitura dual: privado primeiro; legado em `public/adms/uploads/rh_candidatos/`.
 5. Download por `rh-candidatos-download-anexo/{id}` com autorização por objeto
    (`RhCandidatoPermissionService`). `serve-file` legado também exige a mesma
-   policy para caminhos `rh_candidatos/`.
+   policy para caminhos `rh_candidatos/`. Downloads autorizados geram registro
+   em `rh_candidato_anexo_access_logs` (falha de log não bloqueia a entrega).
 6. Retenção/anonimização remove arquivos nos dois locais e limpa PII ampliada.
 7. FK `ON DELETE CASCADE` em `rh_candidatos_anexos` (após limpeza de órfãos).
+   O access log **não** tem FK CASCADE — a evidência permanece.
 
 ## Achados — status final
 
@@ -32,6 +34,7 @@
 | A3 | Sem FK/cascade | **Corrigido** (migration) |
 | A4 | Consentimento automático sem evidência | **Corrigido** (checkbox + termo + registro) |
 | M1–M4 | Anonimização/nome/enctype/storage | **Corrigido** / dual-read privado |
+| L1 | Sem log de download | **Corrigido** (`rh_candidato_anexo_access_logs`; UI posterior) |
 
 ## Deploy / produção
 
@@ -39,6 +42,7 @@
   `deploy.yml`, `lftp`).
 - Rodar migration em produção **manualmente** após o deploy de código:
   `php vendor/bin/phinx migrate -c database/phinx.php -e production`
+  (inclui `20260719231000_create_rh_candidato_anexo_access_logs` quando aplicável).
 - Backup do banco antes da migration (FK + limpeza de órfãos).
 
 ## Testes

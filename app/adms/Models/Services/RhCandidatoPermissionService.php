@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\UserAccessHelper;
-use App\adms\Models\Repository\PagesRoutesRepository;
 use App\adms\Models\Repository\RhVagasRepository;
 use PDO;
 
@@ -13,28 +12,16 @@ use PDO;
  * Autorização por objeto para candidatos/currículos (ATS).
  *
  * Permite:
- * - acesso total (super);
- * - operadores com ACL das páginas de candidatos;
+ * - Super Admin;
+ * - operadores com RhCandidatosViewAll (banco completo — alinhado à listagem);
  * - gestores (mesma regra do CRM/RH);
  * - responsável de qualquer vaga vinculada ao candidato.
+ *
+ * Expand: ACL operacional (RhCandidatos*) não abre mais qualquer ficha;
+ * o Contract de ViewAll ativa o filtro por vínculo.
  */
 final class RhCandidatoPermissionService
 {
-    /**
-     * Controllers cuja ACL concede acesso operacional ao banco de currículos.
-     *
-     * @var list<string>
-     */
-    private const RH_CANDIDATO_CONTROLLERS = [
-        'RhCandidatos',
-        'RhCandidatosView',
-        'RhCandidatosEdit',
-        'RhCandidatosCreate',
-        'RhCandidatosDelete',
-        'RhCandidatosDownloadAnexo',
-        'RhCandidatosVagas',
-    ];
-
     public static function canAccessCandidato(int $candidatoId): bool
     {
         if ($candidatoId <= 0) {
@@ -50,8 +37,8 @@ final class RhCandidatoPermissionService
             return false;
         }
 
-        $pages = new PagesRoutesRepository();
-        if ($pages->checkUserAnyPagePermissionForControllers(self::RH_CANDIDATO_CONTROLLERS)) {
+        // Mesmo critério da listagem: ViewAll = acesso a qualquer candidato.
+        if (RhPermissionService::resolveCandidatosListScope($userId)['mode'] === 'all') {
             return true;
         }
 

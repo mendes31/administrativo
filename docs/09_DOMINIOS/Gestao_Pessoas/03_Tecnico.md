@@ -103,6 +103,7 @@ Toda mudança estrutural deve:
 - [Escopo listagem de vagas — Expand](ESCOPO_LISTAGEM_VAGAS_EXPAND.md)
 - [Escopo listagem de entrevistas — Expand](ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md)
 - [Escopo listagem de candidatos — Expand](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md)
+- [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências
 
@@ -111,3 +112,5 @@ Toda mudança estrutural deve:
 - [Fontes de verdade](../../06_FONTES_VERDADE/FONTES_VERDADE.md)
 - [ADR-0001](../../08_ADR/ADR-0001_MONOLITO_MODULAR.md)
 - [ADR-0002](../../08_ADR/ADR-0002_PESSOA_E_CONTA.md)
+- [ADR-0003](../../08_ADR/ADR-0003_STORAGE_PRIVADO_CURRICULOS.md)
+- [ADR-0004](../../08_ADR/ADR-0004_ESCOPO_VIEWALL_ATS.md)

@@ -167,6 +167,20 @@ class FileServer
             $filename = basename($fullPath);
             $fileSize = (int) filesize($fullPath);
 
+            $anexoRow = (new \App\adms\Models\Repository\RhCandidatosRepository())
+                ->findAnexoByArquivoCaminho($path);
+            (new \App\adms\Models\Repository\RhCandidatoAnexoAccessLogRepository())->logDownload([
+                'rh_candidato_anexo_id' => $anexoRow['id'] ?? null,
+                'rh_candidato_id' => $candidatoId,
+                'actor_user_id' => (int) ($_SESSION['user_id'] ?? 0),
+                'action' => 'download',
+                'delivery_mode' => $disposition,
+                'source' => 'legacy_file_server',
+                'anexo_tipo' => $anexoRow['tipo'] ?? null,
+                'path' => $path,
+                'dedup_seconds' => 60,
+            ]);
+
             if ($extension === 'pdf') {
                 $this->serveStreamableWithRange($fullPath, $mimeType, $fileSize, $filename, true);
                 return;

@@ -493,6 +493,29 @@ class RhCandidatosRepository extends DbConnection
     }
 
     /**
+     * Localiza anexo pelo caminho relativo normalizado (ex.: rh_candidatos/12/arquivo.pdf).
+     */
+    public function findAnexoByArquivoCaminho(string $path): ?array
+    {
+        $normalized = str_replace('\\', '/', ltrim(trim($path), '/'));
+        if ($normalized === '') {
+            return null;
+        }
+
+        $sql = 'SELECT * FROM rh_candidatos_anexos
+                WHERE arquivo_caminho = :path
+                   OR REPLACE(arquivo_caminho, \'\\\\\', \'/\') = :path_norm
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':path', $normalized, PDO::PARAM_STR);
+        $stmt->bindValue(':path_norm', $normalized, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
      * Registra anexo de currículo/documento para o candidato.
      */
     public function addAnexo(int $candidatoId, array $data): int|bool

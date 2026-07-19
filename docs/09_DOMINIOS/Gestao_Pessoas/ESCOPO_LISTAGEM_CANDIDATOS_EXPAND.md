@@ -16,7 +16,13 @@ Permissão técnica `RhCandidatosViewAll`:
 ## Contract futuro
 
 1. Retirar `RhCandidatosViewAll` de perfis restritos quando a política estiver definida.
-2. Alinhar `RhCandidatoPermissionService` (hoje ACL de listagem ainda abre acesso a qualquer candidato).
+2. Restringir bypass de gestor CRM por área/equipe (lacuna da matriz).
+
+## Alinhamento objeto × listagem
+
+`RhCandidatoPermissionService::canAccessCandidato` usa o mesmo critério ViewAll
+da listagem (`resolveCandidatosListScope`). Sem ViewAll: gestor ou responsável
+de vaga vinculada.
 
 ## Migration
 

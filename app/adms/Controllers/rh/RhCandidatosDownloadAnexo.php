@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Controllers\rh;
 
+use App\adms\Models\Repository\RhCandidatoAnexoAccessLogRepository;
 use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Models\Services\RhCandidatoAnexoService;
 use App\adms\Models\Services\RhCandidatoPermissionService;
@@ -50,6 +51,17 @@ class RhCandidatosDownloadAnexo
             'docx' => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
             default => 'application/octet-stream',
         };
+
+        (new RhCandidatoAnexoAccessLogRepository())->logDownload([
+            'rh_candidato_anexo_id' => $anexoId,
+            'rh_candidato_id' => $candidatoId,
+            'actor_user_id' => (int) ($_SESSION['user_id'] ?? 0),
+            'action' => 'download',
+            'delivery_mode' => 'inline',
+            'source' => 'authorized_controller',
+            'anexo_tipo' => $anexo['tipo'] ?? 'curriculo',
+            'path' => $path,
+        ]);
 
         while (ob_get_level() > 0) {
             ob_end_clean();

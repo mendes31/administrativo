@@ -15,6 +15,7 @@ Saída: conceitos e ownership registrados; conflitos conhecidos explicitados.
 - [x] storage privado e download autorizado de currículos;
 - [x] MIME, tamanho, CSRF e proteção de uploads (currículos);
 - [x] retenção, anonimização e exclusão física (currículos);
+- [x] log de download de currículo (`rh_candidato_anexo_access_logs`; UI/exportação posterior);
 - [x] movimentação de pipeline atômica + autorização/CSRF de vagas/entrevistas;
 - [x] sincronização em massa atômica de vínculos + auth nas telas;
 - [x] testes de caracterização de currículos e pipeline.
@@ -32,7 +33,7 @@ Diagnósticos:
 - [x] catálogo de eventos de Talentos ([CATALOGO_EVENTOS_TALENTOS.md](CATALOGO_EVENTOS_TALENTOS.md));
 - [x] policies/escopos de listagem — piloto vagas + entrevistas + candidatos ([ESCOPO_LISTAGEM_VAGAS_EXPAND.md](ESCOPO_LISTAGEM_VAGAS_EXPAND.md), [ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md](ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md), [ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md); Contract ainda pendente);
 - [x] outbox + emissão real dos eventos de entrevista (registro `pending`; worker/SMTP ainda não) — [COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md);
-- [ ] ADRs das correções estruturais de Fase 0 (opcional formalizar).
+- [x] ADRs das correções estruturais de Fase 0 / 0.5 ([ADR-0003](../../08_ADR/ADR-0003_STORAGE_PRIVADO_CURRICULOS.md), [ADR-0004](../../08_ADR/ADR-0004_ESCOPO_VIEWALL_ATS.md)).
 
 Saída: recursos críticos possuem regra explícita e eventos têm proprietário.
 
