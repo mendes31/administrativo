@@ -1,0 +1,24 @@
+<h1>Configuração — Portal de Vagas (CAPTCHA)</h1>
+<p>Permite ativar e configurar o CAPTCHA da candidatura pública em <code>vagas-abertas</code>, sem depender do Canal de Denúncias.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> <em>Vagas abertas</em> (<code>vagas-abertas</code>) e <em>Listar Vagas</em> (<code>rh-vagas</code>).</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>RhVagasPublicasConfig</em> (concedida aos mesmos níveis que têm <em>RhVagas</em>, após a migration).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <em>Gestão de Pessoas → Recrutamento → Portal de Vagas (CAPTCHA)</em> ou <code>rh-vagas-publicas-config</code>.</li>
+    <li>Marque <strong>Ativar CAPTCHA</strong> se quiser exigir verificação anti-bot no formulário público.</li>
+    <li>Escolha o provedor (hCaptcha ou reCAPTCHA v2) e informe site key e secret key.</li>
+    <li>Salve. No formulário público, o widget só aparece quando ativado e com as duas chaves preenchidas.</li>
+</ol>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Marquei Ativar e o CAPTCHA não aparece</dt>
+    <dd>Falta site key ou secret key. Sem as duas, o sistema trata o CAPTCHA como desligado.</dd>
+    <dt>Secret key some ao abrir a tela</dt>
+    <dd>Por segurança a secret não é reexibida. Deixe o campo em branco para manter a chave já salva.</dd>
+    <dt>Erro 006 / página não encontrada</dt>
+    <dd>Execute a migration <code>20260719237000_create_rh_vagas_publicas_config_captcha</code> e confira a permissão no nível de acesso.</dd>
+</dl>

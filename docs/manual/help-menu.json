@@ -1248,6 +1248,11 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "rh-vagas-publicas-config",
+                                    "title": "Configuração — Portal de Vagas (CAPTCHA)"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "rh-personnel-requests",
                                     "title": "Requisições de Pessoal"
                                 }

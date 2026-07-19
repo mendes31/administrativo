@@ -930,6 +930,12 @@ $menus = [
                         'icon' => 'fas fa-briefcase'
                     ],
                     [
+                        'label' => 'Portal de Vagas (CAPTCHA)',
+                        'url' => $_ENV['URL_ADM'] . 'rh-vagas-publicas-config',
+                        'permission' => 'RhVagasPublicasConfig',
+                        'icon' => 'fas fa-shield-alt'
+                    ],
+                    [
                         'label' => 'Requisições de Pessoal',
                         'url' => $_ENV['URL_ADM'] . 'rh-personnel-requests',
                         'permission' => 'RhPersonnelRequests',

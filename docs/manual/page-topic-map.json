@@ -241,6 +241,8 @@
     "rh-vagas": "rh-vagas",
     "rh-vagas-view": "rh-vagas",
     "vagas-abertas": "vagas-abertas",
+    "rh-vagas-publicas": "vagas-abertas",
+    "rh-vagas-publicas-config": "rh-vagas-publicas-config",
     "rh-vagas-pipeline": "rh-vagas-pipeline",
     "pipeline": "rh-vagas-pipeline",
     "rh-atualizar-status-candidatura": "rh-vagas-pipeline",

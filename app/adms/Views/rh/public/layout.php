@@ -142,7 +142,7 @@ $viewFile = __DIR__ . '/' . $view . '.php';
         ?>
 
         <footer class="vp-footer">
-            Listagem pública somente leitura. A candidatura online será disponibilizada em breve.
+            Portal público de vagas. Dados pessoais tratados conforme o termo LGPD apresentado na candidatura.
         </footer>
     </div>
 </body>

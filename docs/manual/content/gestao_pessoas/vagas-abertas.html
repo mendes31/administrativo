@@ -1,5 +1,5 @@
 <h1>Vagas abertas (portal público)</h1>
-<p>Página pública (sem login) que lista e detalha vagas marcadas como publicadas no ATS.</p>
+<p>Página pública (sem login) que lista vagas publicadas e permite candidatura com consentimento LGPD.</p>
 
 <p class="help-note"><strong>Relacionado:</strong> gestão interna em <em>Listar Vagas</em> (<code>rh-vagas</code>).</p>
 
@@ -10,14 +10,27 @@
     <li>Acesse <code>{URL_ADM}vagas-abertas</code>.</li>
     <li>Busque por título, se quiser, e abra o detalhe da vaga.</li>
     <li>Consulte descrição, requisitos e benefícios. O salário só aparece se o RH marcou <em>Mostrar salário</em>.</li>
+    <li>Preencha o formulário <em>Candidatar-se</em> (nome, e-mail, telefone, área de interesse).</li>
+    <li>Aceite o termo LGPD. Se o RH tiver ativado o CAPTCHA em <em>Portal de Vagas (CAPTCHA)</em>, complete a verificação e envie.</li>
 </ol>
+
+<h2>Regras importantes</h2>
+<ul>
+    <li>Um mesmo e-mail não pode se candidatar duas vezes à mesma vaga.</li>
+    <li>Não há envio de arquivo de currículo neste formulário.</li>
+    <li>Se o termo LGPD do tipo <code>curriculo_candidato</code> não estiver ativo, a candidatura fica indisponível.</li>
+</ul>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo a vaga que o RH publicou</dt>
     <dd>A vaga precisa estar <em>publicada</em>, com status <em>Aberta</em> e dentro do prazo de inscrição (se houver). Peça ao RH para conferir esses campos.</dd>
-    <dt>Não consigo me candidatar pela página</dt>
-    <dd>A candidatura online ainda não está disponível neste incremento. Use os canais oficiais do RH.</dd>
+    <dt>Mensagem de candidatura já registrada</dt>
+    <dd>O e-mail informado já foi usado nesta vaga. Use outro e-mail ou aguarde o contato do RH.</dd>
+    <dt>Candidatura temporariamente indisponível</dt>
+    <dd>Falta termo LGPD ativo ou a vaga deixou de estar publicada. Contate o RH.</dd>
+    <dt>Muitas tentativas / CAPTCHA</dt>
+    <dd>Aguarde alguns minutos, recarregue a página e complete o CAPTCHA (se o RH o tiver ativado em <code>rh-vagas-publicas-config</code>).</dd>
     <dt>Erro 006 / página não encontrada após deploy</dt>
     <dd>Execute a migration <code>20260719236000_register_rh_vagas_publicas_page</code>.</dd>
 </dl>

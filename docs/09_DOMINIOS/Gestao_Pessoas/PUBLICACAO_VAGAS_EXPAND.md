@@ -2,7 +2,7 @@
 
 - Domínio: Gestão de Pessoas / Talentos.
 - Data: 19/07/2026.
-- Status: flag administrativa + **listagem pública somente leitura** entregues; candidatura online ainda não.
+- Status: flag admin + listagem pública + **candidatura com LGPD/CAPTCHA/dedupe** entregues.
 
 ## Modelo
 
@@ -26,7 +26,7 @@ Regras:
 - badge e filtro na listagem;
 - data de publicação na visualização.
 
-## Portal público (somente leitura)
+## Portal público
 
 - URL: `{URL_ADM}vagas-abertas` e `{URL_ADM}vagas-abertas/{id}`
 - Página `adms_pages` com `public_page=1` (controller `RhVagasPublicas`)
@@ -34,16 +34,28 @@ Regras:
 - Critério: `publicada=1` + `status=aberta` + prazo de inscrição vigente (se houver)
 - Não expõe `observacoes`, responsável nem dados de pipeline
 - Salário só se `mostrar_salario=1`
-- Sem formulário de candidatura neste incremento
+
+### Candidatura (POST)
+
+- Formulário no detalhe da vaga; CSRF + honeypot + rate limit
+- CAPTCHA **opcional e configurável** em `rh-vagas-publicas-config` (tabela `rh_vagas_publicas_config`) — independente do Canal de Denúncias
+- Consentimento LGPD obrigatório (termo ativo `curriculo_candidato`)
+- Sem upload de currículo neste incremento
+- Dedupe: mesmo e-mail não se candidata duas vezes à mesma vaga; reutiliza candidato ativo existente
+- Origem do histórico: `portal`; origem do cadastro novo: `form_trabalhe_conosco`
+- Serviço: `RhCandidaturaPublicaService` / CAPTCHA: `RhVagasPublicasCaptchaService`
 
 ## Contract / próximos Expand
 
 1. [x] Listagem pública read-only
-2. Candidatura pública + consentimento LGPD + CAPTCHA + deduplicação
+2. [x] Candidatura pública + consentimento LGPD + CAPTCHA + deduplicação
 3. Oferta / pré-admissão
+4. Conversão auditável Pessoa/Vínculo
 
 ## Migrations
 
 `database/migrations/20260719235000_add_rh_vagas_publicacao_flag.php`
 
 `database/migrations/20260719236000_register_rh_vagas_publicas_page.php`
+
+`database/migrations/20260719237000_create_rh_vagas_publicas_config_captcha.php`

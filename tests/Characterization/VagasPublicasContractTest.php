@@ -32,10 +32,10 @@ final class VagasPublicasContractTest extends TestCase
         self::assertStringNotContainsString('responsavel', $this->publicSelectSnippet($repo));
     }
 
-    public function testControllerIsGetOnlyAndDoesNotUseAdminLayout(): void
+    public function testControllerAllowsGetAndPostApplyWithoutAdminLayout(): void
     {
         $controller = $this->readProjectFile('app/adms/Controllers/rh/RhVagasPublicas.php');
-        self::assertStringContainsString("REQUEST_METHOD'] !== 'GET'", $controller);
+        self::assertStringContainsString('POST', $controller);
         self::assertStringContainsString('Views/rh/public/layout.php', $controller);
         self::assertStringNotContainsString('PageLayoutService', $controller);
         self::assertStringNotContainsString('getById(', $controller);

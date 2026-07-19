@@ -65,7 +65,7 @@ $totalPages = max(1, (int) ceil($total / $perPage));
                     · <?= htmlspecialchars($local, ENT_QUOTES, 'UTF-8') ?>
                 <?php endif; ?>
             </p>
-            <a class="vp-link" href="<?= htmlspecialchars($base_url . '/' . $id, ENT_QUOTES, 'UTF-8') ?>">Ver detalhes</a>
+            <a class="vp-link" href="<?= htmlspecialchars($base_url . '/' . $id, ENT_QUOTES, 'UTF-8') ?>">Ver detalhes e candidatar-se</a>
         </article>
     <?php endforeach; ?>
 

@@ -557,6 +557,70 @@ class RhCandidatosRepository extends DbConnection
     /**
      * Retorna um candidato por ID.
      */
+    /**
+     * Candidato ativo (não anonimizado) por e-mail exato.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByEmail(string $email): ?array
+    {
+        $email = strtolower(trim($email));
+        if ($email === '' || filter_var($email, FILTER_VALIDATE_EMAIL) === false) {
+            return null;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'SELECT id, nome, email, lgpd_status
+             FROM rh_candidatos
+             WHERE LOWER(TRIM(email)) = :email
+               AND (lgpd_status IS NULL OR lgpd_status <> \'Anonimizado\')
+             ORDER BY id DESC
+             LIMIT 1'
+        );
+        $stmt->bindValue(':email', $email, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function hasVinculoComVaga(int $candidatoId, int $vagaId): bool
+    {
+        if ($candidatoId <= 0 || $vagaId <= 0) {
+            return false;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM rh_candidatos_vagas
+             WHERE rh_candidato_id = :candidato_id AND rh_vaga_id = :vaga_id
+             LIMIT 1'
+        );
+        $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+        $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function touchLgpdConsent(int $candidatoId, int $termoId, int $consentId): void
+    {
+        if ($candidatoId <= 0 || $consentId <= 0) {
+            return;
+        }
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE rh_candidatos
+             SET lgpd_termo_id = :termo_id,
+                 lgpd_consentimento_id = :consent_id,
+                 lgpd_data_consentimento = NOW(),
+                 lgpd_status = \'Ativo\',
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
+        $stmt->bindValue(':termo_id', $termoId > 0 ? $termoId : null, $termoId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL);
+        $stmt->bindValue(':consent_id', $consentId, PDO::PARAM_INT);
+        $stmt->bindValue(':id', $candidatoId, PDO::PARAM_INT);
+        $stmt->execute();
+    }
+
     public function getById(int $id): ?array
     {
         $sql = 'SELECT * FROM rh_candidatos WHERE id = :id';

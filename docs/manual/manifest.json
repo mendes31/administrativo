@@ -1518,6 +1518,11 @@
                     "file": "gestao_pessoas/vagas-abertas.html"
                 },
                 {
+                    "id": "rh-vagas-publicas-config",
+                    "title": "Configuração — Portal de Vagas (CAPTCHA)",
+                    "file": "gestao_pessoas/rh-vagas-publicas-config.html"
+                },
+                {
                     "id": "rh-vagas-pipeline",
                     "title": "Pipeline da Vaga (Kanban)",
                     "file": "gestao_pessoas/rh-vagas-pipeline.html"

@@ -26,6 +26,7 @@ class RhCandidaturaHistoricoRepository extends DbConnection
     public const ORIGEM_ENTREVISTA = 'entrevista';
     public const ORIGEM_SYNC = 'sync';
     public const ORIGEM_BACKFILL = 'backfill';
+    public const ORIGEM_PORTAL = 'portal';
 
     /**
      * @param array{
