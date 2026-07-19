@@ -137,6 +137,7 @@ jobs:
             app/storage/cache/**
             app/storage/logs/**
             public/adms/uploads/**
+            app/public/adms/uploads/**
             .env
 
       - name: Aguardar retry (20s)
@@ -186,6 +187,7 @@ jobs:
             app/storage/cache/**
             app/storage/logs/**
             public/adms/uploads/**
+            app/public/adms/uploads/**
             .env
 
       - name: Fallback lftp — upload only (repositório completo)

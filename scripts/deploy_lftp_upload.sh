@@ -57,6 +57,7 @@ mirror -R --parallel=2 --only-newer --continue --no-perms --verbose \
   --exclude-glob app/storage/cache/** \
   --exclude-glob app/storage/logs/** \
   --exclude-glob public/adms/uploads/** \
+  --exclude-glob app/public/adms/uploads/** \
   --exclude-glob 'app/adms/Controllers/receive copy/**' \
   ./ ./
 quit

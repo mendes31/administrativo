@@ -29,6 +29,8 @@ function deployExcludePrefixes(): array
         'app/storage/logs/',
         // Uploads de utilizadores (produção) — NUNCA sincronizar/apagar via deploy
         'public/adms/uploads/',
+        // Anexos do canal de denúncias (produção) — gravados pelo WhistleblowingUploadService
+        'app/public/adms/uploads/',
     ];
 }
 
@@ -112,6 +114,7 @@ function deployExcludeYamlBlock(): string
         'app/storage/cache/**',
         'app/storage/logs/**',
         'public/adms/uploads/**',
+        'app/public/adms/uploads/**',
         '.env',
     ];
 

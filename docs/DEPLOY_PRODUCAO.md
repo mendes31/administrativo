@@ -41,23 +41,55 @@ Checkout → Verificar secrets → [Instalar lftp]
 
 ---
 
-## Política: incremental rápido + uploads protegidos
+## Política: nunca perder dados de produção no deploy
 
-**Principal:** FTP-Deploy-Action com `dangerous-clean-slate: false` e ficheiros em `exclude` **não são enviados nem apagados** (incl. `public/adms/uploads/**`).
+Regra obrigatória da plataforma: **o deploy envia código; não apaga nem
+substitui dados de runtime gerados pelos utilizadores**.
 
-**Fallback:** lftp **sem** `--delete` — só quando o FTP incremental falha (timeout).
+| Camada | O que o deploy faz | O que NÃO faz |
+|--------|--------------------|---------------|
+| Código (`app/`, `routes/`, views, scripts) | Envia/atualiza ficheiros alterados | — |
+| Banco MySQL | Nada | Não corre migrations sozinho |
+| Uploads e anexos | Nada (excluídos) | Não envia, não sobrescreve, não apaga |
+| `.env` de produção | Nada (excluído) | Não sobrescreve secrets |
+| `vendor/` / `lib/` | Nada (excluídos) | Dependências ficam no servidor |
+
+**Mecanismos de segurança (todos obrigatórios):**
+
+1. `dangerous-clean-slate: false` no FTP-Deploy-Action — sem limpeza da raiz.
+2. lftp **sem** `--delete` — fallback só faz upload.
+3. Listas de exclusão alinhadas em três sítios (devem permanecer iguais):
+   - `.github/workflows/deploy.yml`
+   - `scripts/deploy_excludes.php`
+   - `scripts/deploy_lftp_upload.sh`
+4. Uploads **fora do Git** (`.gitignore`) — evidências e anexos não entram no
+   repositório nem no pipeline.
 
 ### Caminhos excluídos (nunca enviados pelo deploy)
 
-- `public/adms/uploads/**` — fotos de utilizadores, anexos, timeline, CRM, salas, etc.
+- `public/adms/uploads/**` — fotos, anexos, timeline, CRM, salas, políticas,
+  informativos, etc.
+- `app/public/adms/uploads/**` — anexos cifrados do Canal de Denúncias
+  (`WhistleblowingUploadService` grava em `app/public/...`, não em
+  `public/...`). São dois diretórios distintos; ambos devem estar excluídos.
 - `.env` — configuração específica de produção
 - `vendor/`, `lib/` — dependências no servidor (`composer install` se necessário)
 - `storage/cache/**`, `storage/logs/**`, `logs/**`
-- `storage/sst/epi_fichas/**`, `storage/sst/attachments/**`
+- `storage/sst/epi_fichas/**`, `storage/sst/attachments/**`,
+  `storage/sst/treinamento_certificados/**`
 - `storage/lgpd/consentimentos/**`, `storage/private/payroll/**` (excepto `.gitkeep`)
 - `.git/`, `.github/`, `node_modules/`, ficheiros `*.log`
 
 Lista canónica: `scripts/deploy_excludes.php` e `scripts/deploy_lftp_upload.sh`.
+
+### Banco de dados
+
+O workflow **não executa** `phinx migrate`. Schema só muda com comando manual
+no servidor (ou processo explícito documentado). Antes de migrar em produção:
+
+1. backup do banco;
+2. revisão da migration (sem `DROP`/`TRUNCATE` destrutivo sem plano);
+3. janela e rollback definidos.
 
 ---
 
@@ -152,17 +184,26 @@ php scripts/verify_production_deploy.php
 |-------|--------|
 | FileZilla para PHP do projecto | Desalinha produção; use push → Actions |
 | `force_full_resync` / apagar estado FTP | Pode causar reenvio massivo; uploads estão em exclude mas evite |
+| `dangerous-clean-slate: true` | Apaga ficheiros no servidor — **proibido** |
+| lftp com `--delete` | Remove uploads e dados de runtime — **proibido** |
+| Versionar uploads / `.enc` / PDFs de produção | LGPD e risco de sobrescrita no fallback |
 | Subpasta `administrativo/` no FTP | Duplica estrutura; site fica desactualizado |
 | Apagar `.env` ou `vendor/` no servidor | Quebra produção |
 | Ignorar job vermelho no Actions | SHA-256 indica código divergente |
+| Correr migration sem backup | Perda de dados no banco |
 
 ---
 
 ## Recuperação de uploads apagados
 
-Se uploads em `public/adms/uploads/` foram removidos por deploy antigo (FTP-Deploy-Action com ressync), solicitar **restauro de backup** à Kinghost para:
+Se uploads foram removidos por incidente (deploy antigo com ressync, erro
+manual, etc.), solicitar **restauro de backup** à Kinghost para ambos os
+caminhos:
 
-`/home/tiaraju/www/administrativo/public/adms/uploads/`
+- `/home/tiaraju/www/administrativo/public/adms/uploads/`
+- `/home/tiaraju/www/administrativo/app/public/adms/uploads/`
+
+(e, se aplicável, `storage/private/payroll/`, `storage/sst/`, `storage/lgpd/`).
 
 ---
 

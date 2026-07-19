@@ -1,5 +1,11 @@
 # Projeto Administrativo
 
+## Governança e arquitetura
+
+Antes de propor funcionalidades ou mudanças estruturais, consulte o
+[Plano Diretor do Sistema Administrativo](docs/00_PLANO_DIRETOR/README.md).
+Ele define domínios, princípios, gate arquitetural, ADRs e roadmaps.
+
 ## Requisitos
 
 - PHP 8.3 ou superior

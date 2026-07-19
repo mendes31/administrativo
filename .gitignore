@@ -12,6 +12,7 @@ storage/cache/
 app/storage/cache/
 storage/logs/
 app/storage/logs/
+.phpunit.cache/
 
 # Logs da aplicação (só na raiz — não usar "logs/" solto: ignoraria app/adms/Views/logs e Controllers/logs)
 /logs/
@@ -52,5 +53,14 @@ storage/lgpd/consentimentos/**
 # Dados brutos CID-10 DATASUS (importar localmente via seed)
 database/seeds/data/CID10CSV.zip
 database/seeds/data/cid10_raw/
+
+# Uploads de utilizadores (produção) — nunca versionar nem sincronizar via deploy
+public/adms/uploads/**
+!public/adms/uploads/.gitkeep
+!public/adms/uploads/**/.gitkeep
+# Anexos cifrados do canal de denúncias (produção) — gravados em runtime
+app/public/adms/uploads/**
+!app/public/adms/uploads/whistleblowing/.gitkeep
+!app/public/adms/uploads/whistleblowing/.htaccess
 
 
