@@ -694,93 +694,52 @@ class RhCandidatosRepository extends DbConnection
     }
 
     /**
-     * Calcula o status_processo geral do candidato baseado em todos os seus vínculos com vagas.
-     * 
-     * Hierarquia de prioridade (maior para menor):
-     * 1. contratado / anonimizado (nunca sobrescreve)
-     * 2. aprovado (em qualquer vaga)
-     * 3. em_entrevista (se não tiver aprovado)
-     * 4. candidatado (se não tiver aprovado nem em_entrevista)
-     * 5. reprovado / desistiu (só se todos os vínculos estiverem assim)
-     * 
-     * @param int $candidatoId ID do candidato
-     * @return string|null Status calculado ou null se não houver vínculos
+     * Status dos vínculos em vagas abertas/pausadas (entrada da projeção agregada).
+     *
+     * @return list<string>
+     */
+    public function listStatusVinculosAtivos(int $candidatoId): array
+    {
+        $sql = 'SELECT cv.status
+                FROM rh_candidatos_vagas cv
+                INNER JOIN rh_vagas v ON v.id = cv.rh_vaga_id
+                WHERE cv.rh_candidato_id = :candidato_id
+                  AND v.status IN (\'aberta\', \'pausada\')';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return array_map(
+            static fn (array $row): string => (string) ($row['status'] ?? ''),
+            $rows
+        );
+    }
+
+    /**
+     * Calcula o status_processo geral do candidato (projeção agregada dos vínculos).
+     * Ver RhCandidatoStatusProcessoProjector.
+     *
+     * @return string|null Status calculado ou null se o candidato não existir
      */
     public function calcularStatusGeralPorVinculos(int $candidatoId): ?string
     {
         try {
             $pdo = $this->getConnection();
-            
-            // Buscar status atual do candidato (para proteger contratado/anonimizado)
+
             $stmtCand = $pdo->prepare('SELECT status_processo FROM rh_candidatos WHERE id = :id');
             $stmtCand->bindValue(':id', $candidatoId, PDO::PARAM_INT);
             $stmtCand->execute();
             $candidato = $stmtCand->fetch(PDO::FETCH_ASSOC);
-            
+
             if (!$candidato) {
                 return null;
             }
-            
-            $statusAtual = $candidato['status_processo'] ?? '';
-            
-            // Nunca sobrescrever estados finais sensíveis
-            if (in_array($statusAtual, ['contratado', 'anonimizado'], true)) {
-                return $statusAtual;
-            }
-            
-            // Buscar todos os vínculos ativos do candidato (apenas vagas abertas/pausadas)
-            $sql = 'SELECT cv.status, v.status AS vaga_status
-                    FROM rh_candidatos_vagas cv
-                    INNER JOIN rh_vagas v ON v.id = cv.rh_vaga_id
-                    WHERE cv.rh_candidato_id = :candidato_id
-                      AND v.status IN (\'aberta\', \'pausada\')
-                    ORDER BY cv.data_ultima_atualizacao DESC';
-            
-            $stmt = $pdo->prepare($sql);
-            $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
-            $stmt->execute();
-            $vinculos = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-            
-            if (empty($vinculos)) {
-                // Se não tem vínculos ativos, mantém o status atual (ou converte legado para novo)
-                if (in_array($statusAtual, ['candidatado', 'em_entrevista', 'aprovado', 'reprovado', 'desistiu', 'contratado', 'anonimizado'], true)) {
-                    return $statusAtual;
-                }
-                // Converte status legados para novos equivalentes
-                $mapeamentoLegado = [
-                    'recebido'      => 'candidatado',
-                    'em_analise' => 'em_entrevista',
-                    'banco_talentos'=> 'aprovado',
-                ];
-                return $mapeamentoLegado[$statusAtual] ?? 'candidatado';
-            }
-            
-            // Coletar todos os status dos vínculos
-            $statusVinculos = array_column($vinculos, 'status');
-            
-            // Aplicar hierarquia de prioridade
-            if (in_array('aprovado', $statusVinculos, true)) {
-                return 'aprovado';
-            }
-            if (in_array('em_entrevista', $statusVinculos, true)) {
-                return 'em_entrevista';
-            }
-            if (in_array('candidatado', $statusVinculos, true)) {
-                return 'candidatado';
-            }
-            // Se só tem reprovado/desistiu, retorna reprovado
-            if (in_array('reprovado', $statusVinculos, true) || in_array('desistiu', $statusVinculos, true)) {
-                return 'reprovado';
-            }
-            
-            // Fallback: converte legado ou usa candidatado
-            $mapeamentoLegado = [
-                'recebido'      => 'candidatado',
-                'em_analise'     => 'em_entrevista',
-                'banco_talentos'=> 'aprovado',
-            ];
-            return $mapeamentoLegado[$statusAtual] ?? ($statusAtual ?: 'candidatado');
-            
+
+            return \App\adms\Models\Services\RhCandidatoStatusProcessoProjector::fromVinculos(
+                (string) ($candidato['status_processo'] ?? ''),
+                $this->listStatusVinculosAtivos($candidatoId)
+            );
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'Erro ao calcular status geral por vínculos.', [
                 'candidato_id' => $candidatoId,

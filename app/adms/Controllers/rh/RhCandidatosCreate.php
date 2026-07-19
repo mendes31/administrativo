@@ -59,6 +59,7 @@ class RhCandidatosCreate
     private function store(): void
     {
         $form = $_POST['form'] ?? [];
+        $form['status_processo'] = 'candidatado';
         $this->data['form'] = $form;
 
         $validator = new ValidationRhCandidatoService();

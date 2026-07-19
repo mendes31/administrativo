@@ -75,30 +75,27 @@
                         </select>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <label for="status_processo" class="form-label">Status do Processo</label>
+                        <label class="form-label">Status do Processo</label>
                         <?php
                         $statusAtual = $this->data['form']['status_processo'] ?? 'candidatado';
-                        $statusLista = [
-                            'candidatado'   => 'Candidatado',
-                            'em_entrevista' => 'Em Entrevista',
-                            'aprovado'      => 'Aprovado',
-                            'reprovado'     => 'Reprovado',
-                            'desistiu'      => 'Desistiu',
-                            'contratado'    => 'Contratado',
-                            'anonimizado'   => 'Anonimizado',
-                            'recebido'      => 'Recebido',
-                            'banco_talentos'=> 'Banco de Talentos',
-                        ];
+                        $statusLabel = \App\adms\Models\Services\RhPipelineStageCatalog::label((string) $statusAtual);
+                        if (in_array($statusAtual, ['contratado', 'anonimizado'], true)) {
+                            $statusLabel = ucfirst($statusAtual);
+                        }
                         ?>
-                        <select name="form[status_processo]" id="status_processo" class="form-select">
-                            <?php foreach ($statusLista as $valor => $label): ?>
-                                <option value="<?= $valor ?>" <?= $statusAtual === $valor ? 'selected' : '' ?>>
-                                    <?= $label ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <div class="form-control bg-light"><?= htmlspecialchars($statusLabel) ?></div>
+                        <input type="hidden" name="form[status_processo]" value="<?= htmlspecialchars((string) $statusAtual) ?>">
+                        <?php if (!in_array($statusAtual, ['contratado', 'anonimizado'], true)): ?>
+                            <div class="form-check mt-2">
+                                <input class="form-check-input" type="checkbox" value="1" name="form[marcar_contratado]" id="marcar_contratado"
+                                    <?= !empty($this->data['form']['marcar_contratado']) ? 'checked' : '' ?>>
+                                <label class="form-check-label" for="marcar_contratado">
+                                    Marcar como contratado (protege contra o pipeline)
+                                </label>
+                            </div>
+                        <?php endif; ?>
                         <div class="form-text small">
-                            <strong>Significado:</strong> Candidatado = inscrito na vaga; Em Entrevista = em avaliação/entrevistas; Aprovado = aprovado no processo (pode ser contratado depois); Reprovado = não aprovado; Desistiu = candidato desistiu; Contratado = efetivado; Anonimizado = dados anonimizados (LGPD); Recebido = currículo recebido; Banco de Talentos = aprovado e disponível para outras vagas.
+                            Projeção automática a partir das vagas vinculadas. Altere etapas no <strong>pipeline</strong>; a linha do tempo registra as transições.
                         </div>
                     </div>
                 </div>

@@ -66,6 +66,7 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                             <span class="badge bg-secondary">
                                 <?= htmlspecialchars($c['status_processo'] ?? '') ?>
                             </span>
+                            <div class="form-text small mb-0">Projeção agregada dos vínculos (exceto contratado/anonimizado).</div>
                         </dd>
 
                         <dt class="col-sm-4">Área de Interesse</dt>

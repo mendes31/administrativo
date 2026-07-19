@@ -85,6 +85,21 @@ class RhCandidatosEdit
             return;
         }
 
+        $candidatoAtual = $repo->getById($id);
+        if (!$candidatoAtual) {
+            $_SESSION['error'] = 'Candidato não encontrado!';
+            header('Location: ' . $_ENV['URL_ADM'] . 'rh-candidatos');
+            return;
+        }
+
+        // status_processo é projeção: não aceitar edição livre do formulário
+        $form['status_processo'] = \App\adms\Models\Services\RhCandidatoStatusProcessoProjector::resolveForManualEdit(
+            (string) ($candidatoAtual['status_processo'] ?? ''),
+            $repo->listStatusVinculosAtivos($id),
+            !empty($form['marcar_contratado'])
+        );
+        $this->data['form'] = $form;
+
         // Validação de campos do candidato
         $validator = new ValidationRhCandidatoService();
         $errors = $validator->validate($form);

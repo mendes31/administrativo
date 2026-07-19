@@ -76,29 +76,11 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_candidato');
                         </select>
                     </div>
                     <div class="col-md-3 mb-2">
-                        <label for="status_processo" class="form-label">Status do Processo</label>
-                        <?php
-                        $statusAtual = $this->data['form']['status_processo'] ?? 'candidatado';
-                        $statusLista = [
-                            'candidatado'   => 'Candidatado',
-                            'em_entrevista' => 'Em Entrevista',
-                            'aprovado'      => 'Aprovado',
-                            'reprovado'     => 'Reprovado',
-                            'desistiu'      => 'Desistiu',
-                            'contratado'    => 'Contratado',
-                            'recebido'      => 'Recebido',
-                            'banco_talentos'=> 'Banco de Talentos',
-                        ];
-                        ?>
-                        <select name="form[status_processo]" id="status_processo" class="form-select">
-                            <?php foreach ($statusLista as $valor => $label): ?>
-                                <option value="<?= $valor ?>" <?= $statusAtual === $valor ? 'selected' : '' ?>>
-                                    <?= $label ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
+                        <label class="form-label">Status do Processo</label>
+                        <div class="form-control bg-light">Candidatado</div>
+                        <input type="hidden" name="form[status_processo]" value="candidatado">
                         <div class="form-text small">
-                            <strong>Significado:</strong> Candidatado = inscrito na vaga; Em Entrevista = em avaliação/entrevistas; Aprovado = aprovado no processo; Reprovado = não aprovado; Desistiu = candidato desistiu; Contratado = efetivado; Recebido = currículo recebido; Banco de Talentos = aprovado e disponível para outras vagas.
+                            Inicia como <strong>Candidatado</strong>. O status geral passa a ser projeção automática conforme os vínculos e o pipeline.
                         </div>
                     </div>
                 </div>
