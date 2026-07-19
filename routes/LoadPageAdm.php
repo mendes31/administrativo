@@ -170,7 +170,7 @@ class LoadPageAdm
         "RhPersonnelRequestsApprove", "RhPersonnelRequestsReject", "RhPersonnelRequestsConvert",
         "RhKpiDashboard",
         "RhEntrevistas", "RhEntrevistasCreate", "RhEntrevistasView", "RhEntrevistasEdit", "RhEntrevistasDelete",
-        "RhEntrevistasViewAll",
+        "RhEntrevistasViewAll", "RhEntrevistasResendComunicacao",
         "CalendarConfig",
         // Reserva de Salas - Tipos de Solicitação (Salas)
         "RoomsListRequestTypes", "RoomsCreateRequestType", "RoomsUpdateRequestType", "RoomsDeleteRequestType",

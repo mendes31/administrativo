@@ -27,9 +27,23 @@ Idempotência:
 
 ## Não faz (ainda)
 
-- Botão reenviar
 - Retry automático de `failed` ou `processing` (evita duplicidade após resultado SMTP incerto)
 - Outros eventos do catálogo
+
+## Reenvio manual (Expand)
+
+Na visualização da entrevista, comunicações `failed` ou `blocked` podem ser
+**reenviadas** (permissão `RhEntrevistasResendComunicacao`):
+
+- cria **nova** intenção `recorded` + outbox (idempotência
+  `talentos.entrevista.{id}.reenvio.{source}.{seq}.v1`);
+- atualiza destinatário/template a partir dos dados atuais da entrevista;
+- o registro original permanece no histórico;
+- impede segundo reenvio enquanto houver intenção aberta
+  (`recorded`/`ready`/`processing`) ligada à mesma origem;
+- o envio SMTP continua dependendo do interruptor da Configuração de E-mail e do worker.
+
+Migration: `database/migrations/20260719234000_add_rh_entrevista_comunicacao_reenvio.php`.
 
 ## Preflight (CLI)
 
@@ -83,3 +97,7 @@ Fluxo: `ready → processing → sent|failed`; o evento correspondente passa de
 `database/migrations/20260719200000_create_domain_event_outbox_and_rh_entrevista_comunicacoes.php`
 
 `database/migrations/20260719232000_prepare_rh_entrevista_email_worker.php`
+
+`database/migrations/20260719233000_add_rh_entrevista_send_toggle_to_adms_email_config.php`
+
+`database/migrations/20260719234000_add_rh_entrevista_comunicacao_reenvio.php`

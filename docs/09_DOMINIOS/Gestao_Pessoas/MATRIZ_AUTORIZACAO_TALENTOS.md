@@ -31,6 +31,7 @@
 | Candidatura | `transition` (pipeline) | `canManagePipelineByVagaId` | Vínculo existente | CSRF; status válido; transação | Log de status do candidato |
 | Entrevista | `list` | ACL `RhEntrevistas` | `all` se `RhEntrevistasViewAll` / Super; senão `related` | Expand compatível | Não |
 | Entrevista | `create` / `update` / `delete` | `canManageEntrevista` (vaga ou candidato) | Objeto | CSRF; delete só POST | Parcial |
+| Comunicação entrevista | `resend` | ACL `RhEntrevistasResendComunicacao` + `canManageEntrevista` | Objeto | CSRF POST; só `failed`/`blocked`; nova intenção | Expand |
 
 ## Negação
 

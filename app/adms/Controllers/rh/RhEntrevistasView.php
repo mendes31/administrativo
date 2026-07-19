@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhEntrevistasRepository;
 use App\adms\Models\Repository\RhEntrevistaAvaliadoresRepository;
@@ -88,11 +89,19 @@ class RhEntrevistasView
         $idInt = (int) $id;
         $returnUrl = $_ENV['URL_ADM'] . 'rh-entrevistas-view/' . $idInt;
         $this->data['log_resumo'] = LogResumoService::getResumo('rh_entrevistas', $idInt, $returnUrl);
+        $this->data['csrf_resend_comunicacao'] = CSRFHelper::generateCSRFToken(
+            'form_resend_rh_entrevista_comunicacao'
+        );
 
         $pageElements = [
             'title_head' => 'Visualizar Entrevista',
             'menu'       => 'rh-entrevistas',
-            'buttonPermission' => ['RhEntrevistas', 'RhEntrevistasEdit', 'RhEntrevistasDelete'],
+            'buttonPermission' => [
+                'RhEntrevistas',
+                'RhEntrevistasEdit',
+                'RhEntrevistasDelete',
+                'RhEntrevistasResendComunicacao',
+            ],
         ];
 
         $pageLayoutService = new PageLayoutService();

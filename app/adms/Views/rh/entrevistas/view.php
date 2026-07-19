@@ -151,10 +151,16 @@ $e = $this->data['entrevista'] ?? [];
                 O envio passa por preflight e worker SMTP:
                 <code>recorded</code> → <code>ready</code> → <code>processing</code> →
                 <code>sent</code> ou <code>failed</code>.
+                Comunicações <em>falhou</em> ou <em>bloqueada</em> podem ser reenviadas
+                (cria uma nova intenção; o original permanece no histórico).
             </p>
             <?php if (empty($comunicacoes)): ?>
                 <p class="text-muted mb-0">Nenhuma intenção de comunicação registrada.</p>
             <?php else: ?>
+                <?php
+                $canResend = in_array('RhEntrevistasResendComunicacao', $this->data['buttonPermission'] ?? [], true);
+                $csrfResend = (string) ($this->data['csrf_resend_comunicacao'] ?? '');
+                ?>
                 <div class="table-responsive">
                     <table class="table table-sm align-middle mb-0">
                         <thead>
@@ -165,10 +171,24 @@ $e = $this->data['entrevista'] ?? [];
                                 <th>Status</th>
                                 <th>Outbox</th>
                                 <th>Registrado em</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($comunicacoes as $com): ?>
+                                <?php
+                                $stCom = (string) ($com['status'] ?? 'recorded');
+                                $stLabel = match ($stCom) {
+                                    'ready' => 'pronta',
+                                    'blocked' => 'bloqueada',
+                                    'processing' => 'processando',
+                                    'sent' => 'enviada',
+                                    'failed' => 'falhou',
+                                    'cancelled' => 'cancelada',
+                                    default => 'registrada',
+                                };
+                                $showResend = $canResend && in_array($stCom, ['failed', 'blocked'], true);
+                                ?>
                                 <tr>
                                     <td><?= htmlspecialchars((string) ($com['purpose'] ?? '')) ?></td>
                                     <td>
@@ -179,24 +199,25 @@ $e = $this->data['entrevista'] ?? [];
                                         <?= htmlspecialchars((string) ($com['template_key'] ?? '')) ?>
                                         <small class="text-muted">v<?= (int) ($com['template_version'] ?? 1) ?></small>
                                     </td>
-                                    <td><span class="badge bg-secondary"><?php
-                                        $stCom = (string) ($com['status'] ?? 'recorded');
-                                        $stLabel = match ($stCom) {
-                                            'ready' => 'pronta',
-                                            'blocked' => 'bloqueada',
-                                            'processing' => 'processando',
-                                            'sent' => 'enviada',
-                                            'failed' => 'falhou',
-                                            'cancelled' => 'cancelada',
-                                            default => 'registrada',
-                                        };
-                                        echo htmlspecialchars($stLabel . ' (' . $stCom . ')');
-                                    ?></span></td>
+                                    <td><span class="badge bg-secondary"><?= htmlspecialchars($stLabel . ' (' . $stCom . ')') ?></span></td>
                                     <td>
                                         <?= htmlspecialchars((string) ($com['event_name'] ?? '—')) ?>
                                         <small class="text-muted">(<?= htmlspecialchars((string) ($com['outbox_status'] ?? '—')) ?>)</small>
                                     </td>
                                     <td><?= FormatHelper::formatDateTime($com['created_at'] ?? '') ?></td>
+                                    <td class="text-end">
+                                        <?php if ($showResend): ?>
+                                            <form method="post"
+                                                  action="<?= htmlspecialchars($_ENV['URL_ADM'] . 'rh-entrevistas-resend-comunicacao') ?>"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Registrar novo reenvio desta comunicação? O original permanece no histórico.');">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfResend) ?>">
+                                                <input type="hidden" name="comunicacao_id" value="<?= (int) ($com['id'] ?? 0) ?>">
+                                                <input type="hidden" name="entrevista_id" value="<?= (int) ($this->data['entrevista']['id'] ?? 0) ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Reenviar</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
                                 </tr>
                             <?php endforeach; ?>
                         </tbody>

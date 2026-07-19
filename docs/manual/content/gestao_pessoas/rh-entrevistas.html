@@ -3,13 +3,14 @@
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A visualização também exige permissão sobre o objeto. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, apenas entrevistas em que o usuário é entrevistador, avaliador no painel ou responsável da vaga.</p>
+<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A visualização também exige permissão sobre o objeto. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, apenas entrevistas em que o usuário é entrevistador, avaliador no painel ou responsável da vaga. O botão <strong>Reenviar</strong> no histórico de comunicações exige <em>RhEntrevistasResendComunicacao</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Abra <strong>Listar Entrevistas</strong> ou agende a partir do candidato/vaga.</li>
     <li>Preencha data/hora, tipo, entrevistador principal, local e, se quiser, <strong>avaliadores adicionais</strong> (o painel adicional permanece interno).</li>
     <li>Ao agendar ou reagendar, o sistema registra um evento e uma <strong>intenção de e-mail</strong>. O envio real só ocorre com o interruptor <strong>Envio automático de comunicações de entrevista</strong> ligado na tela <em>Configuração de E-mail</em> e com o worker técnico em execução; acompanhe o estado no histórico de comunicações.</li>
+    <li>Se uma comunicação ficar <em>bloqueada</em> ou <em>falhou</em>, corrija o e-mail do candidato se necessário e use <strong>Reenviar</strong> na visualização: o sistema cria uma nova intenção (o registro original permanece no histórico). O envio SMTP ainda depende do interruptor e do worker.</li>
     <li>Para <strong>reagendar</strong> uma entrevista já agendada, altere a data/hora e informe o <strong>motivo</strong> (obrigatório). O histórico fica na visualização.</li>
     <li>Na edição, use o <strong>scorecard</strong> para lançar notas (0–10) por critério e parecer. A nota ponderada é só informativa — não muda o resultado nem o pipeline.</li>
     <li>Ao salvar resultado <strong>aprovado</strong> ou <strong>reprovado</strong>, o status da candidatura no pipeline é atualizado na mesma operação (com motivo automático e histórico).</li>
@@ -25,17 +26,19 @@
     <dt>Comunicação aparece como registrada (<em>recorded</em>)</dt>
     <dd>Ainda aguarda o preflight técnico. Depois, passa para <em>ready</em> ou <em>blocked</em>.</dd>
     <dt>Comunicação aparece como bloqueada (<em>blocked</em>)</dt>
-    <dd>Confira e-mail do candidato, template e vínculo com o evento. O motivo técnico fica registrado em <em>last_error</em>.</dd>
+    <dd>Confira e-mail do candidato, template e vínculo com o evento. O motivo técnico fica registrado em <em>last_error</em>. Depois de corrigir, use <strong>Reenviar</strong> (permissão <em>RhEntrevistasResendComunicacao</em>).</dd>
     <dt>Comunicações ficam prontas (<em>ready</em>) mas nenhum e-mail é enviado</dt>
     <dd>O interruptor <em>Envio automático de comunicações de entrevista</em> está desligado na tela <em>Configuração de E-mail</em> (Administração), ou o worker técnico não está agendado. O interruptor é específico dessas mensagens e não afeta os demais e-mails.</dd>
-    <dt>Comunicação aparece como falha ou processando por muito tempo</dt>
-    <dd>Não force novo envio: pode haver resultado SMTP incerto. A equipe técnica deve consultar os logs e o estado da outbox antes de qualquer reprocessamento.</dd>
+    <dt>Comunicação aparece como falha (<em>failed</em>)</dt>
+    <dd>Use <strong>Reenviar</strong> na visualização para criar uma nova intenção. Não reenvie se o status for <em>processando</em> por muito tempo: pode haver resultado SMTP incerto — a equipe técnica deve consultar logs e outbox.</dd>
+    <dt>Não vejo o botão Reenviar</dt>
+    <dd>Só aparece para status <em>falhou</em> ou <em>bloqueada</em>, e exige a permissão <em>RhEntrevistasResendComunicacao</em> (concedida a quem já tinha <em>RhEntrevistasEdit</em> após a migration).</dd>
     <dt>Candidato não está vinculado a esta vaga</dt>
     <dd>O resultado aprovado/reprovado exige vínculo ativo candidato–vaga. Vincule o candidato antes de registrar o resultado, ou a edição é revertida por completo.</dd>
     <dt>Você não tem permissão para editar/visualizar esta entrevista</dt>
     <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga. Estar no painel de avaliadores <em>não</em> libera acesso sozinho.</dd>
     <dt>Erro ao carregar após deploy</dt>
-    <dd>Rode as migrations de entrevista/outbox e <code>20260719232000</code> (template v2 e índice do worker), além das migrations ViewAll ainda pendentes.</dd>
+    <dd>Rode as migrations de entrevista/outbox, <code>20260719232000</code> (template v2), <code>20260719233000</code> (interruptor de envio) e <code>20260719234000</code> (reenvio).</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhEntrevistas</em> ausente no nível de acesso.</dd>
 </dl>

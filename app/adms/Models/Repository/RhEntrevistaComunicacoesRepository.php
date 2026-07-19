@@ -263,6 +263,7 @@ class RhEntrevistaComunicacoesRepository extends DbConnection
      *   rh_entrevista_id: int,
      *   rh_entrevista_reagendamento_id?: int|null,
      *   outbox_event_id?: int|null,
+     *   source_comunicacao_id?: int|null,
      *   purpose: string,
      *   template_key: string,
      *   template_version: int,
@@ -288,14 +289,18 @@ class RhEntrevistaComunicacoesRepository extends DbConnection
             }
         }
 
+        $hasSource = $this->hasSourceComunicacaoColumn();
+        $sourceCol = $hasSource ? ', source_comunicacao_id' : '';
+        $sourcePlaceholder = $hasSource ? ', :source_comunicacao_id' : '';
+
         try {
             $stmt = $this->getConnection()->prepare(
                 'INSERT INTO rh_entrevista_comunicacoes
-                    (rh_entrevista_id, rh_entrevista_reagendamento_id, outbox_event_id, channel, purpose,
+                    (rh_entrevista_id, rh_entrevista_reagendamento_id, outbox_event_id' . $sourceCol . ', channel, purpose,
                      template_key, template_version, recipient_name, recipient_address,
                      subject_snapshot, body_html_snapshot, body_text_snapshot, status, created_at)
                  VALUES
-                    (:entrevista_id, :reagendamento_id, :outbox_event_id, \'email\', :purpose,
+                    (:entrevista_id, :reagendamento_id, :outbox_event_id' . $sourcePlaceholder . ', \'email\', :purpose,
                      :template_key, :template_version, :recipient_name, :recipient_address,
                      :subject, :body_html, :body_text, :status, NOW())'
             );
@@ -313,6 +318,14 @@ class RhEntrevistaComunicacoesRepository extends DbConnection
                 $outboxId > 0 ? $outboxId : null,
                 $outboxId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
             );
+            if ($hasSource) {
+                $sourceId = isset($data['source_comunicacao_id']) ? (int) $data['source_comunicacao_id'] : 0;
+                $stmt->bindValue(
+                    ':source_comunicacao_id',
+                    $sourceId > 0 ? $sourceId : null,
+                    $sourceId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
+                );
+            }
             $stmt->bindValue(':purpose', (string) $data['purpose'], PDO::PARAM_STR);
             $stmt->bindValue(':template_key', (string) $data['template_key'], PDO::PARAM_STR);
             $stmt->bindValue(':template_version', (int) $data['template_version'], PDO::PARAM_INT);
@@ -365,5 +378,134 @@ class RhEntrevistaComunicacoesRepository extends DbConnection
         $id = $stmt->fetchColumn();
 
         return $id !== false ? (int) $id : null;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    public function getById(int $id): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT c.*, o.event_name, o.status AS outbox_status
+             FROM rh_entrevista_comunicacoes c
+             LEFT JOIN adms_domain_event_outbox o ON o.id = c.outbox_event_id
+             WHERE c.id = :id
+             LIMIT 1'
+        );
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    public function supportsResendTracking(): bool
+    {
+        return $this->hasSourceComunicacaoColumn();
+    }
+
+    public function hasOpenResendFrom(int $sourceComunicacaoId): bool
+    {
+        if (!$this->hasSourceComunicacaoColumn()) {
+            return false;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'SELECT 1 FROM rh_entrevista_comunicacoes
+             WHERE source_comunicacao_id = :source_id
+               AND status IN (:recorded, :ready, :processing)
+             LIMIT 1'
+        );
+        $stmt->bindValue(':source_id', $sourceComunicacaoId, PDO::PARAM_INT);
+        $stmt->bindValue(':recorded', self::STATUS_RECORDED, PDO::PARAM_STR);
+        $stmt->bindValue(':ready', self::STATUS_READY, PDO::PARAM_STR);
+        $stmt->bindValue(':processing', self::STATUS_PROCESSING, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    public function countResendsFrom(int $sourceComunicacaoId): int
+    {
+        if (!$this->hasSourceComunicacaoColumn()) {
+            return 0;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'SELECT COUNT(*) FROM rh_entrevista_comunicacoes WHERE source_comunicacao_id = :source_id'
+        );
+        $stmt->bindValue(':source_id', $sourceComunicacaoId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * Garante que a origem ainda está failed/blocked e sem reenvio aberto.
+     */
+    public function claimSourceForResend(int $sourceComunicacaoId): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT id, status FROM rh_entrevista_comunicacoes WHERE id = :id LIMIT 1 FOR UPDATE'
+        );
+        $stmt->bindValue(':id', $sourceComunicacaoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$row) {
+            return false;
+        }
+        $status = (string) ($row['status'] ?? '');
+        if (!in_array($status, [self::STATUS_FAILED, self::STATUS_BLOCKED], true)) {
+            return false;
+        }
+
+        return !$this->hasOpenResendFrom($sourceComunicacaoId);
+    }
+
+    public function beginTransaction(): void
+    {
+        $pdo = $this->getConnection();
+        if (!$pdo->inTransaction()) {
+            $pdo->beginTransaction();
+        }
+    }
+
+    public function commit(): void
+    {
+        $pdo = $this->getConnection();
+        if ($pdo->inTransaction()) {
+            $pdo->commit();
+        }
+    }
+
+    public function rollBack(): void
+    {
+        $pdo = $this->getConnection();
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+    }
+
+    public function inTransaction(): bool
+    {
+        return $this->getConnection()->inTransaction();
+    }
+
+    private function hasSourceComunicacaoColumn(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        try {
+            $stmt = $this->getConnection()->query(
+                "SHOW COLUMNS FROM rh_entrevista_comunicacoes LIKE 'source_comunicacao_id'"
+            );
+            $has = $stmt !== false && $stmt->fetch(PDO::FETCH_ASSOC) !== false;
+        } catch (\Throwable) {
+            $has = false;
+        }
+
+        return $has;
     }
 }

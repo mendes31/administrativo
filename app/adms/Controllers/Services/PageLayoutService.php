@@ -540,6 +540,7 @@ class PageLayoutService
             'RhEntrevistasEdit',
             'RhEntrevistasDelete',
             'RhEntrevistasViewAll',
+            'RhEntrevistasResendComunicacao',
             // Reserva de Salas
             'ListMeetingRooms',
             'CreateMeetingRoom',

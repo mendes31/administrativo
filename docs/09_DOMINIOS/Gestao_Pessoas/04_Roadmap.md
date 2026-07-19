@@ -57,8 +57,9 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] templates + registro de intenção/outbox de entrevista ([COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md));
 - [x] preflight CLI `recorded → ready|blocked` (sem SMTP) — script `rh_entrevista_comunicacoes_preflight.php`;
 - [x] worker CLI SMTP e histórico de entrega (`sent`/`failed`), com dry-run,
-  flag explícita de envio, claim atômico e redirecionamento para destinatário
-  de teste fora de produção.
+  interruptor específico na Configuração de E-mail, claim atômico e redirecionamento
+  para destinatário de teste fora de produção;
+- [x] reenvio manual de comunicações `failed`/`blocked` (nova intenção + outbox).
 
 ## Fase 3 — Portal público e pré-admissão
 

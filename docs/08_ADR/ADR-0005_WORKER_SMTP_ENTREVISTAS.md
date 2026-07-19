@@ -28,6 +28,8 @@ ou atingir candidatos a partir de bases locais/homologação.
    e-mails do sistema.
 6. Fora de produção, enviar somente ao `test_recipient` configurado.
 7. Não repetir automaticamente `failed` nem `processing` incerto.
+8. Reenvio manual cria **nova** intenção (não reabre o registro original),
+   apenas para `failed`/`blocked`, com ACL dedicada e CSRF.
 
 ## Alternativas consideradas
 
