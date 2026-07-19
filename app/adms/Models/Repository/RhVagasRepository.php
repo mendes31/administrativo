@@ -394,7 +394,8 @@ class RhVagasRepository extends DbConnection
         string $status,
         ?string $observacoes = null,
         string $origem = RhCandidaturaHistoricoRepository::ORIGEM_PIPELINE,
-        ?int $entrevistaId = null
+        ?int $entrevistaId = null,
+        ?string $motivoCodigo = null
     ): bool {
         $pdo = $this->getConnection();
         $pdo->beginTransaction();
@@ -425,17 +426,27 @@ class RhVagasRepository extends DbConnection
             $statusAnterior = (string) ($vinculo['status'] ?? '');
             $candidaturaId = (int) $vinculo['id'];
 
-            $sql = 'UPDATE rh_candidatos_vagas
-                    SET status = :status,
-                        observacoes = :observacoes,
-                        data_ultima_atualizacao = NOW(),
-                        updated_at = NOW()
-                    WHERE id = :id';
-
-            $stmt = $pdo->prepare($sql);
-            $stmt->bindValue(':status', $status, PDO::PARAM_STR);
-            $stmt->bindValue(':observacoes', $observacoes, $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
-            $stmt->bindValue(':id', $candidaturaId, PDO::PARAM_INT);
+            if ($observacoes !== null) {
+                $sql = 'UPDATE rh_candidatos_vagas
+                        SET status = :status,
+                            observacoes = :observacoes,
+                            data_ultima_atualizacao = NOW(),
+                            updated_at = NOW()
+                        WHERE id = :id';
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+                $stmt->bindValue(':observacoes', $observacoes, PDO::PARAM_STR);
+                $stmt->bindValue(':id', $candidaturaId, PDO::PARAM_INT);
+            } else {
+                $sql = 'UPDATE rh_candidatos_vagas
+                        SET status = :status,
+                            data_ultima_atualizacao = NOW(),
+                            updated_at = NOW()
+                        WHERE id = :id';
+                $stmt = $pdo->prepare($sql);
+                $stmt->bindValue(':status', $status, PDO::PARAM_STR);
+                $stmt->bindValue(':id', $candidaturaId, PDO::PARAM_INT);
+            }
 
             if (!$stmt->execute()) {
                 $errorInfo = $stmt->errorInfo();
@@ -453,6 +464,7 @@ class RhVagasRepository extends DbConnection
                     'status_novo' => $status,
                     'origem' => $origem,
                     'rh_entrevista_id' => $entrevistaId,
+                    'motivo_codigo' => $motivoCodigo,
                     'observacoes' => $observacoes,
                 ]);
             }

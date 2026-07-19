@@ -1513,6 +1513,11 @@
                     "file": "gestao_pessoas/rh-vagas.html"
                 },
                 {
+                    "id": "rh-vagas-pipeline",
+                    "title": "Pipeline da Vaga (Kanban)",
+                    "file": "gestao_pessoas/rh-vagas-pipeline.html"
+                },
+                {
                     "id": "list-payroll-signing-pendencies",
                     "title": "Listar — Payroll Signing Pendencies",
                     "file": "gestao_pessoas/list-payroll-signing-pendencies.html"

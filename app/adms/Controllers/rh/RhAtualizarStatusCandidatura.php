@@ -5,11 +5,11 @@ namespace App\adms\Controllers\rh;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhVagasRepository;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Services\RhCandidaturaMotivoCatalog;
 use App\adms\Models\Services\RhPermissionService;
 
 /**
  * Controller para atualizar status de candidatura (pipeline).
- * Exemplo: Candidatado -> Em Análise -> Aprovado/Reprovado
  */
 class RhAtualizarStatusCandidatura
 {
@@ -22,7 +22,6 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
-        // Validação CSRF para atualização de status via AJAX
         $csrfToken = $_POST['csrf_token'] ?? '';
         if (!CSRFHelper::validateCSRFToken('form_rh_atualizar_status_candidatura', $csrfToken)) {
             echo json_encode([
@@ -32,9 +31,10 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
-        $candidatoId = (int)($_POST['candidato_id'] ?? 0);
-        $vagaId = (int)($_POST['vaga_id'] ?? 0);
+        $candidatoId = (int) ($_POST['candidato_id'] ?? 0);
+        $vagaId = (int) ($_POST['vaga_id'] ?? 0);
         $status = trim($_POST['status'] ?? '');
+        $motivoCodigo = trim($_POST['motivo_codigo'] ?? '');
         $observacoes = trim($_POST['observacoes'] ?? '');
 
         if ($candidatoId <= 0 || $vagaId <= 0 || $status === '') {
@@ -42,7 +42,6 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
-        // Verificar se usuário pode gerenciar o pipeline desta vaga
         if (!RhPermissionService::canManagePipelineByVagaId($vagaId)) {
             echo json_encode(['success' => false, 'message' => 'Você não tem permissão para alterar o status desta candidatura.']);
             exit;
@@ -54,9 +53,32 @@ class RhAtualizarStatusCandidatura
             exit;
         }
 
+        if ($motivoCodigo === '') {
+            echo json_encode(['success' => false, 'message' => 'Selecione o motivo da movimentação.']);
+            exit;
+        }
+
+        if (!RhCandidaturaMotivoCatalog::isValidForStatus($status, $motivoCodigo)) {
+            echo json_encode(['success' => false, 'message' => 'Motivo inválido para o status selecionado.']);
+            exit;
+        }
+
+        if (RhCandidaturaMotivoCatalog::requiresObservacao($motivoCodigo) && $observacoes === '') {
+            echo json_encode(['success' => false, 'message' => 'Descreva o motivo em observações quando escolher "Outro".']);
+            exit;
+        }
+
         try {
             $repo = new RhVagasRepository();
-            $ok = $repo->atualizarStatusVinculo($vagaId, $candidatoId, $status, $observacoes ?: null);
+            $ok = $repo->atualizarStatusVinculo(
+                $vagaId,
+                $candidatoId,
+                $status,
+                $observacoes !== '' ? $observacoes : null,
+                \App\adms\Models\Repository\RhCandidaturaHistoricoRepository::ORIGEM_PIPELINE,
+                null,
+                $motivoCodigo
+            );
 
             if ($ok) {
                 echo json_encode([
@@ -72,9 +94,10 @@ class RhAtualizarStatusCandidatura
         } catch (\Throwable $e) {
             GenerateLog::generateLog('error', 'Erro ao atualizar status de candidatura.', [
                 'candidato_id' => $candidatoId,
-                'vaga_id'      => $vagaId,
-                'status'       => $status,
-                'error'        => $e->getMessage(),
+                'vaga_id' => $vagaId,
+                'status' => $status,
+                'motivo_codigo' => $motivoCodigo,
+                'error' => $e->getMessage(),
             ]);
             echo json_encode([
                 'success' => false,
@@ -84,4 +107,3 @@ class RhAtualizarStatusCandidatura
         exit;
     }
 }
-

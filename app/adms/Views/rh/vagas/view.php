@@ -339,51 +339,156 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
     </div>
 </div>
 
+<?php if (!empty($this->data['can_manage_pipeline'])): ?>
+<div class="modal fade" id="modalMotivoStatusVaga" tabindex="-1" aria-labelledby="modalMotivoStatusVagaLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalMotivoStatusVagaLabel">Motivo da movimentação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">
+                    Novo status: <strong id="motivoStatusVagaLabel">-</strong>
+                </p>
+                <div class="mb-3">
+                    <label for="motivo_codigo_vaga" class="form-label">Motivo <span class="text-danger">*</span></label>
+                    <select id="motivo_codigo_vaga" class="form-select"></select>
+                </div>
+                <div class="mb-0">
+                    <label for="motivo_observacoes_vaga" class="form-label">Observações</label>
+                    <textarea id="motivo_observacoes_vaga" class="form-control" rows="3" placeholder="Obrigatório se o motivo for Outro"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarMotivoStatusVaga">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
+
 <script>
-// Pipeline: Atualizar status de candidatura
+const motivosPorStatusVaga = <?= json_encode(\App\adms\Models\Services\RhCandidaturaMotivoCatalog::allGrouped(), JSON_UNESCAPED_UNICODE) ?>;
+let pendingStatusChange = null;
+let modalMotivoStatusVaga = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('modalMotivoStatusVaga');
+    if (modalEl && window.bootstrap) {
+        modalMotivoStatusVaga = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (pendingStatusChange && pendingStatusChange.select) {
+                pendingStatusChange.select.value = pendingStatusChange.oldValue;
+                pendingStatusChange = null;
+            }
+        });
+    }
+    const btnConfirm = document.getElementById('btnConfirmarMotivoStatusVaga');
+    if (btnConfirm) {
+        btnConfirm.addEventListener('click', confirmarStatusCandidaturaVaga);
+    }
+});
+
 document.querySelectorAll('.status-candidatura').forEach(function(select) {
+    select.dataset.oldValue = select.value;
     select.addEventListener('change', function() {
         const candidatoId = this.dataset.candidatoId;
         const vagaId = this.dataset.vagaId || <?= (int)($this->data['vaga']['id'] ?? 0) ?>;
         const novoStatus = this.value;
-        
-        if (!confirm('Deseja alterar o status da candidatura para "' + this.options[this.selectedIndex].text + '"?')) {
-            this.value = this.dataset.oldValue || 'candidatado';
+        const oldValue = this.dataset.oldValue || 'candidatado';
+
+        if (novoStatus === oldValue) {
             return;
         }
-        
-        const formData = new FormData();
-        formData.append('candidato_id', candidatoId);
-        formData.append('vaga_id', vagaId);
-        formData.append('status', novoStatus);
-        formData.append('observacoes', 'Status alterado via pipeline');
-        formData.append('csrf_token', '<?= $csrfTokenStatus ?>');
-        
-        fetch('<?php echo $_ENV['URL_ADM']; ?>rh-atualizar-status-candidatura', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                this.dataset.oldValue = novoStatus;
-                // Atualizar badge visualmente (opcional)
-                location.reload(); // Recarregar para refletir mudanças
-            } else {
-                alert('Erro: ' + data.message);
-                this.value = this.dataset.oldValue || 'candidatado';
-            }
-        })
-        .catch(error => {
-            console.error('Erro:', error);
-            alert('Erro ao atualizar status.');
-            this.value = this.dataset.oldValue || 'candidatado';
+
+        if (!modalMotivoStatusVaga) {
+            this.value = oldValue;
+            alert('Não foi possível abrir o formulário de motivo.');
+            return;
+        }
+
+        pendingStatusChange = {
+            select: this,
+            candidatoId: candidatoId,
+            vagaId: vagaId,
+            novoStatus: novoStatus,
+            oldValue: oldValue,
+            label: this.options[this.selectedIndex].text
+        };
+
+        const motivoSelect = document.getElementById('motivo_codigo_vaga');
+        const obs = document.getElementById('motivo_observacoes_vaga');
+        document.getElementById('motivoStatusVagaLabel').textContent = pendingStatusChange.label;
+        obs.value = '';
+        motivoSelect.innerHTML = '<option value="">Selecione...</option>';
+        const motivos = motivosPorStatusVaga[novoStatus] || {};
+        Object.keys(motivos).forEach(function (codigo) {
+            const opt = document.createElement('option');
+            opt.value = codigo;
+            opt.textContent = motivos[codigo];
+            motivoSelect.appendChild(opt);
         });
+        modalMotivoStatusVaga.show();
     });
-    
-    // Salvar valor inicial
-    select.dataset.oldValue = select.value;
 });
+
+function confirmarStatusCandidaturaVaga() {
+    if (!pendingStatusChange) {
+        return;
+    }
+
+    const motivoSelect = document.getElementById('motivo_codigo_vaga');
+    const obsEl = document.getElementById('motivo_observacoes_vaga');
+    const motivo = (motivoSelect && motivoSelect.value) ? motivoSelect.value.trim() : '';
+    const observacoes = (obsEl && obsEl.value) ? obsEl.value.trim() : '';
+
+    if (!motivo) {
+        alert('Selecione o motivo da movimentação.');
+        return;
+    }
+    if (motivo === 'OUTRO' && !observacoes) {
+        alert('Descreva o motivo em observações quando escolher "Outro".');
+        return;
+    }
+
+    const change = pendingStatusChange;
+    pendingStatusChange = null;
+    if (modalMotivoStatusVaga) {
+        modalMotivoStatusVaga.hide();
+    }
+
+    const formData = new FormData();
+    formData.append('candidato_id', change.candidatoId);
+    formData.append('vaga_id', change.vagaId);
+    formData.append('status', change.novoStatus);
+    formData.append('motivo_codigo', motivo);
+    if (observacoes) {
+        formData.append('observacoes', observacoes);
+    }
+    formData.append('csrf_token', '<?= $csrfTokenStatus ?>');
+
+    fetch('<?php echo $_ENV['URL_ADM']; ?>rh-atualizar-status-candidatura', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            change.select.dataset.oldValue = change.novoStatus;
+            location.reload();
+        } else {
+            alert('Erro: ' + data.message);
+            change.select.value = change.oldValue;
+        }
+    })
+    .catch(error => {
+        console.error('Erro:', error);
+        alert('Erro ao atualizar status.');
+        change.select.value = change.oldValue;
+    });
+}
 
 <?php if (!empty($this->data['candidatos_disponiveis'])): ?>
 // Atualizar tabela com detalhes de TODOS os candidatos selecionados

@@ -141,12 +141,42 @@ foreach ($candidatos as $cand) {
             <?php else: ?>
                 <div class="alert alert-secondary mt-3 mb-0 small">
                     <i class="fas fa-hand-pointer me-1"></i>
-                    Arraste os cartões entre as colunas para atualizar o status da candidatura.
+                    Arraste os cartões entre as colunas. Ao soltar, informe o motivo da movimentação.
                 </div>
             <?php endif; ?>
         </div>
     </div>
 </div>
+
+<?php if (!empty($this->data['can_manage_pipeline'])): ?>
+<div class="modal fade" id="modalMotivoMovimentacao" tabindex="-1" aria-labelledby="modalMotivoMovimentacaoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalMotivoMovimentacaoLabel">Motivo da movimentação</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">
+                    Novo status: <strong id="motivoNovoStatusLabel">-</strong>
+                </p>
+                <div class="mb-3">
+                    <label for="motivo_codigo_pipeline" class="form-label">Motivo <span class="text-danger">*</span></label>
+                    <select id="motivo_codigo_pipeline" class="form-select"></select>
+                </div>
+                <div class="mb-0">
+                    <label for="motivo_observacoes_pipeline" class="form-label">Observações</label>
+                    <textarea id="motivo_observacoes_pipeline" class="form-control" rows="3" placeholder="Obrigatório se o motivo for Outro"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" id="btnCancelarMotivoPipeline">Cancelar</button>
+                <button type="button" class="btn btn-primary" id="btnConfirmarMotivoPipeline">Confirmar</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?php endif; ?>
 
 <style>
 .kanban-column {
@@ -171,7 +201,34 @@ foreach ($candidatos as $cand) {
 </style>
 
 <script>
+const motivosPorStatus = <?= json_encode(\App\adms\Models\Services\RhCandidaturaMotivoCatalog::allGrouped(), JSON_UNESCAPED_UNICODE) ?>;
+const statusTitulos = {
+    candidatado: 'Candidatado',
+    em_entrevista: 'Em Entrevista',
+    aprovado: 'Aprovado',
+    reprovado: 'Reprovado',
+    desistiu: 'Desistiu'
+};
+
 let kanbanDraggedCard = null;
+let pendingKanbanMove = null;
+let modalMotivoPipeline = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modalEl = document.getElementById('modalMotivoMovimentacao');
+    if (modalEl && window.bootstrap) {
+        modalMotivoPipeline = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modalEl.addEventListener('hidden.bs.modal', function () {
+            if (pendingKanbanMove) {
+                cancelPendingKanbanMove();
+            }
+        });
+    }
+    const btnConfirm = document.getElementById('btnConfirmarMotivoPipeline');
+    if (btnConfirm) {
+        btnConfirm.addEventListener('click', confirmarMovimentacaoKanban);
+    }
+});
 
 function kanbanAllowDrop(ev) {
     ev.preventDefault();
@@ -185,7 +242,6 @@ function kanbanDrag(ev) {
     kanbanDraggedCard = card;
     card.classList.add('dragging');
 
-    // Alguns navegadores só disparam o drop se houver dados no dataTransfer
     if (ev.dataTransfer) {
         ev.dataTransfer.effectAllowed = 'move';
         ev.dataTransfer.setData('text/plain', card.getAttribute('data-candidato-id') || '');
@@ -204,25 +260,100 @@ function kanbanDrop(ev) {
     const vagaId = board.getAttribute('data-vaga-id');
     const csrfToken = board.getAttribute('data-csrf');
     const novoStatus = column.getAttribute('data-status');
+    const statusAtual = kanbanDraggedCard.getAttribute('data-status');
     const candidatoId = kanbanDraggedCard.getAttribute('data-candidato-id');
 
     if (!vagaId || !csrfToken || !novoStatus || !candidatoId) {
         return;
     }
 
-    // Atualizar visualmente primeiro
-    column.appendChild(kanbanDraggedCard);
-    kanbanDraggedCard.setAttribute('data-status', novoStatus);
-    kanbanDraggedCard.classList.remove('dragging');
+    if (novoStatus === statusAtual) {
+        kanbanDraggedCard.classList.remove('dragging');
+        kanbanDraggedCard = null;
+        return;
+    }
 
+    pendingKanbanMove = {
+        card: kanbanDraggedCard,
+        fromColumn: kanbanDraggedCard.parentElement,
+        toColumn: column,
+        vagaId: vagaId,
+        csrfToken: csrfToken,
+        candidatoId: candidatoId,
+        novoStatus: novoStatus,
+        statusAnterior: statusAtual
+    };
+
+    kanbanDraggedCard.classList.remove('dragging');
+    kanbanDraggedCard = null;
+    abrirModalMotivoPipeline(novoStatus);
+}
+
+function abrirModalMotivoPipeline(novoStatus) {
+    const select = document.getElementById('motivo_codigo_pipeline');
+    const obs = document.getElementById('motivo_observacoes_pipeline');
+    const label = document.getElementById('motivoNovoStatusLabel');
+    if (!select || !modalMotivoPipeline) {
+        cancelPendingKanbanMove();
+        return;
+    }
+
+    label.textContent = statusTitulos[novoStatus] || novoStatus;
+    obs.value = '';
+    select.innerHTML = '<option value="">Selecione...</option>';
+    const motivos = motivosPorStatus[novoStatus] || {};
+    Object.keys(motivos).forEach(function (codigo) {
+        const opt = document.createElement('option');
+        opt.value = codigo;
+        opt.textContent = motivos[codigo];
+        select.appendChild(opt);
+    });
+
+    modalMotivoPipeline.show();
+}
+
+function cancelPendingKanbanMove() {
+    pendingKanbanMove = null;
+}
+
+function confirmarMovimentacaoKanban() {
+    if (!pendingKanbanMove) {
+        return;
+    }
+
+    const select = document.getElementById('motivo_codigo_pipeline');
+    const obsEl = document.getElementById('motivo_observacoes_pipeline');
+    const motivo = (select && select.value) ? select.value.trim() : '';
+    const observacoes = (obsEl && obsEl.value) ? obsEl.value.trim() : '';
+
+    if (!motivo) {
+        alert('Selecione o motivo da movimentação.');
+        return;
+    }
+    if (motivo === 'OUTRO' && !observacoes) {
+        alert('Descreva o motivo em observações quando escolher "Outro".');
+        return;
+    }
+
+    const move = pendingKanbanMove;
+    pendingKanbanMove = null;
+    if (modalMotivoPipeline) {
+        modalMotivoPipeline.hide();
+    }
+
+    move.toColumn.appendChild(move.card);
+    move.card.setAttribute('data-status', move.novoStatus);
     atualizarContadoresKanban();
 
-    // Enviar requisição para atualizar status no backend
     const formData = new FormData();
-    formData.append('csrf_token', csrfToken);
-    formData.append('vaga_id', vagaId);
-    formData.append('candidato_id', candidatoId);
-    formData.append('status', novoStatus);
+    formData.append('csrf_token', move.csrfToken);
+    formData.append('vaga_id', move.vagaId);
+    formData.append('candidato_id', move.candidatoId);
+    formData.append('status', move.novoStatus);
+    formData.append('motivo_codigo', motivo);
+    if (observacoes) {
+        formData.append('observacoes', observacoes);
+    }
 
     fetch('<?php echo $_ENV['URL_ADM']; ?>rh-atualizar-status-candidatura', {
         method: 'POST',
@@ -242,7 +373,6 @@ function kanbanDrop(ev) {
 
             if (!data.success) {
                 alert(data.message || 'Erro ao atualizar status da candidatura.');
-                // Em caso de erro, recarregar para voltar ao estado consistente
                 window.location.reload();
             }
         })
@@ -251,11 +381,9 @@ function kanbanDrop(ev) {
             alert('Erro ao atualizar status da candidatura.');
             window.location.reload();
         });
-
-    kanbanDraggedCard = null;
 }
 
-document.addEventListener('dragend', function (ev) {
+document.addEventListener('dragend', function () {
     if (kanbanDraggedCard) {
         kanbanDraggedCard.classList.remove('dragging');
         kanbanDraggedCard = null;

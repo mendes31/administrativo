@@ -82,7 +82,8 @@ class RhEntrevistasEdit
                         $resultadoForm,
                         null,
                         \App\adms\Models\Repository\RhCandidaturaHistoricoRepository::ORIGEM_ENTREVISTA,
-                        $id
+                        $id,
+                        \App\adms\Models\Services\RhCandidaturaMotivoCatalog::forEntrevistaResultado($resultadoForm)
                     );
                 }
                 $_SESSION['success'] = "Entrevista atualizada com sucesso!";

@@ -46,6 +46,18 @@ final class CandidaturaHistoricoContractTest extends TestCase
 
         self::assertStringContainsString('ORIGEM_ENTREVISTA', $source);
         self::assertStringContainsString('atualizarStatusVinculo(', $source);
+        self::assertStringContainsString('forEntrevistaResultado', $source);
+    }
+
+    public function testPipelineControllerRequiresStructuredMotivo(): void
+    {
+        $source = $this->readProjectFile(
+            'app/adms/Controllers/rh/RhAtualizarStatusCandidatura.php'
+        );
+
+        self::assertStringContainsString('motivo_codigo', $source);
+        self::assertStringContainsString('RhCandidaturaMotivoCatalog::isValidForStatus', $source);
+        self::assertStringContainsString('requiresObservacao', $source);
     }
 
     private function readProjectFile(string $relativePath): string

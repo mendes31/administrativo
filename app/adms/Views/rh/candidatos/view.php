@@ -251,6 +251,7 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                                 <th>Vaga</th>
                                                 <th>Status</th>
                                                 <th>Origem</th>
+                                                <th>Motivo</th>
                                                 <th>Por</th>
                                                 <th>Observações</th>
                                             </tr>
@@ -277,6 +278,9 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                                 } elseif ($de) {
                                                     $statusTxt = ucfirst(str_replace('_', ' ', (string) $de)) . ' → (encerrado)';
                                                 }
+                                                $motivoLabel = \App\adms\Models\Services\RhCandidaturaMotivoCatalog::label(
+                                                    $evento['motivo_codigo'] ?? null
+                                                );
                                                 ?>
                                                 <tr>
                                                     <td><?= FormatHelper::formatDateTime($evento['ocorrido_em'] ?? null) ?></td>
@@ -292,6 +296,7 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                                     </td>
                                                     <td><?= htmlspecialchars($statusTxt) ?></td>
                                                     <td><?= htmlspecialchars(ucfirst((string) ($evento['origem'] ?? '-'))) ?></td>
+                                                    <td><?= htmlspecialchars($motivoLabel) ?></td>
                                                     <td><?= htmlspecialchars($evento['alterado_por_nome'] ?? '-') ?></td>
                                                     <td><?= htmlspecialchars(mb_strimwidth((string) ($evento['observacoes'] ?? ''), 0, 80, '…')) ?></td>
                                                 </tr>

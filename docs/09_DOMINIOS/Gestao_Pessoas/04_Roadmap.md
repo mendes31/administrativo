@@ -39,9 +39,9 @@ Saída: recursos críticos possuem regra explícita e eventos têm proprietário
 ## Fase 1 — Recrutamento confiável
 
 - [x] histórico imutável (`rh_candidaturas_historico` + dual-write nas transições);
+- [x] motivos estruturados (catálogo PHP + obrigatório no pipeline);
 - [ ] etapas configuráveis;
 - [ ] service transacional unificado de movimentação (entrevista + vínculo + histórico);
-- [ ] motivos estruturados;
 - [ ] status geral como projeção documentada/consumida pelo histórico;
 - [ ] requisição de pessoal e aprovação.
 

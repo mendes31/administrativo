@@ -1,0 +1,28 @@
+<h1>Pipeline da Vaga (Kanban)</h1>
+<p>Visualização Kanban dos candidatos vinculados à vaga, com movimentação entre etapas e registro de motivo estruturado.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>RhVagasPipeline</em>, além de poder gerenciar o pipeline da vaga (RH / responsável).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra a vaga e clique em <strong>Pipeline</strong> (Kanban).</li>
+    <li>Arraste o cartão do candidato para a coluna de destino.</li>
+    <li>No modal, selecione o <strong>motivo</strong> da movimentação.</li>
+    <li>Se escolher <em>Outro</em>, preencha a observação.</li>
+    <li>Confirme. O status da candidatura é atualizado e o evento entra na linha do tempo do candidato.</li>
+</ol>
+
+<h2>Motivos</h2>
+<p>Os motivos são códigos estáveis (ex.: <code>TRIAGEM_OK</code>, <code>PERFIL_ADEQUADO</code>). A lista muda conforme o status de destino. Movimentações vindas do resultado de entrevista usam motivos automáticos (<code>APROVADO_ENTREVISTA</code> / <code>REPROVADO_ENTREVISTA</code>).</p>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Solicita motivo ao soltar o cartão</dt>
+    <dd>É o comportamento esperado: toda transição no pipeline exige motivo estruturado.</dd>
+    <dt>Você não tem permissão para movimentar</dt>
+    <dd>Visualização apenas; peça ACL de pipeline ou vínculo como responsável da vaga.</dd>
+    <dt>Erro ao atualizar status</dt>
+    <dd>Vaga pode estar fechada/cancelada, ou o token CSRF expirou — recarregue a página.</dd>
+</dl>

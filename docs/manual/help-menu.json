@@ -1235,6 +1235,11 @@
                                     "type": "topic",
                                     "topic_id": "update-rh-vaga",
                                     "title": "Rh Vaga"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "rh-vagas-pipeline",
+                                    "title": "Pipeline da Vaga (Kanban)"
                                 }
                             ]
                         }

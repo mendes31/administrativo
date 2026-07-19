@@ -139,6 +139,22 @@ final class PipelineIntegrityContractTest extends TestCase
         self::assertStringContainsString('listByCandidato', $controller);
         self::assertStringContainsString('historico_candidatura', $controller);
         self::assertStringContainsString('Linha do tempo da candidatura', $view);
+        self::assertStringContainsString('RhCandidaturaMotivoCatalog::label', $view);
+    }
+
+    public function testPipelineUiCollectsMotivoBeforeStatusUpdate(): void
+    {
+        $pipeline = $this->readProjectFile(
+            'app/adms/Views/rh/vagas/pipeline.php'
+        );
+        $vagaView = $this->readProjectFile(
+            'app/adms/Views/rh/vagas/view.php'
+        );
+
+        self::assertStringContainsString('motivo_codigo', $pipeline);
+        self::assertStringContainsString('modalMotivoMovimentacao', $pipeline);
+        self::assertStringContainsString('motivo_codigo', $vagaView);
+        self::assertStringContainsString('modalMotivoStatusVaga', $vagaView);
     }
 
     private function readProjectFile(string $relativePath): string

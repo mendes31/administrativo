@@ -38,7 +38,11 @@ Linha do tempo na ficha do candidato (`RhCandidatosView`).
 1. Encerramento lógico do vínculo (evitar DELETE físico).
 2. FK rígida `rh_candidatura_id → rh_candidatos_vagas`.
 3. Service único entrevista + movimentação + histórico.
-4. Motivos estruturados e etapas configuráveis.
+4. Etapas configuráveis.
+
+## Motivos estruturados
+
+Catálogo: `RhCandidaturaMotivoCatalog`. Pipeline e select da vaga exigem `motivo_codigo`; entrevista preenche automaticamente `APROVADO_ENTREVISTA` / `REPROVADO_ENTREVISTA`. `OUTRO` exige observação.
 
 ## Migration
 
