@@ -7,8 +7,8 @@ namespace App\adms\Models\Services;
 /**
  * Metadados das chaves de notificação configuráveis no painel administrativo.
  *
- * Escopo: apenas alertas automáticos de SST (cron) e Treinamentos (cron/vínculo).
- * Não controla informativos, políticas, SAC, folha, avaliações, projetos etc.
+ * Escopo: alertas automáticos de SST, Treinamentos e Gestão de Pessoas (digest desenvolvimento).
+ * Não controla informativos, políticas, SAC, folha, projetos etc.
  */
 final class NotificationSettingsRegistry
 {
@@ -136,6 +136,22 @@ final class NotificationSettingsRegistry
                 'label' => 'E-mail diário — eventos LNT (RH)',
                 'description' => 'Relatório por e-mail com movimentações de RH do dia anterior (admissões, desligamentos, cargos) para apoio ao LNT.',
                 'order' => 10,
+                'is_notification' => true,
+            ],
+            'rh_dev_reminders_email' => [
+                'module' => 'Gestão de Pessoas — desenvolvimento',
+                'module_order' => 30,
+                'label' => 'E-mail — lembretes de PDI/avaliações',
+                'description' => 'Digest diário (cron CLI) para ações de PDI atrasadas e avaliações em rascunho em ciclo aberto. Default desligado.',
+                'order' => 1,
+                'is_notification' => true,
+            ],
+            'rh_dev_reminders_inapp' => [
+                'module' => 'Gestão de Pessoas — desenvolvimento',
+                'module_order' => 30,
+                'label' => 'Notificação / push — lembretes de PDI/avaliações',
+                'description' => 'Alerta in-app/push do digest de desenvolvimento (cron CLI). Default desligado.',
+                'order' => 2,
                 'is_notification' => true,
             ],
         ];

@@ -24,7 +24,8 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
   - feedback contínuo global (regras de escopo/público/anônimo);
   - calibração avançada (notas na sessão + lock de avaliações);
   - **faltam:** matching Nine Box→PDI (avançado) e demais itens da Fase 6;
-  - **iniciado Fase 6:** pulse/eNPS; quadro; indicadores integrados; retenção (sem custo R$ ainda);
+  - **Fase 6 (núcleo):** pulse/eNPS; quadro; indicadores; retenção; automação de lembretes (IA generativa adiada);
+  - **ainda adiado:** matching Nine Box→PDI; custo R$ de turnover; IA;
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
 - `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
@@ -80,7 +81,8 @@ Ordem acordada após os 1ºs incrementos:
 9. ~~Planejamento de quadro (1º incremento);~~
 10. ~~Indicadores integrados (1º incremento no People Analytics);~~
 11. ~~Retenção (1º incremento; custo financeiro adiado);~~
-12. Automação/IA após maturidade dos dados.
+12. ~~Automação de lembretes (1º incremento; IA adiada);~~
+13. Avançados adiados: matching Nine Box→PDI; custo R$; IA generativa.
 
 Fase 6 continua progressiva após maturidade dos dados de desenvolvimento.
 
