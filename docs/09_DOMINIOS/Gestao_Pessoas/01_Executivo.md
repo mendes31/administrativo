@@ -23,9 +23,10 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
   - avaliações em massa a partir do ciclo;
   - feedback contínuo global (regras de escopo/público/anônimo);
   - calibração avançada (notas na sessão + lock de avaliações);
-  - **faltam:** matching Nine Box→PDI (avançado) e demais itens da Fase 6;
+  - **faltam:** itens avançados da Fase 6 (custo R$ de turnover; IA);
   - **Fase 6 (núcleo):** pulse/eNPS; quadro; indicadores; retenção; automação de lembretes (IA generativa adiada);
-  - **ainda adiado:** matching Nine Box→PDI; custo R$ de turnover; IA;
+  - **ainda adiado:** custo R$ de turnover; IA;
+  - matching Nine Box→PDI (1º incremento: PDI rascunho a partir do quadrante);
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
 - `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
@@ -76,13 +77,13 @@ Ordem acordada após os 1ºs incrementos:
 4. ~~Avaliações em massa (a partir do ciclo);~~
 5. ~~Feedback contínuo global (hardening);~~
 6. ~~Calibração avançada (notas na sessão + lock);~~
-7. Matching Nine Box→PDI — avançado (adiado).
+7. ~~Matching Nine Box→PDI (1º incremento: rascunho na matriz);~~
 8. ~~Pulse/eNPS (1º incremento Fase 6);~~
 9. ~~Planejamento de quadro (1º incremento);~~
 10. ~~Indicadores integrados (1º incremento no People Analytics);~~
 11. ~~Retenção (1º incremento; custo financeiro adiado);~~
 12. ~~Automação de lembretes (1º incremento; IA adiada);~~
-13. Avançados adiados: matching Nine Box→PDI; custo R$; IA generativa.
+13. Avançados adiados: custo R$; IA generativa; matching Nine Box→PDI em massa/ações auto.
 
 Fase 6 continua progressiva após maturidade dos dados de desenvolvimento.
 

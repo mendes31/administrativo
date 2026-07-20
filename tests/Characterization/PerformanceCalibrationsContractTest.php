@@ -24,6 +24,9 @@ final class PerformanceCalibrationsContractTest extends TestCase
         self::assertStringContainsString('performance_cycle_id', $repo);
         $ctrl = $this->read('app/adms/Controllers/performance/NineBoxMatrix.php');
         self::assertStringContainsString('performance_cycle_id', $ctrl);
+        self::assertStringContainsString('create_pdi', $ctrl);
+        self::assertStringContainsString('NineBoxPdiMatchService', $ctrl);
+        self::assertFileExists(PROJECT_ROOT . '/app/adms/Models/Services/NineBoxPdiMatchService.php');
     }
 
     public function testControllersExist(): void

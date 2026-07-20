@@ -4,10 +4,12 @@
 <p>
 A <strong>Matriz 9BOX</strong> posiciona colaboradores em potencial × desempenho a partir das
 avaliações do ciclo (idealmente já calibradas). É a visão consolidada usada para talent pool,
-discussão de sucessão e priorização de desenvolvimento — não substitui a avaliação individual.
+PDI sugerido pelo quadrante, discussão de sucessão e priorização de desenvolvimento — não
+substitui a avaliação individual.
 </p>
 
-<p><strong>Quem acessa:</strong> <em>NineBoxMatrix</em>.</p>
+<p><strong>Quem acessa:</strong> <em>NineBoxMatrix</em>. Nomear exige <em>CreateTalentNomination</em>;
+criar PDI exige <em>CreatePdiPlan</em>; abrir PDI existente exige <em>ViewPdiPlan</em>.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
@@ -15,6 +17,8 @@ discussão de sucessão e priorização de desenvolvimento — não substitui a 
     <dd>Matriz 3×3 que cruza <strong>desempenho</strong> e <strong>potencial</strong> para apoiar talent pool, sucessão e priorização de desenvolvimento.</dd>
     <dt>HiPo (alto potencial)</dt>
     <dd>Colaborador identificado com alto potencial, tipicamente priorizado no talent pool e em planos de sucessão/desenvolvimento.</dd>
+    <dt>Matching Nine Box→PDI</dt>
+    <dd>Atalho que cria (ou reabre) um PDI rascunho a partir do box do colaborador no ciclo, com título/orientação do quadrante.</dd>
     <dt>Calibração</dt>
     <dd>Sessão em que gestores alinham notas de desempenho/potencial entre áreas antes do fechamento do ciclo, reduzindo vieses entre equipes.</dd>
     <dt>Ciclo de desempenho</dt>
@@ -28,14 +32,19 @@ discussão de sucessão e priorização de desenvolvimento — não substitui a 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Menu <strong>Desempenho → Matriz 9BOX</strong>.</li>
-    <li>Filtre por <strong>ciclo</strong>, departamento, cargo ou período.</li>
-    <li>Analise as caixas; com ciclo selecionado, use <strong>Nomear</strong> para o talent pool.</li>
+    <li>Filtre por <strong>ciclo</strong> (obrigatório para Nomear / Criar PDI), departamento, cargo ou período.</li>
+    <li>Analise as caixas; use <strong>Nomear</strong> para o talent pool ou <strong>Criar PDI</strong> para abrir um rascunho orientado pelo quadrante.</li>
+    <li>Se o colaborador já tiver PDI aberto no ciclo, use <strong>Ver PDI</strong>.</li>
     <li>Exporte PDF/Excel se necessário; na calibração use o atalho <em>Nine Box do ciclo</em>.</li>
 </ol>
+
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Ciclo</strong> Restringe às avaliações concluídas vinculadas ao ciclo; habilita nomeação HiPo.</div>
+<div class="help-field"><strong>Ciclo</strong> Restringe às avaliações concluídas vinculadas ao ciclo; habilita nomeação HiPo e criação de PDI.</div>
 <div class="help-field"><strong>Departamento / Cargo</strong> Recortes organizacionais.</div>
 <div class="help-field"><strong>Período</strong> Filtro adicional por datas da avaliação (legado sem ciclo).</div>
+<div class="help-field"><strong>Criar PDI</strong> Gera plano <code>draft</code> com título “PDI Box N — …”, descrição da legenda do box, período = datas do ciclo e gestor = supervisor imediato (quando cadastrado). Não cria ações automaticamente.</div>
+<div class="help-field"><strong>Idempotência</strong> Se já existir PDI <code>draft</code> ou <code>active</code> do mesmo colaborador+ciclo, o sistema abre o existente em vez de duplicar.</div>
+
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Matriz vazia com ciclo selecionado</dt>
@@ -44,4 +53,8 @@ discussão de sucessão e priorização de desenvolvimento — não substitui a 
     <dd>Ainda não há ciclos cadastrados em Desempenho → Ciclos.</dd>
     <dt>Não aparece Nomear</dt>
     <dd>Selecione um ciclo e confira <em>CreateTalentNomination</em>.</dd>
+    <dt>Não aparece Criar PDI</dt>
+    <dd>Selecione um ciclo e confira <em>CreatePdiPlan</em> no nível de acesso.</dd>
+    <dt>Erro “ciclo sem período”</dt>
+    <dd>Preencha <em>period_start</em> e <em>period_end</em> no cadastro do ciclo antes de criar o PDI pela matriz.</dd>
 </dl>

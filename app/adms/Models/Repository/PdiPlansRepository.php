@@ -244,6 +244,68 @@ class PdiPlansRepository extends DbConnection
         return [$where, $params];
     }
 
+    /**
+     * Plano draft/active do colaborador no ciclo (mais recente).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findOpenByUserAndCycle(int $userId, int $cycleId): ?array
+    {
+        if ($userId <= 0 || $cycleId <= 0) {
+            return null;
+        }
+
+        $sql = 'SELECT p.*
+                FROM adms_pdi_plans p
+                WHERE p.user_id = :user_id
+                  AND p.performance_cycle_id = :cycle_id
+                  AND p.status IN (\'draft\', \'active\')
+                ORDER BY FIELD(p.status, \'active\', \'draft\'), p.id DESC
+                LIMIT 1';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':cycle_id', $cycleId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Mapa user_id → plano aberto (draft/active) do ciclo.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function getOpenMapByCycle(int $cycleId): array
+    {
+        if ($cycleId <= 0) {
+            return [];
+        }
+
+        $sql = 'SELECT p.*
+                FROM adms_pdi_plans p
+                INNER JOIN (
+                    SELECT user_id, MAX(id) AS max_id
+                    FROM adms_pdi_plans
+                    WHERE performance_cycle_id = :cycle_id
+                      AND status IN (\'draft\', \'active\')
+                    GROUP BY user_id
+                ) latest ON latest.max_id = p.id';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':cycle_id', $cycleId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $row) {
+            $map[(int) $row['user_id']] = $row;
+        }
+
+        return $map;
+    }
+
     private function bindNullableInt(\PDOStatement $stmt, string $param, mixed $value): void
     {
         if ($value === null || $value === '' || (int) $value <= 0) {

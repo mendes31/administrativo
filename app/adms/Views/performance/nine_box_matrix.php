@@ -4,8 +4,12 @@ use App\adms\Helpers\FormatHelper;
 
 $cycleFilterId = (int) ($this->data['filters']['performance_cycle_id'] ?? 0);
 $nominationsMap = $this->data['nominations_map'] ?? [];
+$pdiMap = $this->data['pdi_map'] ?? [];
 $canNominate = $cycleFilterId > 0
     && in_array('CreateTalentNomination', $this->data['buttonPermission'] ?? [], true);
+$canCreatePdi = $cycleFilterId > 0
+    && in_array('CreatePdiPlan', $this->data['buttonPermission'] ?? [], true);
+$canViewPdi = in_array('ViewPdiPlan', $this->data['buttonPermission'] ?? [], true);
 
 $boxLabels = [
     1 => ['title' => 'Reposicionar', 'color' => 'danger', 'icon' => 'fa-exclamation-triangle'],
@@ -188,10 +192,10 @@ $boxLabels = [
             <div class="alert alert-info border-0 mb-4">
                 <i class="fas fa-info-circle me-2"></i>
                 <strong>Como funciona:</strong> A Matriz 9BOX avalia colaboradores baseado em <strong>Potencial</strong> (eixo Y) e <strong>Desempenho</strong> (eixo X).
-                <?php if ($canNominate): ?>
-                    Com ciclo selecionado, use <strong>Nomear</strong> para incluir no talent pool.
+                <?php if ($canNominate || $canCreatePdi): ?>
+                    Com ciclo selecionado, use <strong>Nomear</strong> (talent pool) ou <strong>Criar PDI</strong> (rascunho pelo quadrante).
                 <?php else: ?>
-                    Filtre por <strong>ciclo</strong> para nomear no talent pool.
+                    Filtre por <strong>ciclo</strong> para nomear no talent pool ou criar PDI a partir do box.
                 <?php endif; ?>
             </div>
 
@@ -256,6 +260,8 @@ $boxLabels = [
                                                     <?php foreach ($boxData as $employee):
                                                         $empId = (int) ($employee['employee_id'] ?? 0);
                                                         $isNominated = isset($nominationsMap[$empId]);
+                                                        $existingPdi = $pdiMap[$empId] ?? null;
+                                                        $existingPdiId = is_array($existingPdi) ? (int) ($existingPdi['id'] ?? 0) : 0;
                                                         ?>
                                                         <div class="employee-badge mb-1 d-flex flex-wrap align-items-center justify-content-center gap-1">
                                                             <a href="<?php echo $_ENV['URL_ADM']; ?>view-user/<?= $empId ?>"
@@ -277,6 +283,19 @@ $boxLabels = [
                                                                 </form>
                                                             <?php elseif ($isNominated): ?>
                                                                 <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">HiPo</span>
+                                                            <?php endif; ?>
+                                                            <?php if ($existingPdiId > 0 && $canViewPdi): ?>
+                                                                <a href="<?php echo $_ENV['URL_ADM']; ?>view-pdi-plan/<?= $existingPdiId ?>"
+                                                                   class="btn btn-link btn-sm p-0 text-success" title="Abrir PDI do ciclo" style="font-size: 0.7rem;">Ver PDI</a>
+                                                            <?php elseif ($canCreatePdi): ?>
+                                                                <form method="POST" action="<?php echo $_ENV['URL_ADM']; ?>nine-box-matrix?performance_cycle_id=<?= $cycleFilterId ?>" class="d-inline">
+                                                                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_nine_box_create_pdi'); ?>">
+                                                                    <input type="hidden" name="form_action" value="create_pdi">
+                                                                    <input type="hidden" name="user_id" value="<?= $empId ?>">
+                                                                    <input type="hidden" name="performance_cycle_id" value="<?= $cycleFilterId ?>">
+                                                                    <input type="hidden" name="nine_box" value="<?= (int) $boxNum ?>">
+                                                                    <button type="submit" class="btn btn-link btn-sm p-0 text-primary" title="Criar PDI rascunho a partir deste box" style="font-size: 0.7rem;">Criar PDI</button>
+                                                                </form>
                                                             <?php endif; ?>
                                                         </div>
                                                     <?php endforeach; ?>

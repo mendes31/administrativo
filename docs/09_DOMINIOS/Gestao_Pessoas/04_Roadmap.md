@@ -90,7 +90,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] avaliações em massa a partir do ciclo — [DESENVOLVIMENTO_AVALIACOES_MASSA_EXPAND.md](DESENVOLVIMENTO_AVALIACOES_MASSA_EXPAND.md);
 - [x] feedback contínuo global (hardening) — [DESENVOLVIMENTO_FEEDBACK_CONTINUO_EXPAND.md](DESENVOLVIMENTO_FEEDBACK_CONTINUO_EXPAND.md);
 - [x] calibração avançada (notas na sessão + lock) — [DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md](DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md);
-- [ ] matching Nine Box→PDI (= avançado / adiado).
+- [x] matching Nine Box→PDI (1º incremento: Criar PDI rascunho na matriz) — [DESENVOLVIMENTO_NINEBOX_PDI_EXPAND.md](DESENVOLVIMENTO_NINEBOX_PDI_EXPAND.md).
 
 ## Fase 6 — Estratégia e analytics
 

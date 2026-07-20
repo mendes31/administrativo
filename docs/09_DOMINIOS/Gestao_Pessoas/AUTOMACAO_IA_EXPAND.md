@@ -33,7 +33,7 @@ Digest diário (contagens + e-mail/in-app opcional) para:
 ## Fora deste incremento (IA e demais)
 
 - qualquer LLM / geração de texto / matching inteligente;
-- matching Nine Box→PDI (continua adiado);
+- matching Nine Box→PDI (continua adiado para ações em massa/IA); 1º corte na matriz entregue;
 - outbox genérica nova;
 - UI de agendador (usar cron do SO → CLI);
 - custo financeiro de turnover.

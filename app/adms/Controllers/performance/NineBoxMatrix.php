@@ -6,10 +6,12 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Models\Repository\PdiPlansRepository;
 use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\TalentNominationsRepository;
+use App\adms\Models\Services\NineBoxPdiMatchService;
 use App\adms\Models\Services\TalentNominationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -22,8 +24,14 @@ class NineBoxMatrix
 
     public function index(): void
     {
-        if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['form_action'] ?? '') === 'nominate') {
-            $this->nominateFromMatrix();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $action = (string) ($_POST['form_action'] ?? '');
+            if ($action === 'nominate') {
+                $this->nominateFromMatrix();
+            }
+            if ($action === 'create_pdi') {
+                $this->createPdiFromMatrix();
+            }
         }
 
         $repository = new PerformanceReviewsRepository();
@@ -59,9 +67,12 @@ class NineBoxMatrix
         $this->data['cycles'] = (new PerformanceCyclesRepository())->getAll([], 1, 200);
 
         $this->data['nominations_map'] = [];
+        $this->data['pdi_map'] = [];
         if (!empty($filters['performance_cycle_id'])) {
+            $cycleId = (int) $filters['performance_cycle_id'];
             $this->data['nominations_map'] = (new TalentNominationsRepository())
-                ->getActiveMapByCycle((int) $filters['performance_cycle_id']);
+                ->getActiveMapByCycle($cycleId);
+            $this->data['pdi_map'] = (new PdiPlansRepository())->getOpenMapByCycle($cycleId);
         }
 
         $this->data['box_stats'] = [];
@@ -76,6 +87,8 @@ class NineBoxMatrix
                 'ListPerformanceReviews',
                 'CreateTalentNomination',
                 'ListTalentNominations',
+                'CreatePdiPlan',
+                'ViewPdiPlan',
             ],
         ];
 
@@ -114,6 +127,42 @@ class NineBoxMatrix
         $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Colaborador nomeado no talent pool.</div>';
         GenerateLog::generateLog('info', 'Nomeação HiPo via Nine Box.', ['id' => $result['id']]);
         header('Location: ' . $redirect);
+        exit;
+    }
+
+    private function createPdiFromMatrix(): void
+    {
+        $cycleId = (int) ($_POST['performance_cycle_id'] ?? 0);
+        $redirect = $_ENV['URL_ADM'] . 'nine-box-matrix'
+            . ($cycleId > 0 ? '?performance_cycle_id=' . $cycleId : '');
+
+        if (!CSRFHelper::validateCSRFToken('form_nine_box_create_pdi', $_POST['csrf_token'] ?? '')) {
+            $_SESSION['error'] = 'Token de segurança inválido. Tente novamente.';
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $result = (new NineBoxPdiMatchService())->createFromMatrix([
+            'user_id' => (int) ($_POST['user_id'] ?? 0),
+            'performance_cycle_id' => $cycleId,
+            'nine_box' => (int) ($_POST['nine_box'] ?? 0),
+        ], (int) ($_SESSION['user_id'] ?? 0));
+
+        if (!$result['ok']) {
+            $_SESSION['error'] = $result['error'] ?? 'Erro ao criar PDI.';
+            header('Location: ' . $redirect);
+            exit;
+        }
+
+        $planId = (int) ($result['id'] ?? 0);
+        if (!empty($result['reused'])) {
+            $_SESSION['msg'] = '<div class="alert alert-info" role="alert">Já existia um PDI aberto neste ciclo para o colaborador. Abrindo o plano existente.</div>';
+        } else {
+            $_SESSION['msg'] = '<div class="alert alert-success" role="alert">PDI rascunho criado a partir do quadrante 9BOX.</div>';
+            GenerateLog::generateLog('info', 'PDI criado via Nine Box.', ['id' => $planId]);
+        }
+
+        header('Location: ' . $_ENV['URL_ADM'] . 'view-pdi-plan/' . $planId);
         exit;
     }
 }
