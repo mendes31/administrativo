@@ -7,17 +7,24 @@ alwaysApply: true
 
 Ao implementar ou alterar funcionalidades visíveis ao usuário (telas novas, botões, fluxos, permissões, regras de negócio na interface):
 
-1. Atualize o HTML em `docs/manual/content/` (tópico da tela e, se couber, visão geral do módulo).
-2. Revise `docs/manual/manifest.json`, `help-menu.json` e `page-topic-map.json` quando aplicável.
-3. Documente permissões novas no tópico (ex.: `EditCompletedTraining`, `DeleteCompletedTraining`).
-4. Texto em português; inclua fluxo passo a passo e problemas comuns.
-5. **Explique termos específicos** (siglas e jargão: eNPS, Pulse, OKR, Nine Box, PDI, etc.) na própria página — secção `<h2>O que significam os termos</h2>` (padrão no Plano Diretor). Use `php scripts/manual_ensure_termos_section.php` em lote; não criar secção vazia.
+1. Crie/atualize o HTML em `docs/manual/content/` com o **padrão completo** (Plano Diretor):
+   - `<h2>Função no sistema</h2>`
+   - `<h2>O que significam os termos</h2>` (só se houver jargão/siglas)
+   - Quem acessa (permissões em `<em>Controller</em>`)
+   - `<h2>Fluxo principal</h2>` (passo a passo)
+   - `<h2>Campos e parâmetros</h2>` (ou Campos e telas)
+   - `<h2>Problemas comuns</h2>`
+2. Páginas **novas** devem nascer já completas — não entregar só esqueleto.
+3. Revise `docs/manual/manifest.json`, `help-menu.json` e `page-topic-map.json` quando aplicável.
+4. Documente permissões novas no tópico (ex.: `EditCompletedTraining`).
+5. Texto em português. Scripts de lote (≤100 ficheiros/push):
+   `manual_ensure_funcao_section.php`, `manual_ensure_termos_section.php`,
+   `manual_ensure_structure_sections.php`, `manual_structure_audit.php`.
 6. Consulte o checklist em `docs/manual/README.md`.
-7. **Identifique o que mudou** com o relatório dedicado:
+7. **Identifique o que mudou**:
    ```bash
    php scripts/manual_changed_report.php
    ```
-   Ele mapeia alterações git → slugs → `topic_id` → arquivo HTML e lista ações sugeridas.
-8. Valide com `php scripts/audit_manual_coverage.php --changed --strict` (use `--fix` para esqueletos; revise em português).
+8. Valide com `php scripts/audit_manual_coverage.php --changed --strict`.
 
 Não considere a entrega completa sem a documentação de ajuda alinhada ao comportamento implementado.

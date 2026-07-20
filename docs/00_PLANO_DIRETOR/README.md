@@ -108,20 +108,25 @@ O **manual contextual (F1)** é a documentação operacional para o utilizador f
 Complementa o [Glossário corporativo](../02_GLOSSARIO/GLOSSARIO_CORPORATIVO.md)
 (canónico para linguagem de domínio) sem o substituir.
 
-Padrão obrigatório em cada tópico HTML (`docs/manual/`):
+Padrão obrigatório em cada tópico HTML (`docs/manual/`) — **páginas novas e
+alteradas devem sair completas**; não entregar feature só com esqueleto:
 
 1. **`<h2>Função no sistema</h2>`** — papel da tela no fluxo.
-2. **`<h2>O que significam os termos</h2>`** — obrigatório quando a página usa
-   siglas ou jargão de negócio (ex.: eNPS, Pulse, OKR, PDI, Nine Box, HiPo).
-   Definir em português acessível apenas os termos usados naquela tela;
-   não criar secção vazia em páginas sem jargão.
-3. Permissões, fluxo, campos e problemas comuns conforme
-   [checklist do manual](../manual/README.md).
+2. **`<h2>O que significam os termos</h2>`** — quando houver siglas/jargão
+   (eNPS, Pulse, OKR, PDI, Nine Box, HiPo, EPI, LGPD, etc.); não criar secção vazia.
+3. **Quem acessa** — permissões (`<em>Controller</em>`).
+4. **`<h2>Fluxo principal</h2>`** (ou equivalente) — passo a passo.
+5. **`<h2>Campos e parâmetros</h2>`** (ou Campos e telas) — filtros, formulário, ações.
+6. **`<h2>Problemas comuns</h2>`** — erros frequentes e o que verificar.
 
-Manutenção em lote (respeitando o limite de 100 ficheiros/push):
+Canónico operacional: [checklist do manual](../manual/README.md).
+Auditoria local: `php scripts/manual_structure_audit.php`.
+
+Manutenção em lote (respeitando o limite de **100 ficheiros/push**):
 
 - `php scripts/manual_ensure_funcao_section.php`
-- `php scripts/manual_ensure_termos_section.php` (e `--dry-run` / `--only=pasta`)
+- `php scripts/manual_ensure_termos_section.php`
+- `php scripts/manual_ensure_structure_sections.php` (`--dry-run`, `--only=`, `--limit=`)
 
 Novas features só entram em aceite com manual alinhado a este padrão.
 
