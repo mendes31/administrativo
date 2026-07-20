@@ -135,6 +135,17 @@ class PerformanceCyclesRepository extends DbConnection
         return (int) $stmt->fetchColumn();
     }
 
+    public function countCompletedReviews(int $cycleId): int
+    {
+        $sql = "SELECT COUNT(*) FROM adms_performance_reviews
+                WHERE performance_cycle_id = :id AND status = 'completed'";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $cycleId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
     public function update(int $id, array $data): bool
     {
         $allowed = ['name', 'year', 'period_start', 'period_end', 'status', 'description'];

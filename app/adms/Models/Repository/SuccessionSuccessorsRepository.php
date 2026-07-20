@@ -83,4 +83,23 @@ class SuccessionSuccessorsRepository extends DbConnection
 
         return $stmt->execute();
     }
+
+    public function countByReadiness(string $readiness): int
+    {
+        $sql = 'SELECT COUNT(*) FROM adms_succession_successors WHERE readiness = :readiness';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':readiness', $readiness);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    public function countDistinctCriticalWithSuccessor(): int
+    {
+        $sql = 'SELECT COUNT(DISTINCT critical_position_id) FROM adms_succession_successors';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
 }

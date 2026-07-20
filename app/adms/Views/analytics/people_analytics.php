@@ -254,6 +254,92 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         </div>
     </div>
 
+    <?php
+    $integrated = $this->data['integrated'] ?? [];
+    $cycle = $integrated['cycle_completion'] ?? [];
+    $pdi = $integrated['pdi_progress'] ?? [];
+    $enps = $integrated['enps_latest'] ?? [];
+    $hc = $integrated['headcount_gap'] ?? [];
+    $talent = $integrated['talent_nominations'] ?? [];
+    $succ = $integrated['succession'] ?? [];
+    $base = $_ENV['URL_ADM'] ?? '';
+    ?>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h5 class="mb-0">Indicadores integrados</h5>
+        <small class="text-muted">Desenvolvimento, clima e quadro (visão global; filtros demográficos não aplicam neste bloco)</small>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-light shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-clipboard-check fa-lg text-primary mb-2"></i>
+                    <h4 class="mb-0"><?= isset($cycle['pct']) && $cycle['pct'] !== null ? htmlspecialchars((string)$cycle['pct']) . '%' : '—' ?></h4>
+                    <p class="text-muted mb-1 small">Ciclo aberto — avaliações</p>
+                    <small class="text-muted"><?= (int)($cycle['reviews_completed'] ?? 0) ?>/<?= (int)($cycle['reviews_total'] ?? 0) ?>
+                        <?= !empty($cycle['cycle_name']) ? ' · ' . htmlspecialchars((string)$cycle['cycle_name']) : '' ?></small>
+                    <div class="mt-2"><a class="small" href="<?= $base ?>list-performance-cycles">Ciclos</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-light shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-route fa-lg text-success mb-2"></i>
+                    <h4 class="mb-0"><?= isset($pdi['actions_avg_pct']) && $pdi['actions_avg_pct'] !== null ? htmlspecialchars((string)$pdi['actions_avg_pct']) . '%' : '—' ?></h4>
+                    <p class="text-muted mb-1 small">PDI — progresso médio</p>
+                    <small class="text-muted"><?= (int)($pdi['active_plans'] ?? 0) ?> planos ativos</small>
+                    <div class="mt-2"><a class="small" href="<?= $base ?>list-pdi-plans">PDI</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-light shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-poll fa-lg text-info mb-2"></i>
+                    <h4 class="mb-0"><?= isset($enps['enps']) && $enps['enps'] !== null ? htmlspecialchars((string)$enps['enps']) : '—' ?></h4>
+                    <p class="text-muted mb-1 small">eNPS (última campanha)</p>
+                    <small class="text-muted"><?= htmlspecialchars((string)($enps['name'] ?? 'Sem campanha')) ?>
+                        · <?= (int)($enps['total'] ?? 0) ?> resp.</small>
+                    <div class="mt-2"><a class="small" href="<?= $base ?>list-pulse-campaigns">Pesquisas</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-light shadow h-100">
+                <div class="card-body text-center">
+                    <?php $gapSum = (int)($hc['gap_sum'] ?? 0); $gapClass = $gapSum > 0 ? 'text-danger' : ($gapSum < 0 ? 'text-warning' : 'text-success'); ?>
+                    <i class="fas fa-users-cog fa-lg text-secondary mb-2"></i>
+                    <h4 class="mb-0 <?= $gapClass ?>"><?= isset($hc['lines']) ? $gapSum : '—' ?></h4>
+                    <p class="text-muted mb-1 small">Gap quadro (mês atual)</p>
+                    <small class="text-muted"><?= (int)($hc['lines'] ?? 0) ?> linhas · plan. <?= (int)($hc['planned_sum'] ?? 0) ?> / efet. <?= (int)($hc['actual_sum'] ?? 0) ?></small>
+                    <div class="mt-2"><a class="small" href="<?= $base ?>list-headcount-plans">Quadro</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-light shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-star fa-lg text-warning mb-2"></i>
+                    <h4 class="mb-0"><?= (int)($talent['active_count'] ?? 0) ?></h4>
+                    <p class="text-muted mb-1 small">Talent pool (ativos)</p>
+                    <small class="text-muted">Nomeações HiPo ativas</small>
+                    <div class="mt-2"><a class="small" href="<?= $base ?>list-talent-nominations">Talent pool</a></div>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-light shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-chess-king fa-lg text-dark mb-2"></i>
+                    <h4 class="mb-0"><?= (int)($succ['with_successor'] ?? 0) ?>/<?= (int)($succ['critical_active'] ?? 0) ?></h4>
+                    <p class="text-muted mb-1 small">Sucessão coberta</p>
+                    <small class="text-muted"><?= (int)($succ['ready_now'] ?? 0) ?> ready now</small>
+                    <div class="mt-2"><a class="small" href="<?= $base ?>list-critical-positions">Sucessão</a></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Gráficos -->
     <div class="row g-4 mb-4">
         <div class="col-md-6">

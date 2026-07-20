@@ -121,4 +121,20 @@ class PdiActionsRepository extends DbConnection
             $stmt->bindValue($param, (int) $value, PDO::PARAM_INT);
         }
     }
+
+    public function avgProgressForActivePlans(): ?float
+    {
+        $sql = "SELECT AVG(a.progress_percentage)
+                FROM adms_pdi_actions a
+                INNER JOIN adms_pdi_plans p ON p.id = a.pdi_plan_id
+                WHERE p.status = 'active'";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute();
+        $val = $stmt->fetchColumn();
+        if ($val === false || $val === null) {
+            return null;
+        }
+
+        return round((float) $val, 1);
+    }
 }

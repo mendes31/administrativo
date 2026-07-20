@@ -8,6 +8,7 @@ use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\EmploymentHistoryRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\IntegratedPeopleIndicatorsService;
 use App\adms\Models\Services\PeopleAnalyticsFilterParser;
 use App\adms\Models\Services\PeopleAnalyticsMetricsService;
 use App\adms\Views\Services\LoadViewService;
@@ -34,6 +35,7 @@ class PeopleAnalytics
             $filters['period_start'],
             $filters['period_end']
         );
+        $metrics['integrated'] = (new IntegratedPeopleIndicatorsService())->collect();
 
         $countries = CountryHelper::getCountries();
         uasort($countries, static fn ($a, $b) => strcmp($a['name'] ?? '', $b['name'] ?? ''));
@@ -87,6 +89,7 @@ class PeopleAnalytics
                 $filters['period_start'],
                 $filters['period_end']
             );
+            $metrics['integrated'] = (new IntegratedPeopleIndicatorsService())->collect();
 
             echo json_encode(['success' => true, 'data' => $metrics], JSON_UNESCAPED_UNICODE);
         } catch (\Throwable $e) {
