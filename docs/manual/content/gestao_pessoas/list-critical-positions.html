@@ -1,12 +1,19 @@
 <h1>Sucessão — Cargos Críticos</h1>
-<p>Mapeia <strong>cargos críticos</strong> e indica <strong>sucessores</strong> internos com prontidão (readiness).</p>
+
+<h2>Função no sistema</h2>
+<p>
+A <strong>sucessão</strong> mapeia cargos críticos para o negócio e quem poderia sucedê-los
+(com prontidão). É planejamento de risco e continuidade — não promove automaticamente.
+Complementa talent pool (HiPo) e PDI: o pool indica potencial; a sucessão indica
+cobertura de cargos-chave.
+</p>
+
 <p><strong>Quem acessa:</strong> <em>ListCriticalPositions</em>.</p>
-<p class="help-note">Consulte também <em>Talent Pool</em>, <em>PDI</em> e <em>Desempenho</em> (<code>gp-desempenho</code>).</p>
+<p class="help-note">Consulte também <em>Talent Pool</em>, <em>PDI</em> e <code>gp-desempenho</code>.</p>
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Abra <strong>Desempenho → Sucessão → Novo</strong> e escolha o cargo.</li>
-    <li>Defina risco (alto/médio/baixo) e notas.</li>
-    <li>Na visualização, adicione sucessores com ordem e readiness (pronto agora, 1–2 anos, 3+ anos, emergência).</li>
+    <li>Desempenho → Sucessão → Novo (cargo + risco).</li>
+    <li>Na visualização, adicione sucessores com ordem e readiness.</li>
     <li>Use atalhos para Talent Pool e PDI do sucessor.</li>
 </ol>
 <h2>Problemas comuns</h2>
@@ -14,6 +21,6 @@
     <dt>Cargo já crítico</dt>
     <dd>Só um registro por cargo; edite o existente.</dd>
     <dt>Menu não aparece</dt>
-    <dd>Rode a migration <code>20260720230000</code> e confira <em>ListCriticalPositions</em>.</dd>
+    <dd>Rode a migration <code>20260720230000</code> e relogue.</dd>
 </dl>
 <p><strong>Permissões:</strong> <em>ListCriticalPositions</em>, <em>CreateCriticalPosition</em>, <em>ViewCriticalPosition</em>, <em>UpdateCriticalPosition</em>.</p>

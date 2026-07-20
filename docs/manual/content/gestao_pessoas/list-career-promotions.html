@@ -1,9 +1,22 @@
 <h1>Promoções de Carreira</h1>
-<p>Registra promoções de colaboradores (cargo origem/destino, data, trilha opcional). Status: rascunho → aprovada → <strong>aplicada</strong> (atualiza o cargo do usuário).</p>
+
+<h2>Função no sistema</h2>
+<p>
+A <strong>promoção</strong> registra a mudança formal de cargo (com data e trilha/nível
+opcionais). Fecha o ciclo “planejado na trilha → aprovado → aplicado no cadastro
+do colaborador”. Diferente da sucessão (quem pode assumir um cargo crítico), a
+promoção altera o vínculo atual do usuário.
+</p>
+
 <p><strong>Quem acessa:</strong> <em>ListCareerPromotions</em>.</p>
+<h2>Fluxo</h2>
+<ol>
+<li>Desempenho → Promoções → Nova (colaborador, cargo destino, data).</li>
+<li>Aprove e depois use <strong>Aplicar no colaborador</strong> para atualizar o cargo.</li>
+</ol>
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Menu não aparece</dt><dd>Rode migration <code>20260720240000</code>.</dd>
-<dt>Aplicar não muda o cargo</dt><dd>Confirme status <em>Aplicar no colaborador</em> e permissão de edição.</dd>
+<dt>Menu não aparece</dt><dd>Rode migration <code>20260720240000</code> e relogue.</dd>
+<dt>Aplicar não muda o cargo</dt><dd>Confirme status e permissão de edição.</dd>
 </dl>
 <p><strong>Permissões:</strong> <em>ListCareerPromotions</em>, <em>CreateCareerPromotion</em>, <em>ViewCareerPromotion</em>, <em>UpdateCareerPromotion</em>.</p>

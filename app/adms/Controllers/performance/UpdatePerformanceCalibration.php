@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\PerformanceCalibrationsRepository;
+use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Models\Services\PerformanceCalibrationService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -33,10 +34,21 @@ class UpdatePerformanceCalibration
         }
 
         $this->data['calibration'] = $cal;
+        $cycleId = (int) $cal['performance_cycle_id'];
+        $this->data['reviews'] = (new PerformanceReviewsRepository())->getAll(
+            ['performance_cycle_id' => $cycleId],
+            1,
+            500
+        );
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->update($calId);
             $this->data['calibration'] = $repository->getById($calId) ?? $cal;
+            $this->data['reviews'] = (new PerformanceReviewsRepository())->getAll(
+                ['performance_cycle_id' => $cycleId],
+                1,
+                500
+            );
         }
 
         $pageElements = [
@@ -45,6 +57,7 @@ class UpdatePerformanceCalibration
             'buttonPermission' => [
                 'ListPerformanceCalibrations',
                 'ViewPerformanceCalibration',
+                'NineBoxMatrix',
             ],
         ];
 

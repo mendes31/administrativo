@@ -61,9 +61,12 @@ $cycleId = (int) ($cal['performance_cycle_id'] ?? 0);
                     <div class="col-12"><div class="text-muted small">Notas</div><?= nl2br(htmlspecialchars($cal['session_notes'])) ?></div>
                 <?php endif; ?>
                 <?php if (($cal['status'] ?? '') === 'locked'): ?>
-                    <div class="col-12 text-muted small">
-                        Travada em <?= htmlspecialchars(FormatHelper::formatDateTime($cal['locked_at'] ?? '')) ?>
-                        por <?= htmlspecialchars($cal['locked_by_name'] ?? '-') ?>
+                    <div class="col-12">
+                        <div class="alert alert-warning mb-0">
+                            Calibração travada — as avaliações deste ciclo estão somente leitura (não é possível editar notas fora desta sessão).
+                            Travada em <?= htmlspecialchars(FormatHelper::formatDateTime($cal['locked_at'] ?? '')) ?>
+                            por <?= htmlspecialchars($cal['locked_by_name'] ?? '-') ?>.
+                        </div>
                     </div>
                 <?php endif; ?>
             </div>
@@ -73,13 +76,45 @@ $cycleId = (int) ($cal['performance_cycle_id'] ?? 0);
             <?php else: ?>
                 <div class="table-responsive">
                     <table class="table table-sm table-hover">
-                        <thead><tr><th>Colaborador</th><th>Tipo</th><th>Nota</th><th>Status</th><th></th></tr></thead>
+                        <thead>
+                            <tr>
+                                <th>Colaborador</th>
+                                <th>Tipo</th>
+                                <th>Desempenho</th>
+                                <th>Potencial</th>
+                                <th>Pré-calibração</th>
+                                <th>Status</th>
+                                <th></th>
+                            </tr>
+                        </thead>
                         <tbody>
-                            <?php foreach ($this->data['reviews'] as $review): ?>
+                            <?php foreach ($this->data['reviews'] as $review):
+                                $preO = $review['overall_score_pre_calibration'] ?? null;
+                                $preP = $review['potential_score_pre_calibration'] ?? null;
+                                $adjusted = ($preO !== null || $preP !== null)
+                                    && (
+                                        (string) ($preO ?? '') !== (string) ($review['overall_score'] ?? '')
+                                        || (string) ($preP ?? '') !== (string) ($review['potential_score'] ?? '')
+                                    );
+                                ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($review['employee_name'] ?? '') ?></td>
+                                    <td>
+                                        <?= htmlspecialchars($review['employee_name'] ?? '') ?>
+                                        <?php if ($adjusted): ?>
+                                            <span class="badge bg-info">ajustada</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($review['review_type'] ?? '') ?></td>
                                     <td><?= $review['overall_score'] !== null ? htmlspecialchars((string) $review['overall_score']) : '—' ?></td>
+                                    <td><?= $review['potential_score'] !== null ? htmlspecialchars((string) $review['potential_score']) : '—' ?></td>
+                                    <td class="small text-muted">
+                                        <?php if ($preO !== null || $preP !== null): ?>
+                                            D: <?= $preO !== null ? htmlspecialchars((string) $preO) : '—' ?>
+                                            / P: <?= $preP !== null ? htmlspecialchars((string) $preP) : '—' ?>
+                                        <?php else: ?>
+                                            —
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($review['status'] ?? '') ?></td>
                                     <td><a href="<?php echo $_ENV['URL_ADM']; ?>view-performance-review/<?= (int) $review['id'] ?>">ver</a></td>
                                 </tr>

@@ -83,6 +83,13 @@ class BulkCreatePerformanceReviews
         }
 
         $cycleId = (int) ($_POST['performance_cycle_id'] ?? $cycleId);
+        if ((new \App\adms\Models\Services\PerformanceCalibrationService())->isCycleReviewsLocked($cycleId)) {
+            $_SESSION['error'] = 'Ciclo com calibração travada — não é possível gerar novas avaliações.';
+            $this->data['form'] = $_POST;
+
+            return;
+        }
+
         $result = (new PerformanceReviewBulkService())->generateForCycle(
             $cycleId,
             $_POST,

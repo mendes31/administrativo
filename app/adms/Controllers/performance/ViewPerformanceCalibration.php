@@ -34,8 +34,9 @@ class ViewPerformanceCalibration
         $this->data['calibration'] = $cal;
         $cycleId = (int) $cal['performance_cycle_id'];
         $reviewsRepo = new PerformanceReviewsRepository();
-        $this->data['reviews'] = $reviewsRepo->getAll(['performance_cycle_id' => $cycleId], 1, 100);
+        $this->data['reviews'] = $reviewsRepo->getAll(['performance_cycle_id' => $cycleId], 1, 500);
         $this->data['reviews_count'] = $reviewsRepo->count(['performance_cycle_id' => $cycleId]);
+        $this->data['reviews_locked'] = ($cal['status'] ?? '') === 'locked';
 
         $returnUrl = $_ENV['URL_ADM'] . 'view-performance-calibration/' . $calId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_performance_calibrations', $calId, $returnUrl);

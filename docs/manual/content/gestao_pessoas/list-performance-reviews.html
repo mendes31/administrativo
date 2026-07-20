@@ -1,25 +1,28 @@
-<h1>Listar Avaliações de Desempenho</h1>
-<p>Lista avaliações 90°/180°/360°/anual. Cada avaliação pode opcionalmente pertencer a um <strong>ciclo</strong> de desempenho.</p>
+<h1>Avaliações de Desempenho</h1>
 
-<p class="help-note">Consulte também <em>Ciclos de Desempenho</em> e a visão geral <em>Desempenho</em> (<code>gp-desempenho</code>).</p>
+<h2>Função no sistema</h2>
+<p>
+A <strong>avaliação</strong> registra o julgamento formal de desempenho (e potencial) de um
+colaborador em um período — base para Nine Box, calibração, PDI e decisões de
+desenvolvimento. Pode ficar avulsa (legado) ou vinculada a um <em>ciclo</em>, que
+agrupa o lote do período. Depois que a calibração do ciclo é <strong>travada</strong>,
+a avaliação fica somente leitura.
+</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>ListPerformanceReviews</em>.</p>
+<p class="help-note">Consulte também <em>Ciclos</em>, <em>Calibração</em> e <em>Desempenho</em> (<code>gp-desempenho</code>).</p>
+<p><strong>Quem acessa:</strong> <em>ListPerformanceReviews</em>.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Menu <strong>Gestão de Pessoas → Desempenho → Avaliações de Desempenho</strong>.</li>
-    <li>Filtre por colaborador, tipo, status, <strong>ciclo</strong> ou busca.</li>
-    <li>Abra visualizar/editar ou crie nova avaliação vinculada a um ciclo aberto/rascunho.</li>
+    <li>Menu <strong>Desempenho → Avaliações</strong> (ou gere em massa na view do ciclo).</li>
+    <li>Filtre por colaborador, tipo, status ou ciclo.</li>
+    <li>Registre resultados (notas/competências) e, no comitê, ajuste via Calibração.</li>
 </ol>
-
-<h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Ciclo</strong> Agrupa a avaliação no período de desempenho; opcional para registros legados.</div>
-<div class="help-field"><strong>Tipo</strong> 90°, 180°, 360° ou anual.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Não consigo editar / registrar resultados</dt>
+    <dd>Ciclo com calibração <em>Travada</em>. Peça reabertura de processo (não suportada neste incremento) ou aceite o fechamento.</dd>
     <dt>Filtro de ciclo vazio</dt>
-    <dd>Ainda não há ciclos cadastrados. Crie em <em>Desempenho → Ciclos</em>.</dd>
-    <dt>Não vejo o menu</dt>
-    <dd>Falta a permissão <em>ListPerformanceReviews</em>.</dd>
+    <dd>Ainda não há ciclos — cadastre em <em>Desempenho → Ciclos</em>.</dd>
 </dl>

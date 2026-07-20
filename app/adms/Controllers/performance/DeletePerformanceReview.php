@@ -26,6 +26,15 @@ class DeletePerformanceReview
             exit;
         }
 
+        $lockCheck = (new \App\adms\Models\Services\PerformanceCalibrationService())->assertReviewEditable($review);
+        if (!$lockCheck['ok']) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">'
+                . htmlspecialchars($lockCheck['error'] ?? 'Avaliação bloqueada.')
+                . '</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'view-performance-review/' . (int) $id);
+            exit;
+        }
+
         // Verificar permissão
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
         $userId = $_SESSION['user_id'] ?? 0;

@@ -22,7 +22,8 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
   - carreira (trilhas, níveis e promoções);
   - avaliações em massa a partir do ciclo;
   - feedback contínuo global (regras de escopo/público/anônimo);
-  - **faltam:** calibração avançada e Fase 6;
+  - calibração avançada (notas na sessão + lock de avaliações);
+  - **faltam:** matching Nine Box→PDI (avançado) e Fase 6;
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
 - `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
@@ -72,10 +73,9 @@ Ordem acordada após os 1ºs incrementos:
 3. ~~Carreira (trilhas / níveis / promoções);~~
 4. ~~Avaliações em massa (a partir do ciclo);~~
 5. ~~Feedback contínuo global (hardening);~~
-6. Aprofundamentos restantes (calibração avançada;
-   matching Nine Box→PDI — avançado).
-
-Fase 6 (clima, eNPS, analytics preditivo, IA) só após maturidade desses dados.
+6. ~~Calibração avançada (notas na sessão + lock);~~
+7. Matching Nine Box→PDI — avançado (adiado).
+8. Fase 6 (clima, eNPS, analytics) só após maturidade desses dados.
 
 ## Indicadores executivos propostos
 

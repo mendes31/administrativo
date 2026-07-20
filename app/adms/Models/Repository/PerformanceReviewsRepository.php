@@ -261,7 +261,9 @@ class PerformanceReviewsRepository extends DbConnection
         $values = [];
         
         $allowedFields = ['review_type', 'performance_cycle_id', 'review_period_start', 'review_period_end', 'review_date',
-                         'status', 'overall_score', 'strengths', 'improvements', 'comments',
+                         'status', 'overall_score', 'potential_score',
+                         'overall_score_pre_calibration', 'potential_score_pre_calibration',
+                         'strengths', 'improvements', 'comments',
                          'employee_comments', 'evaluation_id', 'completed_at'];
         
         foreach ($allowedFields as $field) {
@@ -285,6 +287,13 @@ class PerformanceReviewsRepository extends DbConnection
 
         foreach ($values as $key => $value) {
             if ($key === ':performance_cycle_id' && ($value === null || $value === '' || (int) $value <= 0)) {
+                $stmt->bindValue($key, null, PDO::PARAM_NULL);
+                continue;
+            }
+            if (in_array($key, [
+                ':overall_score', ':potential_score',
+                ':overall_score_pre_calibration', ':potential_score_pre_calibration',
+            ], true) && ($value === null || $value === '')) {
                 $stmt->bindValue($key, null, PDO::PARAM_NULL);
                 continue;
             }

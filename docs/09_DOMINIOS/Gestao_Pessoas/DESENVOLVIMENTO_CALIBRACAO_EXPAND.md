@@ -15,8 +15,8 @@ pelo mesmo ciclo.
 - Uma calibração por `performance_cycle_id` (unique).
 - Criar somente para ciclo existente; preferencialmente `open` (também `draft`).
 - Status: `draft|open|locked`.
-- `locked` fecha a sessão (notas somente leitura); **não** bloqueia edição de
-  avaliações neste incremento.
+- `locked` fecha a sessão **e** bloqueia edição das avaliações do ciclo
+  (ver [DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md](DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md)).
 - Conjunto da calibração = reviews com `performance_cycle_id` do ciclo.
 - Nine Box ganha filtro `performance_cycle_id`.
 
@@ -42,10 +42,9 @@ pelo mesmo ciclo.
 - Menu Desempenho → Calibração
 - Nine Box: select de ciclo
 
-## Fora deste incremento
+## Fora deste incremento (1º)
 
-- lock de edição em reviews;
-- edição de notas dentro da sessão;
+- edição de notas na sessão / lock de reviews — feitos no Expand avançado;
 - calibração multi-departamento;
 - tabela N:N review↔sessão.
 
@@ -56,4 +55,5 @@ pelo mesmo ciclo.
 ## Dependências
 
 [DESENVOLVIMENTO_CICLOS_EXPAND.md](DESENVOLVIMENTO_CICLOS_EXPAND.md),
-[DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md](DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md)
+[DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md](DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md),
+[DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md](DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md)

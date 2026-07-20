@@ -1,34 +1,28 @@
 <h1>Ciclos de Desempenho</h1>
-<p>Cadastro e gestão de <strong>ciclos</strong> que agrupam metas e avaliações de desempenho no módulo Gestão de Pessoas.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Desempenho</em> (<code>gp-desempenho</code>) e <em>Listar Metas de Desempenho</em>.</p>
+<h2>Função no sistema</h2>
+<p>
+O <strong>ciclo</strong> é o “container” do período de desempenho (ex.: 2026 H1): agrupa
+metas e avaliações, alimenta calibração, Nine Box e talent pool. Sem ciclo,
+cada avaliação/meta fica isolada; com ciclo, o RH conduz o processo em lote
+(gerar avaliações, calibrar e travar).
+</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>ListPerformanceCycles</em>. Criar/editar exigem <em>CreatePerformanceCycle</em> e <em>UpdatePerformanceCycle</em>. Geração em massa exige <em>BulkCreatePerformanceReviews</em>.</p>
+<p class="help-note">Visão geral: <em>Desempenho</em> (<code>gp-desempenho</code>).</p>
+<p><strong>Quem acessa:</strong> <em>ListPerformanceCycles</em>. Geração em massa: <em>BulkCreatePerformanceReviews</em>.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse o menu <strong>Gestão de Pessoas → Desempenho → Ciclos</strong>.</li>
-    <li>Clique em <strong>Novo Ciclo</strong> e informe nome, ano, período e status (<em>Rascunho</em>, <em>Aberto</em> ou <em>Fechado</em>).</li>
-    <li>Abra o ciclo para acompanhar quantas metas e avaliações já estão vinculadas.</li>
-    <li>Use <strong>Gerar avaliações</strong> no ciclo (rascunho/aberto) para criar avaliações em lote por departamento, gestor ou todos os ativos.</li>
-    <li>Ao cadastrar ou editar uma <strong>meta</strong> ou <strong>avaliação</strong>, selecione o ciclo (somente rascunho/aberto aceitam novos vínculos).</li>
-    <li>Feche o ciclo quando o período terminar — vínculos existentes permanecem; novos não podem ser ligados a ele.</li>
+    <li>Desempenho → Ciclos → Novo (nome, ano, período, status).</li>
+    <li>Vincule metas/avaliações ou use <strong>Gerar avaliações</strong> no ciclo aberto/rascunho.</li>
+    <li>Abra calibração do ciclo, ajuste notas e trave quando o comitê encerrar.</li>
+    <li>Feche o ciclo ao final do período (não aceita novos vínculos).</li>
 </ol>
-
-<h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Nome</strong> Identificação do ciclo (ex.: Ciclo 2026 H1).</div>
-<div class="help-field"><strong>Ano</strong> Ano civil de referência para filtros e relatórios.</div>
-<div class="help-field"><strong>Período (início/fim)</strong> Vigência do ciclo; a data final deve ser maior ou igual à inicial.</div>
-<div class="help-field"><strong>Status</strong> Rascunho (planejamento), Aberto (aceita metas/avaliações), Fechado (somente leitura para novos vínculos; não reabre).</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu Ciclos</dt>
-    <dd>Permissão <em>ListPerformanceCycles</em> ausente. Após a migration, o acesso é espelhado de quem já tinha Metas; peça inclusão no nível de acesso se necessário. Se a página nova não aparecer após migrate, saia e entre novamente (cache de menu).</dd>
-    <dt>Não consigo vincular meta ao ciclo</dt>
-    <dd>O ciclo está <em>Fechado</em> ou não existe. Abra um ciclo em rascunho/aberto ou crie um novo.</dd>
-    <dt>Botão Gerar avaliações não aparece</dt>
-    <dd>Ciclo fechado ou falta a permissão <em>BulkCreatePerformanceReviews</em> (migration <code>20260720250000</code>). Relogue após migrar.</dd>
-    <dt>Erro 006 / página não encontrada</dt>
-    <dd>Confirme que as migrations de ciclos e de massa rodaram e que o deploy enviou os controllers em <code>performance/</code>.</dd>
+    <dt>Botão Gerar avaliações sumiu</dt>
+    <dd>Ciclo fechado, falta permissão ou cache de menu — relogue após a migration.</dd>
+    <dt>Não consigo gerar após calibração</dt>
+    <dd>Calibração travada bloqueia novas avaliações no ciclo.</dd>
 </dl>

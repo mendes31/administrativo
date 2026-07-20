@@ -1,31 +1,32 @@
 <h1>Feedbacks de Desempenho</h1>
-<p>Canal de <strong>feedback contínuo</strong> fora do PDI: reconhecimento, melhoria e desempenho no dia a dia. Diferente do feedback registrado dentro de um plano de PDI.</p>
 
-<p class="help-note"><strong>Visão geral:</strong> tópico <em>Desempenho</em> (<code>gp-desempenho</code>). Feedback no PDI: abra o plano e use a seção de feedbacks do plano.</p>
+<h2>Função no sistema</h2>
+<p>
+O <strong>feedback contínuo</strong> (fora do PDI) é o canal do dia a dia entre gestor e
+equipe — reconhecimento, melhoria ou desempenho pontual — sem esperar o ciclo
+formal. Complementa avaliações e o feedback registrado <em>dentro</em> de um PDI:
+aqui o foco é conversa contínua; no PDI, o foco é o plano de desenvolvimento.
+</p>
 
-<p><strong>Quem acessa:</strong> <em>ListPerformanceFeedbacks</em>. Criar/editar exigem <em>CreatePerformanceFeedback</em> / <em>UpdatePerformanceFeedback</em>.</p>
+<p class="help-note">Feedback no plano: abra o PDI. Visão geral: <code>gp-desempenho</code>.</p>
+<p><strong>Quem acessa:</strong> <em>ListPerformanceFeedbacks</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
-<li>Desempenho → Feedbacks → Novo Feedback.</li>
-<li>Escolha o colaborador (gestores só veem subordinados; acesso total vê todos).</li>
-<li>Informe tipo e texto. Opcional: anônimo e/ou público.</li>
-<li>Use a busca e filtros na listagem para localizar registros.</li>
+<li>Desempenho → Feedbacks → Novo.</li>
+<li>Escolha o destinatário (gestor: só subordinados).</li>
+<li>Tipo, texto e opções anônimo/público; o autor é sempre você.</li>
 </ol>
 
 <h2>Regras de visibilidade</h2>
 <ul>
 <li><strong>Privado:</strong> autor, destinatário e acesso total.</li>
 <li><strong>Público:</strong> o acima + gestor imediato do destinatário.</li>
-<li><strong>Anônimo:</strong> oculta o nome do autor para quem não é o autor nem acesso total.</li>
+<li><strong>Anônimo:</strong> oculta o nome do autor para quem não é autor/acesso total.</li>
 </ul>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Lista de colaboradores vazia ao criar</dt>
-<dd>Você não é gestor imediato de ninguém (ou falta vínculo <em>immediate_supervisor_id</em>). Com acesso total, a lista mostra todos os ativos.</dd>
-<dt>Busca não encontrava texto</dt>
-<dd>Corrigido neste incremento — busca no texto e nos nomes.</dd>
-<dt>Não vejo um feedback “público”</dt>
-<dd>Só entra se você for autor, destinatário, gestor do destinatário ou tiver acesso total.</dd>
+<dt>Lista de colaboradores vazia</dt>
+<dd>Sem subordinados cadastrados (<em>immediate_supervisor_id</em>) ou sem acesso total.</dd>
 </dl>
