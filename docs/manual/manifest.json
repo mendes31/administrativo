@@ -1523,6 +1523,16 @@
                     "file": "gestao_pessoas/list-critical-positions.html"
                 },
                 {
+                    "id": "list-career-tracks",
+                    "title": "Trilhas de Carreira",
+                    "file": "gestao_pessoas/list-career-tracks.html"
+                },
+                {
+                    "id": "list-career-promotions",
+                    "title": "Promoções de Carreira",
+                    "file": "gestao_pessoas/list-career-promotions.html"
+                },
+                {
                     "id": "list-policies",
                     "title": "Listar Políticas Internas",
                     "file": "gestao_pessoas/list-policies.html"

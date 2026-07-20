@@ -1183,6 +1183,22 @@
                                     "title": "Sucessão — Cargos Críticos"
                                 }
                             ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Carreira",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-career-tracks",
+                                    "title": "Trilhas de Carreira"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-career-promotions",
+                                    "title": "Promoções de Carreira"
+                                }
+                            ]
                         }
                     ]
                 },

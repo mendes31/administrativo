@@ -946,6 +946,24 @@ $menus = [
                         ],
                     ],
                     [
+                        'label' => 'Trilhas de Carreira',
+                        'url' => $_ENV['URL_ADM'] . 'list-career-tracks',
+                        'permission' => 'ListCareerTracks',
+                        'related_routes' => [
+                            'list-career-tracks', 'create-career-track',
+                            'view-career-track', 'update-career-track',
+                        ],
+                    ],
+                    [
+                        'label' => 'Promoções',
+                        'url' => $_ENV['URL_ADM'] . 'list-career-promotions',
+                        'permission' => 'ListCareerPromotions',
+                        'related_routes' => [
+                            'list-career-promotions', 'create-career-promotion',
+                            'view-career-promotion', 'update-career-promotion',
+                        ],
+                    ],
+                    [
                         'label' => 'Dashboard de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'performance-dashboard',
                         'permission' => 'PerformanceDashboard',
