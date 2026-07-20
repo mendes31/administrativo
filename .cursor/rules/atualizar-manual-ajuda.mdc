@@ -11,7 +11,7 @@ Ao implementar ou alterar funcionalidades visíveis ao usuário (telas novas, bo
 2. Revise `docs/manual/manifest.json`, `help-menu.json` e `page-topic-map.json` quando aplicável.
 3. Documente permissões novas no tópico (ex.: `EditCompletedTraining`, `DeleteCompletedTraining`).
 4. Texto em português; inclua fluxo passo a passo e problemas comuns.
-5. **Explique termos específicos** (siglas e jargão: eNPS, Pulse, OKR, Nine Box, PDI, etc.) na própria página do manual — secção “O que significam os termos” ou equivalente; não deixe só o nome técnico.
+5. **Explique termos específicos** (siglas e jargão: eNPS, Pulse, OKR, Nine Box, PDI, etc.) na própria página — secção `<h2>O que significam os termos</h2>` (padrão no Plano Diretor). Use `php scripts/manual_ensure_termos_section.php` em lote; não criar secção vazia.
 6. Consulte o checklist em `docs/manual/README.md`.
 7. **Identifique o que mudou** com o relatório dedicado:
    ```bash
