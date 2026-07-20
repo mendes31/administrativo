@@ -6,15 +6,18 @@
 
 ## Objetivo
 
-Alinhar o menu lateral à estrutura-alvo do Executivo:
+Alinhar o menu lateral à estrutura-alvo, separando **self-service**,
+**operações de RH/gestor** e **parametrização**.
 
 ```text
 Gestão de Pessoas
-├── Organização
+├── Organização             (parametrização)
 ├── Talentos
 ├── Jornada do Colaborador
 ├── Desenvolvimento
-├── Portal do Colaborador
+├── Portal do Colaborador   (self-service)
+├── Solicitações (RH)       (aprovações gestor/RH)
+├── Folha Digital (RH)      (operações RH)
 └── People Analytics
 ```
 
@@ -22,21 +25,26 @@ Gestão de Pessoas
 
 - Apenas rearranjo de labels/níveis em `app/adms/Views/partials/menu.php`.
 - Controllers e ACL (`adms_pages` / permissões) **não mudam**.
-- **Filiais permanecem em Administração → Configurações** — cadastro transversal
-  (empresa contratante, filtros multi-unidade, etc.), não exclusivo de GP.
-- Itens de folha digital (importação/pendências/cron/tipos) ficam no submenu **Folha Digital (RH)** dentro de Portal.
-- Solicitações e Chamados ficam sob **Portal do Colaborador**.
-- Top-level **Cadastro** (Usuários, Cargos, Departamentos) permanece — evita quebrar hábitos financeiros/ACL.
+- **Filiais** em Administração → Configurações (cadastro transversal).
+- **Organização (parametrização):** políticas, categorias, tipos de solicitação,
+  tipos de documento RH, cron de lembretes.
+- **Portal (self-service):** Início, meus docs/EPI/SST, Minhas Solicitações, Meus Chamados.
+- **Solicitações (RH):** Aprovações Pendentes (fora do Portal).
+- **Folha Digital (RH):** importação + pendências de ciência.
+- Link do painel = **Início** (evita “Portal dentro de Portal”).
+- Top-level **Cadastro** permanece.
 
 ## Mapeamento aplicado
 
 | Grupo | Conteúdo |
 |---|---|
-| Organização | Políticas Internas; Categorias de Políticas |
-| Talentos | Dashboard, Currículos, Vagas, Portal público, Requisições, Entrevistas |
+| Organização | Políticas; Categorias; Tipos de Solicitação; Tipos de documento (RH); Cron lembretes folha |
+| Talentos | Dashboard, Currículos, Vagas, Portal público CAPTCHA, Requisições, Entrevistas |
 | Jornada do Colaborador | Pessoas; Movimentações; Offboarding |
-| Desenvolvimento | Ex-grupo Desempenho (ciclos, PDI, 9BOX, carreira, sucessão, etc.) |
-| Portal do Colaborador | Portal, meus docs/EPI/SST, Solicitações, Chamados, Folha Digital (RH) |
+| Desenvolvimento | Ex-grupo Desempenho |
+| Portal do Colaborador | Início; meus docs/EPI/SST; Minhas Solicitações; Meus Chamados |
+| Solicitações (RH) | Aprovações Pendentes |
+| Folha Digital (RH) | Importar PDFs; Pendências de ciência |
 | People Analytics | Dashboard, relatórios, Pulse/eNPS, planejamento de quadro |
 
 ## Fora deste incremento

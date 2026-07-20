@@ -796,6 +796,33 @@ $menus = [
                             'update-policy-category', 'delete-policy-category',
                         ],
                     ],
+                    [
+                        'label' => 'Tipos de Solicitação',
+                        'url' => $_ENV['URL_ADM'] . 'list-request-types',
+                        'permission' => 'ListRequestTypes',
+                        'icon' => 'fas fa-list-check',
+                        'related_routes' => [
+                            'list-request-types', 'create-request-type',
+                            'update-request-type', 'delete-request-type',
+                        ],
+                    ],
+                    [
+                        'label' => 'Tipos de documento (RH)',
+                        'url' => $_ENV['URL_ADM'] . 'list-payroll-document-types',
+                        'permission' => 'ListPayrollDocumentTypes',
+                        'icon' => 'fas fa-tags',
+                        'related_routes' => [
+                            'list-payroll-document-types', 'create-payroll-document-type',
+                            'update-payroll-document-type', 'delete-payroll-document-type',
+                        ],
+                    ],
+                    [
+                        'label' => 'Cron lembretes folha (token)',
+                        'url' => $_ENV['URL_ADM'] . 'payroll-cron-config',
+                        'permission' => 'PayrollCronConfig',
+                        'icon' => 'fas fa-clock',
+                        'related_routes' => ['payroll-cron-config'],
+                    ],
                 ],
             ],
             [
@@ -1029,10 +1056,10 @@ $menus = [
                 'icon' => 'fas fa-user-circle',
                 'submenu' => [
                     [
-                        'label' => 'Portal do Colaborador',
+                        'label' => 'Início',
                         'url' => $_ENV['URL_ADM'] . 'employee-portal',
                         'permission' => 'EmployeePortal',
-                        'icon' => 'fas fa-user-circle',
+                        'icon' => 'fas fa-house',
                         'related_routes' => ['employee-portal'],
                     ],
                     [
@@ -1060,93 +1087,64 @@ $menus = [
                         'related_routes' => ['my-sst-treinamentos'],
                     ],
                     [
-                        'label' => 'Solicitações',
+                        'label' => 'Minhas Solicitações',
+                        'url' => $_ENV['URL_ADM'] . 'list-employee-requests',
+                        'permission' => 'ListEmployeeRequests',
                         'icon' => 'fa-solid fa-file-alt',
-                        'submenu' => [
-                            [
-                                'label' => 'Minhas Solicitações',
-                                'url' => $_ENV['URL_ADM'] . 'list-employee-requests',
-                                'permission' => 'ListEmployeeRequests',
-                                'related_routes' => [
-                                    'list-employee-requests', 'create-employee-request',
-                                    'view-employee-request', 'update-employee-request',
-                                ],
-                            ],
-                            [
-                                'label' => 'Aprovações Pendentes',
-                                'url' => $_ENV['URL_ADM'] . 'pending-approvals',
-                                'permission' => 'PendingApprovals',
-                                'badge' => true,
-                                'related_routes' => [
-                                    'pending-approvals', 'list-pending-hr-approvals',
-                                    'list-pending-manager-approvals',
-                                ],
-                            ],
-                            [
-                                'label' => 'Tipos de Solicitação',
-                                'url' => $_ENV['URL_ADM'] . 'list-request-types',
-                                'permission' => 'ListRequestTypes',
-                                'related_routes' => [
-                                    'list-request-types', 'create-request-type',
-                                    'update-request-type', 'delete-request-type',
-                                ],
-                            ],
+                        'related_routes' => [
+                            'list-employee-requests', 'create-employee-request',
+                            'view-employee-request', 'update-employee-request',
                         ],
                     ],
                     [
-                        'label' => 'Chamados',
+                        'label' => 'Meus Chamados',
+                        'url' => $_ENV['URL_ADM'] . 'list-employee-tickets',
+                        'permission' => 'ListEmployeeTickets',
                         'icon' => 'fa-solid fa-ticket-alt',
-                        'submenu' => [
-                            [
-                                'label' => 'Meus Chamados',
-                                'url' => $_ENV['URL_ADM'] . 'list-employee-tickets',
-                                'permission' => 'ListEmployeeTickets',
-                                'related_routes' => [
-                                    'list-employee-tickets', 'create-employee-ticket',
-                                    'view-employee-ticket', 'update-employee-ticket',
-                                ],
-                            ],
+                        'related_routes' => [
+                            'list-employee-tickets', 'create-employee-ticket',
+                            'view-employee-ticket', 'update-employee-ticket',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'label' => 'Solicitações (RH)',
+                'icon' => 'fa-solid fa-clipboard-check',
+                'submenu' => [
+                    [
+                        'label' => 'Aprovações Pendentes',
+                        'url' => $_ENV['URL_ADM'] . 'pending-approvals',
+                        'permission' => 'PendingApprovals',
+                        'badge' => true,
+                        'icon' => 'fas fa-user-check',
+                        'related_routes' => [
+                            'pending-approvals', 'list-pending-hr-approvals',
+                            'list-pending-manager-approvals',
+                        ],
+                    ],
+                ],
+            ],
+            [
+                'label' => 'Folha Digital (RH)',
+                'icon' => 'fas fa-file-pdf',
+                'submenu' => [
+                    [
+                        'label' => 'Importar documentos RH (PDF)',
+                        'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
+                        'permission' => 'ImportPayrollDocuments',
+                        'icon' => 'fas fa-file-pdf',
+                        'related_routes' => [
+                            'import-payroll-documents', 'payroll-import-batch-audit',
+                            'payroll-import-batch-report',
                         ],
                     ],
                     [
-                        'label' => 'Folha Digital (RH)',
-                        'icon' => 'fas fa-file-pdf',
-                        'submenu' => [
-                            [
-                                'label' => 'Importar documentos RH (PDF)',
-                                'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
-                                'permission' => 'ImportPayrollDocuments',
-                                'icon' => 'fas fa-file-pdf',
-                                'related_routes' => [
-                                    'import-payroll-documents', 'payroll-import-batch-audit',
-                                    'payroll-import-batch-report',
-                                ],
-                            ],
-                            [
-                                'label' => 'Pendências de ciência (folha)',
-                                'url' => $_ENV['URL_ADM'] . 'list-payroll-signing-pendencies',
-                                'permission' => 'ListPayrollSigningPendencies',
-                                'icon' => 'fas fa-user-clock',
-                                'related_routes' => ['list-payroll-signing-pendencies'],
-                            ],
-                            [
-                                'label' => 'Cron lembretes folha (token)',
-                                'url' => $_ENV['URL_ADM'] . 'payroll-cron-config',
-                                'permission' => 'PayrollCronConfig',
-                                'icon' => 'fas fa-clock',
-                                'related_routes' => ['payroll-cron-config'],
-                            ],
-                            [
-                                'label' => 'Tipos de documento (RH)',
-                                'url' => $_ENV['URL_ADM'] . 'list-payroll-document-types',
-                                'permission' => 'ListPayrollDocumentTypes',
-                                'icon' => 'fas fa-tags',
-                                'related_routes' => [
-                                    'list-payroll-document-types', 'create-payroll-document-type',
-                                    'update-payroll-document-type', 'delete-payroll-document-type',
-                                ],
-                            ],
-                        ],
+                        'label' => 'Pendências de ciência (folha)',
+                        'url' => $_ENV['URL_ADM'] . 'list-payroll-signing-pendencies',
+                        'permission' => 'ListPayrollSigningPendencies',
+                        'icon' => 'fas fa-user-clock',
+                        'related_routes' => ['list-payroll-signing-pendencies'],
                     ],
                 ],
             ],
