@@ -95,7 +95,189 @@ final class PeopleAnalyticsMetricsService
             'estado_civil_labels' => UserFormHelper::estadoCivilOptions(),
             'demographics_ref_date' => $refDemo,
             'demographics_note' => 'Indicadores por sexo, idade, filhos, estado civil e país são agregados (LGPD). Ativos: snapshot na data final do período filtrado. Desligamentos: somente no período. Classificação regrettable/non: cadastro ou histórico de vínculo. País: lista alinhada ao cadastro (ISO2).',
+            'retention' => $this->computeRetention(
+                $users,
+                $historyByUserId,
+                $periodStart,
+                $periodEnd,
+                $terminatedInPeriod,
+                $turnoverRate,
+                $activeAtEnd,
+                $termDemo['by_impact_code']
+            ),
         ];
+    }
+
+    /**
+     * Qualidade de retenção (Fase 6) — sem custo financeiro (sem fonte de salário).
+     *
+     * @param array<int, array<string, mixed>> $users
+     * @param array<int, list<array<string, mixed>>> $historyByUserId
+     * @param array<string, int> $impactCodes
+     * @return array<string, mixed>
+     */
+    public function computeRetention(
+        array $users,
+        array $historyByUserId,
+        string $periodStart,
+        string $periodEnd,
+        int $terminatedInPeriod,
+        float $turnoverRate,
+        int $activeAtEnd,
+        array $impactCodes = []
+    ): array {
+        $periodStart = $this->clampPeriodStart($periodStart, $periodEnd);
+        $bands = [
+            'lt_90d' => 0,
+            'd90_1y' => 0,
+            'y1_3y' => 0,
+            'ge_3y' => 0,
+            'unknown' => 0,
+        ];
+        $early90 = 0;
+        $tenureDaysSum = 0;
+        $tenureDaysCount = 0;
+
+        foreach ($users as $u) {
+            $td = $u['data_desligamento'] ?? null;
+            if (empty($td) || $td < $periodStart || $td > $periodEnd) {
+                continue;
+            }
+            $days = $this->tenureDaysAtTermination($u);
+            if ($days === null) {
+                $bands['unknown']++;
+                continue;
+            }
+            $tenureDaysSum += $days;
+            $tenureDaysCount++;
+            if ($days < 90) {
+                $early90++;
+                $bands['lt_90d']++;
+            } elseif ($days < 365) {
+                $bands['d90_1y']++;
+            } elseif ($days < 1095) {
+                $bands['y1_3y']++;
+            } else {
+                $bands['ge_3y']++;
+            }
+        }
+        $early365Total = $early90 + $bands['d90_1y'];
+
+        $stable1y = 0;
+        $stable3y = 0;
+        foreach ($users as $u) {
+            if (!$this->isActiveOnRefDate($u, $periodEnd)) {
+                continue;
+            }
+            $days = $this->tenureDaysAtSnapshot($u, $periodEnd);
+            if ($days === null) {
+                continue;
+            }
+            if ($days >= 365) {
+                $stable1y++;
+            }
+            if ($days >= 1095) {
+                $stable3y++;
+            }
+        }
+
+        $retentionRate = round(max(0, 100 - $turnoverRate), 2);
+        $pct = static function (int $part, int $total): ?float {
+            return $total > 0 ? round(($part / $total) * 100, 1) : null;
+        };
+
+        $regrettable = (int) ($impactCodes['regrettable'] ?? 0);
+        $nonRegrettable = (int) ($impactCodes['non_regrettable'] ?? 0);
+        $unclassified = (int) ($impactCodes['nao_classificado'] ?? 0);
+        if ($impactCodes === [] && $terminatedInPeriod > 0) {
+            foreach ($users as $u) {
+                $td = $u['data_desligamento'] ?? null;
+                if (empty($td) || $td < $periodStart || $td > $periodEnd) {
+                    continue;
+                }
+                $code = $this->resolveTerminationImpact($u, $historyByUserId);
+                if ($code === 'regrettable') {
+                    $regrettable++;
+                } elseif ($code === 'non_regrettable') {
+                    $nonRegrettable++;
+                } else {
+                    $unclassified++;
+                }
+            }
+        }
+
+        return [
+            'available' => true,
+            'costs_available' => false,
+            'costs_note' => 'Custo financeiro de turnover não calculado: não há salário canónico em adms_users/folha digital neste incremento.',
+            'retention_rate' => number_format($retentionRate, 2, '.', ''),
+            'retention_formula' => '100 − taxa de rotatividade do período (mesma base do card de turnover).',
+            'early_turnover_lt_90' => [
+                'count' => $early90,
+                'pct' => $pct($early90, $terminatedInPeriod),
+            ],
+            'early_turnover_lt_365' => [
+                'count' => $early365Total,
+                'pct' => $pct($early365Total, $terminatedInPeriod),
+            ],
+            'termination_tenure_bands' => $bands,
+            'avg_tenure_at_termination_days' => $tenureDaysCount > 0
+                ? (int) round($tenureDaysSum / $tenureDaysCount)
+                : null,
+            'stability_active_ge_1y' => [
+                'count' => $stable1y,
+                'pct' => $pct($stable1y, $activeAtEnd),
+            ],
+            'stability_active_ge_3y' => [
+                'count' => $stable3y,
+                'pct' => $pct($stable3y, $activeAtEnd),
+            ],
+            'impact_quality' => [
+                'regrettable' => $regrettable,
+                'non_regrettable' => $nonRegrettable,
+                'nao_classificado' => $unclassified,
+                'regrettable_pct' => $pct($regrettable, $terminatedInPeriod),
+            ],
+        ];
+    }
+
+    private function tenureDaysAtTermination(array $u): ?int
+    {
+        $ad = (string) ($u['data_admissao'] ?? '');
+        $td = (string) ($u['data_desligamento'] ?? '');
+        if ($ad === '' || $td === '') {
+            return null;
+        }
+        try {
+            $a = new DateTimeImmutable($ad);
+            $t = new DateTimeImmutable($td);
+            if ($t < $a) {
+                return null;
+            }
+
+            return (int) $a->diff($t)->days;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function tenureDaysAtSnapshot(array $u, string $refYmd): ?int
+    {
+        $ad = (string) ($u['data_admissao'] ?? '');
+        if ($ad === '') {
+            return null;
+        }
+        try {
+            $a = new DateTimeImmutable($ad);
+            $r = new DateTimeImmutable($refYmd);
+            if ($r < $a) {
+                return null;
+            }
+
+            return (int) $a->diff($r)->days;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     private function clampPeriodStart(string $periodStart, string $periodEnd): string

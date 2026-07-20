@@ -97,7 +97,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] clima / pulse / eNPS (1º incremento: campanhas + resposta + score) — [CLIMA_PULSE_ENPS_EXPAND.md](CLIMA_PULSE_ENPS_EXPAND.md);
 - [x] planejamento de quadro (1º incremento: plano vs efetivo + gap) — [PLANEJAMENTO_QUADRO_EXPAND.md](PLANEJAMENTO_QUADRO_EXPAND.md);
 - [x] indicadores integrados (1º incremento: faixa no People Analytics) — [INDICADORES_INTEGRADOS_EXPAND.md](INDICADORES_INTEGRADOS_EXPAND.md);
-- [ ] custos e retenção;
+- [x] custos e retenção (1º incremento: qualidade de retenção; sem custo R$) — [CUSTOS_RETENCAO_EXPAND.md](CUSTOS_RETENCAO_EXPAND.md);
 - [ ] automação e IA após maturidade dos dados.
 
 ## Dependências

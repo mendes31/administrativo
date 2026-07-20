@@ -28,8 +28,9 @@ Fases 5 e 6 (desenvolvimento, clima, quadro), sem criar página/ACL nova.
 
 - filtrar esses KPIs pelos filtros demográficos GET;
 - histórico multi-período / drill-down;
-- custos e retenção (próximo item Fase 6);
 - automação/IA.
+
+Retenção qualitativa: ver [CUSTOS_RETENCAO_EXPAND.md](CUSTOS_RETENCAO_EXPAND.md).
 
 ## Dependências
 

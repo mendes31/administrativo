@@ -126,6 +126,7 @@ Toda mudança estrutural deve:
 - [Clima / Pulse / eNPS — Expand](CLIMA_PULSE_ENPS_EXPAND.md)
 - [Planejamento de Quadro — Expand](PLANEJAMENTO_QUADRO_EXPAND.md)
 - [Indicadores Integrados — Expand](INDICADORES_INTEGRADOS_EXPAND.md)
+- [Custos e Retenção — Expand](CUSTOS_RETENCAO_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

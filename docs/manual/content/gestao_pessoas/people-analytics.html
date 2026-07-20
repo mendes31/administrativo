@@ -3,9 +3,10 @@
 <h2>Função no sistema</h2>
 <p>
 O <strong>People Analytics</strong> consolida KPIs demográficos e de vínculo
-(headcount, turnover, distribuição) e, na faixa <strong>Indicadores integrados</strong>,
-resume desenvolvimento, clima e quadro (ciclo, PDI, eNPS, gap de headcount, talent pool e sucessão).
-É visão gerencial; o detalhe operacional continua nas telas de cada módulo.
+(headcount, turnover, distribuição), a faixa <strong>Indicadores integrados</strong>
+(desenvolvimento, clima e quadro) e o bloco <strong>Retenção</strong>
+(early turnover, estabilidade, qualidade regrettable). É visão gerencial; o detalhe
+operacional continua nas telas de cada módulo.
 </p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também <em>People Analytics</em> (<code>gp-analytics</code>).</p>
@@ -15,36 +16,38 @@ resume desenvolvimento, clima e quadro (ciclo, PDI, eNPS, gap de headcount, tale
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Rotatividade</dt>
-    <dd>Percentual de desligamentos no período em relação à média de headcount (fórmula exibida no card).</dd>
+    <dd>Percentual de desligamentos no período em relação à média de headcount (fórmula no card).</dd>
+    <dt>Taxa de retenção</dt>
+    <dd><code>100 − rotatividade</code> no mesmo período.</dd>
+    <dt>Early turnover</dt>
+    <dd>Desligamentos com pouco tempo de casa (&lt; 90 dias ou &lt; 1 ano).</dd>
+    <dt>Regrettable</dt>
+    <dd>Desligamento classificado como perda relevante (cadastro/histórico). Não é o mesmo que “pedido vs demissão”.</dd>
     <dt>Indicadores integrados</dt>
-    <dd>Resumo das Fases 5/6: conclusão de avaliações no ciclo aberto, progresso de PDI, eNPS, gap de quadro, nomeações HiPo e cobertura de sucessão.</dd>
-    <dt>Gap de quadro</dt>
-    <dd>Soma de (planejado − efetivo) das linhas ativas do mês corrente.</dd>
-    <dt>eNPS</dt>
-    <dd>Employee Net Promoter Score da última campanha eNPS cadastrada.</dd>
+    <dd>Resumo das Fases 5/6: ciclo, PDI, eNPS, gap de quadro, talent pool e sucessão.</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Acesse <strong>Gestão de Pessoas → People Analytics → Dashboard Analytics</strong>.</li>
-    <li>Ajuste os filtros globais (período, departamento, cargo, demografia) e clique em <strong>Aplicar</strong>.</li>
-    <li>Leia os cards de vínculo/turnover e, abaixo, a faixa <strong>Indicadores integrados</strong>.</li>
-    <li>Use os links de cada card integrado para abrir a listagem detalhada (Ciclos, PDI, Pesquisas, Quadro, etc.).</li>
-    <li>Explore os gráficos; clique em segmentos de departamento quando quiser filtrar.</li>
+    <li>Ajuste os filtros globais e clique em <strong>Aplicar</strong>.</li>
+    <li>Leia cards de vínculo, <strong>Indicadores integrados</strong> e o bloco <strong>Retenção</strong>.</li>
+    <li>Use os links dos cards integrados para as listagens detalhadas.</li>
+    <li>Explore os gráficos; clique em segmentos de departamento para filtrar.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros globais</strong> Período e dimensões demográficas/organizacionais — aplicam-se aos KPIs de vínculo e gráficos, não aos cards integrados neste incremento.</div>
-<div class="help-field"><strong>Cards de vínculo</strong> Colaboradores, ativos, admissões, desligamentos, saldo e rotatividade.</div>
-<div class="help-field"><strong>Indicadores integrados</strong> Seis cards com links para Ciclos, PDI, Pulse/eNPS, Quadro, Talent pool e Sucessão.</div>
-<div class="help-field"><strong>JSON metrics</strong> Endpoint <code>people-analytics/metrics</code> inclui a chave <code>integrated</code>.</div>
+<div class="help-field"><strong>Filtros globais</strong> Aplicam-se a vínculo, gráficos e retenção; não aos cards integrados neste corte.</div>
+<div class="help-field"><strong>Retenção</strong> Taxa, early turnover, tenure médio no desligamento, estabilidade ≥1a/≥3a, % regrettable e faixas de tenure.</div>
+<div class="help-field"><strong>Custo</strong> Ainda não calculado (não há salário canónico no cadastro/folha).</div>
+<div class="help-field"><strong>JSON metrics</strong> Inclui <code>integrated</code> e <code>retention</code>.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu</dt>
     <dd>Permissão <em>PeopleAnalytics</em> ausente no nível de acesso.</dd>
-    <dt>Card integrado mostra traço ou zero</dt>
-    <dd>Ainda não há ciclo aberto, campanha eNPS, linhas de quadro ativas no mês, ou dados de PDI/sucessão — cadastre nas telas respectivas.</dd>
-    <dt>Indicadores integrados não mudam com o filtro demográfico</dt>
-    <dd>Comportamento do 1º incremento: o bloco é visão global; use os links para filtrar nas listagens.</dd>
+    <dt>Early turnover zerado com desligamentos</dt>
+    <dd>Confira se <em>data_admissao</em> está preenchida nos desligados.</dd>
+    <dt>Não aparece custo em R$</dt>
+    <dd>Esperado neste incremento — falta fonte de remuneração; só retenção qualitativa.</dd>
 </dl>

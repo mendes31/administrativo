@@ -340,6 +340,100 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         </div>
     </div>
 
+    <?php
+    $ret = $this->data['retention'] ?? [];
+    $bands = $ret['termination_tenure_bands'] ?? [];
+    $iq = $ret['impact_quality'] ?? [];
+    $e90 = $ret['early_turnover_lt_90'] ?? [];
+    $e365 = $ret['early_turnover_lt_365'] ?? [];
+    $s1 = $ret['stability_active_ge_1y'] ?? [];
+    $s3 = $ret['stability_active_ge_3y'] ?? [];
+    ?>
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h5 class="mb-0">Retenção</h5>
+        <small class="text-muted">Qualidade de permanência no período filtrado · custo financeiro ainda não disponível</small>
+    </div>
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-success shadow h-100">
+                <div class="card-body text-center">
+                    <h4 class="mb-0"><?= htmlspecialchars((string)($ret['retention_rate'] ?? '—')) ?>%</h4>
+                    <p class="text-muted mb-0 small">Taxa de retenção
+                        <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip"
+                              title="<?= htmlspecialchars((string)($ret['retention_formula'] ?? '')) ?>">
+                            <i class="fas fa-info-circle text-muted"></i>
+                        </span>
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-warning shadow h-100">
+                <div class="card-body text-center">
+                    <h4 class="mb-0"><?= (int)($e90['count'] ?? 0) ?></h4>
+                    <p class="text-muted mb-0 small">Early &lt; 90 dias
+                        <?= isset($e90['pct']) && $e90['pct'] !== null ? ' (' . htmlspecialchars((string)$e90['pct']) . '%)' : '' ?></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-warning shadow h-100">
+                <div class="card-body text-center">
+                    <h4 class="mb-0"><?= (int)($e365['count'] ?? 0) ?></h4>
+                    <p class="text-muted mb-0 small">Early &lt; 1 ano
+                        <?= isset($e365['pct']) && $e365['pct'] !== null ? ' (' . htmlspecialchars((string)$e365['pct']) . '%)' : '' ?></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-info shadow h-100">
+                <div class="card-body text-center">
+                    <h4 class="mb-0"><?= isset($ret['avg_tenure_at_termination_days']) ? (int)$ret['avg_tenure_at_termination_days'] . 'd' : '—' ?></h4>
+                    <p class="text-muted mb-0 small">Tenure médio no desligamento</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-primary shadow h-100">
+                <div class="card-body text-center">
+                    <h4 class="mb-0"><?= isset($s1['pct']) && $s1['pct'] !== null ? htmlspecialchars((string)$s1['pct']) . '%' : '—' ?></h4>
+                    <p class="text-muted mb-0 small">Estáveis ≥ 1 ano (ativos)</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-lg-4 col-xl-2">
+            <div class="card border-danger shadow h-100">
+                <div class="card-body text-center">
+                    <h4 class="mb-0"><?= isset($iq['regrettable_pct']) && $iq['regrettable_pct'] !== null ? htmlspecialchars((string)$iq['regrettable_pct']) . '%' : '—' ?></h4>
+                    <p class="text-muted mb-0 small">Regrettable no período
+                        <span class="d-block"><?= (int)($iq['regrettable'] ?? 0) ?> / <?= (int)($this->data['terminations_in_period'] ?? 0) ?></span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card border-light shadow mb-4">
+        <div class="card-header py-2"><strong>Faixas de tenure nos desligamentos</strong></div>
+        <div class="card-body py-3">
+            <div class="row text-center small">
+                <div class="col"><div class="fw-semibold"><?= (int)($bands['lt_90d'] ?? 0) ?></div>&lt; 90 dias</div>
+                <div class="col"><div class="fw-semibold"><?= (int)($bands['d90_1y'] ?? 0) ?></div>90d – 1 ano</div>
+                <div class="col"><div class="fw-semibold"><?= (int)($bands['y1_3y'] ?? 0) ?></div>1 – 3 anos</div>
+                <div class="col"><div class="fw-semibold"><?= (int)($bands['ge_3y'] ?? 0) ?></div>≥ 3 anos</div>
+                <div class="col"><div class="fw-semibold"><?= (int)($bands['unknown'] ?? 0) ?></div>Sem admissão</div>
+            </div>
+            <p class="text-muted small mb-0 mt-3">
+                Estáveis ≥ 3 anos: <?= (int)($s3['count'] ?? 0) ?>
+                <?= isset($s3['pct']) && $s3['pct'] !== null ? '(' . htmlspecialchars((string)$s3['pct']) . '% dos ativos)' : '' ?>
+                · Non-regrettable: <?= (int)($iq['non_regrettable'] ?? 0) ?>
+                · Não classificado: <?= (int)($iq['nao_classificado'] ?? 0) ?>
+            </p>
+            <?php if (empty($ret['costs_available'])): ?>
+                <p class="text-muted small mb-0 mt-2"><em><?= htmlspecialchars((string)($ret['costs_note'] ?? '')) ?></em></p>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <!-- Gráficos -->
     <div class="row g-4 mb-4">
         <div class="col-md-6">
