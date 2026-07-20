@@ -17,8 +17,9 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
 - Desenvolvimento (Fase 5 em andamento):
   - ciclos, metas, avaliações↔ciclo, calibração, Nine Box por ciclo;
   - PDI completo (planos, ações, competências, treinamentos, metas, feedbacks, aprovação);
-  - talent pool / HiPo por ciclo — 1º incremento de carreira/sucessão;
-  - **faltam:** sucessão formal, trilhas de carreira e aprofundamentos de mercado;
+  - talent pool / HiPo por ciclo;
+  - sucessão (cargos críticos + sucessores + readiness);
+  - **faltam:** trilhas de carreira/promoções e aprofundamentos de mercado;
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
 - `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
@@ -64,7 +65,7 @@ Vínculo e Lotação por contratos e permissões específicas.
 Ordem acordada após os 1ºs incrementos:
 
 1. ~~PDI completo (metas, feedbacks, aprovação, progresso);~~
-2. Sucessão (cargos críticos + sucessores + readiness);
+2. ~~Sucessão (cargos críticos + sucessores + readiness);~~
 3. Carreira (trilhas / níveis / promoções);
 4. Aprofundamentos (feedback contínuo global, avaliações em massa,
    calibração avançada, matching Nine Box→PDI — avançado).

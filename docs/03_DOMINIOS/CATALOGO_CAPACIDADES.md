@@ -30,7 +30,7 @@ pastas ou tecnologias. O catálogo orienta ownership, diagnóstico e roadmap.
 | Avaliar desempenho | Parcial |
 | Manter PDI | Parcial / quase operacional |
 | Capacitar colaboradores | Operacional |
-| Gerenciar carreira e sucessão | Parcial (talent pool / HiPo) |
+| Gerenciar carreira e sucessão | Parcial (HiPo + sucessão) |
 | Atender pelo Portal | Parcial |
 | Medir pessoas e turnover | Parcial |
 

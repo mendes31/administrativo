@@ -118,6 +118,7 @@ Toda mudança estrutural deve:
 - [PDI operacional — Expand](DESENVOLVIMENTO_PDI_EXPAND.md)
 - [PDI completo — Expand](DESENVOLVIMENTO_PDI_COMPLETO_EXPAND.md)
 - [Talent pool / HiPo — Expand](DESENVOLVIMENTO_TALENT_POOL_EXPAND.md)
+- [Sucessão — Expand](DESENVOLVIMENTO_SUCESSAO_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

@@ -1518,6 +1518,11 @@
                     "file": "gestao_pessoas/list-talent-nominations.html"
                 },
                 {
+                    "id": "list-critical-positions",
+                    "title": "Sucessão — Cargos Críticos",
+                    "file": "gestao_pessoas/list-critical-positions.html"
+                },
+                {
                     "id": "list-policies",
                     "title": "Listar Políticas Internas",
                     "file": "gestao_pessoas/list-policies.html"

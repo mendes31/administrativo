@@ -937,6 +937,15 @@ $menus = [
                         ],
                     ],
                     [
+                        'label' => 'Sucessão',
+                        'url' => $_ENV['URL_ADM'] . 'list-critical-positions',
+                        'permission' => 'ListCriticalPositions',
+                        'related_routes' => [
+                            'list-critical-positions', 'create-critical-position',
+                            'view-critical-position', 'update-critical-position',
+                        ],
+                    ],
+                    [
                         'label' => 'Dashboard de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'performance-dashboard',
                         'permission' => 'PerformanceDashboard',

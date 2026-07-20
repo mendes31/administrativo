@@ -1172,6 +1172,17 @@
                                     "title": "Talent Pool (HiPo)"
                                 }
                             ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Sucessão",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-critical-positions",
+                                    "title": "Sucessão — Cargos Críticos"
+                                }
+                            ]
                         }
                     ]
                 },
