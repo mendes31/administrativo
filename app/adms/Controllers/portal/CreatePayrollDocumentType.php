@@ -23,7 +23,7 @@ class CreatePayrollDocumentType
 
         $pageElements = [
             'title_head' => 'Criar tipo de documento (RH)',
-            'menu' => 'create-payroll-document-type',
+            'menu' => 'list-payroll-document-types',
             'buttonPermission' => ['ListPayrollDocumentTypes'],
         ];
         $pageLayoutService = new PageLayoutService();

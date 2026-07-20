@@ -39,7 +39,7 @@ class ViewCompetency
 
         $pageElements = [
             'title_head' => 'Visualizar Competência',
-            'menu' => 'view-competency',
+            'menu' => 'list-competencies',
             'buttonPermission' => [
                 'ListCompetencies',
                 'UpdateCompetency',

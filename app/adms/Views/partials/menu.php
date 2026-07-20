@@ -1,6 +1,6 @@
 <?php
 // var_dump($this->data['menuPermission']); // DEBUG: Exibe as permissões do menu do usuário
-// deploy-sync: 2026-07-16 — SST related_routes (destaque de menu em todo o módulo)
+// deploy-sync: 2026-07-20 — Gestão de Pessoas related_routes (destaque de menu)
 use App\adms\Models\Repository\AdmsPasswordPolicyRepository;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
@@ -762,60 +762,85 @@ $menus = [
                 'icon'  => 'fa-solid fa-file-contract',
                 'url'   => $_ENV['URL_ADM'] . 'list-policies',
                 'permission' => 'ListPolicies',
+                'related_routes' => [
+                    'list-policies', 'create-policy', 'view-policy', 'update-policy',
+                    'delete-policy', 'relatorio-policy',
+                ],
             ],
             [
                 'label' => 'Categorias de Políticas',
                 'icon'  => 'fa-solid fa-tags',
                 'url'   => $_ENV['URL_ADM'] . 'list-policy-categories',
                 'permission' => 'ListPolicyCategories',
+                'related_routes' => [
+                    'list-policy-categories', 'create-policy-category',
+                    'update-policy-category', 'delete-policy-category',
+                ],
             ],
             [
                 'label' => 'Portal do Colaborador',
                 'url' => $_ENV['URL_ADM'] . 'employee-portal',
                 'permission' => 'EmployeePortal',
-                'icon' => 'fas fa-user-circle'
+                'icon' => 'fas fa-user-circle',
+                'related_routes' => ['employee-portal'],
             ],
             [
                 'label' => 'Meus documentos (folha)',
                 'url' => $_ENV['URL_ADM'] . 'my-payroll-documents',
                 'permission' => 'MyPayrollDocuments',
-                'icon' => 'fas fa-file-invoice-dollar'
+                'icon' => 'fas fa-file-invoice-dollar',
+                'related_routes' => [
+                    'my-payroll-documents', 'sign-payroll-document',
+                    'confirm-payroll-document-download',
+                ],
             ],
             [
                 'label' => 'Meus EPIs',
                 'url' => $_ENV['URL_ADM'] . 'my-epi-deliveries',
                 'permission' => 'MyEpiDeliveries',
-                'icon' => 'fas fa-hard-hat'
+                'icon' => 'fas fa-hard-hat',
+                'related_routes' => ['my-epi-deliveries', 'sign-epi-ficha'],
             ],
             [
                 'label' => 'Meus treinamentos SST',
                 'url' => $_ENV['URL_ADM'] . 'my-sst-treinamentos',
                 'permission' => 'MySstTreinamentos',
-                'icon' => 'fas fa-graduation-cap'
+                'icon' => 'fas fa-graduation-cap',
+                'related_routes' => ['my-sst-treinamentos'],
             ],
             [
                 'label' => 'Importar documentos RH (PDF)',
                 'url' => $_ENV['URL_ADM'] . 'import-payroll-documents',
                 'permission' => 'ImportPayrollDocuments',
-                'icon' => 'fas fa-file-pdf'
+                'icon' => 'fas fa-file-pdf',
+                'related_routes' => [
+                    'import-payroll-documents', 'payroll-import-batch-audit',
+                    'payroll-import-batch-report',
+                ],
             ],
             [
                 'label' => 'Pendências de ciência (folha)',
                 'url' => $_ENV['URL_ADM'] . 'list-payroll-signing-pendencies',
                 'permission' => 'ListPayrollSigningPendencies',
-                'icon' => 'fas fa-user-clock'
+                'icon' => 'fas fa-user-clock',
+                'related_routes' => ['list-payroll-signing-pendencies'],
             ],
             [
                 'label' => 'Cron lembretes folha (token)',
                 'url' => $_ENV['URL_ADM'] . 'payroll-cron-config',
                 'permission' => 'PayrollCronConfig',
-                'icon' => 'fas fa-clock'
+                'icon' => 'fas fa-clock',
+                'related_routes' => ['payroll-cron-config'],
             ],
             [
                 'label' => 'Tipos de documento (RH)',
                 'url' => $_ENV['URL_ADM'] . 'list-payroll-document-types',
                 'permission' => 'ListPayrollDocumentTypes',
-                'icon' => 'fas fa-tags'
+                'icon' => 'fas fa-tags',
+                'related_routes' => [
+                    'list-payroll-document-types', 'create-payroll-document-type',
+                    'update-payroll-document-type', 'delete-payroll-document-type',
+                ],
             ],
             [
                 'label' => 'Desempenho',
@@ -824,47 +849,80 @@ $menus = [
                     [
                         'label' => 'Ciclos',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-cycles',
-                        'permission' => 'ListPerformanceCycles'
+                        'permission' => 'ListPerformanceCycles',
+                        'related_routes' => [
+                            'list-performance-cycles', 'create-performance-cycle',
+                            'view-performance-cycle', 'update-performance-cycle',
+                        ],
                     ],
                     [
                         'label' => 'Calibração',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-calibrations',
-                        'permission' => 'ListPerformanceCalibrations'
+                        'permission' => 'ListPerformanceCalibrations',
+                        'related_routes' => [
+                            'list-performance-calibrations', 'create-performance-calibration',
+                            'view-performance-calibration', 'update-performance-calibration',
+                        ],
                     ],
                     [
                         'label' => 'Avaliações de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-reviews',
-                        'permission' => 'ListPerformanceReviews'
+                        'permission' => 'ListPerformanceReviews',
+                        'related_routes' => [
+                            'list-performance-reviews', 'create-performance-review',
+                            'view-performance-review', 'update-performance-review',
+                            'delete-performance-review', 'record-review-results',
+                        ],
                     ],
                     [
                         'label' => 'Metas (OKRs)',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-goals',
-                        'permission' => 'ListPerformanceGoals'
+                        'permission' => 'ListPerformanceGoals',
+                        'related_routes' => [
+                            'list-performance-goals', 'create-performance-goal',
+                            'view-performance-goal', 'update-performance-goal',
+                            'delete-performance-goal',
+                        ],
                     ],
                     [
                         'label' => 'Feedbacks',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-feedbacks',
-                        'permission' => 'ListPerformanceFeedbacks'
+                        'permission' => 'ListPerformanceFeedbacks',
+                        'related_routes' => [
+                            'list-performance-feedbacks', 'create-performance-feedback',
+                            'view-performance-feedback', 'update-performance-feedback',
+                            'delete-performance-feedback',
+                        ],
                     ],
                     [
                         'label' => 'Competências',
                         'url' => $_ENV['URL_ADM'] . 'list-competencies',
-                        'permission' => 'ListCompetencies'
+                        'permission' => 'ListCompetencies',
+                        'related_routes' => [
+                            'list-competencies', 'create-competency',
+                            'view-competency', 'update-competency', 'delete-competency',
+                        ],
                     ],
                     [
                         'label' => 'Matriz de Competências',
                         'url' => $_ENV['URL_ADM'] . 'competency-matrix',
-                        'permission' => 'CompetencyMatrix'
+                        'permission' => 'CompetencyMatrix',
+                        'related_routes' => ['competency-matrix'],
                     ],
                     [
                         'label' => 'Matriz 9BOX',
                         'url' => $_ENV['URL_ADM'] . 'nine-box-matrix',
-                        'permission' => 'NineBoxMatrix'
+                        'permission' => 'NineBoxMatrix',
+                        'related_routes' => [
+                            'nine-box-matrix', 'export-nine-box-matrix-pdf',
+                            'export-nine-box-matrix-excel',
+                        ],
                     ],
                     [
                         'label' => 'Dashboard de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'performance-dashboard',
-                        'permission' => 'PerformanceDashboard'
+                        'permission' => 'PerformanceDashboard',
+                        'related_routes' => ['performance-dashboard'],
                     ],
                 ]
             ],
@@ -875,18 +933,30 @@ $menus = [
                     [
                         'label' => 'Minhas Solicitações',
                         'url' => $_ENV['URL_ADM'] . 'list-employee-requests',
-                        'permission' => 'ListEmployeeRequests'
+                        'permission' => 'ListEmployeeRequests',
+                        'related_routes' => [
+                            'list-employee-requests', 'create-employee-request',
+                            'view-employee-request', 'update-employee-request',
+                        ],
                     ],
                     [
                         'label' => 'Aprovações Pendentes',
                         'url' => $_ENV['URL_ADM'] . 'pending-approvals',
                         'permission' => 'PendingApprovals',
-                        'badge' => true // Mostrar badge com contagem
+                        'badge' => true,
+                        'related_routes' => [
+                            'pending-approvals', 'list-pending-hr-approvals',
+                            'list-pending-manager-approvals',
+                        ],
                     ],
                     [
                         'label' => 'Tipos de Solicitação',
                         'url' => $_ENV['URL_ADM'] . 'list-request-types',
-                        'permission' => 'ListRequestTypes'
+                        'permission' => 'ListRequestTypes',
+                        'related_routes' => [
+                            'list-request-types', 'create-request-type',
+                            'update-request-type', 'delete-request-type',
+                        ],
                     ],
                 ]
             ],
@@ -897,7 +967,11 @@ $menus = [
                     [
                         'label' => 'Meus Chamados',
                         'url' => $_ENV['URL_ADM'] . 'list-employee-tickets',
-                        'permission' => 'ListEmployeeTickets'
+                        'permission' => 'ListEmployeeTickets',
+                        'related_routes' => [
+                            'list-employee-tickets', 'create-employee-ticket',
+                            'view-employee-ticket', 'update-employee-ticket',
+                        ],
                     ],
                 ]
             ],
@@ -908,12 +982,14 @@ $menus = [
                     [
                         'label' => 'Dashboard Analytics',
                         'url' => $_ENV['URL_ADM'] . 'people-analytics',
-                        'permission' => 'PeopleAnalytics'
+                        'permission' => 'PeopleAnalytics',
+                        'related_routes' => ['people-analytics'],
                     ],
                     [
                         'label' => 'Relatórios de RH',
                         'url' => $_ENV['URL_ADM'] . 'people-reports',
-                        'permission' => 'PeopleReports'
+                        'permission' => 'PeopleReports',
+                        'related_routes' => ['people-reports'],
                     ],
                 ]
             ],
@@ -925,55 +1001,84 @@ $menus = [
                         'label' => 'Dashboard de Recrutamento',
                         'url' => $_ENV['URL_ADM'] . 'rh-kpi-dashboard',
                         'permission' => 'RhKpiDashboard',
-                        'icon' => 'fas fa-chart-pie'
+                        'icon' => 'fas fa-chart-pie',
+                        'related_routes' => ['rh-kpi-dashboard'],
                     ],
                     [
                         'label' => 'Currículos / Candidatos',
                         'url' => $_ENV['URL_ADM'] . 'rh-candidatos',
                         'permission' => 'RhCandidatos',
-                        'icon' => 'fas fa-user-tie'
+                        'icon' => 'fas fa-user-tie',
+                        'related_routes' => [
+                            'rh-candidatos', 'rh-candidatos-create', 'rh-candidatos-view',
+                            'rh-candidatos-edit', 'rh-candidatos-vagas',
+                            'rh-ofertas-create', 'rh-ofertas-view', 'rh-ofertas-convert',
+                        ],
                     ],
                     [
                         'label' => 'Vagas de Emprego',
                         'url' => $_ENV['URL_ADM'] . 'rh-vagas',
                         'permission' => 'RhVagas',
-                        'icon' => 'fas fa-briefcase'
+                        'icon' => 'fas fa-briefcase',
+                        'related_routes' => [
+                            'rh-vagas', 'rh-vagas-create', 'rh-vagas-view', 'rh-vagas-edit',
+                            'rh-vagas-pipeline', 'rh-vagas-candidatos',
+                        ],
                     ],
                     [
                         'label' => 'Portal de Vagas (CAPTCHA)',
                         'url' => $_ENV['URL_ADM'] . 'rh-vagas-publicas-config',
                         'permission' => 'RhVagasPublicasConfig',
-                        'icon' => 'fas fa-shield-alt'
+                        'icon' => 'fas fa-shield-alt',
+                        'related_routes' => ['rh-vagas-publicas-config'],
                     ],
                     [
                         'label' => 'Requisições de Pessoal',
                         'url' => $_ENV['URL_ADM'] . 'rh-personnel-requests',
                         'permission' => 'RhPersonnelRequests',
-                        'icon' => 'fas fa-user-plus'
+                        'icon' => 'fas fa-user-plus',
+                        'related_routes' => [
+                            'rh-personnel-requests', 'rh-personnel-requests-create',
+                            'rh-personnel-requests-view',
+                        ],
                     ],
                     [
                         'label' => 'Entrevistas',
                         'url' => $_ENV['URL_ADM'] . 'rh-entrevistas',
                         'permission' => 'RhEntrevistas',
-                        'icon' => 'fas fa-calendar-alt'
+                        'icon' => 'fas fa-calendar-alt',
+                        'related_routes' => [
+                            'rh-entrevistas', 'rh-entrevistas-create',
+                            'rh-entrevistas-view', 'rh-entrevistas-edit',
+                        ],
                     ],
                     [
                         'label' => 'Movimentações',
                         'url' => $_ENV['URL_ADM'] . 'rh-movimentacoes',
                         'permission' => 'RhMovimentacoes',
-                        'icon' => 'fas fa-people-arrows'
+                        'icon' => 'fas fa-people-arrows',
+                        'related_routes' => [
+                            'rh-movimentacoes', 'rh-movimentacoes-create', 'rh-movimentacoes-view',
+                        ],
                     ],
                     [
                         'label' => 'Offboarding',
                         'url' => $_ENV['URL_ADM'] . 'rh-offboardings',
                         'permission' => 'RhOffboardings',
-                        'icon' => 'fas fa-user-minus'
+                        'icon' => 'fas fa-user-minus',
+                        'related_routes' => [
+                            'rh-offboardings', 'rh-offboardings-create', 'rh-offboardings-view',
+                        ],
                     ],
                     [
                         'label' => 'Pessoas',
                         'url' => $_ENV['URL_ADM'] . 'rh-pessoas',
                         'permission' => 'RhPessoas',
-                        'icon' => 'fas fa-id-card'
+                        'icon' => 'fas fa-id-card',
+                        'related_routes' => [
+                            'rh-pessoas', 'rh-pessoas-view',
+                            'rh-onboarding-view', 'rh-experiencia-view',
+                        ],
                     ],
                 ]
             ],

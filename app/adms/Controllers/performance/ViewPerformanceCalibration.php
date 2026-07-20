@@ -42,7 +42,7 @@ class ViewPerformanceCalibration
 
         $pageElements = [
             'title_head' => 'Visualizar Calibração',
-            'menu' => 'view-performance-calibration',
+            'menu' => 'list-performance-calibrations',
             'buttonPermission' => [
                 'ListPerformanceCalibrations',
                 'UpdatePerformanceCalibration',

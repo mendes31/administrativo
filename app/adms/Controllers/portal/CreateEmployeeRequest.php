@@ -30,7 +30,7 @@ class CreateEmployeeRequest
 
         $pageElements = [
             'title_head' => 'Criar Solicitação',
-            'menu' => 'create-employee-request',
+            'menu' => 'list-employee-requests',
             'buttonPermission' => [
                 'ListEmployeeRequests',
             ],

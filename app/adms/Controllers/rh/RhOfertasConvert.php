@@ -81,7 +81,7 @@ final class RhOfertasConvert
 
         $this->data = [
             'title_head' => 'Converter oferta #' . $ofertaId,
-            'menu' => 'rh-ofertas-convert',
+            'menu' => 'rh-candidatos',
             'buttonPermission' => ['RhOfertasConvert', 'RhOfertasView', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_oferta_convert'),
             'oferta' => $oferta,

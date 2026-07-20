@@ -44,7 +44,7 @@ class ViewPolicy
 
         $pageElements = [
             'title_head'       => 'Visualizar Política Interna',
-            'menu'             => 'gestao_pessoas',
+            'menu' => 'list-policies',
             'buttonPermission' => ['ListPolicies', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy', 'ResendPolicyPush'],
         ];
 

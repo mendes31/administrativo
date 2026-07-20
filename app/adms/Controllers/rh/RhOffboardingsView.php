@@ -41,7 +41,7 @@ final class RhOffboardingsView
 
         $this->data = [
             'title_head' => 'Offboarding #' . $planoId,
-            'menu' => 'rh-offboardings-view',
+            'menu' => 'rh-offboardings',
             'buttonPermission' => ['RhOffboardingsView', 'RhOffboardings'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_offboarding'),
             'plano' => $plano,

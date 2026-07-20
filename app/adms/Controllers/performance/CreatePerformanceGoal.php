@@ -43,7 +43,7 @@ class CreatePerformanceGoal
 
         $pageElements = [
             'title_head' => 'Criar Meta de Desempenho',
-            'menu' => 'create-performance-goal',
+            'menu' => 'list-performance-goals',
             'buttonPermission' => [
                 'ListPerformanceGoals',
             ],

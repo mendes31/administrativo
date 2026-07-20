@@ -35,7 +35,7 @@ class RelatorioPolicy
 
         $pageElements = [
             'title_head' => 'Relatório de Políticas Internas',
-            'menu'       => 'gestao_pessoas',
+            'menu' => 'list-policies',
             'buttonPermission' => [],
         ];
         $pls = new PageLayoutService();
@@ -97,7 +97,7 @@ class RelatorioPolicy
 
         $pageElements = [
             'title_head' => 'Relatório de Políticas Internas',
-            'menu'       => 'gestao_pessoas',
+            'menu' => 'list-policies',
             'buttonPermission' => [],
         ];
         $pls = new PageLayoutService();

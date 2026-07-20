@@ -56,7 +56,7 @@ final class RhMovimentacoesCreate
 
         $this->data = [
             'title_head' => 'Registrar Movimentação',
-            'menu' => 'rh-movimentacoes-create',
+            'menu' => 'rh-movimentacoes',
             'buttonPermission' => ['RhMovimentacoesCreate', 'RhMovimentacoes'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_movimentacao'),
             'form' => $form,

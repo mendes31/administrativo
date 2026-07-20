@@ -99,7 +99,7 @@ class ListPolicies
         // Elementos de página + permissões de botões (seguindo padrão de ListInformativos/Users)
         $pageElements = [
             'title_head' => 'Políticas Internas',
-            'menu'       => 'gestao_pessoas',
+            'menu' => 'list-policies',
             'buttonPermission' => ['CreatePolicy', 'ViewPolicy', 'UpdatePolicy', 'DeletePolicy', 'RelatorioPolicy'],
         ];
 

@@ -37,7 +37,7 @@ class UpdatePayrollDocumentType
 
         $pageElements = [
             'title_head' => 'Editar tipo de documento (RH)',
-            'menu' => 'update-payroll-document-type',
+            'menu' => 'list-payroll-document-types',
             'buttonPermission' => ['ListPayrollDocumentTypes'],
         ];
         $pageLayoutService = new PageLayoutService();

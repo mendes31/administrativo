@@ -26,7 +26,7 @@ class CreateEmployeeTicket
     {
         $pageElements = [
             'title_head' => 'Criar Chamado',
-            'menu' => 'create-employee-ticket',
+            'menu' => 'list-employee-tickets',
             'buttonPermission' => [
                 'ListEmployeeTickets',
             ],

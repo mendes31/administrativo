@@ -37,7 +37,7 @@ class UpdateCompetency
 
         $pageElements = [
             'title_head' => 'Editar Competência',
-            'menu' => 'update-competency',
+            'menu' => 'list-competencies',
             'buttonPermission' => [
                 'ListCompetencies',
                 'ViewCompetency',

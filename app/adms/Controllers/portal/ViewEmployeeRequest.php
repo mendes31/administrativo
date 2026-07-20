@@ -58,7 +58,7 @@ class ViewEmployeeRequest
 
         $pageElements = [
             'title_head' => 'Visualizar Solicitação',
-            'menu' => 'view-employee-request',
+            'menu' => 'list-employee-requests',
             'buttonPermission' => [
                 'ListEmployeeRequests',
                 'UpdateEmployeeRequest',

@@ -59,7 +59,7 @@ class UpdatePolicy
 
         $pageElements = [
             'title_head'       => 'Editar Política Interna',
-            'menu'             => 'gestao_pessoas',
+            'menu' => 'list-policies',
             'buttonPermission' => ['UpdatePolicy'],
         ];
 

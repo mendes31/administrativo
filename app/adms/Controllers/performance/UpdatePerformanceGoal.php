@@ -74,7 +74,7 @@ class UpdatePerformanceGoal
 
         $pageElements = [
             'title_head' => 'Editar Meta de Desempenho',
-            'menu' => 'update-performance-goal',
+            'menu' => 'list-performance-goals',
             'buttonPermission' => [
                 'ListPerformanceGoals',
                 'ViewPerformanceGoal',

@@ -95,7 +95,7 @@ class UpdatePerformanceReview
 
         $pageElements = [
             'title_head' => 'Editar Avaliação de Desempenho',
-            'menu' => 'update-performance-review',
+            'menu' => 'list-performance-reviews',
             'buttonPermission' => [
                 'ListPerformanceReviews',
                 'ViewPerformanceReview',

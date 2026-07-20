@@ -17,7 +17,7 @@ class ListPolicyCategories
 
         $pageElements = [
             'title_head'       => 'Categorias de Políticas Internas',
-            'menu'             => 'gestao_pessoas',
+            'menu' => 'list-policy-categories',
             'buttonPermission' => ['ListPolicyCategories', 'CreatePolicyCategory', 'UpdatePolicyCategory', 'DeletePolicyCategory'],
         ];
 

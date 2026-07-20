@@ -47,7 +47,7 @@ class UpdatePolicyCategory
     {
         $pageElements = [
             'title_head'       => 'Editar Categoria de Política',
-            'menu'             => 'gestao_pessoas',
+            'menu' => 'list-policy-categories',
             'buttonPermission' => ['ListPolicyCategories'],
         ];
 

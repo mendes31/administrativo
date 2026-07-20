@@ -26,7 +26,7 @@ class CreateCompetency
     {
         $pageElements = [
             'title_head' => 'Cadastrar Competência',
-            'menu' => 'create-competency',
+            'menu' => 'list-competencies',
             'buttonPermission' => [
                 'ListCompetencies',
             ],

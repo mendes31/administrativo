@@ -23,7 +23,7 @@ class CreateRequestType
 
         $pageElements = [
             'title_head' => 'Criar Tipo de Solicitação',
-            'menu' => 'create-request-type',
+            'menu' => 'list-request-types',
             'buttonPermission' => [
                 'ListRequestTypes',
             ],

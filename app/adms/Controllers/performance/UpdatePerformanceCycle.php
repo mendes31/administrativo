@@ -44,7 +44,7 @@ class UpdatePerformanceCycle
 
         $pageElements = [
             'title_head' => 'Editar Ciclo de Desempenho',
-            'menu' => 'update-performance-cycle',
+            'menu' => 'list-performance-cycles',
             'buttonPermission' => [
                 'ListPerformanceCycles',
                 'ViewPerformanceCycle',

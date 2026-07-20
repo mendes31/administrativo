@@ -37,7 +37,7 @@ class ViewPerformanceFeedback
 
         $pageElements = [
             'title_head' => 'Visualizar Feedback de Desempenho',
-            'menu' => 'view-performance-feedback',
+            'menu' => 'list-performance-feedbacks',
             'buttonPermission' => [
                 'ListPerformanceFeedbacks',
                 'UpdatePerformanceFeedback',

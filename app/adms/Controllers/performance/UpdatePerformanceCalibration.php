@@ -41,7 +41,7 @@ class UpdatePerformanceCalibration
 
         $pageElements = [
             'title_head' => 'Editar Calibração',
-            'menu' => 'update-performance-calibration',
+            'menu' => 'list-performance-calibrations',
             'buttonPermission' => [
                 'ListPerformanceCalibrations',
                 'ViewPerformanceCalibration',

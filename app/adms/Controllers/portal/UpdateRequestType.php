@@ -38,7 +38,7 @@ class UpdateRequestType
 
         $pageElements = [
             'title_head' => 'Editar Tipo de Solicitação',
-            'menu' => 'update-request-type',
+            'menu' => 'list-request-types',
             'buttonPermission' => [
                 'ListRequestTypes',
                 'ViewRequestType',

@@ -50,7 +50,7 @@ final class RhOnboardingView
 
         $this->data = [
             'title_head' => 'Onboarding #' . $planoId,
-            'menu' => 'rh-onboarding-view',
+            'menu' => 'rh-pessoas',
             'buttonPermission' => ['RhOnboardingView', 'RhOfertasView', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_onboarding'),
             'plano' => $plano,

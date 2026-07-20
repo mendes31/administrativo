@@ -56,7 +56,7 @@ final class RhOfertasCreate
 
         $this->data = [
             'title_head' => 'Criar Oferta',
-            'menu' => 'rh-ofertas-create',
+            'menu' => 'rh-candidatos',
             'buttonPermission' => ['RhOfertasCreate', 'RhCandidatos', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_oferta_create'),
             'vinculo' => $vinculo,

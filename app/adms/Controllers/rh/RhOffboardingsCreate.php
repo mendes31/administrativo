@@ -27,7 +27,7 @@ final class RhOffboardingsCreate
 
         $this->data = [
             'title_head' => 'Iniciar Offboarding',
-            'menu' => 'rh-offboardings-create',
+            'menu' => 'rh-offboardings',
             'buttonPermission' => ['RhOffboardingsCreate', 'RhOffboardings'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_offboarding'),
             'form' => [

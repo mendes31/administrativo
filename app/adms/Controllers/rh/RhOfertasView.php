@@ -56,7 +56,7 @@ final class RhOfertasView
 
         $this->data = [
             'title_head' => 'Oferta #' . $ofertaId,
-            'menu' => 'rh-ofertas-view',
+            'menu' => 'rh-candidatos',
             'buttonPermission' => ['RhOfertasView', 'RhOfertasConvert', 'RhOnboardingView', 'RhExperienciaView', 'RhCandidatos', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_oferta_action'),
             'oferta' => $oferta,

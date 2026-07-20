@@ -45,7 +45,7 @@ class ViewEmployeeTicket
 
         $pageElements = [
             'title_head' => 'Visualizar Chamado',
-            'menu' => 'view-employee-ticket',
+            'menu' => 'list-employee-tickets',
             'buttonPermission' => [
                 'ListEmployeeTickets',
             ],

@@ -42,7 +42,7 @@ class CreatePerformanceCalibration
 
         $pageElements = [
             'title_head' => 'Criar Calibração',
-            'menu' => 'create-performance-calibration',
+            'menu' => 'list-performance-calibrations',
             'buttonPermission' => ['ListPerformanceCalibrations'],
         ];
 

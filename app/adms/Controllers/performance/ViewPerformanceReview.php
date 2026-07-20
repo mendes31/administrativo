@@ -63,7 +63,7 @@ class ViewPerformanceReview
         // Configurar elementos da página
         $pageElements = [
             'title_head' => 'Visualizar Avaliação de Desempenho',
-            'menu' => 'view-performance-review',
+            'menu' => 'list-performance-reviews',
             'buttonPermission' => [
                 'ListPerformanceReviews',
                 'UpdatePerformanceReview',

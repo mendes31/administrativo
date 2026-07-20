@@ -37,7 +37,7 @@ class ViewPerformanceGoal
 
         $pageElements = [
             'title_head' => 'Visualizar Meta de Desempenho',
-            'menu' => 'view-performance-goal',
+            'menu' => 'list-performance-goals',
             'buttonPermission' => [
                 'ListPerformanceGoals',
                 'UpdatePerformanceGoal',

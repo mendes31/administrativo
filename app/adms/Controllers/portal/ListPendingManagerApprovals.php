@@ -71,7 +71,7 @@ class ListPendingManagerApprovals
         // Configurar elementos da página
         $pageElements = [
             'title_head' => 'Solicitações Pendentes - Aprovação do Gestor',
-            'menu' => 'list-pending-manager-approvals',
+            'menu' => 'pending-approvals',
             'buttonPermission' => [
                 'ViewEmployeeRequest',
             ],

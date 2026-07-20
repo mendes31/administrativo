@@ -74,7 +74,7 @@ class ListPendingHRApprovals
         // Configurar elementos da página
         $pageElements = [
             'title_head' => 'Solicitações Pendentes - Aprovação do RH',
-            'menu' => 'list-pending-hr-approvals',
+            'menu' => 'pending-approvals',
             'buttonPermission' => [
                 'ViewEmployeeRequest',
             ],

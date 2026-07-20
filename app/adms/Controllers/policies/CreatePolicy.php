@@ -31,7 +31,7 @@ class CreatePolicy
 
         $pageElements = [
             'title_head'       => 'Cadastrar Política Interna',
-            'menu'             => 'gestao_pessoas',
+            'menu' => 'list-policies',
             'buttonPermission' => ['CreatePolicy'],
         ];
 

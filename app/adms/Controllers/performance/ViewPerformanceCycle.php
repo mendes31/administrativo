@@ -42,7 +42,7 @@ class ViewPerformanceCycle
 
         $pageElements = [
             'title_head' => 'Visualizar Ciclo de Desempenho',
-            'menu' => 'view-performance-cycle',
+            'menu' => 'list-performance-cycles',
             'buttonPermission' => [
                 'ListPerformanceCycles',
                 'UpdatePerformanceCycle',

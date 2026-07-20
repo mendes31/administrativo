@@ -31,7 +31,7 @@ class CreatePolicyCategory
     {
         $pageElements = [
             'title_head'       => 'Cadastrar Categoria de Política',
-            'menu'             => 'gestao_pessoas',
+            'menu' => 'list-policy-categories',
             'buttonPermission' => ['ListPolicyCategories'],
         ];
 

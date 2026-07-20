@@ -35,7 +35,7 @@ final class RhPessoasView
 
         $this->data = [
             'title_head' => 'Pessoa #' . $pessoaId,
-            'menu' => 'rh-pessoas-view',
+            'menu' => 'rh-pessoas',
             'buttonPermission' => ['RhPessoasView', 'RhPessoas'],
             'pessoa' => $pessoa,
             'vinculo' => $vinculo,

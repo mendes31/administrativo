@@ -82,7 +82,7 @@ class UpdateEmployeeRequest
 
         $pageElements = [
             'title_head' => 'Editar Solicitação',
-            'menu' => 'update-employee-request',
+            'menu' => 'list-employee-requests',
             'buttonPermission' => [
                 'ListEmployeeRequests',
                 'ViewEmployeeRequest',

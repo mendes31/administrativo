@@ -27,7 +27,7 @@ final class RhMovimentacoesView
 
         $this->data = [
             'title_head' => 'Movimentação #' . $movId,
-            'menu' => 'rh-movimentacoes-view',
+            'menu' => 'rh-movimentacoes',
             'buttonPermission' => ['RhMovimentacoesView', 'RhMovimentacoes'],
             'movimentacao' => $mov,
         ];

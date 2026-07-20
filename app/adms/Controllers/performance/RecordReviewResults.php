@@ -91,7 +91,7 @@ class RecordReviewResults
 
         $pageElements = [
             'title_head' => 'Registrar Resultados da Avaliação',
-            'menu' => 'record-review-results',
+            'menu' => 'list-performance-reviews',
             'buttonPermission' => [
                 'ListPerformanceReviews',
                 'ViewPerformanceReview',

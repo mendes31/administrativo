@@ -52,7 +52,7 @@ class CreatePerformanceReview
         // Configurar elementos da página
         $pageElements = [
             'title_head' => 'Criar Avaliação de Desempenho',
-            'menu' => 'create-performance-review',
+            'menu' => 'list-performance-reviews',
             'buttonPermission' => [
                 'ListPerformanceReviews',
             ],

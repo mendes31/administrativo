@@ -47,7 +47,7 @@ final class RhExperienciaView
 
         $this->data = [
             'title_head' => 'Experiência #' . $experienciaId,
-            'menu' => 'rh-experiencia-view',
+            'menu' => 'rh-pessoas',
             'buttonPermission' => ['RhExperienciaView', 'RhOnboardingView', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_experiencia'),
             'periodo' => $periodo,

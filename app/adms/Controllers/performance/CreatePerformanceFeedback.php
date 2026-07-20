@@ -46,7 +46,7 @@ class CreatePerformanceFeedback
 
         $pageElements = [
             'title_head' => 'Criar Feedback de Desempenho',
-            'menu' => 'create-performance-feedback',
+            'menu' => 'list-performance-feedbacks',
             'buttonPermission' => [
                 'ListPerformanceFeedbacks',
             ],

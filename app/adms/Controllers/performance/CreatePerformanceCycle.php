@@ -36,7 +36,7 @@ class CreatePerformanceCycle
 
         $pageElements = [
             'title_head' => 'Criar Ciclo de Desempenho',
-            'menu' => 'create-performance-cycle',
+            'menu' => 'list-performance-cycles',
             'buttonPermission' => ['ListPerformanceCycles'],
         ];
 
