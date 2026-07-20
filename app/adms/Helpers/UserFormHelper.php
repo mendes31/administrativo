@@ -427,6 +427,9 @@ final class UserFormHelper
             if ($needle === strtolower(self::empresaContratantePdfLabel($slug))) {
                 return $slug;
             }
+            if ($needle === strtolower(self::empresaContratanteRazaoSocialLabel($slug))) {
+                return $slug;
+            }
             // Rótulos antigos (pré-migração de nomes fantasia)
             if ($slug === 'lab_tiaraju_matriz' && in_array($needle, ['lab. tiaraju matriz', 'lab tiaraju matriz'], true)) {
                 return $slug;
@@ -449,8 +452,23 @@ final class UserFormHelper
         };
     }
 
-    /** Razão social exibida no PDF de encaminhamento ASO. */
+    /**
+     * Rótulo em documentos PDF que diferenciam estabelecimento (ASO etc.).
+     * Usa nome fantasia — razão social é idêntica entre matriz e filial.
+     */
     public static function empresaContratantePdfLabel(string $slug): string
+    {
+        $fromBranches = self::empresaContratanteOptionsFromBranches();
+        if (!empty($fromBranches[$slug])) {
+            return $fromBranches[$slug];
+        }
+        $ui = self::empresaContratanteLabel($slug);
+
+        return $ui !== 'Empresa contratante não informada' ? $ui : '';
+    }
+
+    /** Razão social (nome empresarial) — pode repetir entre Matriz e Filial. */
+    public static function empresaContratanteRazaoSocialLabel(string $slug): string
     {
         return match ($slug) {
             'tiaraju_farma' => 'Tiaraju Farma, Alimentos e Cosméticos Ltda',
@@ -460,7 +478,7 @@ final class UserFormHelper
         };
     }
 
-    /** @return array<string, string> slug => razão social (PDF) */
+    /** @return array<string, string> slug => nome fantasia (PDF / diferenciação de unidade) */
     public static function empresaContratantePdfOptions(): array
     {
         $out = [];

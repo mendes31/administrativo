@@ -116,21 +116,23 @@ final class PdfInstitutionalHeaderHelper
     }
 
     /**
-     * Bloco de identificação da empresa (razão social da filial do equipamento, quando houver).
+     * Bloco de identificação da empresa (nome fantasia da unidade; razão social quando distinta).
      */
     public static function buildEmpresaInfoTable(?string $empresaContratanteSlug, string $documentoLabel = 'Documento'): string
     {
         $slug = UserFormHelper::resolveEmpresaContratanteSlug($empresaContratanteSlug) ?? '';
-        $razao = $slug !== '' ? UserFormHelper::empresaContratantePdfLabel($slug) : '';
-        $filial = UserFormHelper::empresaContratanteLabel($empresaContratanteSlug);
+        $fantasia = $slug !== '' ? UserFormHelper::empresaContratantePdfLabel($slug) : '';
+        $razao = $slug !== '' ? UserFormHelper::empresaContratanteRazaoSocialLabel($slug) : '';
         $emissao = date('d/m/Y H:i');
 
         $rows = '';
         $rows .= self::infoRow('Empresa / grupo', 'Laboratório Tiaraju');
-        if ($razao !== '') {
-            $rows .= self::infoRow('Razão social (unidade)', $razao);
+        if ($fantasia !== '') {
+            $rows .= self::infoRow('Unidade (nome fantasia)', $fantasia);
         }
-        $rows .= self::infoRow('Unidade / filial', $filial);
+        if ($razao !== '' && strcasecmp($razao, $fantasia) !== 0) {
+            $rows .= self::infoRow('Razão social', $razao);
+        }
         $rows .= self::infoRow('Data do ' . $documentoLabel, $emissao);
 
         return '<table width="100%" style="border-collapse:collapse;margin-bottom:10px;font-size:9pt;">'

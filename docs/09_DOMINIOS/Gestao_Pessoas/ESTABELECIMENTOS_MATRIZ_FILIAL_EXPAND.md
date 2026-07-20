@@ -36,7 +36,10 @@ Exibição e ASO resolvem o slug a partir do slug ou da filial vinculada.
 Homologação (jul/2026): 12 usuários com `lab_tiaraju_matriz`; ~208 ainda sem empresa —
 preenchimento via importação ou edição (sem regra de backfill em massa neste incremento).
 
-**Importação:** ao mapear `empresa_contratante`, o dual-write preenche `user_branch_id`.
+**Documentos PDF (ASO etc.):** checkboxes e rótulos de unidade usam **nome fantasia**
+(não a razão social), porque Matriz e Filial compartilham o mesmo nome empresarial.
+Razão social continua disponível via `empresaContratanteRazaoSocialLabel` quando o
+documento precisar do nome empresarial.
 
 ## Regras
 

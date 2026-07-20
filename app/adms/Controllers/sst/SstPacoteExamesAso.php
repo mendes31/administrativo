@@ -57,7 +57,7 @@ class SstPacoteExamesAso
         if (is_array($user)) {
             $empresaSlug = UserFormHelper::resolveEmpresaSlugFromUser($user);
             $empresaLabel = $empresaSlug !== null
-                ? UserFormHelper::empresaContratantePdfLabel($empresaSlug)
+                ? UserFormHelper::empresaContratanteLabel($empresaSlug)
                 : null;
         }
 
