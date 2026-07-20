@@ -29,31 +29,31 @@ use App\adms\Helpers\CSRFHelper;
                     <label for="employee_id" class="form-label">Para (Colaborador) <span class="text-danger">*</span></label>
                     <select name="employee_id" id="employee_id" class="form-select" required>
                         <option value="">Selecione o colaborador...</option>
-                        <?php foreach (($this->data['employees'] ?? []) as $employee): ?>
-                            <option value="<?= $employee['id'] ?>"><?= htmlspecialchars($employee['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                
-                <div class="col-md-6">
-                    <label for="given_by" class="form-label">De (Avaliador) <span class="text-danger">*</span></label>
-                    <select name="given_by" id="given_by" class="form-select" required>
-                        <option value="">Selecione o avaliador...</option>
-                        <?php foreach (($this->data['employees'] ?? []) as $employee): ?>
-                            <option value="<?= $employee['id'] ?>" <?= ($employee['id'] == ($_SESSION['user_id'] ?? 0)) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars($employee['name']) ?>
+                        <?php
+                        $form = $this->data['form'] ?? [];
+                        foreach (($this->data['employees'] ?? []) as $employee): ?>
+                            <option value="<?= (int) $employee['id'] ?>"
+                                <?= ((string) ($form['employee_id'] ?? '') === (string) $employee['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($employee['name'] ?? '') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
+                    <small class="form-text text-muted">O autor do feedback é sempre você (usuário logado).</small>
                 </div>
                 
                 <div class="col-md-6">
                     <label for="feedback_type" class="form-label">Tipo de Feedback <span class="text-danger">*</span></label>
                     <select name="feedback_type" id="feedback_type" class="form-select" required>
-                        <option value="general" selected>Geral</option>
-                        <option value="performance">Desempenho</option>
-                        <option value="recognition">Reconhecimento</option>
-                        <option value="improvement">Melhoria</option>
+                        <?php
+                        $type = $form['feedback_type'] ?? 'general';
+                        foreach ([
+                            'general' => 'Geral',
+                            'performance' => 'Desempenho',
+                            'recognition' => 'Reconhecimento',
+                            'improvement' => 'Melhoria',
+                        ] as $val => $label): ?>
+                            <option value="<?= $val ?>" <?= $type === $val ? 'selected' : '' ?>><?= $label ?></option>
+                        <?php endforeach; ?>
                     </select>
                     <small class="form-text text-muted">
                         <strong>Geral:</strong> Feedback geral sobre o trabalho<br>
@@ -66,18 +66,20 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="col-md-6">
                     <label class="form-label">Opções</label>
                     <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="is_anonymous" id="is_anonymous" value="1">
+                        <input class="form-check-input" type="checkbox" name="is_anonymous" id="is_anonymous" value="1"
+                            <?= !empty($form['is_anonymous']) && (string) $form['is_anonymous'] !== '0' ? 'checked' : '' ?>>
                         <label class="form-check-label" for="is_anonymous">
                             Feedback Anônimo
                         </label>
-                        <small class="form-text text-muted d-block">O nome de quem deu o feedback não será exibido</small>
+                        <small class="form-text text-muted d-block">O nome de quem deu o feedback fica oculto para o destinatário e demais leitores (autor e acesso total ainda veem).</small>
                     </div>
                     <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" name="is_public" id="is_public" value="1">
+                        <input class="form-check-input" type="checkbox" name="is_public" id="is_public" value="1"
+                            <?= !empty($form['is_public']) && (string) $form['is_public'] !== '0' ? 'checked' : '' ?>>
                         <label class="form-check-label" for="is_public">
                             Feedback Público
                         </label>
-                        <small class="form-text text-muted d-block">Pode ser visualizado por outros colaboradores</small>
+                        <small class="form-text text-muted d-block">Além do autor e do destinatário, o gestor imediato do colaborador também pode ver.</small>
                     </div>
                 </div>
                 
@@ -86,7 +88,8 @@ use App\adms\Helpers\CSRFHelper;
                     <select name="related_review_id" id="related_review_id" class="form-select">
                         <option value="">Nenhuma</option>
                         <?php foreach (($this->data['reviews'] ?? []) as $review): ?>
-                            <option value="<?= $review['id'] ?>">
+                            <option value="<?= $review['id'] ?>"
+                                <?= ((string) ($form['related_review_id'] ?? '') === (string) $review['id']) ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($review['employee_name'] ?? '') ?> - 
                                 <?= htmlspecialchars($review['review_type'] ?? '') ?>° - 
                                 <?= date('d/m/Y', strtotime($review['review_date'] ?? '')) ?>
@@ -100,7 +103,8 @@ use App\adms\Helpers\CSRFHelper;
                     <select name="related_goal_id" id="related_goal_id" class="form-select">
                         <option value="">Nenhuma</option>
                         <?php foreach (($this->data['goals'] ?? []) as $goal): ?>
-                            <option value="<?= $goal['id'] ?>">
+                            <option value="<?= $goal['id'] ?>"
+                                <?= ((string) ($form['related_goal_id'] ?? '') === (string) $goal['id']) ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($goal['goal_title'] ?? '') ?> - 
                                 <?= htmlspecialchars($goal['employee_name'] ?? '') ?>
                             </option>
@@ -111,7 +115,7 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="col-12">
                     <label for="feedback_text" class="form-label">Texto do Feedback <span class="text-danger">*</span></label>
                     <textarea name="feedback_text" id="feedback_text" class="form-control" rows="6" 
-                              placeholder="Descreva o feedback de forma clara e construtiva..." required></textarea>
+                              placeholder="Descreva o feedback de forma clara e construtiva..." required><?= htmlspecialchars($form['feedback_text'] ?? '') ?></textarea>
                     <small class="form-text text-muted">
                         Seja específico, objetivo e construtivo. Use exemplos concretos quando possível.
                     </small>

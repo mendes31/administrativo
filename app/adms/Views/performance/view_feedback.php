@@ -38,7 +38,8 @@ $typeInfo = $typeLabels[$feedback['feedback_type']] ?? ['label' => $feedback['fe
                         <i class="fas fa-list me-1"></i>Listar
                     </a>
                 <?php } ?>
-                <?php if (in_array('UpdatePerformanceFeedback', $this->data['buttonPermission'] ?? [])) { ?>
+                <?php if (in_array('UpdatePerformanceFeedback', $this->data['buttonPermission'] ?? [])
+                    && !empty($this->data['can_edit'])) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>update-performance-feedback/<?= $feedback['id'] ?>" class="btn btn-sm btn-warning">
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
@@ -79,11 +80,7 @@ $typeInfo = $typeLabels[$feedback['feedback_type']] ?? ['label' => $feedback['fe
                                 <h6 class="text-muted">De</h6>
                                 <p class="mb-0">
                                     <i class="fas fa-user-tie me-2"></i>
-                                    <?php if ($feedback['is_anonymous']): ?>
-                                        <em>Anônimo</em>
-                                    <?php else: ?>
-                                        <strong><?= htmlspecialchars($feedback['given_by_name'] ?? '') ?></strong>
-                                    <?php endif; ?>
+                                    <strong><?= htmlspecialchars($this->data['author_display'] ?? ($feedback['given_by_name'] ?? '—')) ?></strong>
                                 </p>
                             </div>
                             
@@ -101,10 +98,12 @@ $typeInfo = $typeLabels[$feedback['feedback_type']] ?? ['label' => $feedback['fe
                                 <h6 class="text-muted">Opções</h6>
                                 <div>
                                     <?php if ($feedback['is_public']): ?>
-                                        <span class="badge bg-info mb-1">Público</span>
+                                        <span class="badge bg-info mb-1" title="Autor, destinatário, gestor do destinatário e acesso total">Público</span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary mb-1">Privado</span>
                                     <?php endif; ?>
                                     <?php if ($feedback['is_anonymous']): ?>
-                                        <span class="badge bg-secondary mb-1">Anônimo</span>
+                                        <span class="badge bg-dark mb-1">Anônimo</span>
                                     <?php endif; ?>
                                 </div>
                             </div>

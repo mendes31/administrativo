@@ -114,12 +114,8 @@ use App\adms\Helpers\FormatHelper;
                                     <div class="mb-2">
                                         <small class="text-muted">
                                             <i class="fas fa-user-tie me-1"></i>
-                                            <strong>De:</strong> 
-                                            <?php if ($feedback['is_anonymous']): ?>
-                                                <em>Anônimo</em>
-                                            <?php else: ?>
-                                                <?= htmlspecialchars($feedback['given_by_name'] ?? '') ?>
-                                            <?php endif; ?>
+                                            <strong>De:</strong>
+                                            <?= htmlspecialchars($feedback['author_display'] ?? ($feedback['given_by_name'] ?? '—')) ?>
                                         </small>
                                     </div>
                                     <p class="card-text">

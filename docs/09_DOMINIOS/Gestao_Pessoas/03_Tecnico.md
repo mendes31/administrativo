@@ -121,6 +121,7 @@ Toda mudança estrutural deve:
 - [Sucessão — Expand](DESENVOLVIMENTO_SUCESSAO_EXPAND.md)
 - [Carreira — Expand](DESENVOLVIMENTO_CARREIRA_EXPAND.md)
 - [Avaliações em massa — Expand](DESENVOLVIMENTO_AVALIACOES_MASSA_EXPAND.md)
+- [Feedback contínuo — Expand](DESENVOLVIMENTO_FEEDBACK_CONTINUO_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

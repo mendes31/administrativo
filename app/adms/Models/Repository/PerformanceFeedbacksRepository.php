@@ -108,14 +108,29 @@ class PerformanceFeedbacksRepository extends DbConnection
             $where[] = 'pf.related_goal_id = :related_goal_id';
             $params[':related_goal_id'] = $filters['related_goal_id'];
         }
+
+        if (!empty($filters['search'])) {
+            $where[] = '(pf.feedback_text LIKE :search OR e.name LIKE :search OR g.name LIKE :search)';
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
         
-        // Permissões
+        // Permissões / visibilidade (Expand feedback contínuo)
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
-        $userId = $_SESSION['user_id'] ?? 0;
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
         
-        if (!$isSuperAdmin) {
-            // Usuário vê apenas feedbacks que ele deu ou recebeu
-            $where[] = '(pf.employee_id = :user_id OR pf.given_by = :user_id)';
+        if (!$isSuperAdmin && $userId > 0) {
+            $where[] = '(
+                pf.employee_id = :user_id
+                OR pf.given_by = :user_id
+                OR (
+                    pf.is_public = 1
+                    AND EXISTS (
+                        SELECT 1 FROM adms_users emp_vis
+                        WHERE emp_vis.id = pf.employee_id
+                          AND emp_vis.immediate_supervisor_id = :user_id
+                    )
+                )
+            )';
             $params[':user_id'] = $userId;
         }
         
@@ -250,18 +265,36 @@ class PerformanceFeedbacksRepository extends DbConnection
             $where[] = 'pf.feedback_type = :feedback_type';
             $params[':feedback_type'] = $filters['feedback_type'];
         }
+
+        if (!empty($filters['search'])) {
+            $where[] = '(pf.feedback_text LIKE :search OR e.name LIKE :search OR g.name LIKE :search)';
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
         
-        // Permissões
+        // Permissões / visibilidade
         $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
-        $userId = $_SESSION['user_id'] ?? 0;
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
         
-        if (!$isSuperAdmin) {
-            $where[] = '(pf.employee_id = :user_id OR pf.given_by = :user_id)';
+        if (!$isSuperAdmin && $userId > 0) {
+            $where[] = '(
+                pf.employee_id = :user_id
+                OR pf.given_by = :user_id
+                OR (
+                    pf.is_public = 1
+                    AND EXISTS (
+                        SELECT 1 FROM adms_users emp_vis
+                        WHERE emp_vis.id = pf.employee_id
+                          AND emp_vis.immediate_supervisor_id = :user_id
+                    )
+                )
+            )';
             $params[':user_id'] = $userId;
         }
         
         $sql = "SELECT COUNT(*) as total
                 FROM adms_performance_feedbacks pf
+                INNER JOIN adms_users e ON pf.employee_id = e.id
+                INNER JOIN adms_users g ON pf.given_by = g.id
                 WHERE " . implode(' AND ', $where);
         
         $stmt = $this->getConnection()->prepare($sql);

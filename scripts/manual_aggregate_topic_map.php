@@ -142,8 +142,18 @@ function buildManualAggregateTopicMap(): array
         'list-performance-reviews', 'create-performance-review', 'update-performance-review',
         'list-performance-goals', 'create-performance-goal', 'update-performance-goal',
         'list-performance-feedbacks', 'create-performance-feedback',
+        'view-performance-feedback', 'update-performance-feedback', 'delete-performance-feedback',
         'list-competencies', 'create-competency', 'update-competency',
         'competency-matrix', 'nine-box-matrix', 'performance-dashboard',
+        'list-performance-cycles', 'create-performance-cycle', 'view-performance-cycle',
+        'update-performance-cycle', 'bulk-create-performance-reviews',
+        'list-performance-calibrations', 'create-performance-calibration',
+        'view-performance-calibration', 'update-performance-calibration',
+        'list-pdi-plans', 'create-pdi-plan', 'view-pdi-plan', 'update-pdi-plan',
+        'list-talent-nominations', 'create-talent-nomination', 'view-talent-nomination', 'update-talent-nomination',
+        'list-critical-positions', 'create-critical-position', 'view-critical-position', 'update-critical-position',
+        'list-career-tracks', 'create-career-track', 'view-career-track', 'update-career-track',
+        'list-career-promotions', 'create-career-promotion', 'view-career-promotion', 'update-career-promotion',
     ], 'gp-desempenho');
     $add([
         'list-employee-requests', 'create-employee-request', 'view-employee-request',
