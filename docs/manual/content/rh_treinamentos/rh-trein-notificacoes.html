@@ -28,6 +28,12 @@
 <p><strong>E-mail diário:</strong> no primeiro acesso do dia (login ou dashboard), o sistema envia o resumo dos eventos do dia anterior para a equipe de treinamentos. Cada linha traz: ação, nome, CPF, setor, cargo, data de admissão e desligamento (quando houver). Não é necessário cron; o envio ocorre automaticamente quando alguém entra no sistema após a meia-noite.</p>
 <p>Em <strong>base local de teste/homologação</strong> (nome do banco com homolog/teste/dev, URL em localhost, ou APP_ENV de desenvolvimento com DB_HOST local), o e-mail traz o prefixo <em>[TESTE/HOMOLOGAÇÃO]</em> no assunto e um aviso no corpo. Em produção isso não aparece — mesmo se <code>APP_ENV</code> estiver como development por engano, desde que o banco seja o de produção.</p>
 <p><em>Opcional:</em> agende o cron <code>php app/adms/Controllers/Services/TrainingLntEventsDigestCli.php</code> (ex.: 07:00) como reforço se ninguém acessar o sistema de manhã.</p>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
+<div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
+<div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
+
 <h2>Problemas comuns</h2>
 <dl>
     <dt>E-mail de teste parece produção</dt>
