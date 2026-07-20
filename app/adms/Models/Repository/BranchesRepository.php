@@ -341,4 +341,20 @@ class BranchesRepository extends DbConnection
 
         return $row ? (int) $row['id'] : null;
     }
+
+    /** Resolve code (slug) a partir do id da filial. */
+    public function getCodeByBranchId(int $branchId): ?string
+    {
+        if ($branchId <= 0) {
+            return null;
+        }
+        $sql = 'SELECT code FROM adms_branches WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $branchId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        $code = trim((string) ($row['code'] ?? ''));
+
+        return $code !== '' ? $code : null;
+    }
 }

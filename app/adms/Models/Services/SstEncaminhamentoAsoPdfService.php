@@ -24,7 +24,7 @@ final class SstEncaminhamentoAsoPdfService
         $nome = htmlspecialchars((string) ($user['name'] ?? ''));
         $funcao = htmlspecialchars((string) ($user['pos_name'] ?? ''));
         $setor = htmlspecialchars((string) ($user['dep_name'] ?? ''));
-        $empresaSlug = UserFormHelper::resolveEmpresaContratanteSlug($user['empresa_contratante'] ?? null) ?? '';
+        $empresaSlug = UserFormHelper::resolveEmpresaSlugFromUser($user) ?? '';
         $dataFmt = $this->formatDate($dataEncaminhamento);
 
         $empresas = UserFormHelper::empresaContratantePdfOptions();

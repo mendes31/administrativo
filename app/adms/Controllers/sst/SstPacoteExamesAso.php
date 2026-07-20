@@ -55,7 +55,7 @@ class SstPacoteExamesAso
         $empresaLabel = null;
         $user = (new UsersRepository())->getUser($userId);
         if (is_array($user)) {
-            $empresaSlug = UserFormHelper::resolveEmpresaContratanteSlug($user['empresa_contratante'] ?? null);
+            $empresaSlug = UserFormHelper::resolveEmpresaSlugFromUser($user);
             $empresaLabel = $empresaSlug !== null
                 ? UserFormHelper::empresaContratantePdfLabel($empresaSlug)
                 : null;

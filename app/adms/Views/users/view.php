@@ -266,9 +266,9 @@ $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image
                     <dt class="col-sm-3">Empresa contratante: </dt>
                     <dd class="col-sm-9">
                         <?php
-                        $empRaw = $this->data['user']['empresa_contratante'] ?? null;
-                        echo $empRaw !== null && $empRaw !== ''
-                            ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel(is_string($empRaw) ? $empRaw : null), ENT_QUOTES, 'UTF-8')
+                        $empSlug = \App\adms\Helpers\UserFormHelper::resolveEmpresaSlugFromUser($this->data['user'] ?? []);
+                        echo $empSlug !== null
+                            ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel($empSlug), ENT_QUOTES, 'UTF-8')
                             : '<span class="text-muted">Não informado</span>';
                         ?>
                     </dd>

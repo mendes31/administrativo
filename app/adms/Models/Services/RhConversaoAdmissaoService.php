@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Models\Repository\RhCandidaturaHistoricoRepository;
 use App\adms\Models\Repository\RhConversoesAdmissaoRepository;
@@ -225,7 +226,7 @@ final class RhConversaoAdmissaoService
             );
         }
 
-        $newId = $usersRepo->createUser([
+        $newId = $usersRepo->createUser(UserFormHelper::applyEmpresaContratanteToForm([
             'name' => $name,
             'email' => $email,
             'username' => $username,
@@ -244,7 +245,7 @@ final class RhConversaoAdmissaoService
             'data_admissao' => $dataAdmissao,
             'empresa_contratante' => trim((string) ($input['empresa_contratante'] ?? '')) ?: null,
             'matricula' => trim((string) ($input['matricula'] ?? '')) ?: null,
-        ]);
+        ], $input['empresa_contratante'] ?? null));
 
         if (!$newId || !is_numeric($newId)) {
             throw new Exception('Não foi possível criar o usuário do colaborador.');

@@ -357,6 +357,41 @@ final class UserFormHelper
         return $form;
     }
 
+    /**
+     * Empresa efetiva do usuário: slug, ou code da filial via user_branch_id.
+     *
+     * @param array<string, mixed> $user
+     */
+    public static function resolveEmpresaSlugFromUser(array $user): ?string
+    {
+        $fromSlug = self::resolveEmpresaContratanteSlug($user['empresa_contratante'] ?? null);
+        if ($fromSlug !== null) {
+            return $fromSlug;
+        }
+        $branchId = isset($user['user_branch_id']) && is_numeric($user['user_branch_id'])
+            ? (int) $user['user_branch_id']
+            : 0;
+        if ($branchId <= 0) {
+            return null;
+        }
+        try {
+            $repo = new \App\adms\Models\Repository\BranchesRepository();
+            $code = $repo->getCodeByBranchId($branchId);
+
+            return self::normalizeEmpresaContratante($code);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /** Rótulo de UI a partir do registro do usuário (slug ou FK). */
+    public static function empresaContratanteLabelFromUser(array $user): string
+    {
+        $slug = self::resolveEmpresaSlugFromUser($user);
+
+        return self::empresaContratanteLabel($slug);
+    }
+
     /** @return 'usuario'|'pessoais'|'endereco'|'contratuais'|'formacoes' */
     public static function normalizeUserFormActiveTab(mixed $value): string
     {

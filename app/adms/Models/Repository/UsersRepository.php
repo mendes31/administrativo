@@ -7,6 +7,7 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Helpers\SlugImg;
 use App\adms\Helpers\Upload;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Helpers\ValExtImg;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\UserOffboardingNotificationService;
@@ -681,7 +682,14 @@ class UsersRepository extends DbConnection
             return;
         }
         if ($empresa === '__empty__') {
-            $where[] = "(usr.empresa_contratante IS NULL OR usr.empresa_contratante = '')";
+            $where[] = "((usr.empresa_contratante IS NULL OR usr.empresa_contratante = '') AND usr.user_branch_id IS NULL)";
+            return;
+        }
+        $branchId = UserFormHelper::resolveUserBranchIdFromEmpresaSlug($empresa);
+        if ($branchId !== null) {
+            $where[] = '(usr.empresa_contratante = :empresa_contratante OR usr.user_branch_id = :user_branch_id_filtro)';
+            $params[':empresa_contratante'] = $empresa;
+            $params[':user_branch_id_filtro'] = $branchId;
             return;
         }
         $where[] = 'usr.empresa_contratante = :empresa_contratante';

@@ -1022,6 +1022,10 @@ class ImportUsers
                         ];
                         continue;
                     }
+                    $payload = UserFormHelper::applyEmpresaContratanteToForm(
+                        $payload,
+                        $payload['empresa_contratante'] ?? null
+                    );
                     $okCreate = $repo->createUser($payload);
                     if ($okCreate) {
                         $formationAction = $scope === 'both'
@@ -1134,6 +1138,10 @@ class ImportUsers
 
                 unset($payload['password']);
 
+                $payload = UserFormHelper::applyEmpresaContratanteToForm(
+                    $payload,
+                    $payload['empresa_contratante'] ?? null
+                );
                 $okUp = $repo->updateUser($payload);
                 if ($okUp) {
                     $formationAction = $scope === 'both'
@@ -2000,6 +2008,10 @@ class ImportUsers
                         continue;
                     }
 
+                    $payload = UserFormHelper::applyEmpresaContratanteToForm(
+                        $payload,
+                        $payload['empresa_contratante'] ?? null
+                    );
                     $ok = $repo->updateUser($payload);
                     if ($ok) {
                         $formationAction = $scope === 'both'
@@ -2040,6 +2052,10 @@ class ImportUsers
                         // Gera senha temporária segura para novos usuários sem senha
                         $payload['password'] = bin2hex(random_bytes(6));
                     }
+                    $payload = UserFormHelper::applyEmpresaContratanteToForm(
+                        $payload,
+                        $payload['empresa_contratante'] ?? null
+                    );
                     $ok = $repo->createUser($payload);
                     if ($ok) {
                         $formationAction = $scope === 'both'

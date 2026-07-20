@@ -267,10 +267,19 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                             <?php endif; ?>
                                         </div>
                                     </td>
-                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel($empresa_contratante ?? null)); ?>">
+                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabelFromUser([
+                                        'empresa_contratante' => $empresa_contratante ?? null,
+                                        'user_branch_id' => $user_branch_id ?? null,
+                                    ])); ?>">
                                         <?php
-                                        $empLabel = \App\adms\Helpers\UserFormHelper::empresaContratanteLabel($empresa_contratante ?? null);
-                                        $empEmpty = trim((string) ($empresa_contratante ?? '')) === '';
+                                        $empLabel = \App\adms\Helpers\UserFormHelper::empresaContratanteLabelFromUser([
+                                            'empresa_contratante' => $empresa_contratante ?? null,
+                                            'user_branch_id' => $user_branch_id ?? null,
+                                        ]);
+                                        $empEmpty = \App\adms\Helpers\UserFormHelper::resolveEmpresaSlugFromUser([
+                                            'empresa_contratante' => $empresa_contratante ?? null,
+                                            'user_branch_id' => $user_branch_id ?? null,
+                                        ]) === null;
                                         ?>
                                         <?php if ($empEmpty): ?>
                                             <span class="badge bg-warning text-dark">Sem empresa</span>

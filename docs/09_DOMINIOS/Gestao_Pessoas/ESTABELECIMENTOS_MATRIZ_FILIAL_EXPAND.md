@@ -29,10 +29,14 @@ Slugs gravados (não mudam):
 **Obrigatoriedade:** `empresa_contratante` é **obrigatória no cadastro e na edição**
 (exceto usuário técnico `manager`). Dual-write preenche `user_branch_id`.
 
-**Listagem:** filtro por empresa (inclui opção *Sem empresa*) e coluna Empresa na grade.
+**Listagem / filtros:** o filtro de empresa em Listar Usuários considera
+`empresa_contratante` **ou** `user_branch_id` (FK). “Sem empresa” exige ambos vazios.
+Exibição e ASO resolvem o slug a partir do slug ou da filial vinculada.
 
 Homologação (jul/2026): 12 usuários com `lab_tiaraju_matriz`; ~208 ainda sem empresa —
-preenchimento manual via filtro *Sem empresa* (sem regra de backfill em massa).
+preenchimento via importação ou edição (sem regra de backfill em massa neste incremento).
+
+**Importação:** ao mapear `empresa_contratante`, o dual-write preenche `user_branch_id`.
 
 ## Regras
 
