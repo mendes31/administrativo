@@ -533,6 +533,11 @@ class PageLayoutService
             // People Analytics
             'PeopleAnalytics',
             'PeopleReports',
+            'ListPulseCampaigns',
+            'CreatePulseCampaign',
+            'ViewPulseCampaign',
+            'UpdatePulseCampaign',
+            'RespondPulseCampaign',
             // Recrutamento / Currículos / Vagas
             'RhCandidatos',
             'RhCandidatosCreate',

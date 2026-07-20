@@ -23,7 +23,8 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
   - avaliações em massa a partir do ciclo;
   - feedback contínuo global (regras de escopo/público/anônimo);
   - calibração avançada (notas na sessão + lock de avaliações);
-  - **faltam:** matching Nine Box→PDI (avançado) e Fase 6;
+  - **faltam:** matching Nine Box→PDI (avançado) e demais itens da Fase 6;
+  - **iniciado:** pulse/eNPS (campanhas + resposta + score);
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
 - `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
@@ -75,7 +76,10 @@ Ordem acordada após os 1ºs incrementos:
 5. ~~Feedback contínuo global (hardening);~~
 6. ~~Calibração avançada (notas na sessão + lock);~~
 7. Matching Nine Box→PDI — avançado (adiado).
-8. Fase 6 (clima, eNPS, analytics) só após maturidade desses dados.
+8. ~~Pulse/eNPS (1º incremento Fase 6);~~
+9. Demais itens da Fase 6 (planejamento de quadro, indicadores, custos/retenção).
+
+Fase 6 continua progressiva após maturidade dos dados de desenvolvimento.
 
 ## Indicadores executivos propostos
 

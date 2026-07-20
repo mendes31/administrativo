@@ -94,11 +94,11 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 ## Fase 6 — Estratégia e analytics
 
-- planejamento de quadro;
-- clima, pulse e eNPS;
-- indicadores integrados;
-- custos e retenção;
-- automação e IA após maturidade dos dados.
+- [x] clima / pulse / eNPS (1º incremento: campanhas + resposta + score) — [CLIMA_PULSE_ENPS_EXPAND.md](CLIMA_PULSE_ENPS_EXPAND.md);
+- [ ] planejamento de quadro;
+- [ ] indicadores integrados (ampliar analytics);
+- [ ] custos e retenção;
+- [ ] automação e IA após maturidade dos dados.
 
 ## Dependências
 

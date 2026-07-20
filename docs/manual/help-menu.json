@@ -1240,6 +1240,11 @@
                             "type": "topic",
                             "topic_id": "people-reports",
                             "title": "Relatórios de RH"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-pulse-campaigns",
+                            "title": "Pesquisas Pulse / eNPS"
                         }
                     ]
                 },

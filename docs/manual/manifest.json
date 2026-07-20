@@ -1638,6 +1638,11 @@
                     "file": "gestao_pessoas/people-analytics.html"
                 },
                 {
+                    "id": "list-pulse-campaigns",
+                    "title": "Pesquisas Pulse / eNPS",
+                    "file": "gestao_pessoas/list-pulse-campaigns.html"
+                },
+                {
                     "id": "employee-portal",
                     "title": "Portal do Colaborador",
                     "file": "gestao_pessoas/employee-portal.html"

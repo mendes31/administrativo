@@ -1037,6 +1037,16 @@ $menus = [
                         'permission' => 'PeopleReports',
                         'related_routes' => ['people-reports'],
                     ],
+                    [
+                        'label' => 'Pesquisas (Pulse/eNPS)',
+                        'url' => $_ENV['URL_ADM'] . 'list-pulse-campaigns',
+                        'permission' => 'ListPulseCampaigns',
+                        'related_routes' => [
+                            'list-pulse-campaigns', 'create-pulse-campaign',
+                            'view-pulse-campaign', 'update-pulse-campaign',
+                            'respond-pulse-campaign',
+                        ],
+                    ],
                 ]
             ],
             [

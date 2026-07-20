@@ -123,6 +123,7 @@ Toda mudança estrutural deve:
 - [Avaliações em massa — Expand](DESENVOLVIMENTO_AVALIACOES_MASSA_EXPAND.md)
 - [Feedback contínuo — Expand](DESENVOLVIMENTO_FEEDBACK_CONTINUO_EXPAND.md)
 - [Calibração avançada — Expand](DESENVOLVIMENTO_CALIBRACAO_AVANCADA_EXPAND.md)
+- [Clima / Pulse / eNPS — Expand](CLIMA_PULSE_ENPS_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

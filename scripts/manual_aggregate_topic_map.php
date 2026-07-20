@@ -160,7 +160,10 @@ function buildManualAggregateTopicMap(): array
         'pending-approvals', 'list-request-types', 'create-request-type', 'update-request-type',
         'list-employee-tickets', 'create-employee-ticket', 'view-employee-ticket',
     ], 'gp-solicitacoes');
-    $add(['people-analytics', 'people-reports'], 'gp-analytics');
+    $add(['people-analytics', 'people-reports',
+        'list-pulse-campaigns', 'create-pulse-campaign', 'view-pulse-campaign',
+        'update-pulse-campaign', 'respond-pulse-campaign',
+    ], 'gp-analytics');
     $add([
         'rh-kpi-dashboard', 'rh-candidatos', 'rh-vagas', 'rh-entrevistas',
         'rh-entrevistas-resend-comunicacao', 'rh-entrevistas-view-all', 'rh-entrevistas-delete',
