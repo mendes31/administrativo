@@ -129,6 +129,7 @@ Toda mudança estrutural deve:
 - [Custos e Retenção — Expand](CUSTOS_RETENCAO_EXPAND.md)
 - [Automação / IA — Expand](AUTOMACAO_IA_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
+- [Menu Gestão de Pessoas — Expand](MENU_GP_EXPAND.md)
 
 ## Referências
 

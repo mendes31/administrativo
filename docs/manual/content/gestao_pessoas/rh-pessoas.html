@@ -1,31 +1,31 @@
-<h1>Pessoas (identidade)</h1>
+﻿<h1>Pessoas (identidade)</h1>
 
-<h2>Função no sistema</h2>
-<p>Consulta somente leitura de Pessoa, Vínculo e Lotação sincronizados a partir de <code>adms_users</code> (Expand ADR-0006). A conta continua sendo a fonte operacional do Portal.</p>
+<h2>FunÃ§Ã£o no sistema</h2>
+<p>Consulta somente leitura de Pessoa, VÃ­nculo e LotaÃ§Ã£o sincronizados a partir de <code>adms_users</code> (Expand ADR-0006). A conta continua sendo a fonte operacional do Portal.</p>
 
 
 
-<p class="help-note"><strong>Relacionado:</strong> usuários (<code>view-user</code>), movimentações, offboarding.</p>
+<p class="help-note"><strong>Relacionado:</strong> usuÃ¡rios (<code>view-user</code>), movimentaÃ§Ãµes, offboarding.</p>
 
-<p><strong>Quem acessa:</strong> permissões <em>RhPessoas</em> e <em>RhPessoasView</em>.</p>
+<p><strong>Quem acessa:</strong> permissÃµes <em>RhPessoas</em> e <em>RhPessoasView</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <em>Gestão de Pessoas → Recrutamento → Pessoas</em>.</li>
+    <li>Acesse <em>GestÃ£o de Pessoas â†’ Recrutamento â†’ Pessoas</em>.</li>
     <li>Filtre por nome, e-mail ou CPF.</li>
-    <li>Abra o detalhe para ver vínculo e lotação vigente.</li>
+    <li>Abra o detalhe para ver vÃ­nculo e lotaÃ§Ã£o vigente.</li>
 </ol>
 
 
-<h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros ou formulário</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
-<div class="help-field"><strong>Resultado / painel</strong> Área onde o sistema mostra listagens, totais ou detalhe do registro.</div>
-<div class="help-field"><strong>Ações</strong> Botões e links disponíveis conforme sua permissão.</div>
+<h2>Campos e parÃ¢metros</h2>
+<div class="help-field"><strong>Filtros ou formulÃ¡rio</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
+<div class="help-field"><strong>Resultado / painel</strong> Ãrea onde o sistema mostra listagens, totais ou detalhe do registro.</div>
+<div class="help-field"><strong>AÃ§Ãµes</strong> BotÃµes e links disponÃ­veis conforme sua permissÃ£o.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Lista vazia</dt>
     <dd>Execute a migration <code>20260719244000_create_rh_identidade_pessoa_vinculo_lotacao</code> (faz backfill).</dd>
-    <dt>Dados desatualizados após movimentação</dt>
-    <dd>O dual-write roda após conversão, movimentação e offboarding; se falhar, fica registrado em log.</dd>
+    <dt>Dados desatualizados apÃ³s movimentaÃ§Ã£o</dt>
+    <dd>O dual-write roda apÃ³s conversÃ£o, movimentaÃ§Ã£o e offboarding; se falhar, fica registrado em log.</dd>
 </dl>

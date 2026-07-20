@@ -1,34 +1,34 @@
-<h1>Movimentações organizacionais</h1>
+﻿<h1>MovimentaÃ§Ãµes organizacionais</h1>
 
-<h2>Função no sistema</h2>
-<p>Registra transferência, promoção e mudanças de cargo/departamento/gestor, aplicando a nova lotação em <code>adms_users</code>.</p>
+<h2>FunÃ§Ã£o no sistema</h2>
+<p>Registra transferÃªncia, promoÃ§Ã£o e mudanÃ§as de cargo/departamento/gestor, aplicando a nova lotaÃ§Ã£o em <code>adms_users</code>.</p>
 
 
 
-<p class="help-note"><strong>Relacionado:</strong> cadastro de usuários (<code>view-user</code>).</p>
+<p class="help-note"><strong>Relacionado:</strong> cadastro de usuÃ¡rios (<code>view-user</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissões <em>RhMovimentacoes</em>, <em>RhMovimentacoesCreate</em> e <em>RhMovimentacoesView</em>.</p>
+<p><strong>Quem acessa:</strong> permissÃµes <em>RhMovimentacoes</em>, <em>RhMovimentacoesCreate</em> e <em>RhMovimentacoesView</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <em>Gestão de Pessoas → Recrutamento → Movimentações</em>.</li>
-    <li>Clique em <strong>Nova movimentação</strong>.</li>
-    <li>Escolha o colaborador, tipo, vigência, lotação de destino e motivo.</li>
-    <li>Salve: o sistema grava o histórico e atualiza departamento/cargo/gestor do usuário.</li>
+    <li>Acesse <em>GestÃ£o de Pessoas â†’ Recrutamento â†’ MovimentaÃ§Ãµes</em>.</li>
+    <li>Clique em <strong>Nova movimentaÃ§Ã£o</strong>.</li>
+    <li>Escolha o colaborador, tipo, vigÃªncia, lotaÃ§Ã£o de destino e motivo.</li>
+    <li>Salve: o sistema grava o histÃ³rico e atualiza departamento/cargo/gestor do usuÃ¡rio.</li>
 </ol>
 
 
-<h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros ou formulário</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
-<div class="help-field"><strong>Resultado / painel</strong> Área onde o sistema mostra listagens, totais ou detalhe do registro.</div>
-<div class="help-field"><strong>Ações</strong> Botões e links disponíveis conforme sua permissão.</div>
+<h2>Campos e parÃ¢metros</h2>
+<div class="help-field"><strong>Filtros ou formulÃ¡rio</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
+<div class="help-field"><strong>Resultado / painel</strong> Ãrea onde o sistema mostra listagens, totais ou detalhe do registro.</div>
+<div class="help-field"><strong>AÃ§Ãµes</strong> BotÃµes e links disponÃ­veis conforme sua permissÃ£o.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Erro “nenhuma alteração”</dt>
-    <dd>O destino precisa diferir da lotação atual em pelo menos um campo.</dd>
-    <dt>Página não encontrada</dt>
+    <dt>Erro â€œnenhuma alteraÃ§Ã£oâ€</dt>
+    <dd>O destino precisa diferir da lotaÃ§Ã£o atual em pelo menos um campo.</dd>
+    <dt>PÃ¡gina nÃ£o encontrada</dt>
     <dd>Execute a migration <code>20260719242000_create_rh_movimentacoes</code>.</dd>
     <dt>Treinamentos / LNT</dt>
-    <dd>Se o cargo mudar, o sistema registra evento de alteração de cargo no LNT e publica <code>jornada.LotacaoAlterada</code> na outbox.</dd>
+    <dd>Se o cargo mudar, o sistema registra evento de alteraÃ§Ã£o de cargo no LNT e publica <code>jornada.LotacaoAlterada</code> na outbox.</dd>
 </dl>
