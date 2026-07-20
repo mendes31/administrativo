@@ -1643,6 +1643,11 @@
                     "file": "gestao_pessoas/list-pulse-campaigns.html"
                 },
                 {
+                    "id": "list-headcount-plans",
+                    "title": "Planejamento de Quadro",
+                    "file": "gestao_pessoas/list-headcount-plans.html"
+                },
+                {
                     "id": "employee-portal",
                     "title": "Portal do Colaborador",
                     "file": "gestao_pessoas/employee-portal.html"

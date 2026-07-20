@@ -1,0 +1,52 @@
+<h1>Planejamento de Quadro</h1>
+
+<h2>Função no sistema</h2>
+<p>
+Registra o <strong>headcount planejado</strong> por departamento, cargo e período
+(mês/ano) e compara com o <strong>efetivo</strong> atual de colaboradores ativos.
+É a base de People Analytics para ver se a área está abaixo ou acima do quadro
+desejado (gap), antes de custos/retenção e indicadores mais avançados.
+</p>
+
+<p><strong>Quem acessa:</strong> RH/analytics com <em>ListHeadcountPlans</em>;
+criação <em>CreateHeadcountPlan</em>; detalhe <em>ViewHeadcountPlan</em>;
+edição <em>UpdateHeadcountPlan</em>.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Quadro / headcount planejado</dt>
+    <dd>Quantidade de pessoas que a área deveria ter no período (meta de lotação).</dd>
+    <dt>Efetivo</dt>
+    <dd>Contagem atual de colaboradores <em>Ativos</em> no mesmo departamento/cargo, sem data de desligamento.</dd>
+    <dt>Gap</dt>
+    <dd><code>planejado − efetivo</code>. Positivo = falta gente em relação ao plano; negativo = acima do plano; zero = alinhado.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Menu: <strong>Gestão de Pessoas → People Analytics → Planejamento de Quadro</strong>.</li>
+    <li>Clique em <strong>Nova</strong> e informe departamento, cargo (opcional), mês/ano e quantidade planejada.</li>
+    <li>Na listagem, compare Planejado, Efetivo e Gap; filtre por status, área ou período.</li>
+    <li>Abra o detalhe e, se necessário, edite quantidade/status (<em>Rascunho</em> → <em>Ativo</em> → <em>Fechado</em>).</li>
+    <li>Linha <em>Fechada</em> não reabre nem altera quantidade neste incremento.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Departamento</strong> Área organizacional do plano (obrigatório).</div>
+<div class="help-field"><strong>Cargo</strong> Opcional; vazio = quadro da área inteira.</div>
+<div class="help-field"><strong>Período</strong> Mês e ano de referência do plano.</div>
+<div class="help-field"><strong>Qtd. planejada</strong> Headcount alvo (≥ 0).</div>
+<div class="help-field"><strong>Status</strong> Rascunho, Ativo ou Fechado.</div>
+<div class="help-field"><strong>Efetivo / Gap</strong> Calculados na hora; não são gravados na tabela.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu não aparece</dt>
+    <dd>Aplique a migration <code>20260720290000</code> e <strong>relogue</strong>.</dd>
+    <dt>Já existe linha para este período</dt>
+    <dd>Unicidade por departamento + cargo + mês/ano; edite a linha existente.</dd>
+    <dt>Efetivo zerado ou estranho</dt>
+    <dd>Confira se os colaboradores têm departamento/cargo preenchidos e status Ativo sem desligamento.</dd>
+    <dt>Não consigo alterar a quantidade</dt>
+    <dd>Linha fechada bloqueia a quantidade; só notas permanecem editáveis com status fechado.</dd>
+</dl>

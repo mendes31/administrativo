@@ -1047,6 +1047,15 @@ $menus = [
                             'respond-pulse-campaign',
                         ],
                     ],
+                    [
+                        'label' => 'Planejamento de Quadro',
+                        'url' => $_ENV['URL_ADM'] . 'list-headcount-plans',
+                        'permission' => 'ListHeadcountPlans',
+                        'related_routes' => [
+                            'list-headcount-plans', 'create-headcount-plan',
+                            'view-headcount-plan', 'update-headcount-plan',
+                        ],
+                    ],
                 ]
             ],
             [

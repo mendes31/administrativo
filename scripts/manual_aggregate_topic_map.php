@@ -163,6 +163,8 @@ function buildManualAggregateTopicMap(): array
     $add(['people-analytics', 'people-reports',
         'list-pulse-campaigns', 'create-pulse-campaign', 'view-pulse-campaign',
         'update-pulse-campaign', 'respond-pulse-campaign',
+        'list-headcount-plans', 'create-headcount-plan', 'view-headcount-plan',
+        'update-headcount-plan',
     ], 'gp-analytics');
     $add([
         'rh-kpi-dashboard', 'rh-candidatos', 'rh-vagas', 'rh-entrevistas',

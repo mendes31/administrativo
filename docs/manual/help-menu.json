@@ -1245,6 +1245,11 @@
                             "type": "topic",
                             "topic_id": "list-pulse-campaigns",
                             "title": "Pesquisas Pulse / eNPS"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "list-headcount-plans",
+                            "title": "Planejamento de Quadro"
                         }
                     ]
                 },

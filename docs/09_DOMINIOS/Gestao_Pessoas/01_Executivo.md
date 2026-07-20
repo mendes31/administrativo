@@ -24,7 +24,7 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
   - feedback contínuo global (regras de escopo/público/anônimo);
   - calibração avançada (notas na sessão + lock de avaliações);
   - **faltam:** matching Nine Box→PDI (avançado) e demais itens da Fase 6;
-  - **iniciado:** pulse/eNPS (campanhas + resposta + score);
+  - **iniciado Fase 6:** pulse/eNPS; planejamento de quadro (plano vs efetivo + gap);
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
 - `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
@@ -77,7 +77,8 @@ Ordem acordada após os 1ºs incrementos:
 6. ~~Calibração avançada (notas na sessão + lock);~~
 7. Matching Nine Box→PDI — avançado (adiado).
 8. ~~Pulse/eNPS (1º incremento Fase 6);~~
-9. Demais itens da Fase 6 (planejamento de quadro, indicadores, custos/retenção).
+9. ~~Planejamento de quadro (1º incremento);~~
+10. Demais itens da Fase 6 (indicadores, custos/retenção).
 
 Fase 6 continua progressiva após maturidade dos dados de desenvolvimento.
 

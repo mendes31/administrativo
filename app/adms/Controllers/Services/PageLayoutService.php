@@ -538,6 +538,10 @@ class PageLayoutService
             'ViewPulseCampaign',
             'UpdatePulseCampaign',
             'RespondPulseCampaign',
+            'ListHeadcountPlans',
+            'CreateHeadcountPlan',
+            'ViewHeadcountPlan',
+            'UpdateHeadcountPlan',
             // Recrutamento / Currículos / Vagas
             'RhCandidatos',
             'RhCandidatosCreate',
