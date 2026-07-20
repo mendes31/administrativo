@@ -1,8 +1,9 @@
 # Estabelecimentos (Matriz / Filial) — Expand
 
-- Domínio: Administração / Organização (base para Gestão de Pessoas).
+- Domínio: Administração (cadastro transversal; consumido por Gestão de Pessoas e outros módulos).
 - Data: 20/07/2026.
 - Status: CRUD Filiais + vínculo de rótulos com `empresa_contratante` do usuário.
+- Menu: **Administração → Configurações → Filiais** (não exclusivo de GP).
 
 ## Objetivo
 

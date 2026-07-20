@@ -82,6 +82,16 @@ $menus = [
                             'url' => $_ENV['URL_ADM'] . 'password-policy' . ($policyId ? '/' . $policyId : ''),
                             'permission' => 'PasswordPolicy'
                         ],
+                        [
+                            'label' => 'Filiais',
+                            'url' => $_ENV['URL_ADM'] . 'list-branches',
+                            'permission' => 'ListBranches',
+                            'icon' => 'fas fa-sitemap',
+                            'related_routes' => [
+                                'list-branches', 'create-branch', 'view-branch',
+                                'update-branch', 'delete-branch',
+                            ],
+                        ],
                     ]
                 ],             
                
@@ -766,16 +776,6 @@ $menus = [
                 'label' => 'Organização',
                 'icon' => 'fa-solid fa-building',
                 'submenu' => [
-                    [
-                        'label' => 'Filiais',
-                        'url' => $_ENV['URL_ADM'] . 'list-branches',
-                        'permission' => 'ListBranches',
-                        'icon' => 'fas fa-sitemap',
-                        'related_routes' => [
-                            'list-branches', 'create-branch', 'view-branch',
-                            'update-branch', 'delete-branch',
-                        ],
-                    ],
                     [
                         'label' => 'Políticas Internas',
                         'icon'  => 'fa-solid fa-file-contract',

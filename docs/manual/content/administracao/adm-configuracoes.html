@@ -1,9 +1,9 @@
 ﻿<h1>Configurações do sistema</h1>
 
 <h2>Função no sistema</h2>
-<p>Centraliza parâmetros de e-mail, notificações automáticas, calendário, integrações (SAP, MCP, Push PWA), WhatsApp e política de senha.</p>
+<p>Centraliza parâmetros de e-mail, notificações automáticas, calendário, integrações (SAP, MCP, Push PWA), WhatsApp, política de senha e cadastro de filiais (estabelecimentos).</p>
 
-<p><strong>Quem acessa:</strong> administradores com permissões <em>EmailConfig</em>, <em>NotificationSettings</em>, <em>SapApiConfig</em>, <em>WhatsAppConfig</em>, <em>PasswordPolicy</em>, etc.</p>
+<p><strong>Quem acessa:</strong> administradores com permissões <em>EmailConfig</em>, <em>NotificationSettings</em>, <em>SapApiConfig</em>, <em>WhatsAppConfig</em>, <em>PasswordPolicy</em>, <em>ListBranches</em>, etc.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
@@ -12,7 +12,7 @@
     <li>Em <strong>Notificações Automáticas</strong>, ative gatilhos (treinamentos, folha, SST) e canais.</li>
     <li>Configure <strong>SAP API</strong> com endpoint, autenticação e timeout.</li>
     <li>Ajuste <strong>WhatsApp</strong> (token, número, webhook) se usar mensagens transacionais.</li>
-    <li>Defina <strong>Política de Senha</strong>. Cadastre estabelecimentos em <strong>Gestão de Pessoas → Organização → Filiais</strong>.</li>
+    <li>Defina <strong>Política de Senha</strong> e cadastre <strong>Filiais</strong> (Matriz/Filial com CNPJ) para uso multi-módulo.</li>
 </ol>
 
 <h2 id="cfg-email">Configuração de E-mail</h2>
@@ -35,7 +35,7 @@
 <div class="help-field"><strong>Histórico</strong> Impede reutilização das últimas N senhas.</div>
 
 <h2 id="cfg-filiais">Filiais / estabelecimentos</h2>
-<p>O cadastro de Matriz e Filiais (CNPJ) saiu de Administração e está em <strong>Gestão de Pessoas → Organização → Filiais</strong> (permissão <em>ListBranches</em>).</p>
+<p>Cadastro transversal de Matriz e Filiais (CNPJ) em <strong>Administração → Configurações → Filiais</strong> (permissão <em>ListBranches</em>). Usado por GP (empresa contratante), filtros e outros módulos.</p>
 <div class="help-field"><strong>Código / Nome fantasia</strong> Identificação usada em filtros, empresa contratante do usuário e relatórios multi-unidade.</div>
 <div class="help-field"><strong>Status</strong> Filiais inativas não aparecem no filtro global.</div>
 
