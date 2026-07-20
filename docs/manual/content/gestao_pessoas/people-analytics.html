@@ -2,52 +2,122 @@
 
 <h2>Função no sistema</h2>
 <p>
-O <strong>People Analytics</strong> consolida KPIs demográficos e de vínculo
-(headcount, turnover, distribuição), a faixa <strong>Indicadores integrados</strong>
-(desenvolvimento, clima e quadro) e o bloco <strong>Retenção</strong>
-(early turnover, estabilidade, qualidade regrettable). É visão gerencial; o detalhe
-operacional continua nas telas de cada módulo.
+O <strong>Dashboard Analytics</strong> é a visão gerencial consolidada de pessoas: movimento de vínculo
+(headcount, admissões, desligamentos, rotatividade), demografia, qualidade de retenção e um resumo dos
+módulos de desenvolvimento/clima/quadro (<strong>Indicadores integrados</strong>). Os cards têm o mesmo
+visual; os que representam pessoas abrem a listagem correspondente (Usuários ou módulo).
 </p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também <em>People Analytics</em> (<code>gp-analytics</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>PeopleAnalytics</em>.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>PeopleAnalytics</em>. Abrir listagem a partir dos cards de vínculo exige também <em>ListUsers</em>.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
-    <dt>Rotatividade</dt>
-    <dd>Percentual de desligamentos no período em relação à média de headcount (fórmula no card).</dd>
+    <dt>Universo filtrado</dt>
+    <dd>Conjunto de colaboradores resultante dos filtros globais (departamento, cargo, demografia). O card “Colaboradores” conta esse universo; “Ativos hoje” restringe aos ativos na data de referência.</dd>
+    <dt>Rotatividade (turnover)</dt>
+    <dd>Percentual de desligamentos no período em relação à média de headcount. A fórmula exata aparece no ícone de informação do card.</dd>
     <dt>Taxa de retenção</dt>
-    <dd><code>100 − rotatividade</code> no mesmo período.</dd>
+    <dd><code>100 − rotatividade</code> no mesmo período filtrado.</dd>
     <dt>Early turnover</dt>
-    <dd>Desligamentos com pouco tempo de casa (&lt; 90 dias ou &lt; 1 ano).</dd>
+    <dd>Desligamentos com pouco tempo de casa: &lt; 90 dias ou &lt; 1 ano (exige <em>data_admissao</em> no cadastro).</dd>
+    <dt>Tenure</dt>
+    <dd>Tempo de casa (admissão → desligamento ou até hoje, para ativos).</dd>
     <dt>Regrettable</dt>
-    <dd>Desligamento classificado como perda relevante (cadastro/histórico). Não é o mesmo que “pedido vs demissão”.</dd>
+    <dd>Desligamento classificado no histórico como perda relevante para a empresa. Não é o mesmo que “pedido de demissão” vs “demissão”.</dd>
+    <dt>eNPS</dt>
+    <dd>Employee Net Promoter Score da última campanha Pulse com respostas.</dd>
+    <dt>Gap de quadro</dt>
+    <dd>Diferença entre headcount planejado e efetivo no mês atual (Planejamento de Quadro).</dd>
     <dt>Indicadores integrados</dt>
-    <dd>Resumo das Fases 5/6: ciclo, PDI, eNPS, gap de quadro, talent pool e sucessão.</dd>
+    <dd>Resumo transversal (ciclo de avaliação, PDI, eNPS, gap, talent pool, sucessão). Neste corte <strong>não</strong> recebem os filtros demográficos/departamento da página.</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Acesse <strong>Gestão de Pessoas → People Analytics → Dashboard Analytics</strong>.</li>
-    <li>Ajuste os filtros globais e clique em <strong>Aplicar</strong>.</li>
-    <li>Leia cards de vínculo, <strong>Indicadores integrados</strong> e o bloco <strong>Retenção</strong>.</li>
-    <li>Use os links dos cards integrados para as listagens detalhadas.</li>
-    <li>Explore os gráficos; clique em segmentos de departamento para filtrar.</li>
+    <li>Se precisar alterar o recorte, <strong>expanda Filtros globais</strong> (cabeçalho clicável). Com filtros já ativos, o painel abre automaticamente e mostra o selo “ativos”.</li>
+    <li>Ajuste período (ou atalhos 12 meses / ano atual / mês), departamentos, cargos e demografia; clique em <strong>Aplicar filtros</strong>. Use <strong>Limpar tudo</strong> para voltar ao padrão.</li>
+    <li>Leia, nesta ordem: cards de <strong>vínculo</strong> → <strong>Indicadores integrados</strong> → <strong>Retenção</strong> → gráficos de movimento → gráficos demográficos.</li>
+    <li>Clique num card com a dica <em>Ver listagem</em> para abrir as pessoas (ou o módulo) por trás do número.</li>
+    <li>Nos gráficos com a dica “(clique para filtrar)”, clique num segmento para aplicar o filtro no próprio dashboard (a página recarrega).</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros globais</strong> Aplicam-se a vínculo, gráficos e retenção; não aos cards integrados neste corte.</div>
-<div class="help-field"><strong>Retenção</strong> Taxa, early turnover, tenure médio no desligamento, estabilidade ≥1a/≥3a, % regrettable e faixas de tenure.</div>
-<div class="help-field"><strong>Custo</strong> Ainda não calculado (não há salário canónico no cadastro/folha).</div>
-<div class="help-field"><strong>JSON metrics</strong> Inclui <code>integrated</code> e <code>retention</code>.</div>
+
+<h3>Filtros globais (expansível)</h3>
+<p>
+O bloco fica <strong>recolhido</strong> quando não há filtro demográfico/departamento/cargo ativo, para priorizar os KPIs.
+Clique no cabeçalho “Filtros globais” para expandir ou recolher. O período padrão da tela continua valendo mesmo com o painel fechado.
+</p>
+<div class="help-field"><strong>Período (pa_de / pa_ate)</strong> Define admissões, desligamentos, rotatividade, retenção e a maioria dos gráficos “no período”. Atalhos preenchem as datas; ainda é preciso Aplicar.</div>
+<div class="help-field"><strong>Departamentos / Cargos</strong> Seleção múltipla (busca). Nenhuma seleção = todos. Limpar seleção remove só aquele campo.</div>
+<div class="help-field"><strong>Sexo, estado civil, país, filhos</strong> Recorte demográfico sobre o universo e sobre desligamentos do período.</div>
+<div class="help-field"><strong>O que os filtros afetam</strong> Cards de vínculo, bloco Retenção, faixas de tenure, gráficos de headcount/turnover/demografia.</div>
+<div class="help-field"><strong>O que os filtros não afetam</strong> Os seis cards de <em>Indicadores integrados</em> (visão global do módulo).</div>
+
+<h3>Cards de vínculo (primeira faixa)</h3>
+<p>
+Visual unificado (<code>border-light</code>, ícone colorido). Cards com pessoas são clicáveis e abrem
+<strong>Usuários</strong> (<code>list-users</code>) com o recorte mapeado a partir dos filtros globais.
+</p>
+<div class="help-field"><strong>Colaboradores (universo filtrado)</strong> Abre Usuários com sexo/filhos e, se houver só um departamento ou cargo no filtro, esse id. Sem forçar ativo/desligado.</div>
+<div class="help-field"><strong>Ativos hoje</strong> Abre Usuários com <code>desligado=0</code> + demografia/dept/cargo (quando único).</div>
+<div class="help-field"><strong>Admissões no período</strong> Abre com <code>periodo_tipo=admissao</code> e as datas do painel. <strong>Não</strong> força desligado — lista quem foi admitido no intervalo (ativos ou já desligados).</div>
+<div class="help-field"><strong>Desligamentos no período</strong> Abre com <code>periodo_tipo=desligamento</code>, <code>desligado=1</code> e as datas do painel.</div>
+<div class="help-field"><strong>Saldo líquido / Rotatividade %</strong> Somente informativos — não abrem listagem (são agregados).</div>
+<div class="help-field"><strong>Sessão de filtros em Usuários</strong> O drill envia <code>from=people-analytics</code> e um snapshot limpo, para não herdar “Desligado=Sim” (ou outros filtros) de uma visita anterior à listagem.</div>
+<div class="help-field"><strong>Vários departamentos ou cargos</strong> A listagem de Usuários aceita só um de cada; nesse caso o drill <strong>omite</strong> dept/cargo para não mostrar um recorte falso. Estado civil e país do painel também não vão para Usuários neste corte.</div>
+
+<h3>Indicadores integrados</h3>
+<p>Mesmo visual dos demais; o card inteiro leva ao módulo (não aos filtros demográficos do painel).</p>
+<div class="help-field"><strong>Ciclo aberto — avaliações</strong> % de avaliações concluídas no ciclo aberto (ou “—” se não houver). Abre Ciclos.</div>
+<div class="help-field"><strong>PDI — progresso médio</strong> Média de progresso das ações dos planos ativos. Abre PDI.</div>
+<div class="help-field"><strong>eNPS (última campanha)</strong> Score da última campanha Pulse com respostas; mostra nome e volume. Abre Pesquisas.</div>
+<div class="help-field"><strong>Gap quadro (mês atual)</strong> Soma dos gaps (planejado − efetivo). Positivo = falta gente; negativo = acima do plano. Abre Quadro.</div>
+<div class="help-field"><strong>Talent pool (ativos)</strong> Nomeações HiPo ativas. Abre Talent pool.</div>
+<div class="help-field"><strong>Sucessão coberta</strong> Posições críticas com sucessor / total ativas; subtítulo “ready now”. Abre Sucessão.</div>
+
+<h3>Retenção</h3>
+<p>Mesmo design dos outros cards; neste corte <strong>não</strong> abrem listagem (faltam filtros de tenure/impacto em Usuários).</p>
+<div class="help-field"><strong>Taxa de retenção</strong> Complemento da rotatividade no período filtrado (agregado).</div>
+<div class="help-field"><strong>Early &lt; 90 dias / &lt; 1 ano</strong> Contagem (e % sobre desligamentos do período, quando calculável).</div>
+<div class="help-field"><strong>Tenure médio no desligamento</strong> Média em dias entre admissão e desligamento (só quem tem data de admissão).</div>
+<div class="help-field"><strong>Estáveis ≥ 1 ano</strong> % dos ativos com tenure ≥ 1 ano. O rodapé das faixas também mostra ≥ 3 anos.</div>
+<div class="help-field"><strong>Regrettable no período</strong> % e fração (regrettable / desligamentos do período).</div>
+<div class="help-field"><strong>Faixas de tenure nos desligamentos</strong> Distribuição &lt;90d · 90d–1a · 1–3a · ≥3a · sem admissão; mais contagens non-regrettable / não classificado.</div>
+<div class="help-field"><strong>Custo em R$</strong> Ainda não calculado — não há salário canónico unificado no cadastro/folha neste incremento.</div>
+
+<h3>Gráficos</h3>
+<div class="help-field"><strong>Diferença em relação aos cards</strong> Gráficos filtram o <em>próprio</em> dashboard; cards de vínculo abrem a <em>listagem</em> de Usuários.</div>
+<div class="help-field"><strong>Headcount mensal</strong> Evolução do quadro no período filtrado.</div>
+<div class="help-field"><strong>Distribuição / Turnover por departamento</strong> Ativos ou turnover; clique no segmento filtra por departamento.</div>
+<div class="help-field"><strong>Distribuição por cargo (top 10)</strong> Clique no segmento filtra por cargo.</div>
+<div class="help-field"><strong>Impacto (RH)</strong> Desligamentos do período por classificação de impacto (inclui regrettable).</div>
+<div class="help-field"><strong>Demografia — ativos vs desligamentos</strong> Pares de gráficos (sexo, idade, filhos, estado civil, país). Ativos usam a data de referência do rodapé; desligamentos usam o período. Clique filtra onde houver a dica; <strong>faixa etária ainda não filtra por clique</strong>.</div>
+<div class="help-field"><strong>JSON metrics</strong> Payload interno/API de apoio inclui chaves <code>integrated</code> e <code>retention</code> além das métricas de vínculo.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu</dt>
     <dd>Permissão <em>PeopleAnalytics</em> ausente no nível de acesso.</dd>
+    <dt>Card de desligados / ativos não é clicável</dt>
+    <dd>Inclua <em>ListUsers</em> no nível de acesso. Sem essa permissão o card permanece só informativo.</dd>
+    <dt>Abri desligamentos e a lista não bate com o card</dt>
+    <dd>Se o painel tinha vários departamentos ou cargos, a listagem omite esses filtros (Usuários aceita só um). Estado civil/país do painel também não vão para Usuários neste corte.</dd>
+    <dt>Muitos filtros “somem” a tela</dt>
+    <dd>Recolha o bloco <strong>Filtros globais</strong> pelo cabeçalho; os KPIs permanecem visíveis. Com filtros ativos o painel reabre sozinho na próxima carga.</dd>
+    <dt>Apliquei período/atalho e nada mudou</dt>
+    <dd>É preciso clicar em <strong>Aplicar filtros</strong> após alterar datas ou demografia.</dd>
+    <dt>Indicadores integrados não mudam com o departamento</dt>
+    <dd>Comportamento esperado neste corte: bloco global. Use o clique no card para ir à tela de origem.</dd>
+    <dt>Early / regrettable não abrem lista</dt>
+    <dd>Esperado neste incremento — falta filtro de tenure/impacto em Usuários.</dd>
     <dt>Early turnover zerado com desligamentos</dt>
-    <dd>Confira se <em>data_admissao</em> está preenchida nos desligados.</dd>
+    <dd>Confira se <em>data_admissao</em> está preenchida nos desligados; sem ela caem em “Sem admissão”.</dd>
     <dt>Não aparece custo em R$</dt>
-    <dd>Esperado neste incremento — falta fonte de remuneração; só retenção qualitativa.</dd>
+    <dd>Esperado — retenção qualitativa apenas até haver fonte de remuneração canónica.</dd>
+    <dt>Clique no gráfico de idade não filtra</dt>
+    <dd>Faixa etária ainda não tem drill-down; use sexo, estado civil, país, filhos, departamento ou cargo.</dd>
 </dl>

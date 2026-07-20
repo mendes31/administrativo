@@ -1,27 +1,36 @@
 <h1>People Analytics</h1>
 
 <h2>Função no sistema</h2>
-<p>Dashboards e relatórios de RH: headcount, turnover, absenteísmo e indicadores customizados.</p>
+<p>
+Área de <strong>dashboards e relatórios</strong> de RH: o <em>Dashboard Analytics</em> consolida KPIs de vínculo,
+retenção, demografia e indicadores integrados; os <em>Relatórios de RH</em> cobrem exportações e recortes
+específicos. O detalhe de cada indicador está no tópico da tela operacional (F1).
+</p>
 
+<p><strong>Quem acessa:</strong> RH e diretoria com <em>PeopleAnalytics</em> e/ou <em>PeopleReports</em>.</p>
 
-<p><strong>Quem acessa:</strong> RH e diretoria com <em>PeopleAnalytics</em>, <em>PeopleReports</em>.</p>
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Acesse <strong>People Analytics → Dashboard</strong>.</li>
-<li>Selecione período e recortes (departamento, filial).</li>
-<li>Analise KPIs e tendências.</li>
-<li>Exporte relatórios específicos em <strong>Relatórios de RH</strong>.</li>
+    <li>Acesse <strong>Gestão de Pessoas → People Analytics → Dashboard Analytics</strong> (tópico <code>people-analytics</code>).</li>
+    <li>Expanda ou recolha <strong>Filtros globais</strong> conforme necessário; aplique período e recortes.</li>
+    <li>Analise vínculo → indicadores integrados → retenção → gráficos; use clique nos segmentos quando disponível.</li>
+    <li>Para listagens exportáveis, use <strong>Relatórios de RH</strong> (<code>people-reports</code>).</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
-<div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
-<div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
+<div class="help-field"><strong>Dashboard Analytics</strong> Painel único com muitos KPIs; ver glossário e mapa de cards no tópico <em>People Analytics</em> (<code>people-analytics</code>).</div>
+<div class="help-field"><strong>Filtros expansíveis</strong> No dashboard, o bloco de filtros colapsa para priorizar os indicadores; reabre sozinho se houver filtro ativo.</div>
+<div class="help-field"><strong>Permissões</strong> Cada tela exige a página correspondente no nível de acesso.</div>
+<div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela, o F1 abre o tópico detalhado daquela função.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Dados desatualizados</dt><dd>ETL noturno; consulte data da última carga.</dd>
-<dt>Headcount divergente</dt><dd>Filtro de ativos/inativos diferente do cadastro.</dd>
-<dt>Sem permissão gerencial</dt><dd>Analytics restrito a perfis RH.</dd>
-<dt>Export grande falha</dt><dd>Reduza escopo ou agende export assíncrono.</dd>
+    <dt>Não entendo um KPI do dashboard</dt>
+    <dd>Abra F1 em <strong>Dashboard Analytics</strong> — há glossário, o que cada card significa e o que os filtros afetam ou não.</dd>
+    <dt>Headcount divergente do cadastro</dt>
+    <dd>Confira período, departamentos/cargos e demografia aplicados; “Ativos hoje” ≠ universo filtrado completo.</dd>
+    <dt>Sem permissão gerencial</dt>
+    <dd>Inclua <em>PeopleAnalytics</em> (dashboard) e/ou <em>PeopleReports</em> (relatórios) no pacote do nível.</dd>
+    <dt>Export grande falha</dt>
+    <dd>Reduza escopo nos Relatórios de RH ou peça exportação assistida à TI.</dd>
 </dl>

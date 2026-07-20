@@ -60,6 +60,7 @@ class PeopleAnalytics
             'menu' => 'people-analytics',
             'buttonPermission' => [
                 'PeopleReports',
+                'ListUsers',
             ],
         ];
 

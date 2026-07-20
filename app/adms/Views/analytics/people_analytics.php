@@ -32,10 +32,26 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
     padding: 2px 6px;
 }
 .people-analytics-filters .period-presets .btn { font-size: 0.8rem; }
+.people-analytics-filters-toggle .people-analytics-filters-chevron {
+    transition: transform 0.2s ease;
+}
+.people-analytics-filters-toggle:not(.collapsed) .people-analytics-filters-chevron {
+    transform: rotate(180deg);
+}
+.people-analytics-filters-toggle:focus-visible {
+    outline: 2px solid rgba(13, 110, 253, 0.45);
+    outline-offset: 2px;
+}
 @media (max-width: 575.98px) {
     .people-analytics-filters .select2-container { font-size: 16px; }
 }
 /* Altura fixa do bloco do gráfico: evita canvas gigante e ajuda o Chart.js */
+.people-analytics-page.container-fluid {
+    /* Sobrescreve --container-padding baixo (0.5rem em notebooks) que cola o conteúdo na lateral */
+    padding-left: clamp(1.25rem, 2.2vw, 2.5rem) !important;
+    padding-right: clamp(1.25rem, 2.2vw, 2.5rem) !important;
+    padding-bottom: 1.5rem;
+}
 .people-analytics-page .people-analytics-chart-body {
     position: relative;
     min-height: 220px;
@@ -50,8 +66,54 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
 .people-analytics-page .people-analytics-chart-body > canvas {
     max-width: 100%;
 }
+/* Cards com borda suave + sombra (border-light some no fundo cinza claro) */
+.people-analytics-page > .card,
+.people-analytics-page .row > [class*="col"] > .card {
+    border: 1px solid rgba(33, 37, 41, 0.12);
+    box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.07);
+    background-color: #fff;
+}
+.people-analytics-page .pa-kpi-card {
+    border: 1px solid rgba(33, 37, 41, 0.12);
+    border-top-width: 3px;
+    box-shadow: 0 0.15rem 0.45rem rgba(0, 0, 0, 0.07);
+    background-color: #fff;
+    border-radius: 0.5rem;
+    transition: box-shadow 0.15s ease, transform 0.15s ease, border-color 0.15s ease;
+}
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-primary { border-top-color: var(--bs-primary); }
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-success { border-top-color: var(--bs-success); }
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-secondary { border-top-color: var(--bs-secondary); }
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-warning { border-top-color: var(--bs-warning); }
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-danger { border-top-color: var(--bs-danger); }
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-info { border-top-color: var(--bs-info); }
+.people-analytics-page .pa-kpi-card.pa-kpi-accent-dark { border-top-color: var(--bs-dark); }
+.people-analytics-page .pa-kpi-card--link {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+.people-analytics-page .pa-kpi-card--link:hover,
+.people-analytics-page .pa-kpi-card--link:focus-visible {
+    box-shadow: 0 0.4rem 0.9rem rgba(0, 0, 0, 0.12);
+    transform: translateY(-2px);
+    outline: none;
+}
+.people-analytics-page .pa-kpi-card .pa-kpi-drill-hint {
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+.people-analytics-page .pa-kpi-card .card-body {
+    padding: 1.25rem 0.85rem 1rem;
+    justify-content: center;
+    min-height: 9.5rem;
+}
+.people-analytics-page .pa-kpi-card .card-body > i:first-child {
+    margin-top: 0.15rem;
+}
 </style>
-<div class="container-fluid px-4 people-analytics-page">
+<div class="container-fluid people-analytics-page">
     <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3">People Analytics</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
@@ -65,14 +127,43 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+    <?php
+    $filtersHaveCustom = $selDep !== [] || $selPos !== []
+        || ($fSexo !== null && $fSexo !== '')
+        || ($fEstadoCivil !== null && $fEstadoCivil !== '')
+        || ($fPaisIso !== null && $fPaisIso !== '')
+        || ($fFilhos !== null && $fFilhos !== '');
+    $filtersCollapseOpen = $filtersHaveCustom;
+    ?>
     <div class="card border-light shadow mb-4 people-analytics-filters">
-        <div class="card-header d-flex flex-column flex-lg-row align-items-lg-center gap-2 py-3">
-            <div class="d-flex align-items-center gap-2">
-                <span class="fw-semibold"><i class="fas fa-filter text-primary me-1"></i>Filtros globais</span>
-            </div>
-            <small class="text-muted lh-sm ms-lg-auto">Período, departamento, cargo, sexo, estado civil, país e filhos aplicam-se a todo o painel. Nos gráficos de barras e rosca de departamentos, <strong>clique num segmento</strong> para aplicar o filtro correspondente (nova carga da página). Faixa etária ainda não tem filtro por clique.</small>
+        <div class="card-header py-3">
+            <button
+                type="button"
+                class="btn btn-link text-decoration-none text-body p-0 w-100 d-flex align-items-start justify-content-between gap-2 people-analytics-filters-toggle<?= $filtersCollapseOpen ? '' : ' collapsed' ?>"
+                data-bs-toggle="collapse"
+                data-bs-target="#people-analytics-filters-body"
+                aria-expanded="<?= $filtersCollapseOpen ? 'true' : 'false' ?>"
+                aria-controls="people-analytics-filters-body"
+                id="people-analytics-filters-toggle"
+            >
+                <span class="text-start">
+                    <span class="fw-semibold d-inline-flex align-items-center gap-2">
+                        <i class="fas fa-filter text-primary"></i>Filtros globais
+                        <?php if ($filtersHaveCustom): ?>
+                            <span class="badge text-bg-primary">ativos</span>
+                        <?php endif; ?>
+                    </span>
+                    <span class="d-block text-muted small mt-1 pe-2" id="people-analytics-filters-hint">
+                        Período, departamento, cargo e demografia.
+                        <span class="people-analytics-filters-hint-action"><?= $filtersCollapseOpen ? 'Clique para recolher.' : 'Clique para expandir.' ?></span>
+                        Nos gráficos com a dica “(clique para filtrar)”, um segmento aplica o filtro e recarrega a página.
+                    </span>
+                </span>
+                <i class="fas fa-chevron-down people-analytics-filters-chevron mt-1 flex-shrink-0" aria-hidden="true"></i>
+            </button>
         </div>
-        <div class="card-body pt-0">
+        <div id="people-analytics-filters-body" class="collapse<?= $filtersCollapseOpen ? ' show' : '' ?>">
+        <div class="card-body pt-0 border-top">
             <form method="get" action="<?php echo htmlspecialchars($_ENV['URL_ADM'] . 'people-analytics'); ?>" id="people-analytics-filter-form" class="row g-4">
                 <div class="col-12">
                     <label class="form-label fw-semibold mb-2" for="pa_de">Período de análise</label>
@@ -187,70 +278,113 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                 </div>
             </form>
         </div>
+        </div>
     </div>
 
-    <!-- Cards de KPIs -->
+    <?php
+    $canListUsers = in_array('ListUsers', $this->data['buttonPermission'] ?? [], true);
+    $drillFilters = [
+        'period_start' => $fs,
+        'period_end' => $fe,
+        'departamento_ids' => $selDep,
+        'cargo_ids' => $selPos,
+        'sexo' => is_string($fSexo) && $fSexo !== '' ? $fSexo : null,
+        'filhos' => is_string($fFilhos) && $fFilhos !== '' ? $fFilhos : null,
+    ];
+    $baseAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+
+    $paDrill = static function (string $intent) use ($canListUsers, $baseAdm, $drillFilters): ?string {
+        if (!$canListUsers) {
+            return null;
+        }
+
+        return \App\adms\Models\Services\PeopleAnalyticsListUsersUrlBuilder::url($baseAdm . '/', $drillFilters, $intent);
+    };
+    ?>
+
+    <!-- Cards de KPIs (vínculo) -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
+        <h5 class="mb-0">Vínculo e movimento</h5>
+        <small class="text-muted"><?= $canListUsers ? 'Clique nos cards com listagem para ver as pessoas em Usuários' : 'Cards de pessoas exigem permissão ListUsers para abrir a listagem' ?></small>
+    </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-xl-2">
-            <div class="card border-primary shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-users fa-2x text-primary mb-2"></i>
-                    <h3 class="mb-0"><?= (int)($this->data['total_employees'] ?? 0) ?></h3>
-                    <p class="text-muted mb-0 small">Colaboradores (universo filtrado)</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-users',
+                'color' => 'primary',
+                'value' => (string) (int) ($this->data['total_employees'] ?? 0),
+                'label' => 'Colaboradores (universo filtrado)',
+                'href' => $paDrill(\App\adms\Models\Services\PeopleAnalyticsListUsersUrlBuilder::INTENT_UNIVERSE),
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-xl-2">
-            <div class="card border-success shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-user-check fa-2x text-success mb-2"></i>
-                    <h3 class="mb-0"><?= (int)($this->data['active_employees'] ?? 0) ?></h3>
-                    <p class="text-muted mb-0 small">Ativos hoje</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-user-check',
+                'color' => 'success',
+                'value' => (string) (int) ($this->data['active_employees'] ?? 0),
+                'label' => 'Ativos hoje',
+                'href' => $paDrill(\App\adms\Models\Services\PeopleAnalyticsListUsersUrlBuilder::INTENT_ACTIVE),
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-xl-2">
-            <div class="card border-secondary shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-user-plus fa-2x text-secondary mb-2"></i>
-                    <h3 class="mb-0"><?= (int)($this->data['admissions_in_period'] ?? 0) ?></h3>
-                    <p class="text-muted mb-0 small">Admissões no período</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-user-plus',
+                'color' => 'secondary',
+                'value' => (string) (int) ($this->data['admissions_in_period'] ?? 0),
+                'label' => 'Admissões no período',
+                'href' => $paDrill(\App\adms\Models\Services\PeopleAnalyticsListUsersUrlBuilder::INTENT_ADMISSIONS),
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-xl-2">
-            <div class="card border-warning shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-user-minus fa-2x text-warning mb-2"></i>
-                    <h3 class="mb-0"><?= (int)($this->data['terminations_in_period'] ?? 0) ?></h3>
-                    <p class="text-muted mb-0 small">Desligamentos no período</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-user-minus',
+                'color' => 'warning',
+                'value' => (string) (int) ($this->data['terminations_in_period'] ?? 0),
+                'label' => 'Desligamentos no período',
+                'href' => $paDrill(\App\adms\Models\Services\PeopleAnalyticsListUsersUrlBuilder::INTENT_TERMINATIONS),
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-xl-2">
-            <div class="card border-dark shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-balance-scale fa-2x text-dark mb-2"></i>
-                    <h3 class="mb-0"><?= (int)($this->data['net_movement'] ?? 0) ?></h3>
-                    <p class="text-muted mb-0 small">Saldo líquido (adm. − desl.)</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-balance-scale',
+                'color' => 'dark',
+                'value' => (string) (int) ($this->data['net_movement'] ?? 0),
+                'label' => 'Saldo líquido (adm. − desl.)',
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-xl-2">
-            <div class="card border-info shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-chart-line fa-2x text-info mb-2"></i>
-                    <h3 class="mb-0"><?= htmlspecialchars((string)($this->data['turnover_rate'] ?? '0.00')) ?>%</h3>
-                    <p class="text-muted mb-0 small">
-                        Rotatividade
-                        <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip" data-bs-placement="top"
-                              title="<?= htmlspecialchars($turnoverFormula) ?>">
-                            <i class="fas fa-info-circle text-muted" aria-hidden="true"></i>
-                        </span>
-                    </p>
-                    <small class="text-muted"><?= (int)($this->data['terminated_last_year'] ?? 0) ?> desligamentos</small>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-chart-line',
+                'color' => 'info',
+                'value' => htmlspecialchars((string) ($this->data['turnover_rate'] ?? '0.00')) . '%',
+                'label' => 'Rotatividade',
+                'subtitle' => htmlspecialchars((string) (int) ($this->data['terminated_last_year'] ?? 0)) . ' desligamentos',
+                'tooltip' => $turnoverFormula,
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
     </div>
 
@@ -262,7 +396,9 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
     $hc = $integrated['headcount_gap'] ?? [];
     $talent = $integrated['talent_nominations'] ?? [];
     $succ = $integrated['succession'] ?? [];
-    $base = $_ENV['URL_ADM'] ?? '';
+    $base = $baseAdm !== '' ? $baseAdm . '/' : '';
+    $gapSum = (int) ($hc['gap_sum'] ?? 0);
+    $gapClass = $gapSum > 0 ? 'text-danger' : ($gapSum < 0 ? 'text-warning' : 'text-success');
     ?>
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
         <h5 class="mb-0">Indicadores integrados</h5>
@@ -270,73 +406,94 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
     </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-light shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-clipboard-check fa-lg text-primary mb-2"></i>
-                    <h4 class="mb-0"><?= isset($cycle['pct']) && $cycle['pct'] !== null ? htmlspecialchars((string)$cycle['pct']) . '%' : '—' ?></h4>
-                    <p class="text-muted mb-1 small">Ciclo aberto — avaliações</p>
-                    <small class="text-muted"><?= (int)($cycle['reviews_completed'] ?? 0) ?>/<?= (int)($cycle['reviews_total'] ?? 0) ?>
-                        <?= !empty($cycle['cycle_name']) ? ' · ' . htmlspecialchars((string)$cycle['cycle_name']) : '' ?></small>
-                    <div class="mt-2"><a class="small" href="<?= $base ?>list-performance-cycles">Ciclos</a></div>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-clipboard-check',
+                'color' => 'primary',
+                'value' => isset($cycle['pct']) && $cycle['pct'] !== null ? htmlspecialchars((string) $cycle['pct']) . '%' : '—',
+                'label' => 'Ciclo aberto — avaliações',
+                'subtitle' => (int) ($cycle['reviews_completed'] ?? 0) . '/' . (int) ($cycle['reviews_total'] ?? 0)
+                    . (!empty($cycle['cycle_name']) ? ' · ' . htmlspecialchars((string) $cycle['cycle_name']) : ''),
+                'href' => $base . 'list-performance-cycles',
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-light shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-route fa-lg text-success mb-2"></i>
-                    <h4 class="mb-0"><?= isset($pdi['actions_avg_pct']) && $pdi['actions_avg_pct'] !== null ? htmlspecialchars((string)$pdi['actions_avg_pct']) . '%' : '—' ?></h4>
-                    <p class="text-muted mb-1 small">PDI — progresso médio</p>
-                    <small class="text-muted"><?= (int)($pdi['active_plans'] ?? 0) ?> planos ativos</small>
-                    <div class="mt-2"><a class="small" href="<?= $base ?>list-pdi-plans">PDI</a></div>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-route',
+                'color' => 'success',
+                'value' => isset($pdi['actions_avg_pct']) && $pdi['actions_avg_pct'] !== null
+                    ? htmlspecialchars((string) $pdi['actions_avg_pct']) . '%'
+                    : '—',
+                'label' => 'PDI — progresso médio',
+                'subtitle' => (int) ($pdi['active_plans'] ?? 0) . ' planos ativos',
+                'href' => $base . 'list-pdi-plans',
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-light shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-poll fa-lg text-info mb-2"></i>
-                    <h4 class="mb-0"><?= isset($enps['enps']) && $enps['enps'] !== null ? htmlspecialchars((string)$enps['enps']) : '—' ?></h4>
-                    <p class="text-muted mb-1 small">eNPS (última campanha)</p>
-                    <small class="text-muted"><?= htmlspecialchars((string)($enps['name'] ?? 'Sem campanha')) ?>
-                        · <?= (int)($enps['total'] ?? 0) ?> resp.</small>
-                    <div class="mt-2"><a class="small" href="<?= $base ?>list-pulse-campaigns">Pesquisas</a></div>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-poll',
+                'color' => 'info',
+                'value' => isset($enps['enps']) && $enps['enps'] !== null ? htmlspecialchars((string) $enps['enps']) : '—',
+                'label' => 'eNPS (última campanha)',
+                'subtitle' => htmlspecialchars((string) ($enps['name'] ?? 'Sem campanha'))
+                    . ' · ' . (int) ($enps['total'] ?? 0) . ' resp.',
+                'href' => $base . 'list-pulse-campaigns',
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-light shadow h-100">
-                <div class="card-body text-center">
-                    <?php $gapSum = (int)($hc['gap_sum'] ?? 0); $gapClass = $gapSum > 0 ? 'text-danger' : ($gapSum < 0 ? 'text-warning' : 'text-success'); ?>
-                    <i class="fas fa-users-cog fa-lg text-secondary mb-2"></i>
-                    <h4 class="mb-0 <?= $gapClass ?>"><?= isset($hc['lines']) ? $gapSum : '—' ?></h4>
-                    <p class="text-muted mb-1 small">Gap quadro (mês atual)</p>
-                    <small class="text-muted"><?= (int)($hc['lines'] ?? 0) ?> linhas · plan. <?= (int)($hc['planned_sum'] ?? 0) ?> / efet. <?= (int)($hc['actual_sum'] ?? 0) ?></small>
-                    <div class="mt-2"><a class="small" href="<?= $base ?>list-headcount-plans">Quadro</a></div>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-users-cog',
+                'color' => 'secondary',
+                'value' => isset($hc['lines']) ? (string) $gapSum : '—',
+                'value_class' => isset($hc['lines']) ? $gapClass : '',
+                'label' => 'Gap quadro (mês atual)',
+                'subtitle' => (int) ($hc['lines'] ?? 0) . ' linhas · plan. '
+                    . (int) ($hc['planned_sum'] ?? 0) . ' / efet. ' . (int) ($hc['actual_sum'] ?? 0),
+                'href' => $base . 'list-headcount-plans',
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-light shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-star fa-lg text-warning mb-2"></i>
-                    <h4 class="mb-0"><?= (int)($talent['active_count'] ?? 0) ?></h4>
-                    <p class="text-muted mb-1 small">Talent pool (ativos)</p>
-                    <small class="text-muted">Nomeações HiPo ativas</small>
-                    <div class="mt-2"><a class="small" href="<?= $base ?>list-talent-nominations">Talent pool</a></div>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-star',
+                'color' => 'warning',
+                'value' => (string) (int) ($talent['active_count'] ?? 0),
+                'label' => 'Talent pool (ativos)',
+                'subtitle' => 'Nomeações HiPo ativas',
+                'href' => $base . 'list-talent-nominations',
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-light shadow h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-chess-king fa-lg text-dark mb-2"></i>
-                    <h4 class="mb-0"><?= (int)($succ['with_successor'] ?? 0) ?>/<?= (int)($succ['critical_active'] ?? 0) ?></h4>
-                    <p class="text-muted mb-1 small">Sucessão coberta</p>
-                    <small class="text-muted"><?= (int)($succ['ready_now'] ?? 0) ?> ready now</small>
-                    <div class="mt-2"><a class="small" href="<?= $base ?>list-critical-positions">Sucessão</a></div>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-chess-king',
+                'color' => 'dark',
+                'value' => (int) ($succ['with_successor'] ?? 0) . '/' . (int) ($succ['critical_active'] ?? 0),
+                'label' => 'Sucessão coberta',
+                'subtitle' => (int) ($succ['ready_now'] ?? 0) . ' ready now',
+                'href' => $base . 'list-critical-positions',
+                'drill_hint' => true,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
     </div>
 
@@ -351,85 +508,114 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
     ?>
     <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-2">
         <h5 class="mb-0">Retenção</h5>
-        <small class="text-muted">Qualidade de permanência no período filtrado · custo financeiro ainda não disponível</small>
+        <small class="text-muted">Qualidade de permanência no período filtrado · listagem por tenure/impacto em breve · custo R$ ainda indisponível</small>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-success shadow h-100">
-                <div class="card-body text-center">
-                    <h4 class="mb-0"><?= htmlspecialchars((string)($ret['retention_rate'] ?? '—')) ?>%</h4>
-                    <p class="text-muted mb-0 small">Taxa de retenção
-                        <span class="d-inline-block" tabindex="0" data-bs-toggle="tooltip"
-                              title="<?= htmlspecialchars((string)($ret['retention_formula'] ?? '')) ?>">
-                            <i class="fas fa-info-circle text-muted"></i>
-                        </span>
-                    </p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-shield-alt',
+                'color' => 'success',
+                'value' => htmlspecialchars((string) ($ret['retention_rate'] ?? '—')) . '%',
+                'label' => 'Taxa de retenção',
+                'tooltip' => (string) ($ret['retention_formula'] ?? ''),
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-warning shadow h-100">
-                <div class="card-body text-center">
-                    <h4 class="mb-0"><?= (int)($e90['count'] ?? 0) ?></h4>
-                    <p class="text-muted mb-0 small">Early &lt; 90 dias
-                        <?= isset($e90['pct']) && $e90['pct'] !== null ? ' (' . htmlspecialchars((string)$e90['pct']) . '%)' : '' ?></p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-hourglass-start',
+                'color' => 'warning',
+                'value' => (string) (int) ($e90['count'] ?? 0),
+                'label' => 'Early < 90 dias',
+                'subtitle' => isset($e90['pct']) && $e90['pct'] !== null
+                    ? htmlspecialchars((string) $e90['pct']) . '% dos desligamentos'
+                    : null,
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-warning shadow h-100">
-                <div class="card-body text-center">
-                    <h4 class="mb-0"><?= (int)($e365['count'] ?? 0) ?></h4>
-                    <p class="text-muted mb-0 small">Early &lt; 1 ano
-                        <?= isset($e365['pct']) && $e365['pct'] !== null ? ' (' . htmlspecialchars((string)$e365['pct']) . '%)' : '' ?></p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-hourglass-half',
+                'color' => 'warning',
+                'value' => (string) (int) ($e365['count'] ?? 0),
+                'label' => 'Early < 1 ano',
+                'subtitle' => isset($e365['pct']) && $e365['pct'] !== null
+                    ? htmlspecialchars((string) $e365['pct']) . '% dos desligamentos'
+                    : null,
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-info shadow h-100">
-                <div class="card-body text-center">
-                    <h4 class="mb-0"><?= isset($ret['avg_tenure_at_termination_days']) ? (int)$ret['avg_tenure_at_termination_days'] . 'd' : '—' ?></h4>
-                    <p class="text-muted mb-0 small">Tenure médio no desligamento</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-calendar-day',
+                'color' => 'info',
+                'value' => isset($ret['avg_tenure_at_termination_days'])
+                    ? (int) $ret['avg_tenure_at_termination_days'] . 'd'
+                    : '—',
+                'label' => 'Tenure médio no desligamento',
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-primary shadow h-100">
-                <div class="card-body text-center">
-                    <h4 class="mb-0"><?= isset($s1['pct']) && $s1['pct'] !== null ? htmlspecialchars((string)$s1['pct']) . '%' : '—' ?></h4>
-                    <p class="text-muted mb-0 small">Estáveis ≥ 1 ano (ativos)</p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-user-clock',
+                'color' => 'primary',
+                'value' => isset($s1['pct']) && $s1['pct'] !== null
+                    ? htmlspecialchars((string) $s1['pct']) . '%'
+                    : '—',
+                'label' => 'Estáveis ≥ 1 ano (ativos)',
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
         <div class="col-6 col-lg-4 col-xl-2">
-            <div class="card border-danger shadow h-100">
-                <div class="card-body text-center">
-                    <h4 class="mb-0"><?= isset($iq['regrettable_pct']) && $iq['regrettable_pct'] !== null ? htmlspecialchars((string)$iq['regrettable_pct']) . '%' : '—' ?></h4>
-                    <p class="text-muted mb-0 small">Regrettable no período
-                        <span class="d-block"><?= (int)($iq['regrettable'] ?? 0) ?> / <?= (int)($this->data['terminations_in_period'] ?? 0) ?></span>
-                    </p>
-                </div>
-            </div>
+            <?php
+            $paKpi = [
+                'icon' => 'fa-heart-broken',
+                'color' => 'danger',
+                'value' => isset($iq['regrettable_pct']) && $iq['regrettable_pct'] !== null
+                    ? htmlspecialchars((string) $iq['regrettable_pct']) . '%'
+                    : '—',
+                'label' => 'Regrettable no período',
+                'subtitle' => (int) ($iq['regrettable'] ?? 0) . ' / ' . (int) ($this->data['terminations_in_period'] ?? 0),
+                'href' => null,
+            ];
+            include __DIR__ . '/partials/pa_kpi_card.php';
+            ?>
         </div>
     </div>
     <div class="card border-light shadow mb-4">
         <div class="card-header py-2"><strong>Faixas de tenure nos desligamentos</strong></div>
         <div class="card-body py-3">
             <div class="row text-center small">
-                <div class="col"><div class="fw-semibold"><?= (int)($bands['lt_90d'] ?? 0) ?></div>&lt; 90 dias</div>
-                <div class="col"><div class="fw-semibold"><?= (int)($bands['d90_1y'] ?? 0) ?></div>90d – 1 ano</div>
-                <div class="col"><div class="fw-semibold"><?= (int)($bands['y1_3y'] ?? 0) ?></div>1 – 3 anos</div>
-                <div class="col"><div class="fw-semibold"><?= (int)($bands['ge_3y'] ?? 0) ?></div>≥ 3 anos</div>
-                <div class="col"><div class="fw-semibold"><?= (int)($bands['unknown'] ?? 0) ?></div>Sem admissão</div>
+                <div class="col"><div class="fw-semibold"><?= (int) ($bands['lt_90d'] ?? 0) ?></div>&lt; 90 dias</div>
+                <div class="col"><div class="fw-semibold"><?= (int) ($bands['d90_1y'] ?? 0) ?></div>90d – 1 ano</div>
+                <div class="col"><div class="fw-semibold"><?= (int) ($bands['y1_3y'] ?? 0) ?></div>1 – 3 anos</div>
+                <div class="col"><div class="fw-semibold"><?= (int) ($bands['ge_3y'] ?? 0) ?></div>≥ 3 anos</div>
+                <div class="col"><div class="fw-semibold"><?= (int) ($bands['unknown'] ?? 0) ?></div>Sem admissão</div>
             </div>
             <p class="text-muted small mb-0 mt-3">
-                Estáveis ≥ 3 anos: <?= (int)($s3['count'] ?? 0) ?>
-                <?= isset($s3['pct']) && $s3['pct'] !== null ? '(' . htmlspecialchars((string)$s3['pct']) . '% dos ativos)' : '' ?>
-                · Non-regrettable: <?= (int)($iq['non_regrettable'] ?? 0) ?>
-                · Não classificado: <?= (int)($iq['nao_classificado'] ?? 0) ?>
+                Estáveis ≥ 3 anos: <?= (int) ($s3['count'] ?? 0) ?>
+                <?= isset($s3['pct']) && $s3['pct'] !== null ? '(' . htmlspecialchars((string) $s3['pct']) . '% dos ativos)' : '' ?>
+                · Non-regrettable: <?= (int) ($iq['non_regrettable'] ?? 0) ?>
+                · Não classificado: <?= (int) ($iq['nao_classificado'] ?? 0) ?>
             </p>
             <?php if (empty($ret['costs_available'])): ?>
-                <p class="text-muted small mb-0 mt-2"><em><?= htmlspecialchars((string)($ret['costs_note'] ?? '')) ?></em></p>
+                <p class="text-muted small mb-0 mt-2"><em><?= htmlspecialchars((string) ($ret['costs_note'] ?? '')) ?></em></p>
             <?php endif; ?>
         </div>
     </div>
@@ -716,9 +902,33 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
         return y + '-' + m + '-' + day;
     }
 
+    var filtersBody = document.getElementById('people-analytics-filters-body');
+    var filtersToggle = document.getElementById('people-analytics-filters-toggle');
+    var filtersHintAction = document.querySelector('.people-analytics-filters-hint-action');
+
+    function syncFiltersHint(isOpen) {
+        if (filtersHintAction) {
+            filtersHintAction.textContent = isOpen ? 'Clique para recolher.' : 'Clique para expandir.';
+        }
+    }
+
+    if (filtersBody && filtersToggle) {
+        filtersBody.addEventListener('show.bs.collapse', function () {
+            filtersToggle.classList.remove('collapsed');
+            filtersToggle.setAttribute('aria-expanded', 'true');
+            syncFiltersHint(true);
+        });
+        filtersBody.addEventListener('hide.bs.collapse', function () {
+            filtersToggle.classList.add('collapsed');
+            filtersToggle.setAttribute('aria-expanded', 'false');
+            syncFiltersHint(false);
+        });
+    }
+
     if (typeof jQuery !== 'undefined') {
         jQuery(function ($) {
             var $root = $('.people-analytics-filters');
+            var select2Ready = false;
             var select2Base = {
                 width: '100%',
                 allowClear: true,
@@ -731,17 +941,34 @@ $turnoverFormula = $this->data['turnover_formula'] ?? '';
                 }
             };
 
-            $('#pa_dep').select2($.extend({}, select2Base, {
-                placeholder: 'Buscar e selecionar departamentos…'
-            }));
-            $('#pa_pos').select2($.extend({}, select2Base, {
-                placeholder: 'Buscar e selecionar cargos…'
-            }));
+            function initPaSelect2() {
+                if (select2Ready) {
+                    $('#pa_dep, #pa_pos').trigger('change.select2');
+                    return;
+                }
+                $('#pa_dep').select2($.extend({}, select2Base, {
+                    placeholder: 'Buscar e selecionar departamentos…'
+                }));
+                $('#pa_pos').select2($.extend({}, select2Base, {
+                    placeholder: 'Buscar e selecionar cargos…'
+                }));
+                select2Ready = true;
+            }
+
+            if (filtersBody && filtersBody.classList.contains('show')) {
+                initPaSelect2();
+            } else if (filtersBody) {
+                $(filtersBody).one('shown.bs.collapse', initPaSelect2);
+            } else {
+                initPaSelect2();
+            }
 
             $('#pa_dep_clear').on('click', function () {
+                initPaSelect2();
                 $('#pa_dep').val(null).trigger('change');
             });
             $('#pa_pos_clear').on('click', function () {
+                initPaSelect2();
                 $('#pa_pos').val(null).trigger('change');
             });
 

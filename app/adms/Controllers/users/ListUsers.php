@@ -55,30 +55,54 @@ class ListUsers
             $page = (int)$_GET['page'];
         }
         
-        // Tratar filtros - priorizar GET, senão usar sessão
-        $filtros = [
-            'nome' => $_GET['nome'] ?? $_SESSION['filtros_list_users']['nome'] ?? '',
-            'usuario' => $_GET['usuario'] ?? $_SESSION['filtros_list_users']['usuario'] ?? '',
-            'departamento_id' => $_GET['departamento_id'] ?? $_SESSION['filtros_list_users']['departamento_id'] ?? '',
-            'cargo_id' => $_GET['cargo_id'] ?? $_SESSION['filtros_list_users']['cargo_id'] ?? '',
-            'turno_id' => $_GET['turno_id'] ?? $_SESSION['filtros_list_users']['turno_id'] ?? '',
-            'status' => $_GET['status'] ?? $_SESSION['filtros_list_users']['status'] ?? '',
-            'bloqueado' => $_GET['bloqueado'] ?? $_SESSION['filtros_list_users']['bloqueado'] ?? '',
-            'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
-            'sexo' => $_GET['sexo'] ?? $_SESSION['filtros_list_users']['sexo'] ?? '',
-            'filhos' => $_GET['filhos'] ?? $_SESSION['filtros_list_users']['filhos'] ?? '',
-            'periodo_tipo' => $_GET['periodo_tipo'] ?? $_SESSION['filtros_list_users']['periodo_tipo'] ?? '',
-            'data_de' => $_GET['data_de'] ?? $_SESSION['filtros_list_users']['data_de'] ?? '',
-            'data_ate' => $_GET['data_ate'] ?? $_SESSION['filtros_list_users']['data_ate'] ?? '',
-        ];
-        
-        // Salvar filtros na sessão (apenas se vierem via GET)
-        if (isset($_GET['nome']) || isset($_GET['usuario']) || 
-            isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || isset($_GET['turno_id']) ||
-            isset($_GET['status']) || isset($_GET['bloqueado']) || isset($_GET['desligado']) ||
-            isset($_GET['sexo']) || isset($_GET['filhos']) ||
-            isset($_GET['periodo_tipo']) || isset($_GET['data_de']) || isset($_GET['data_ate'])) {
+        // Tratar filtros - priorizar GET, senão usar sessão.
+        // Drill do People Analytics envia snapshot completo (from=people-analytics):
+        // não herdar valores antigos da sessão (ex.: desligado=1 ao abrir admissões).
+        $fromPeopleAnalytics = isset($_GET['from'])
+            && (string) $_GET['from'] === 'people-analytics';
+
+        if ($fromPeopleAnalytics) {
+            $filtros = [
+                'nome' => (string) ($_GET['nome'] ?? ''),
+                'usuario' => (string) ($_GET['usuario'] ?? ''),
+                'departamento_id' => (string) ($_GET['departamento_id'] ?? ''),
+                'cargo_id' => (string) ($_GET['cargo_id'] ?? ''),
+                'turno_id' => (string) ($_GET['turno_id'] ?? ''),
+                'status' => (string) ($_GET['status'] ?? ''),
+                'bloqueado' => (string) ($_GET['bloqueado'] ?? ''),
+                'desligado' => (string) ($_GET['desligado'] ?? ''),
+                'sexo' => (string) ($_GET['sexo'] ?? ''),
+                'filhos' => (string) ($_GET['filhos'] ?? ''),
+                'periodo_tipo' => (string) ($_GET['periodo_tipo'] ?? ''),
+                'data_de' => (string) ($_GET['data_de'] ?? ''),
+                'data_ate' => (string) ($_GET['data_ate'] ?? ''),
+            ];
             $_SESSION['filtros_list_users'] = $filtros;
+        } else {
+            $filtros = [
+                'nome' => $_GET['nome'] ?? $_SESSION['filtros_list_users']['nome'] ?? '',
+                'usuario' => $_GET['usuario'] ?? $_SESSION['filtros_list_users']['usuario'] ?? '',
+                'departamento_id' => $_GET['departamento_id'] ?? $_SESSION['filtros_list_users']['departamento_id'] ?? '',
+                'cargo_id' => $_GET['cargo_id'] ?? $_SESSION['filtros_list_users']['cargo_id'] ?? '',
+                'turno_id' => $_GET['turno_id'] ?? $_SESSION['filtros_list_users']['turno_id'] ?? '',
+                'status' => $_GET['status'] ?? $_SESSION['filtros_list_users']['status'] ?? '',
+                'bloqueado' => $_GET['bloqueado'] ?? $_SESSION['filtros_list_users']['bloqueado'] ?? '',
+                'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
+                'sexo' => $_GET['sexo'] ?? $_SESSION['filtros_list_users']['sexo'] ?? '',
+                'filhos' => $_GET['filhos'] ?? $_SESSION['filtros_list_users']['filhos'] ?? '',
+                'periodo_tipo' => $_GET['periodo_tipo'] ?? $_SESSION['filtros_list_users']['periodo_tipo'] ?? '',
+                'data_de' => $_GET['data_de'] ?? $_SESSION['filtros_list_users']['data_de'] ?? '',
+                'data_ate' => $_GET['data_ate'] ?? $_SESSION['filtros_list_users']['data_ate'] ?? '',
+            ];
+
+            // Salvar filtros na sessão (apenas se vierem via GET)
+            if (isset($_GET['nome']) || isset($_GET['usuario']) ||
+                isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || isset($_GET['turno_id']) ||
+                isset($_GET['status']) || isset($_GET['bloqueado']) || isset($_GET['desligado']) ||
+                isset($_GET['sexo']) || isset($_GET['filhos']) ||
+                isset($_GET['periodo_tipo']) || isset($_GET['data_de']) || isset($_GET['data_ate'])) {
+                $_SESSION['filtros_list_users'] = $filtros;
+            }
         }
         
         // Tratar per_page
