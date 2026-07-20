@@ -28,9 +28,9 @@ pastas ou tecnologias. O catálogo orienta ownership, diagnóstico e roadmap.
 | Executar offboarding | Parcial |
 | Gerenciar competências | Parcial |
 | Avaliar desempenho | Parcial |
-| Manter PDI | Estrutural |
+| Manter PDI | Parcial / quase operacional |
 | Capacitar colaboradores | Operacional |
-| Gerenciar carreira e sucessão | Não avaliada/ausente |
+| Gerenciar carreira e sucessão | Parcial (talent pool / HiPo) |
 | Atender pelo Portal | Parcial |
 | Medir pessoas e turnover | Parcial |
 

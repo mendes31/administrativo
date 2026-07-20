@@ -25,6 +25,19 @@ $actionStatusLabels = [
 ];
 $st = $statusLabels[$plan['status'] ?? ''] ?? ['label' => $plan['status'] ?? '-', 'color' => 'secondary'];
 $canEdit = in_array('UpdatePdiPlan', $this->data['buttonPermission'] ?? [], true);
+$progress = $this->data['progress'] ?? ['actions_avg' => 0, 'goals_achieved_pct' => 0, 'goals_count' => 0, 'actions_count' => 0];
+$goalStatusLabels = [
+    'pending' => 'Pendente',
+    'in_progress' => 'Em andamento',
+    'achieved' => 'Alcançada',
+    'failed' => 'Não alcançada',
+];
+$feedbackTypeLabels = [
+    'general' => 'Geral',
+    'action' => 'Ação',
+    'milestone' => 'Marco',
+    'final' => 'Final',
+];
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -41,6 +54,13 @@ $canEdit = in_array('UpdatePdiPlan', $this->data['buttonPermission'] ?? [], true
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="fas fa-user-graduate me-2"></i><?= htmlspecialchars($plan['title'] ?? '') ?></span>
             <div>
+                <?php if ($canEdit && ($plan['status'] ?? '') === 'draft') { ?>
+                    <form method="POST" class="d-inline" onsubmit="return confirm('Aprovar e ativar este PDI?');">
+                        <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_pdi_approve'); ?>">
+                        <input type="hidden" name="form_action" value="approve">
+                        <button type="submit" class="btn btn-sm btn-success">Aprovar PDI</button>
+                    </form>
+                <?php } ?>
                 <?php if ($canEdit) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>update-pdi-plan/<?= (int) $plan['id'] ?>" class="btn btn-sm btn-warning">Editar plano</a>
                 <?php } ?>
@@ -69,6 +89,19 @@ $canEdit = in_array('UpdatePdiPlan', $this->data['buttonPermission'] ?? [], true
                 <?php endif; ?>
                 <?php if (!empty($plan['description'])): ?>
                     <div class="col-12"><div class="text-muted small">Descrição</div><?= nl2br(htmlspecialchars($plan['description'])) ?></div>
+                <?php endif; ?>
+                <div class="col-md-3">
+                    <div class="text-muted small">Progresso das ações</div>
+                    <strong><?= (int) $progress['actions_avg'] ?>%</strong>
+                    <span class="text-muted small">(<?= (int) $progress['actions_count'] ?> ação(ões))</span>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Metas alcançadas</div>
+                    <strong><?= (int) $progress['goals_achieved_pct'] ?>%</strong>
+                    <span class="text-muted small">(<?= (int) $progress['goals_count'] ?> meta(s))</span>
+                </div>
+                <?php if (!empty($plan['approved_at'])): ?>
+                    <div class="col-md-6"><div class="text-muted small">Aprovado em</div><?= htmlspecialchars(FormatHelper::formatDateTime($plan['approved_at'])) ?></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -303,6 +336,179 @@ $canEdit = in_array('UpdatePdiPlan', $this->data['buttonPermission'] ?? [], true
                     </div>
                     <div class="col-12">
                         <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i>Vincular</button>
+                    </div>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header"><i class="fas fa-bullseye me-2"></i>Metas do PDI</div>
+        <div class="card-body">
+            <?php if (empty($this->data['goals'])): ?>
+                <div class="alert alert-info">Nenhuma meta cadastrada.</div>
+            <?php else: ?>
+                <div class="table-responsive mb-3">
+                    <table class="table table-sm table-hover align-middle">
+                        <thead><tr><th>Meta</th><th>Atual / Alvo</th><th>Prazo</th><th>Status</th><th></th></tr></thead>
+                        <tbody>
+                            <?php foreach ($this->data['goals'] as $goal): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars($goal['goal_title'] ?? '') ?></td>
+                                    <td>
+                                        <?= htmlspecialchars((string) ($goal['current_value'] ?? '0')) ?>
+                                        /
+                                        <?= htmlspecialchars((string) ($goal['target_value'] ?? '—')) ?>
+                                        <?= htmlspecialchars($goal['unit'] ?? '') ?>
+                                    </td>
+                                    <td><?= htmlspecialchars(FormatHelper::formatDate($goal['deadline'] ?? '')) ?: '—' ?></td>
+                                    <td><?= htmlspecialchars($goalStatusLabels[$goal['status'] ?? ''] ?? ($goal['status'] ?? '')) ?></td>
+                                    <td class="text-nowrap">
+                                        <?php if ($canEdit): ?>
+                                            <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-toggle="collapse" data-bs-target="#edit-goal-<?= (int) $goal['id'] ?>">Editar</button>
+                                            <form method="POST" class="d-inline" onsubmit="return confirm('Remover meta?');">
+                                                <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_pdi_remove_goal'); ?>">
+                                                <input type="hidden" name="form_action" value="remove_goal">
+                                                <input type="hidden" name="goal_id" value="<?= (int) $goal['id'] ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Remover</button>
+                                            </form>
+                                        <?php endif; ?>
+                                    </td>
+                                </tr>
+                                <?php if ($canEdit): ?>
+                                <tr class="collapse" id="edit-goal-<?= (int) $goal['id'] ?>">
+                                    <td colspan="5">
+                                        <form method="POST" class="row g-2 border rounded p-3 bg-light">
+                                            <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_pdi_update_goal'); ?>">
+                                            <input type="hidden" name="form_action" value="update_goal">
+                                            <input type="hidden" name="goal_id" value="<?= (int) $goal['id'] ?>">
+                                            <div class="col-md-4">
+                                                <label class="form-label small">Título</label>
+                                                <input type="text" name="goal_title" class="form-control form-control-sm" required value="<?= htmlspecialchars($goal['goal_title'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">Atual</label>
+                                                <input type="number" step="0.01" name="current_value" class="form-control form-control-sm" value="<?= htmlspecialchars((string) ($goal['current_value'] ?? '0')) ?>">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">Alvo</label>
+                                                <input type="number" step="0.01" name="target_value" class="form-control form-control-sm" value="<?= htmlspecialchars((string) ($goal['target_value'] ?? '')) ?>">
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">Status</label>
+                                                <select name="status" class="form-select form-select-sm">
+                                                    <?php foreach ($goalStatusLabels as $code => $label): ?>
+                                                        <option value="<?= $code ?>" <?= ($goal['status'] ?? '') === $code ? 'selected' : '' ?>><?= $label ?></option>
+                                                    <?php endforeach; ?>
+                                                </select>
+                                            </div>
+                                            <div class="col-md-2">
+                                                <label class="form-label small">Prazo</label>
+                                                <input type="date" name="deadline" class="form-control form-control-sm" value="<?= htmlspecialchars($goal['deadline'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-12">
+                                                <button type="submit" class="btn btn-sm btn-success">Salvar meta</button>
+                                            </div>
+                                        </form>
+                                    </td>
+                                </tr>
+                                <?php endif; ?>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($canEdit): ?>
+                <h6 class="mb-2">Nova meta</h6>
+                <form method="POST" class="row g-2 border rounded p-3">
+                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_pdi_add_goal'); ?>">
+                    <input type="hidden" name="form_action" value="add_goal">
+                    <div class="col-md-5">
+                        <label class="form-label small">Título <span class="text-danger">*</span></label>
+                        <input type="text" name="goal_title" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Valor alvo</label>
+                        <input type="number" step="0.01" name="target_value" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Unidade</label>
+                        <input type="text" name="unit" class="form-control form-control-sm" placeholder="%">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small">Prazo</label>
+                        <input type="date" name="deadline" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small">Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="pending" selected>Pendente</option>
+                            <option value="in_progress">Em andamento</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i>Adicionar meta</button>
+                    </div>
+                </form>
+            <?php endif; ?>
+        </div>
+    </div>
+
+    <div class="card mb-4 border-light shadow">
+        <div class="card-header"><i class="fas fa-comments me-2"></i>Feedbacks do PDI</div>
+        <div class="card-body">
+            <?php if (empty($this->data['feedbacks'])): ?>
+                <div class="alert alert-info">Nenhum feedback registrado.</div>
+            <?php else: ?>
+                <div class="list-group mb-3">
+                    <?php foreach ($this->data['feedbacks'] as $fb): ?>
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between flex-wrap gap-2">
+                                <strong><?= htmlspecialchars($feedbackTypeLabels[$fb['feedback_type'] ?? ''] ?? ($fb['feedback_type'] ?? '')) ?></strong>
+                                <small class="text-muted"><?= htmlspecialchars(FormatHelper::formatDateTime($fb['created_at'] ?? '')) ?></small>
+                            </div>
+                            <div class="small text-muted mb-1">
+                                De <?= htmlspecialchars($fb['given_by_name'] ?? '') ?>
+                                para <?= htmlspecialchars($fb['given_to_name'] ?? '') ?>
+                                <?php if (!empty($fb['action_title'])): ?>
+                                    · ação: <?= htmlspecialchars($fb['action_title']) ?>
+                                <?php endif; ?>
+                            </div>
+                            <div><?= nl2br(htmlspecialchars($fb['feedback_text'] ?? '')) ?></div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if ($canEdit): ?>
+                <h6 class="mb-2">Novo feedback</h6>
+                <form method="POST" class="row g-2 border rounded p-3">
+                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_pdi_add_feedback'); ?>">
+                    <input type="hidden" name="form_action" value="add_feedback">
+                    <div class="col-md-3">
+                        <label class="form-label small">Tipo</label>
+                        <select name="feedback_type" class="form-select form-select-sm">
+                            <?php foreach ($feedbackTypeLabels as $code => $label): ?>
+                                <option value="<?= $code ?>"><?= $label ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Ação relacionada (opcional)</label>
+                        <select name="pdi_action_id" class="form-select form-select-sm">
+                            <option value="">Nenhuma</option>
+                            <?php foreach ($this->data['actions'] ?? [] as $a): ?>
+                                <option value="<?= (int) $a['id'] ?>"><?= htmlspecialchars($a['title'] ?? '') ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">Texto <span class="text-danger">*</span></label>
+                        <input type="text" name="feedback_text" class="form-control form-control-sm" required>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-sm btn-success"><i class="fas fa-plus me-1"></i>Registrar feedback</button>
                     </div>
                 </form>
             <?php endif; ?>

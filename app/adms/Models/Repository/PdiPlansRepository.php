@@ -172,6 +172,42 @@ class PdiPlansRepository extends DbConnection
         return $ok;
     }
 
+    public function approve(int $id, int $approvedBy): bool
+    {
+        $before = $this->getById($id);
+        if (!$before) {
+            return false;
+        }
+
+        $sql = 'UPDATE adms_pdi_plans SET
+                    status = \'active\',
+                    approved_by = :approved_by,
+                    approved_at = NOW(),
+                    updated_at = NOW()
+                WHERE id = :id';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':approved_by', $approvedBy, PDO::PARAM_INT);
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            $after = $this->getById($id);
+            if (is_array($after)) {
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_pdi_plans',
+                    $id,
+                    $approvedBy,
+                    'UPDATE',
+                    $before,
+                    $after
+                );
+            }
+        }
+
+        return $ok;
+    }
+
     /**
      * @return array{0: list<string>, 1: array<string, mixed>}
      */

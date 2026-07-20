@@ -82,8 +82,12 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 - [x] ciclos e metas (ciclo + vínculo opcional) — [DESENVOLVIMENTO_CICLOS_EXPAND.md](DESENVOLVIMENTO_CICLOS_EXPAND.md);
 - [x] avaliações 180° e 360° (vínculo ao ciclo) — [DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md](DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md);
 - [x] calibração (sessão por ciclo + Nine Box por ciclo) — [DESENVOLVIMENTO_CALIBRACAO_EXPAND.md](DESENVOLVIMENTO_CALIBRACAO_EXPAND.md);
-- [x] PDI integrado a competências e treinamentos (1º incremento) — [DESENVOLVIMENTO_PDI_EXPAND.md](DESENVOLVIMENTO_PDI_EXPAND.md);
-- carreira, sucessão e Nine Box.
+- [x] PDI operacional — planos/ações/competências/treinamentos — [DESENVOLVIMENTO_PDI_EXPAND.md](DESENVOLVIMENTO_PDI_EXPAND.md);
+- [x] PDI completo (metas, feedbacks, aprovação, progresso) — [DESENVOLVIMENTO_PDI_COMPLETO_EXPAND.md](DESENVOLVIMENTO_PDI_COMPLETO_EXPAND.md);
+- [x] talent pool / HiPo por ciclo (1º corte carreira/sucessão) — [DESENVOLVIMENTO_TALENT_POOL_EXPAND.md](DESENVOLVIMENTO_TALENT_POOL_EXPAND.md);
+- [ ] sucessão (cargos críticos + sucessores + readiness);
+- [ ] carreira (trilhas / níveis / promoções);
+- [ ] aprofundamentos de mercado (feedback contínuo global, avaliações em massa, calibração avançada; matching Nine Box→PDI = avançado).
 
 ## Fase 6 — Estratégia e analytics
 

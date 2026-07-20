@@ -3,20 +3,25 @@
 ## Objetivo
 
 Evoluir os blocos atuais para uma plataforma integrada de Organização,
-Talentos, Jornada, Desenvolvimento, Portal e People Analytics.
+Talentos, Jornada, Desenvolvimento, Portal e People Analytics, com
+cobertura progressiva das funcionalidades de mercado (referência Feedz,
+MarQ, LG etc.), sem importar backlog automaticamente — cada item passa
+pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
 
-## Estado atual
+## Estado atual (jul/2026)
 
-- Recrutamento possui núcleo funcional, mas pipeline e histórico são limitados;
-- Treinamentos e Folha Digital são os blocos mais consistentes;
-- Portal, solicitações, desempenho e analytics são parciais;
-- Ciclos ancoram metas, avaliações e sessões de calibração (Expand Fase 5); PDI ainda estrutural;
-- PDI possui preparação estrutural, sem módulo operacional;
-- onboarding e offboarding são ações pontuais;
-- `adms_users` centraliza corretamente o acesso, mas acumula identidade, vínculo
-  e posição organizacional na mesma entidade;
-- currículos apresentam riscos relevantes de segurança e LGPD;
-- testes automatizados são insuficientes.
+- Recrutamento (Fases 1–3): histórico, etapas, entrevistas, comunicação,
+  portal público, oferta e conversão — operacionais no núcleo;
+- Jornada (Fase 4): onboarding, experiência, movimentações, offboarding,
+  identidade Pessoa/Vínculo/Lotação (Expand) e integração LNT/outbox;
+- Desenvolvimento (Fase 5 em andamento):
+  - ciclos, metas, avaliações↔ciclo, calibração, Nine Box por ciclo;
+  - PDI completo (planos, ações, competências, treinamentos, metas, feedbacks, aprovação);
+  - talent pool / HiPo por ciclo — 1º incremento de carreira/sucessão;
+  - **faltam:** sucessão formal, trilhas de carreira e aprofundamentos de mercado;
+- Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
+- Portal e analytics ainda parciais;
+- `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
 
 ## Benefícios esperados
 
@@ -51,8 +56,20 @@ Vínculo e Lotação por contratos e permissões específicas.
 4. requisição, entrevistas e comunicação;
 5. portal público e pré-admissão;
 6. núcleo de Pessoa, Vínculo e Lotação;
-7. desempenho, PDI, carreira e sucessão;
+7. desempenho, PDI completo, carreira e sucessão (paridade de mercado);
 8. planejamento, clima e analytics.
+
+## Paridade de mercado — Desenvolvimento (fila)
+
+Ordem acordada após os 1ºs incrementos:
+
+1. ~~PDI completo (metas, feedbacks, aprovação, progresso);~~
+2. Sucessão (cargos críticos + sucessores + readiness);
+3. Carreira (trilhas / níveis / promoções);
+4. Aprofundamentos (feedback contínuo global, avaliações em massa,
+   calibração avançada, matching Nine Box→PDI — avançado).
+
+Fase 6 (clima, eNPS, analytics preditivo, IA) só após maturidade desses dados.
 
 ## Indicadores executivos propostos
 

@@ -1,5 +1,11 @@
 <?php
+use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\FormatHelper;
+
+$cycleFilterId = (int) ($this->data['filters']['performance_cycle_id'] ?? 0);
+$nominationsMap = $this->data['nominations_map'] ?? [];
+$canNominate = $cycleFilterId > 0
+    && in_array('CreateTalentNomination', $this->data['buttonPermission'] ?? [], true);
 
 $boxLabels = [
     1 => ['title' => 'Reposicionar', 'color' => 'danger', 'icon' => 'fa-exclamation-triangle'],
@@ -156,6 +162,12 @@ $boxLabels = [
             <div class="d-flex justify-content-between align-items-center">
                 <h6 class="mb-0"><i class="fas fa-th-large me-2"></i>Matriz 9BOX - Potencial vs Desempenho</h6>
                 <div>
+                    <?php if (in_array('ListTalentNominations', $this->data['buttonPermission'] ?? [], true)) { ?>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>list-talent-nominations<?= $cycleFilterId > 0 ? '?performance_cycle_id=' . $cycleFilterId : '' ?>"
+                           class="btn btn-sm btn-outline-warning me-2">
+                            <i class="fas fa-star me-1"></i>Talent Pool
+                        </a>
+                    <?php } ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>export-nine-box-matrix-excel<?= !empty($this->data['filters']) ? '?' . http_build_query($this->data['filters']) : '' ?>" 
                        class="btn btn-sm btn-success me-2" title="Exportar para Excel">
                         <i class="fas fa-file-excel me-1"></i>Excel
@@ -175,8 +187,12 @@ $boxLabels = [
         <div class="card-body">
             <div class="alert alert-info border-0 mb-4">
                 <i class="fas fa-info-circle me-2"></i>
-                <strong>Como funciona:</strong> A Matriz 9BOX avalia colaboradores baseado em <strong>Potencial</strong> (eixo Y) e <strong>Desempenho</strong> (eixo X). 
-                Clique em um colaborador para ver detalhes.
+                <strong>Como funciona:</strong> A Matriz 9BOX avalia colaboradores baseado em <strong>Potencial</strong> (eixo Y) e <strong>Desempenho</strong> (eixo X).
+                <?php if ($canNominate): ?>
+                    Com ciclo selecionado, use <strong>Nomear</strong> para incluir no talent pool.
+                <?php else: ?>
+                    Filtre por <strong>ciclo</strong> para nomear no talent pool.
+                <?php endif; ?>
             </div>
 
             <div class="table-responsive">
@@ -237,19 +253,31 @@ $boxLabels = [
                                                 <?php if (empty($boxData)): ?>
                                                     <div class="text-muted small">Nenhum colaborador</div>
                                                 <?php else: ?>
-                                                    <?php foreach ($boxData as $employee): ?>
-                                                        <div class="employee-badge mb-1" 
-                                                             data-bs-toggle="tooltip" 
-                                                             data-bs-placement="top"
-                                                             title="Clique para ver detalhes - Desempenho: <?= number_format($employee['performance_score'], 1) ?>/10 - Potencial: <?= number_format($employee['potential_score'], 1) ?>/10">
-                                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-user/<?= $employee['employee_id'] ?>" 
-                                                               class="badge bg-light text-dark border text-decoration-none employee-link" 
-                                                               style="cursor: pointer; font-size: 0.75rem; display: inline-block;"
-                                                               title="Ver detalhes de <?= htmlspecialchars($employee['employee_name']) ?>">
-                                                                <i class="fas fa-user me-1"></i>
-                                                                <?= htmlspecialchars(mb_substr($employee['employee_name'], 0, 20)) ?>
-                                                                <?= mb_strlen($employee['employee_name']) > 20 ? '...' : '' ?>
+                                                    <?php foreach ($boxData as $employee):
+                                                        $empId = (int) ($employee['employee_id'] ?? 0);
+                                                        $isNominated = isset($nominationsMap[$empId]);
+                                                        ?>
+                                                        <div class="employee-badge mb-1 d-flex flex-wrap align-items-center justify-content-center gap-1">
+                                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-user/<?= $empId ?>"
+                                                               class="badge bg-light text-dark border text-decoration-none employee-link"
+                                                               style="font-size: 0.75rem;"
+                                                               title="Desempenho: <?= number_format((float) $employee['performance_score'], 1) ?>/10 — Potencial: <?= number_format((float) $employee['potential_score'], 1) ?>/10">
+                                                                <?php if ($isNominated): ?><i class="fas fa-star text-warning me-1"></i><?php else: ?><i class="fas fa-user me-1"></i><?php endif; ?>
+                                                                <?= htmlspecialchars(mb_substr($employee['employee_name'], 0, 18)) ?>
+                                                                <?= mb_strlen($employee['employee_name']) > 18 ? '…' : '' ?>
                                                             </a>
+                                                            <?php if ($canNominate && !$isNominated): ?>
+                                                                <form method="POST" action="<?php echo $_ENV['URL_ADM']; ?>nine-box-matrix?performance_cycle_id=<?= $cycleFilterId ?>" class="d-inline">
+                                                                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_nine_box_nominate'); ?>">
+                                                                    <input type="hidden" name="form_action" value="nominate">
+                                                                    <input type="hidden" name="user_id" value="<?= $empId ?>">
+                                                                    <input type="hidden" name="performance_cycle_id" value="<?= $cycleFilterId ?>">
+                                                                    <input type="hidden" name="nine_box" value="<?= (int) $boxNum ?>">
+                                                                    <button type="submit" class="btn btn-link btn-sm p-0 text-warning" title="Nomear no talent pool" style="font-size: 0.7rem;">Nomear</button>
+                                                                </form>
+                                                            <?php elseif ($isNominated): ?>
+                                                                <span class="badge bg-warning text-dark" style="font-size: 0.65rem;">HiPo</span>
+                                                            <?php endif; ?>
                                                         </div>
                                                     <?php endforeach; ?>
                                                 <?php endif; ?>

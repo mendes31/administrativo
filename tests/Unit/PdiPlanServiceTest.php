@@ -63,4 +63,31 @@ final class PdiPlanServiceTest extends TestCase
         self::assertSame(10, $result['data']['user_id']);
         self::assertNull($result['data']['performance_cycle_id']);
     }
+
+    public function testRejectsGoalWithoutTitle(): void
+    {
+        $service = new PdiPlanService();
+        $result = $service->validateGoalPayload(['status' => 'pending'], 1);
+        self::assertFalse($result['ok']);
+        self::assertStringContainsString('Título', $result['error'] ?? '');
+    }
+
+    public function testProgressSummary(): void
+    {
+        $service = new PdiPlanService();
+        $summary = $service->progressSummary(
+            [
+                ['progress_percentage' => 50],
+                ['progress_percentage' => 100],
+            ],
+            [
+                ['status' => 'achieved'],
+                ['status' => 'pending'],
+            ]
+        );
+
+        self::assertSame(75, $summary['actions_avg']);
+        self::assertSame(50, $summary['goals_achieved_pct']);
+        self::assertSame(2, $summary['goals_count']);
+    }
 }

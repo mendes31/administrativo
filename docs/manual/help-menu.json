@@ -1161,6 +1161,17 @@
                                     "title": "Planos de Desenvolvimento (PDI)"
                                 }
                             ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "Talent Pool",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-talent-nominations",
+                                    "title": "Talent Pool (HiPo)"
+                                }
+                            ]
                         }
                     ]
                 },

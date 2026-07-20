@@ -7,6 +7,8 @@ namespace App\adms\Models\Services;
 use App\adms\Models\Repository\CompetenciesRepository;
 use App\adms\Models\Repository\PdiActionsRepository;
 use App\adms\Models\Repository\PdiCompetenciesRepository;
+use App\adms\Models\Repository\PdiFeedbacksRepository;
+use App\adms\Models\Repository\PdiGoalsRepository;
 use App\adms\Models\Repository\PdiPlansRepository;
 use App\adms\Models\Repository\TrainingsRepository;
 
@@ -20,11 +22,15 @@ class PdiPlanService
     public const ACTION_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'];
     public const PRIORITIES = ['low', 'medium', 'high'];
     public const COMPETENCY_TYPES = ['technical', 'behavioral', 'leadership'];
+    public const GOAL_STATUSES = ['pending', 'in_progress', 'achieved', 'failed'];
+    public const FEEDBACK_TYPES = ['general', 'action', 'milestone', 'final'];
 
     public function __construct(
         private readonly ?PdiPlansRepository $plans = null,
         private readonly ?PdiActionsRepository $actions = null,
         private readonly ?PdiCompetenciesRepository $competencies = null,
+        private readonly ?PdiGoalsRepository $goals = null,
+        private readonly ?PdiFeedbacksRepository $feedbacks = null,
         private readonly ?PerformanceCycleService $cycleService = null,
         private readonly ?CompetenciesRepository $catalogCompetencies = null,
         private readonly ?TrainingsRepository $trainings = null,
@@ -316,6 +322,200 @@ class PdiPlanService
         return ['ok' => true];
     }
 
+    public function addGoal(int $planId, array $input): array
+    {
+        if (!$this->plansRepo()->getById($planId)) {
+            return ['ok' => false, 'error' => 'PDI não encontrado.'];
+        }
+
+        $validated = $this->validateGoalPayload($input, $planId);
+        if (!$validated['ok']) {
+            return $validated;
+        }
+
+        $id = $this->goalsRepo()->create($validated['data']);
+        if ($id <= 0) {
+            return ['ok' => false, 'error' => 'Erro ao adicionar meta.'];
+        }
+
+        return ['ok' => true, 'id' => $id];
+    }
+
+    public function updateGoal(int $goalId, int $planId, array $input): array
+    {
+        $goal = $this->goalsRepo()->getById($goalId);
+        if (!$goal || (int) $goal['pdi_plan_id'] !== $planId) {
+            return ['ok' => false, 'error' => 'Meta não encontrada neste PDI.'];
+        }
+
+        $validated = $this->validateGoalPayload($input, $planId);
+        if (!$validated['ok']) {
+            return $validated;
+        }
+
+        if (!$this->goalsRepo()->update($goalId, $validated['data'])) {
+            return ['ok' => false, 'error' => 'Erro ao atualizar meta.'];
+        }
+
+        return ['ok' => true, 'id' => $goalId];
+    }
+
+    public function removeGoal(int $goalId, int $planId): array
+    {
+        $goal = $this->goalsRepo()->getById($goalId);
+        if (!$goal || (int) $goal['pdi_plan_id'] !== $planId) {
+            return ['ok' => false, 'error' => 'Meta não encontrada neste PDI.'];
+        }
+
+        if (!$this->goalsRepo()->delete($goalId, $planId)) {
+            return ['ok' => false, 'error' => 'Erro ao remover meta.'];
+        }
+
+        return ['ok' => true];
+    }
+
+    public function addFeedback(int $planId, array $input, int $givenBy): array
+    {
+        $plan = $this->plansRepo()->getById($planId);
+        if (!$plan) {
+            return ['ok' => false, 'error' => 'PDI não encontrado.'];
+        }
+
+        $text = trim((string) ($input['feedback_text'] ?? ''));
+        $type = (string) ($input['feedback_type'] ?? 'general');
+        $actionId = !empty($input['pdi_action_id']) ? (int) $input['pdi_action_id'] : null;
+
+        if ($text === '') {
+            return ['ok' => false, 'error' => 'Texto do feedback é obrigatório.'];
+        }
+        if (!in_array($type, self::FEEDBACK_TYPES, true)) {
+            return ['ok' => false, 'error' => 'Tipo de feedback inválido.'];
+        }
+        if ($actionId !== null) {
+            $action = $this->actionsRepo()->getById($actionId);
+            if (!$action || (int) $action['pdi_plan_id'] !== $planId) {
+                return ['ok' => false, 'error' => 'Ação informada não pertence a este PDI.'];
+            }
+        }
+
+        $collaboratorId = (int) $plan['user_id'];
+        $managerId = !empty($plan['manager_id']) ? (int) $plan['manager_id'] : null;
+        $givenTo = $collaboratorId;
+        if ($givenBy === $collaboratorId && $managerId !== null) {
+            $givenTo = $managerId;
+        }
+
+        $id = $this->feedbacksRepo()->create([
+            'pdi_plan_id' => $planId,
+            'pdi_action_id' => $actionId,
+            'feedback_type' => $type,
+            'feedback_text' => $text,
+            'given_by' => $givenBy,
+            'given_to' => $givenTo,
+        ]);
+
+        if ($id <= 0) {
+            return ['ok' => false, 'error' => 'Erro ao registrar feedback.'];
+        }
+
+        return ['ok' => true, 'id' => $id];
+    }
+
+    public function approve(int $planId, int $approvedBy): array
+    {
+        $plan = $this->plansRepo()->getById($planId);
+        if (!$plan) {
+            return ['ok' => false, 'error' => 'PDI não encontrado.'];
+        }
+        if (($plan['status'] ?? '') !== 'draft') {
+            return ['ok' => false, 'error' => 'Somente PDI em rascunho pode ser aprovado.'];
+        }
+        if ($approvedBy <= 0) {
+            return ['ok' => false, 'error' => 'Usuário aprovador inválido.'];
+        }
+
+        if (!$this->plansRepo()->approve($planId, $approvedBy)) {
+            return ['ok' => false, 'error' => 'Erro ao aprovar PDI.'];
+        }
+
+        return ['ok' => true, 'id' => $planId];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $actions
+     * @param list<array<string, mixed>> $goals
+     * @return array{actions_avg: int, goals_achieved_pct: int, goals_count: int, actions_count: int}
+     */
+    public function progressSummary(array $actions, array $goals): array
+    {
+        $actionsCount = count($actions);
+        $actionsAvg = 0;
+        if ($actionsCount > 0) {
+            $sum = 0;
+            foreach ($actions as $a) {
+                $sum += (int) ($a['progress_percentage'] ?? 0);
+            }
+            $actionsAvg = (int) round($sum / $actionsCount);
+        }
+
+        $goalsCount = count($goals);
+        $achieved = 0;
+        foreach ($goals as $g) {
+            if (($g['status'] ?? '') === 'achieved') {
+                $achieved++;
+            }
+        }
+        $goalsPct = $goalsCount > 0 ? (int) round(($achieved / $goalsCount) * 100) : 0;
+
+        return [
+            'actions_avg' => $actionsAvg,
+            'goals_achieved_pct' => $goalsPct,
+            'goals_count' => $goalsCount,
+            'actions_count' => $actionsCount,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $input
+     * @return array{ok: bool, error?: string, data?: array<string, mixed>}
+     */
+    public function validateGoalPayload(array $input, int $planId): array
+    {
+        $title = trim((string) ($input['goal_title'] ?? ''));
+        $status = (string) ($input['status'] ?? 'pending');
+
+        if ($title === '') {
+            return ['ok' => false, 'error' => 'Título da meta é obrigatório.'];
+        }
+        if (!in_array($status, self::GOAL_STATUSES, true)) {
+            return ['ok' => false, 'error' => 'Status da meta inválido.'];
+        }
+
+        $achievedAt = null;
+        if ($status === 'achieved') {
+            $achievedAt = !empty($input['achieved_at'])
+                ? (string) $input['achieved_at']
+                : date('Y-m-d H:i:s');
+        }
+
+        return [
+            'ok' => true,
+            'data' => [
+                'pdi_plan_id' => $planId,
+                'goal_title' => $title,
+                'goal_description' => trim((string) ($input['goal_description'] ?? '')) ?: null,
+                'target_value' => $input['target_value'] !== '' && isset($input['target_value'])
+                    ? $input['target_value']
+                    : null,
+                'current_value' => $input['current_value'] ?? 0,
+                'unit' => trim((string) ($input['unit'] ?? '')) ?: null,
+                'deadline' => !empty($input['deadline']) ? (string) $input['deadline'] : null,
+                'status' => $status,
+                'achieved_at' => $achievedAt,
+            ],
+        ];
+    }
+
     private function plansRepo(): PdiPlansRepository
     {
         return $this->plans ?? new PdiPlansRepository();
@@ -329,6 +529,16 @@ class PdiPlanService
     private function competenciesRepo(): PdiCompetenciesRepository
     {
         return $this->competencies ?? new PdiCompetenciesRepository();
+    }
+
+    private function goalsRepo(): PdiGoalsRepository
+    {
+        return $this->goals ?? new PdiGoalsRepository();
+    }
+
+    private function feedbacksRepo(): PdiFeedbacksRepository
+    {
+        return $this->feedbacks ?? new PdiFeedbacksRepository();
     }
 
     private function cycles(): PerformanceCycleService

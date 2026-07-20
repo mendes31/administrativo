@@ -928,6 +928,15 @@ $menus = [
                         ],
                     ],
                     [
+                        'label' => 'Talent Pool',
+                        'url' => $_ENV['URL_ADM'] . 'list-talent-nominations',
+                        'permission' => 'ListTalentNominations',
+                        'related_routes' => [
+                            'list-talent-nominations', 'create-talent-nomination',
+                            'view-talent-nomination', 'update-talent-nomination',
+                        ],
+                    ],
+                    [
                         'label' => 'Dashboard de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'performance-dashboard',
                         'permission' => 'PerformanceDashboard',

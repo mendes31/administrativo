@@ -48,6 +48,7 @@ class ViewPerformanceCalibration
                 'UpdatePerformanceCalibration',
                 'NineBoxMatrix',
                 'ListPerformanceReviews',
+                'ListTalentNominations',
             ],
         ];
 

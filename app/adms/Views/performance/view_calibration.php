@@ -28,6 +28,11 @@ $cycleId = (int) ($cal['performance_cycle_id'] ?? 0);
                         <i class="fas fa-th me-1"></i>Nine Box do ciclo
                     </a>
                 <?php } ?>
+                <?php if (in_array('ListTalentNominations', $this->data['buttonPermission'] ?? [], true)) { ?>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>list-talent-nominations?performance_cycle_id=<?= $cycleId ?>&status=active" class="btn btn-sm btn-outline-warning">
+                        <i class="fas fa-star me-1"></i>Talent Pool
+                    </a>
+                <?php } ?>
                 <?php if (in_array('ListPerformanceReviews', $this->data['buttonPermission'] ?? [], true)) { ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-performance-reviews?performance_cycle_id=<?= $cycleId ?>" class="btn btn-sm btn-outline-secondary">
                         Avaliações (<?= (int) ($this->data['reviews_count'] ?? 0) ?>)

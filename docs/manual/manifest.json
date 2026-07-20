@@ -1513,6 +1513,11 @@
                     "file": "gestao_pessoas/list-pdi-plans.html"
                 },
                 {
+                    "id": "list-talent-nominations",
+                    "title": "Talent Pool (HiPo)",
+                    "file": "gestao_pessoas/list-talent-nominations.html"
+                },
+                {
                     "id": "list-policies",
                     "title": "Listar Políticas Internas",
                     "file": "gestao_pessoas/list-policies.html"

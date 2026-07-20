@@ -10,6 +10,8 @@ use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\CompetenciesRepository;
 use App\adms\Models\Repository\PdiActionsRepository;
 use App\adms\Models\Repository\PdiCompetenciesRepository;
+use App\adms\Models\Repository\PdiFeedbacksRepository;
+use App\adms\Models\Repository\PdiGoalsRepository;
 use App\adms\Models\Repository\PdiPlansRepository;
 use App\adms\Models\Repository\TrainingsRepository;
 use App\adms\Models\Services\LogResumoService;
@@ -42,11 +44,17 @@ class ViewPdiPlan
             $plan = $repository->getById($planId) ?? $plan;
         }
 
+        $actions = (new PdiActionsRepository())->getByPlanId($planId);
+        $goals = (new PdiGoalsRepository())->getByPlanId($planId);
+
         $this->data['plan'] = $plan;
-        $this->data['actions'] = (new PdiActionsRepository())->getByPlanId($planId);
+        $this->data['actions'] = $actions;
+        $this->data['goals'] = $goals;
+        $this->data['feedbacks'] = (new PdiFeedbacksRepository())->getByPlanId($planId);
         $this->data['competencies'] = (new PdiCompetenciesRepository())->getByPlanId($planId);
         $this->data['trainings'] = (new TrainingsRepository())->getAllTrainingsSelect();
         $this->data['catalog_competencies'] = (new CompetenciesRepository())->getAll();
+        $this->data['progress'] = (new PdiPlanService())->progressSummary($actions, $goals);
 
         $returnUrl = $_ENV['URL_ADM'] . 'view-pdi-plan/' . $planId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_pdi_plans', $planId, $returnUrl);
@@ -75,6 +83,11 @@ class ViewPdiPlan
             'update_action' => 'form_pdi_update_action',
             'add_competency' => 'form_pdi_add_competency',
             'remove_competency' => 'form_pdi_remove_competency',
+            'add_goal' => 'form_pdi_add_goal',
+            'update_goal' => 'form_pdi_update_goal',
+            'remove_goal' => 'form_pdi_remove_goal',
+            'add_feedback' => 'form_pdi_add_feedback',
+            'approve' => 'form_pdi_approve',
         ];
 
         if (!isset($csrfMap[$action])) {
@@ -90,11 +103,17 @@ class ViewPdiPlan
         }
 
         $service = new PdiPlanService();
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
         $result = match ($action) {
             'add_action' => $service->addAction($planId, $_POST),
             'update_action' => $service->updateAction((int) ($_POST['action_id'] ?? 0), $planId, $_POST),
             'add_competency' => $service->addCompetency($planId, $_POST),
             'remove_competency' => $service->removeCompetency((int) ($_POST['competency_row_id'] ?? 0), $planId),
+            'add_goal' => $service->addGoal($planId, $_POST),
+            'update_goal' => $service->updateGoal((int) ($_POST['goal_id'] ?? 0), $planId, $_POST),
+            'remove_goal' => $service->removeGoal((int) ($_POST['goal_id'] ?? 0), $planId),
+            'add_feedback' => $service->addFeedback($planId, $_POST, $userId),
+            'approve' => $service->approve($planId, $userId),
             default => ['ok' => false, 'error' => 'Ação inválida.'],
         };
 
@@ -109,6 +128,11 @@ class ViewPdiPlan
             'update_action' => 'Ação atualizada.',
             'add_competency' => 'Competência vinculada.',
             'remove_competency' => 'Competência removida.',
+            'add_goal' => 'Meta adicionada.',
+            'update_goal' => 'Meta atualizada.',
+            'remove_goal' => 'Meta removida.',
+            'add_feedback' => 'Feedback registrado.',
+            'approve' => 'PDI aprovado e ativado.',
         ];
         $_SESSION['msg'] = '<div class="alert alert-success" role="alert">'
             . ($messages[$action] ?? 'OK') . '</div>';
