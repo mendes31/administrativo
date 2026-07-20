@@ -510,7 +510,7 @@ class LoadPageAdmAccessLevel
             'documents', 'errors', 'evaluations', 'financialReports', 'frequency',
             'groupsPages', 'informativos', 'inventory', 'lgpd', 'login', 'logs',
             'movement', 'notifications', 'packages', 'pages', 'pay', 'paymentMethod',
-            'performance', 'permission', 'policies', 'portal', 'positions', 'projects',
+            'performance', 'permission', 'pdi', 'policies', 'portal', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
             'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline', 'gamification',
             'trainings', 'users', 'workShifts', 'whistleblowing',

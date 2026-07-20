@@ -885,6 +885,15 @@ $menus = [
                         ],
                     ],
                     [
+                        'label' => 'PDI',
+                        'url' => $_ENV['URL_ADM'] . 'list-pdi-plans',
+                        'permission' => 'ListPdiPlans',
+                        'related_routes' => [
+                            'list-pdi-plans', 'create-pdi-plan',
+                            'view-pdi-plan', 'update-pdi-plan',
+                        ],
+                    ],
+                    [
                         'label' => 'Feedbacks',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-feedbacks',
                         'permission' => 'ListPerformanceFeedbacks',

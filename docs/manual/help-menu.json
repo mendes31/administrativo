@@ -1150,6 +1150,17 @@
                                     "title": "Editar Meta de Desempenho"
                                 }
                             ]
+                        },
+                        {
+                            "type": "group",
+                            "label": "PDI",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-pdi-plans",
+                                    "title": "Planos de Desenvolvimento (PDI)"
+                                }
+                            ]
                         }
                     ]
                 },

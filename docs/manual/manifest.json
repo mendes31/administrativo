@@ -1508,6 +1508,11 @@
                     "file": "gestao_pessoas/list-performance-goals.html"
                 },
                 {
+                    "id": "list-pdi-plans",
+                    "title": "Planos de Desenvolvimento (PDI)",
+                    "file": "gestao_pessoas/list-pdi-plans.html"
+                },
+                {
                     "id": "list-policies",
                     "title": "Listar Políticas Internas",
                     "file": "gestao_pessoas/list-policies.html"

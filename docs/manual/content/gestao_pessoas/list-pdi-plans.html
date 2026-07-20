@@ -1,0 +1,25 @@
+<h1>Planos de Desenvolvimento (PDI)</h1>
+<p>Cadastro e acompanhamento de <strong>PDI</strong>: plano por colaborador, ações (incluindo vínculo a treinamento) e competências do catálogo.</p>
+<p><strong>Quem acessa:</strong> <em>ListPdiPlans</em> (espelha permissões de Metas).</p>
+<p class="help-note"><strong>Visão geral:</strong> consulte também <em>Desempenho</em> (<code>gp-desempenho</code>), <em>Ciclos</em> e <em>Competências</em>.</p>
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <strong>Desempenho → PDI → Novo PDI</strong> e informe colaborador, período e (opcional) ciclo.</li>
+    <li>Na visualização do plano, adicione <strong>ações</strong> (tipo, prioridade, treinamento do catálogo).</li>
+    <li>Vincule <strong>competências</strong> pelo catálogo ou por nome livre, com níveis atual/alvo (1–5).</li>
+    <li>Atualize progresso e status das ações conforme o desenvolvimento.</li>
+</ol>
+<h2>Campos principais</h2>
+<div class="help-field"><strong>Ciclo</strong> Vínculo opcional a ciclo em rascunho/aberto (não fecha o ciclo).</div>
+<div class="help-field"><strong>Ação × treinamento</strong> Opcional; lista treinamentos já cadastrados no sistema.</div>
+<div class="help-field"><strong>Competência</strong> Preferir o catálogo; o nome é preenchido automaticamente.</div>
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu PDI não aparece</dt>
+    <dd>Rode a migration <code>20260720210000</code> e confira permissão <em>ListPdiPlans</em> no nível de acesso.</dd>
+    <dt>Não consigo vincular ao ciclo</dt>
+    <dd>Ciclos fechados não aceitam novos vínculos.</dd>
+    <dt>Catálogo de competências vazio</dt>
+    <dd>Cadastre em Desempenho → Competências, ou use nome livre.</dd>
+</dl>
+<p><strong>Permissões:</strong> <em>ListPdiPlans</em>, <em>CreatePdiPlan</em>, <em>ViewPdiPlan</em>, <em>UpdatePdiPlan</em>.</p>
