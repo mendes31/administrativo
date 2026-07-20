@@ -26,9 +26,13 @@ Slugs gravados (não mudam):
 | `lab_tiaraju_matriz` | Laboratório Tiaraju |
 | `lab_tiaraju_filial` | Afra Pharma |
 
-**Obrigatoriedade:** `empresa_contratante` é **obrigatória em novos cadastros**. Na edição, permanece opcional para cadastros antigos sem empresa.
+**Obrigatoriedade:** `empresa_contratante` é **obrigatória no cadastro e na edição**
+(exceto usuário técnico `manager`). Dual-write preenche `user_branch_id`.
 
-**UI edição:** após salvar, permanece na mesma aba (`?tab=` + hash).
+**Listagem:** filtro por empresa (inclui opção *Sem empresa*) e coluna Empresa na grade.
+
+Homologação (jul/2026): 12 usuários com `lab_tiaraju_matriz`; ~208 ainda sem empresa —
+preenchimento manual via filtro *Sem empresa* (sem regra de backfill em massa).
 
 ## Regras
 

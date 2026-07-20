@@ -10,7 +10,7 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Acesse o menu <strong>Cadastro</strong> e abra <strong>Listar Usuários</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, login, departamento, cargo, turno, status, bloqueio, desligamento, sexo, filhos ou período.</li>
+    <li>Use os filtros no topo para restringir por nome, login, departamento, cargo, turno, status, bloqueio, desligamento, sexo, filhos, <strong>empresa contratante</strong> (inclui “Sem empresa”) ou período.</li>
     <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
     <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
     <li>Para operação em lote, use <strong>Importar</strong>; para conferência externa, exporte Excel ou PDF. Os filtros ativos também limitam a exportação.</li>
@@ -19,7 +19,7 @@
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem a grade e as exportações; não alteram cadastros. O filtro de período pode considerar admissão, desligamento ou atualização de cargo.</div>
+<div class="help-field"><strong>Filtros de busca</strong> Restringem a grade e as exportações; não alteram cadastros. O filtro de período pode considerar admissão, desligamento ou atualização de cargo. Em empresa contratante, use <em>Sem empresa</em> para localizar cadastros ainda sem vínculo.</div>
 <div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
 <div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
 <div class="help-field"><strong>Exportar Excel</strong> A aba Usuários inclui todos os campos cadastrais, ordenados como na tela: Usuário, Dados Pessoais, Endereço, Dados Contratuais e resumo de Formações. Senhas não são exportadas por segurança. A aba Formações traz um registro por curso, incluindo o ID necessário para futuras atualizações por importação.</div>
@@ -33,6 +33,6 @@
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
     <dt>Exportação veio com menos pessoas</dt>
     <dd>Os filtros da listagem permanecem ativos na sessão e são aplicados ao Excel/PDF. Limpe os filtros e gere novamente.</dd>
-    <dt>A aba Formações do Excel está vazia</dt>
-    <dd>Somente formações cadastradas na aba <em>Formações</em> do usuário aparecem no detalhamento; o campo geral Escolaridade não cria uma formação automaticamente.</dd>
+    <dt>Muitos usuários sem empresa</dt>
+    <dd>Filtre por <em>Empresa contratante → Sem empresa</em> e complete na edição (campo obrigatório). Não há backfill automático: a empresa depende do vínculo real do colaborador.</dd>
 </dl>

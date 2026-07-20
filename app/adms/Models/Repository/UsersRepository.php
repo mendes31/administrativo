@@ -140,6 +140,7 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.filhos = :filhos';
             $params[':filhos'] = $filtros['filhos'];
         }
+        $this->applyEmpresaContratanteListFilter($where, $params, $filtros);
 
         // Filtro de período (de/até) por tipo selecionado
         $periodoTipo = $filtros['periodo_tipo'] ?? '';
@@ -183,7 +184,7 @@ class UsersRepository extends DbConnection
         }
         
         $whereSql = $where ? 'WHERE ' . implode(' AND ', $where) : '';
-        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.image, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, dep.name name_dep, pos.name name_pos
+        $sql = 'SELECT usr.id, usr.name, usr.email, usr.username, usr.image, usr.cpf, usr.celular, usr.user_department_id, usr.user_position_id, usr.status, usr.bloqueado, usr.tentativas_login, usr.senha_nunca_expira, usr.modificar_senha_proximo_logon, usr.data_admissao, usr.data_desligamento, usr.motivo_desligamento, usr.empresa_contratante, usr.user_branch_id, dep.name name_dep, pos.name name_pos
                 FROM adms_users usr
                 LEFT JOIN adms_departments dep ON usr.user_department_id = dep.id
                 LEFT JOIN adms_positions pos ON usr.user_position_id = pos.id 
@@ -268,6 +269,7 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.filhos = :filhos';
             $params[':filhos'] = $filtros['filhos'];
         }
+        $this->applyEmpresaContratanteListFilter($where, $params, $filtros);
 
         // Filtro de período (de/até) por tipo selecionado
         $periodoTipo = $filtros['periodo_tipo'] ?? '';
@@ -606,6 +608,7 @@ class UsersRepository extends DbConnection
             $where[] = 'usr.filhos = :filhos';
             $params[':filhos'] = $filtros['filhos'];
         }
+        $this->applyEmpresaContratanteListFilter($where, $params, $filtros);
 
         // Filtro de período (de/até) por tipo selecionado
         $periodoTipo = $filtros['periodo_tipo'] ?? '';
@@ -663,6 +666,28 @@ class UsersRepository extends DbConnection
         return ($stmt->fetch(PDO::FETCH_ASSOC)['amount_records']) ?? 0;
     }
     
+    /**
+     * Filtro de empresa contratante na listagem/exportação de usuários.
+     * Use `__empty__` para listar quem ainda não tem empresa preenchida.
+     *
+     * @param list<string> $where
+     * @param array<string, mixed> $params
+     * @param array<string, mixed> $filtros
+     */
+    private function applyEmpresaContratanteListFilter(array &$where, array &$params, array $filtros): void
+    {
+        $empresa = isset($filtros['empresa_contratante']) ? (string) $filtros['empresa_contratante'] : '';
+        if ($empresa === '') {
+            return;
+        }
+        if ($empresa === '__empty__') {
+            $where[] = "(usr.empresa_contratante IS NULL OR usr.empresa_contratante = '')";
+            return;
+        }
+        $where[] = 'usr.empresa_contratante = :empresa_contratante';
+        $params[':empresa_contratante'] = $empresa;
+    }
+
     /**
      * Obter departamentos para filtro
      */

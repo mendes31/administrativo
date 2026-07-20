@@ -81,7 +81,7 @@ class ValidationUserRakitService
             $rules['email'] = 'email|uniqueInColumns:adms_users,email;username,' . $data['id'];
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf,' . $data['id'];
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
-            $rules['empresa_contratante'] = 'nullable|in:' . implode(',', UserFormHelper::EMPRESA_CONTRATANTE_SLUGS);
+            $rules['empresa_contratante'] = 'required|in:' . implode(',', UserFormHelper::EMPRESA_CONTRATANTE_SLUGS);
             
             if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $rules['image'] = 'uploaded_file:0,2048K,png,jpg,jpeg,gif';
@@ -90,7 +90,7 @@ class ValidationUserRakitService
 
         // Exceção para o usuário técnico "manager": permitir ausência de CPF, celular e data de nascimento
         if ($isManagerUser) {
-            unset($rules['cpf'], $rules['celular'], $rules['data_nascimento']);
+            unset($rules['cpf'], $rules['celular'], $rules['data_nascimento'], $rules['empresa_contratante']);
         }
         // Sexo e filhos: opcionais; se enviados, devem ser valores permitidos
         $rules['sexo'] = 'nullable|in:M,F,O';

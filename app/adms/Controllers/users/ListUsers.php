@@ -4,6 +4,7 @@ namespace App\adms\Controllers\users;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Repository\WorkShiftsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -73,6 +74,7 @@ class ListUsers
                 'desligado' => (string) ($_GET['desligado'] ?? ''),
                 'sexo' => (string) ($_GET['sexo'] ?? ''),
                 'filhos' => (string) ($_GET['filhos'] ?? ''),
+                'empresa_contratante' => (string) ($_GET['empresa_contratante'] ?? ''),
                 'periodo_tipo' => (string) ($_GET['periodo_tipo'] ?? ''),
                 'data_de' => (string) ($_GET['data_de'] ?? ''),
                 'data_ate' => (string) ($_GET['data_ate'] ?? ''),
@@ -90,6 +92,7 @@ class ListUsers
                 'desligado' => $_GET['desligado'] ?? $_SESSION['filtros_list_users']['desligado'] ?? '',
                 'sexo' => $_GET['sexo'] ?? $_SESSION['filtros_list_users']['sexo'] ?? '',
                 'filhos' => $_GET['filhos'] ?? $_SESSION['filtros_list_users']['filhos'] ?? '',
+                'empresa_contratante' => $_GET['empresa_contratante'] ?? $_SESSION['filtros_list_users']['empresa_contratante'] ?? '',
                 'periodo_tipo' => $_GET['periodo_tipo'] ?? $_SESSION['filtros_list_users']['periodo_tipo'] ?? '',
                 'data_de' => $_GET['data_de'] ?? $_SESSION['filtros_list_users']['data_de'] ?? '',
                 'data_ate' => $_GET['data_ate'] ?? $_SESSION['filtros_list_users']['data_ate'] ?? '',
@@ -99,7 +102,7 @@ class ListUsers
             if (isset($_GET['nome']) || isset($_GET['usuario']) ||
                 isset($_GET['departamento_id']) || isset($_GET['cargo_id']) || isset($_GET['turno_id']) ||
                 isset($_GET['status']) || isset($_GET['bloqueado']) || isset($_GET['desligado']) ||
-                isset($_GET['sexo']) || isset($_GET['filhos']) ||
+                isset($_GET['sexo']) || isset($_GET['filhos']) || isset($_GET['empresa_contratante']) ||
                 isset($_GET['periodo_tipo']) || isset($_GET['data_de']) || isset($_GET['data_ate'])) {
                 $_SESSION['filtros_list_users'] = $filtros;
             }
@@ -119,6 +122,7 @@ class ListUsers
         // Carregar departamentos e cargos para os filtros
         $this->data['departments'] = $listUsers->getDepartmentsForFilter();
         $this->data['positions'] = $listUsers->getPositionsForFilter();
+        $this->data['empresas_contratantes'] = UserFormHelper::empresaContratanteOptions();
         $workShiftsRepo = new WorkShiftsRepository();
         $this->data['work_shifts'] = $workShiftsRepo->getAllWorkShiftsSelect();
         

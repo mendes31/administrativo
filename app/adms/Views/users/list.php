@@ -171,6 +171,18 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                         </select>
                     </div>
                     <div class="col-12 col-sm-6 col-md-3 col-xl-2">
+                        <label for="empresa_contratante" class="form-label users-list-filters-label">Empresa contratante</label>
+                        <select name="empresa_contratante" id="empresa_contratante" class="form-select users-list-filters-control">
+                            <option value="">Todas</option>
+                            <option value="__empty__" <?= ($this->data['filtros']['empresa_contratante'] ?? '') === '__empty__' ? 'selected' : '' ?>>Sem empresa</option>
+                            <?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?>
+                                <option value="<?= htmlspecialchars((string) $slug) ?>" <?= (string) ($this->data['filtros']['empresa_contratante'] ?? '') === (string) $slug ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars((string) $empLabel) ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-12 col-sm-6 col-md-3 col-xl-2">
                         <label for="periodo_tipo" class="form-label users-list-filters-label">Selecionar</label>
                         <select name="periodo_tipo" id="periodo_tipo" class="form-select users-list-filters-control">
                             <option value="">-- Selecionar --</option>
@@ -214,9 +226,10 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                         <thead>
                             <tr>
                                 <th scope="col" style="width: 4%;">ID</th>
-                                <th scope="col" style="width: 22%;">Nome</th>
-                                <th scope="col" style="width: 16%;" class="d-none d-md-table-cell">Departamento</th>
-                                <th scope="col" style="width: 13%;" class="d-none d-md-table-cell">Cargo</th>
+                                <th scope="col" style="width: 18%;">Nome</th>
+                                <th scope="col" style="width: 12%;" class="d-none d-lg-table-cell">Empresa</th>
+                                <th scope="col" style="width: 14%;" class="d-none d-md-table-cell">Departamento</th>
+                                <th scope="col" style="width: 12%;" class="d-none d-md-table-cell">Cargo</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Status</th>
                                 <th scope="col" style="width: 7%;" class="d-none d-md-table-cell">Bloqueado</th>
                                 <th scope="col" style="width: 8%;" class="d-none d-md-table-cell">Desligado</th>
@@ -253,6 +266,17 @@ $renderListUserAvatar = static function (int $userId, ?string $imageName, string
                                                 <i class="fas fa-user-slash text-danger ms-1" title="Desligado em <?= date('d/m/Y', strtotime($dataDesligamento)) ?>"></i>
                                             <?php endif; ?>
                                         </div>
+                                    </td>
+                                    <td class="d-none d-lg-table-cell text-truncate" title="<?= htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel($empresa_contratante ?? null)); ?>">
+                                        <?php
+                                        $empLabel = \App\adms\Helpers\UserFormHelper::empresaContratanteLabel($empresa_contratante ?? null);
+                                        $empEmpty = trim((string) ($empresa_contratante ?? '')) === '';
+                                        ?>
+                                        <?php if ($empEmpty): ?>
+                                            <span class="badge bg-warning text-dark">Sem empresa</span>
+                                        <?php else: ?>
+                                            <?= htmlspecialchars($empLabel) ?>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="d-none d-md-table-cell text-truncate" title="<?= htmlspecialchars($name_dep); ?>"><?= $name_dep ?></td>
                                     <td class="d-none d-md-table-cell text-break users-list-cargo-full" title="<?= htmlspecialchars((string)($name_pos ?? '')); ?>"><?= htmlspecialchars((string)($name_pos ?? '')) ?></td>
