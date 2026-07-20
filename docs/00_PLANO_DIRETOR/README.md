@@ -102,6 +102,29 @@ Para determinar a direção desejada:
 Em conflito entre documentos, prevalece o código em produção até que a
 documentação seja corrigida — salvo decisão explícita em ADR.
 
+## Manual de ajuda e termos
+
+O **manual contextual (F1)** é a documentação operacional para o utilizador final.
+Complementa o [Glossário corporativo](../02_GLOSSARIO/GLOSSARIO_CORPORATIVO.md)
+(canónico para linguagem de domínio) sem o substituir.
+
+Padrão obrigatório em cada tópico HTML (`docs/manual/`):
+
+1. **`<h2>Função no sistema</h2>`** — papel da tela no fluxo.
+2. **`<h2>O que significam os termos</h2>`** — obrigatório quando a página usa
+   siglas ou jargão de negócio (ex.: eNPS, Pulse, OKR, PDI, Nine Box, HiPo).
+   Definir em português acessível apenas os termos usados naquela tela;
+   não criar secção vazia em páginas sem jargão.
+3. Permissões, fluxo, campos e problemas comuns conforme
+   [checklist do manual](../manual/README.md).
+
+Manutenção em lote (respeitando o limite de 100 ficheiros/push):
+
+- `php scripts/manual_ensure_funcao_section.php`
+- `php scripts/manual_ensure_termos_section.php` (e `--dry-run` / `--only=pasta`)
+
+Novas features só entram em aceite com manual alinhado a este padrão.
+
 ## Deploy e dados de produção
 
 O deploy **nunca** deve apagar ou sobrescrever uploads, anexos, `.env` ou

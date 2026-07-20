@@ -51,8 +51,17 @@
 | Avaliação de desempenho | Avaliação do trabalho e resultados em um ciclo |
 | Avaliação 180° | Perspectivas definidas, normalmente colaborador e gestor |
 | Avaliação 360° | Processo multiperspectiva com consolidação e governança |
+| Ciclo de desempenho | Janela temporal que agrupa avaliações, metas e calibração |
+| Calibração | Sessão em que gestores alinham notas entre áreas antes do fechamento |
 | PDI | Plano individual com objetivos, ações, prazos e evidências |
-| Nine Box | Matriz que cruza desempenho e potencial independentes |
+| OKR / Meta | Objetivo com resultado-chave ou indicador mensurável no período |
+| Nine Box / 9BOX | Matriz que cruza desempenho e potencial independentes |
+| HiPo | Colaborador de alto potencial, tipicamente priorizado no talent pool |
+| Talent pool | Banco interno de talentos nomeados a partir de desempenho/potencial |
+| Sucessão | Preparação de sucessores para cargos críticos |
+| Readiness | Grau de prontidão do sucessor para assumir o cargo |
+| eNPS | Employee Net Promoter Score: recomendação da empresa como empregadora (0–10) |
+| Pulse | Pesquisa curta e periódica de clima (Likert/texto), distinta do eNPS |
 
 ## Plataforma
 

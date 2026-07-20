@@ -17,14 +17,14 @@ Sempre que criar ou alterar comportamento visível ao usuário (nova tela, novo 
 
 1. **Tópico da tela** — Atualizar ou criar `content/<modulo>/<topic-id>.html` em português, nesta ordem:
    - **`<h2>Função no sistema</h2>`** (obrigatório, logo após o `<h1>`) — resumo do papel da tela/função no fluxo do sistema, não só lista de campos;
-   - **Termos específicos** — se a tela usa jargão de negócio ou siglas (ex.: eNPS, Pulse, OKR, Nine Box, PDI), inclua uma secção curta (ex.: `<h2>O que significam os termos</h2>` ou entradas em Campos) com definição em português acessível; não assuma que o leitor já conhece o termo;
+   - **`<h2>O que significam os termos</h2>`** — obrigatório quando houver siglas/jargão; padrão de governança no [Plano Diretor](../00_PLANO_DIRETOR/README.md#manual-de-ajuda-e-termos) e catálogo em [Glossário corporativo](../02_GLOSSARIO/GLOSSARIO_CORPORATIVO.md);
    - permissões (`Quem acessa`);
    - fluxo passo a passo;
    - campos/ações relevantes;
    - problemas comuns relacionados à mudança.
 
-   Para aplicar/reaplicar a seção em tópicos antigos:
-   `php scripts/manual_ensure_funcao_section.php` (use `--dry-run` para simular).
+   Scripts de manutenção (respeitar ≤100 ficheiros/push):
+   `php scripts/manual_ensure_funcao_section.php` · `php scripts/manual_ensure_termos_section.php` (`--dry-run`, `--only=pasta`, `--limit=90`).
 
 2. **Tópico conceitual** — Se a mudança afeta um fluxo maior (ex.: matrizes, versionamento), atualizar o HTML de visão geral do módulo (ex.: `rh-trein-matrizes.html`).
 
