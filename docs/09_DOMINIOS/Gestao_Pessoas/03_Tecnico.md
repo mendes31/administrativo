@@ -120,6 +120,7 @@ Toda mudança estrutural deve:
 - [Talent pool / HiPo — Expand](DESENVOLVIMENTO_TALENT_POOL_EXPAND.md)
 - [Sucessão — Expand](DESENVOLVIMENTO_SUCESSAO_EXPAND.md)
 - [Carreira — Expand](DESENVOLVIMENTO_CARREIRA_EXPAND.md)
+- [Avaliações em massa — Expand](DESENVOLVIMENTO_AVALIACOES_MASSA_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

@@ -446,6 +446,7 @@ class PageLayoutService
             // Gestão de Pessoas - Performance
             'ListPerformanceReviews',
             'CreatePerformanceReview',
+            'BulkCreatePerformanceReviews',
             'ViewPerformanceReview',
             'UpdatePerformanceReview',
             'RecordReviewResults',

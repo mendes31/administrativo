@@ -2422,7 +2422,7 @@ class UsersRepository extends DbConnection
      */
     public function getSubordinates(int $supervisorId): array
     {
-        $sql = "SELECT id, name, email, status 
+        $sql = "SELECT id, name, email, status, immediate_supervisor_id
                 FROM adms_users 
                 WHERE immediate_supervisor_id = :supervisor_id 
                 AND status = 'Ativo'
@@ -2436,13 +2436,36 @@ class UsersRepository extends DbConnection
     }
 
     /**
+     * Colaboradores ativos de um departamento (bulk de avaliações).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listActiveByDepartment(int $departmentId): array
+    {
+        if ($departmentId <= 0) {
+            return [];
+        }
+        $sql = 'SELECT id, name, email, status, immediate_supervisor_id
+                FROM adms_users
+                WHERE status = :status
+                  AND user_department_id = :department_id
+                ORDER BY name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':status', 'Ativo', PDO::PARAM_STR);
+        $stmt->bindValue(':department_id', $departmentId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
      * Recupera todos os usuários para uso em formulários (select).
      *
      * @return array Lista de usuários para select
      */
     public function getAllUsersForSelect(): array
     {
-        $sql = 'SELECT id, name, email, status 
+        $sql = 'SELECT id, name, email, status, immediate_supervisor_id
                 FROM adms_users 
                 WHERE status = :status 
                 ORDER BY name ASC';

@@ -69,6 +69,25 @@ class PerformanceReviewsRepository extends DbConnection
     }
 
     /**
+     * Já existe avaliação do colaborador no ciclo com o mesmo tipo?
+     */
+    public function existsForEmployeeCycleType(int $employeeId, int $cycleId, string $reviewType): bool
+    {
+        $sql = 'SELECT 1 FROM adms_performance_reviews
+                WHERE employee_id = :employee_id
+                  AND performance_cycle_id = :cycle_id
+                  AND review_type = :review_type
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':employee_id', $employeeId, PDO::PARAM_INT);
+        $stmt->bindValue(':cycle_id', $cycleId, PDO::PARAM_INT);
+        $stmt->bindValue(':review_type', $reviewType);
+        $stmt->execute();
+
+        return (bool) $stmt->fetchColumn();
+    }
+
+    /**
      * Buscar por ID
      */
     public function getById(int $id): ?array

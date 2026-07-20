@@ -87,6 +87,17 @@ $st = $statusLabels[$cycle['status'] ?? ''] ?? ['label' => $cycle['status'] ?? '
                             <a href="<?php echo $_ENV['URL_ADM']; ?>list-performance-reviews?performance_cycle_id=<?= (int) $cycle['id'] ?>"
                                class="ms-1 small">ver avaliações</a>
                         <?php } ?>
+                        <?php if (
+                            in_array(($cycle['status'] ?? ''), ['draft', 'open'], true)
+                            && in_array('BulkCreatePerformanceReviews', $this->data['buttonPermission'] ?? [], true)
+                        ) { ?>
+                            <div class="mt-1">
+                                <a href="<?php echo $_ENV['URL_ADM']; ?>bulk-create-performance-reviews/<?= (int) $cycle['id'] ?>"
+                                   class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-layer-group me-1"></i>Gerar avaliações
+                                </a>
+                            </div>
+                        <?php } ?>
                     </div>
                 </div>
                 <div class="col-md-3">

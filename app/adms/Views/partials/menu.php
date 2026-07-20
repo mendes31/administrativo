@@ -853,6 +853,7 @@ $menus = [
                         'related_routes' => [
                             'list-performance-cycles', 'create-performance-cycle',
                             'view-performance-cycle', 'update-performance-cycle',
+                            'bulk-create-performance-reviews',
                         ],
                     ],
                     [

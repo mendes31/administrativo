@@ -47,6 +47,7 @@ class ViewPerformanceCycle
                 'ListPerformanceCycles',
                 'UpdatePerformanceCycle',
                 'ListPerformanceGoals',
+                'BulkCreatePerformanceReviews',
             ],
         ];
 

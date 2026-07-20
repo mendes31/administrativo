@@ -189,6 +189,7 @@
     "create-performance-cycle": "list-performance-cycles",
     "view-performance-cycle": "list-performance-cycles",
     "update-performance-cycle": "list-performance-cycles",
+    "bulk-create-performance-reviews": "list-performance-cycles",
     "list-performance-goals": "list-performance-goals",
     "list-pdi-plans": "list-pdi-plans",
     "create-pdi-plan": "list-pdi-plans",
