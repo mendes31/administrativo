@@ -1468,6 +1468,11 @@
                     "file": "gestao_pessoas/rh-candidatos.html"
                 },
                 {
+                    "id": "list-rh-candidato-anexo-access-logs",
+                    "title": "Log de download de currículos",
+                    "file": "gestao_pessoas/list-rh-candidato-anexo-access-logs.html"
+                },
+                {
                     "id": "rh-candidatos-create",
                     "title": "Cadastrar Candidato",
                     "file": "gestao_pessoas/rh-candidatos-create.html"

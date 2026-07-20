@@ -1,0 +1,48 @@
+<h1>Log de download de currículos</h1>
+
+<h2>Função no sistema</h2>
+<p>
+Tela de <strong>auditoria LGPD</strong> que lista quem baixou anexos/currículos de candidatos.
+Os registros são gerados automaticamente no download autorizado; esta tela só consulta e exporta.
+</p>
+
+<p><strong>Quem acessa:</strong> <em>ListRhCandidatoAnexoAccessLogs</em>. Exportar Excel exige
+<em>ExportRhCandidatoAnexoAccessLogsExcel</em>. Por padrão a migration concede a quem já tem
+<em>ListLogAcessos</em> (auditoria).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>LGPD</dt>
+    <dd>Lei Geral de Proteção de Dados — exige rastreabilidade de acesso a dados pessoais sensíveis, como currículos.</dd>
+    <dt>authorized_controller</dt>
+    <dd>Download via controller oficial de anexo do candidato.</dd>
+    <dt>legacy_file_server</dt>
+    <dd>Download via endpoint legado de arquivos (<code>serve-file</code>), com deduplicação de 60s.</dd>
+    <dt>Path hash</dt>
+    <dd>Hash SHA-256 do caminho do arquivo (sem expor o nome original na listagem).</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Menu <strong>Administração → Logs → Log download currículos</strong> (ou F1 nesta tela).</li>
+    <li>Filtre por quem baixou, candidato, fonte, IP e período.</li>
+    <li>Consulte a tabela; clique no candidato para abrir o cadastro (se ainda existir).</li>
+    <li>Exporte <strong>Excel</strong> com os mesmos filtros quando precisar evidência para DPO.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Quem baixou</strong> Nome do usuário ator (parcial).</div>
+<div class="help-field"><strong>Candidato / ID</strong> Nome parcial ou ID numérico do candidato.</div>
+<div class="help-field"><strong>Fonte</strong> <code>authorized_controller</code> ou <code>legacy_file_server</code>.</div>
+<div class="help-field"><strong>IP / período</strong> Recorte técnico e temporal.</div>
+<div class="help-field"><strong>Excel</strong> Inclui user-agent e path hash além das colunas da tela.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>Permissão ausente — rode a migration de páginas e inclua no nível (espelha quem tem ListLogAcessos) ou conceda manualmente.</dd>
+    <dt>Lista vazia com downloads conhecidos</dt>
+    <dd>Confirme se a tabela <code>rh_candidato_anexo_access_logs</code> existe (migration 20260719231000) e se o período/filtros não estão estreitos demais.</dd>
+    <dt>Candidato aparece só com ID</dt>
+    <dd>O candidato pode ter sido anonimizado/excluído; o log permanece sem CASCADE.</dd>
+</dl>

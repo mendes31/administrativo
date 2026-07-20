@@ -117,6 +117,16 @@ $menus = [
                             'icon' => 'fas fa-clock-rotate-left'
                         ],
                         [
+                            'label' => 'Log download currículos',
+                            'url' => $_ENV['URL_ADM'] . 'list-rh-candidato-anexo-access-logs',
+                            'permission' => 'ListRhCandidatoAnexoAccessLogs',
+                            'icon' => 'fas fa-file-download',
+                            'related_routes' => [
+                                'list-rh-candidato-anexo-access-logs',
+                                'export-rh-candidato-anexo-access-logs-excel',
+                            ],
+                        ],
+                        [
                             'label' => 'Configurações',
                             'url' => $_ENV['URL_ADM'] . 'log-settings',
                             'permission' => 'LogSettings',
@@ -1078,6 +1088,7 @@ $menus = [
                             'rh-candidatos', 'rh-candidatos-create', 'rh-candidatos-view',
                             'rh-candidatos-edit', 'rh-candidatos-vagas',
                             'rh-ofertas-create', 'rh-ofertas-view', 'rh-ofertas-convert',
+                            'list-rh-candidato-anexo-access-logs',
                         ],
                     ],
                     [

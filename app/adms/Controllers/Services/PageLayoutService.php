@@ -123,6 +123,8 @@ class PageLayoutService
             'LgpdInventoryEdit',
             'LgpdInventoryView',
             'ListLogAcessos',
+            'ListRhCandidatoAnexoAccessLogs',
+            'ExportRhCandidatoAnexoAccessLogsExcel',
             'ListConnectedUsers',
             'ListDatabaseTables',
             'ViewDatabaseTable',

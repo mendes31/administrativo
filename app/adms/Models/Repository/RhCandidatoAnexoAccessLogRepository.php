@@ -151,4 +151,107 @@ class RhCandidatoAnexoAccessLogRepository extends DbConnection
 
         return $exists;
     }
+
+    /**
+     * @param array<string, mixed> $filtros
+     * @return list<array<string, mixed>>
+     */
+    public function getAll(int $page = 1, int $perPage = 50, array $filtros = []): array
+    {
+        if (!$this->tableExists()) {
+            return [];
+        }
+
+        $page = max(1, $page);
+        $perPage = max(1, min(200, $perPage));
+        $offset = ($page - 1) * $perPage;
+        [$where, $params] = $this->buildListFilters($filtros);
+
+        $sql = 'SELECT log.*,
+                       actor.name AS actor_name,
+                       actor.email AS actor_email,
+                       c.nome AS candidato_nome
+                FROM rh_candidato_anexo_access_logs log
+                LEFT JOIN adms_users actor ON actor.id = log.actor_user_id
+                LEFT JOIN rh_candidatos c ON c.id = log.rh_candidato_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY log.id DESC
+                LIMIT :limit OFFSET :offset';
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * @param array<string, mixed> $filtros
+     */
+    public function countAll(array $filtros = []): int
+    {
+        if (!$this->tableExists()) {
+            return 0;
+        }
+
+        [$where, $params] = $this->buildListFilters($filtros);
+        $sql = 'SELECT COUNT(*)
+                FROM rh_candidato_anexo_access_logs log
+                LEFT JOIN adms_users actor ON actor.id = log.actor_user_id
+                LEFT JOIN rh_candidatos c ON c.id = log.rh_candidato_id
+                WHERE ' . implode(' AND ', $where);
+
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+
+        return (int) $stmt->fetchColumn();
+    }
+
+    /**
+     * @param array<string, mixed> $filtros
+     * @return array{0: list<string>, 1: array<string, mixed>}
+     */
+    private function buildListFilters(array $filtros): array
+    {
+        $where = ['1=1'];
+        $params = [];
+
+        if (!empty($filtros['actor_nome'])) {
+            $where[] = 'actor.name LIKE :actor_nome';
+            $params[':actor_nome'] = '%' . $filtros['actor_nome'] . '%';
+        }
+        if (!empty($filtros['candidato_id']) && (int) $filtros['candidato_id'] > 0) {
+            $where[] = 'log.rh_candidato_id = :candidato_id';
+            $params[':candidato_id'] = (int) $filtros['candidato_id'];
+        }
+        if (!empty($filtros['candidato_nome'])) {
+            $where[] = 'c.nome LIKE :candidato_nome';
+            $params[':candidato_nome'] = '%' . $filtros['candidato_nome'] . '%';
+        }
+        if (!empty($filtros['source'])) {
+            $where[] = 'log.source = :source';
+            $params[':source'] = (string) $filtros['source'];
+        }
+        if (!empty($filtros['ip'])) {
+            $where[] = 'log.ip_address LIKE :ip';
+            $params[':ip'] = '%' . $filtros['ip'] . '%';
+        }
+        if (!empty($filtros['data_inicio'])) {
+            $where[] = 'log.created_at >= :data_inicio';
+            $params[':data_inicio'] = $filtros['data_inicio'] . ' 00:00:00';
+        }
+        if (!empty($filtros['data_fim'])) {
+            $where[] = 'log.created_at <= :data_fim';
+            $params[':data_fim'] = $filtros['data_fim'] . ' 23:59:59';
+        }
+
+        return [$where, $params];
+    }
 }

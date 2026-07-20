@@ -15,7 +15,7 @@ Saída: conceitos e ownership registrados; conflitos conhecidos explicitados.
 - [x] storage privado e download autorizado de currículos;
 - [x] MIME, tamanho, CSRF e proteção de uploads (currículos);
 - [x] retenção, anonimização e exclusão física (currículos);
-- [x] log de download de currículo (`rh_candidato_anexo_access_logs`; UI/exportação posterior);
+- [x] log de download de currículo (`rh_candidato_anexo_access_logs`; UI/exportação em [LOG_DOWNLOAD_CURRICULO_EXPAND.md](LOG_DOWNLOAD_CURRICULO_EXPAND.md));
 - [x] movimentação de pipeline atômica + autorização/CSRF de vagas/entrevistas;
 - [x] sincronização em massa atômica de vínculos + auth nas telas;
 - [x] testes de caracterização de currículos e pipeline.

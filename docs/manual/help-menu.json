@@ -1300,6 +1300,11 @@
                         },
                         {
                             "type": "topic",
+                            "topic_id": "list-rh-candidato-anexo-access-logs",
+                            "title": "Log de download de currículos"
+                        },
+                        {
+                            "type": "topic",
                             "topic_id": "rh-entrevistas",
                             "title": "Listar Entrevistas"
                         },

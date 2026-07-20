@@ -167,7 +167,8 @@ function buildManualAggregateTopicMap(): array
         'update-headcount-plan',
     ], 'gp-analytics');
     $add([
-        'rh-kpi-dashboard', 'rh-candidatos', 'rh-vagas', 'rh-entrevistas',
+        'rh-kpi-dashboard', 'rh-candidatos', 'list-rh-candidato-anexo-access-logs',
+        'export-rh-candidato-anexo-access-logs-excel', 'rh-vagas', 'rh-entrevistas',
         'rh-entrevistas-resend-comunicacao', 'rh-entrevistas-view-all', 'rh-entrevistas-delete',
         'vagas-abertas',
         'create-rh-vaga', 'update-rh-vaga', 'view-rh-candidato',
