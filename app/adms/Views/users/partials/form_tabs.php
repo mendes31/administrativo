@@ -5,11 +5,8 @@
  */
 $userFormMode = $userFormMode ?? 'create';
 $isUpdate = $userFormMode === 'update';
-$activeTab = (string)($_POST['user_form_active_tab'] ?? ($this->data['form']['user_form_active_tab'] ?? 'usuario'));
-$allowedTabs = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes'];
-if (!in_array($activeTab, $allowedTabs, true)) {
-    $activeTab = 'usuario';
-}
+$activeTab = (string)($_POST['user_form_active_tab'] ?? ($this->data['form']['user_form_active_tab'] ?? ($_GET['tab'] ?? 'usuario')));
+$activeTab = \App\adms\Helpers\UserFormHelper::normalizeUserFormActiveTab($activeTab);
 $form = $this->data['form'] ?? [];
 ?>
 <input type="hidden" name="user_form_active_tab" id="user_form_active_tab" value="<?php echo htmlspecialchars($activeTab, ENT_QUOTES, 'UTF-8'); ?>">
@@ -455,14 +452,15 @@ $form = $this->data['form'] ?? [];
     <div class="tab-pane fade <?php echo $activeTab === 'contratuais' ? 'show active' : ''; ?>" id="tab-contratuais" role="tabpanel">
         <div class="row g-3">
             <div class="col-md-4">
-                <label for="empresa_contratante" class="form-label">Empresa contratante</label>
-                <select name="empresa_contratante" id="empresa_contratante" class="form-select">
+                <label for="empresa_contratante" class="form-label">Empresa contratante<?php if (!$isUpdate): ?> <span class="text-danger">*</span><?php endif; ?></label>
+                <select name="empresa_contratante" id="empresa_contratante" class="form-select" <?php echo !$isUpdate ? 'required' : ''; ?>>
                     <?php $empVal = (string)($form['empresa_contratante'] ?? ''); ?>
                     <option value="" <?php echo $empVal === '' ? 'selected' : ''; ?>>Selecione</option>
                     <?php foreach (\App\adms\Helpers\UserFormHelper::empresaContratanteOptions() as $slug => $empLabel): ?>
                         <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $empVal === $slug ? 'selected' : ''; ?>><?php echo htmlspecialchars($empLabel); ?></option>
                     <?php endforeach; ?>
                 </select>
+                <div class="form-text">Estabelecimento (CNPJ) do vínculo — nomes vêm do cadastro de Filiais.<?php if (!$isUpdate): ?> Obrigatório em novos cadastros.<?php endif; ?></div>
             </div>
             <div class="col-md-4">
                 <label for="matricula" class="form-label">Matrícula</label>

@@ -80,29 +80,6 @@ document.getElementById('cep')?.addEventListener('input', function(e) {
     }
 });
 
-document.querySelectorAll('#userFormTabs [data-tab-key]').forEach(function (btn) {
-    btn.addEventListener('shown.bs.tab', function () {
-        var key = btn.getAttribute('data-tab-key');
-        var target = btn.getAttribute('data-bs-target');
-        var hidden = document.getElementById('user_form_active_tab');
-        if (hidden && key) {
-            hidden.value = key;
-        }
-        if (target && target.charAt(0) === '#') {
-            window.history.replaceState(null, '', target);
-        }
-    });
-});
-
-if (window.location.hash && /^#tab-[a-z-]+$/.test(window.location.hash)) {
-    var activeHashTab = document.querySelector(
-        '#userFormTabs [data-bs-target="' + window.location.hash + '"]'
-    );
-    if (activeHashTab && window.bootstrap && bootstrap.Tab) {
-        bootstrap.Tab.getOrCreateInstance(activeHashTab).show();
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
     const dataDesligamentoInput = document.getElementById('data_desligamento');
     const motivoContainer = document.getElementById('motivo_desligamento_container');
@@ -160,4 +137,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260720"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>

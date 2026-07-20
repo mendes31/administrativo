@@ -256,7 +256,7 @@ class UpdateUser
         $form['estado_civil'] = UserFormHelper::normalizeEstadoCivil($_POST['estado_civil'] ?? null);
         $form['escolaridade'] = UserFormHelper::normalizeEscolaridade($_POST['escolaridade'] ?? null);
         $form['raca'] = UserFormHelper::normalizeRaca($_POST['raca'] ?? null);
-        $form['empresa_contratante'] = UserFormHelper::normalizeEmpresaContratante($_POST['empresa_contratante'] ?? null);
+        $form = UserFormHelper::applyEmpresaContratanteToForm($form, $_POST['empresa_contratante'] ?? null);
         $form['matricula'] = UserFormHelper::normalizeOptionalText($_POST['matricula'] ?? null, 40);
         $form['pais_residencia_iso'] = UserFormHelper::normalizePaisResidenciaIso($_POST['pais_residencia_iso'] ?? null);
         $form['email_pessoal'] = UserFormHelper::normalizeEmailPessoal($_POST['email_pessoal'] ?? null);
@@ -299,7 +299,10 @@ class UpdateUser
                 ]);
                 $_SESSION['error'] = 'Os dados do usuário foram atualizados, mas não foi possível guardar as formações: '
                     . $e->getMessage();
-                header("Location: {$_ENV['URL_ADM']}update-user/{$targetUserId}");
+                $activeTab = UserFormHelper::normalizeUserFormActiveTab(
+                    $_POST['user_form_active_tab'] ?? 'formacoes'
+                );
+                header("Location: {$_ENV['URL_ADM']}update-user/{$targetUserId}?tab={$activeTab}#tab-{$activeTab}");
                 return;
             }
 
@@ -467,8 +470,11 @@ class UpdateUser
                 ? 'Usuário atualizado, porém falhou a sincronização dos níveis de acesso (super usuário). Salve o cadastro novamente ou contacte o suporte.'
                 : 'Usuário editado com suscesso!';
 
-            // Redirecionar o usuário para a pagina view - visualizar usuario
-            header("Location: {$_ENV['URL_ADM']}view-user/{$form['id']}");
+            // Permanecer na edição, na mesma aba que estava sendo visualizada
+            $activeTab = UserFormHelper::normalizeUserFormActiveTab(
+                $_POST['user_form_active_tab'] ?? ($form['user_form_active_tab'] ?? 'usuario')
+            );
+            header("Location: {$_ENV['URL_ADM']}update-user/{$form['id']}?tab={$activeTab}#tab-{$activeTab}");
             return;
         }else {
             // Criar a mensagem de erro

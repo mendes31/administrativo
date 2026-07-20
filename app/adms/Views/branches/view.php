@@ -1,12 +1,13 @@
 <?php
 
+use App\adms\Helpers\BranchFormHelper;
 use App\adms\Helpers\CSRFHelper;
 
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 d-flex flex-column flex-sm-row gap-2">
-        <h2 class="mt-3">Filial</h2>
+        <h2 class="mt-3">Estabelecimento</h2>
         <ol class="breadcrumb mb-3 mt-0 mt-sm-3 ms-auto">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
@@ -45,26 +46,48 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
-            <?php if (isset($this->data['branch'])) { extract($this->data['branch']); ?>
+            <?php if (isset($this->data['branch'])) {
+                extract($this->data['branch']);
+                $cnpjFmt = !empty($cnpj) ? BranchFormHelper::formatCnpj((string) $cnpj) : '—';
+                $cepFmt = !empty($cep) ? BranchFormHelper::formatCep((string) $cep) : '—';
+                $aberturaFmt = !empty($data_abertura) ? date('d/m/Y', strtotime((string) $data_abertura)) : '—';
+                $dash = static fn ($v) => htmlspecialchars((string) (($v ?? '') !== '' ? $v : '—'));
+                ?>
+                <h6 class="text-secondary">Identificação</h6>
+                <dl class="row mb-4">
+                    <dt class="col-sm-3">ID</dt><dd class="col-sm-9"><?= (int) $id ?></dd>
+                    <dt class="col-sm-3">Tipo</dt><dd class="col-sm-9"><?= BranchFormHelper::typeLabel($establishment_type ?? null) ?></dd>
+                    <dt class="col-sm-3">Nº de inscrição (CNPJ)</dt><dd class="col-sm-9"><?= htmlspecialchars($cnpjFmt) ?></dd>
+                    <dt class="col-sm-3">Data de abertura</dt><dd class="col-sm-9"><?= htmlspecialchars($aberturaFmt) ?></dd>
+                    <dt class="col-sm-3">Nome empresarial</dt><dd class="col-sm-9"><?= $dash($razao_social ?? null) ?></dd>
+                    <dt class="col-sm-3">Nome fantasia</dt><dd class="col-sm-9"><?= $dash($nome_fantasia ?? null) ?></dd>
+                    <dt class="col-sm-3">Porte</dt><dd class="col-sm-9"><?= $dash($porte ?? null) ?></dd>
+                    <dt class="col-sm-3">CNAE principal</dt><dd class="col-sm-9"><?= $dash($cnae_principal ?? null) ?></dd>
+                    <dt class="col-sm-3">Natureza jurídica</dt><dd class="col-sm-9"><?= $dash($natureza_juridica ?? null) ?></dd>
+                    <dt class="col-sm-3">Nome interno</dt><dd class="col-sm-9"><?= $dash($name ?? null) ?></dd>
+                    <dt class="col-sm-3">Código interno</dt><dd class="col-sm-9"><?= $dash($code ?? null) ?></dd>
+                </dl>
+
+                <h6 class="text-secondary">Endereço</h6>
+                <dl class="row mb-4">
+                    <dt class="col-sm-3">Logradouro</dt><dd class="col-sm-9"><?= $dash($logradouro ?? null) ?></dd>
+                    <dt class="col-sm-3">Número</dt><dd class="col-sm-9"><?= $dash($numero ?? null) ?></dd>
+                    <dt class="col-sm-3">Complemento</dt><dd class="col-sm-9"><?= $dash($complemento ?? null) ?></dd>
+                    <dt class="col-sm-3">CEP</dt><dd class="col-sm-9"><?= htmlspecialchars($cepFmt) ?></dd>
+                    <dt class="col-sm-3">Bairro / Distrito</dt><dd class="col-sm-9"><?= $dash($bairro ?? null) ?></dd>
+                    <dt class="col-sm-3">Município</dt><dd class="col-sm-9"><?= $dash($municipio ?? null) ?></dd>
+                    <dt class="col-sm-3">UF</dt><dd class="col-sm-9"><?= $dash($uf ?? null) ?></dd>
+                    <dt class="col-sm-3">Endereço (resumo)</dt><dd class="col-sm-9"><?= $dash($address ?? null) ?></dd>
+                </dl>
+
+                <h6 class="text-secondary">Contato e situação</h6>
                 <dl class="row">
-                    <dt class="col-sm-3">ID: </dt>
-                    <dd class="col-sm-9"><?php echo $id; ?></dd>
-                    <dt class="col-sm-3">Nome: </dt>
-                    <dd class="col-sm-9"><?php echo $name; ?></dd>
-                    <dt class="col-sm-3">Código: </dt>
-                    <dd class="col-sm-9"><?php echo $code; ?></dd>
-                    <dt class="col-sm-3">Endereço: </dt>
-                    <dd class="col-sm-9"><?php echo $address; ?></dd>
-                    <dt class="col-sm-3">Telefone: </dt>
-                    <dd class="col-sm-9"><?php echo $phone; ?></dd>
-                    <dt class="col-sm-3">E-mail: </dt>
-                    <dd class="col-sm-9"><?php echo $email; ?></dd>
-                    <dt class="col-sm-3">Status: </dt>
-                    <dd class="col-sm-9"><?php echo ($active ? 'Ativo' : 'Inativo'); ?></dd>
-                    <dt class="col-sm-3">Cadastrado: </dt>
-                    <dd class="col-sm-9"><?php echo ($created_at ? date('d/m/Y H:i:s', strtotime($created_at)) : ""); ?></dd>
-                    <dt class="col-sm-3">Editado: </dt>
-                    <dd class="col-sm-9"><?php echo ($updated_at ? date('d/m/Y H:i:s', strtotime($updated_at)) : ""); ?></dd>
+                    <dt class="col-sm-3">E-mail</dt><dd class="col-sm-9"><?= $dash($email ?? null) ?></dd>
+                    <dt class="col-sm-3">Telefone</dt><dd class="col-sm-9"><?= $dash($phone ?? null) ?></dd>
+                    <dt class="col-sm-3">Situação cadastral</dt><dd class="col-sm-9"><?= $dash($situacao_cadastral ?? null) ?></dd>
+                    <dt class="col-sm-3">Status no sistema</dt><dd class="col-sm-9"><?= !empty($active) ? 'Ativo' : 'Inativo' ?></dd>
+                    <dt class="col-sm-3">Cadastrado</dt><dd class="col-sm-9"><?= !empty($created_at) ? date('d/m/Y H:i:s', strtotime((string) $created_at)) : '—' ?></dd>
+                    <dt class="col-sm-3">Editado</dt><dd class="col-sm-9"><?= !empty($updated_at) ? date('d/m/Y H:i:s', strtotime((string) $updated_at)) : '—' ?></dd>
                 </dl>
             <?php } else {
                 echo "<div class='alert alert-danger' role='alert'>Filial não encontrada!</div>";
@@ -72,4 +95,4 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
             ?>
         </div>
     </div>
-</div> 
+</div>

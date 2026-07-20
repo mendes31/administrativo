@@ -1,12 +1,13 @@
 <?php
 
+use App\adms\Helpers\BranchFormHelper;
 use App\adms\Helpers\CSRFHelper;
 
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Filiais</h2>
+        <h2 class="mt-3">Filiais / Estabelecimentos</h2>
         <ol class="breadcrumb mb-3 mt-3 ms-auto">
             <li class="breadcrumb-item">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a>
@@ -30,16 +31,25 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
             <?php if ($this->data['branches'] ?? false) { ?>
                 <form method="get" class="row g-2 mb-3 align-items-end">
                     <div class="col-md-2">
-                        <label for="name" class="form-label mb-1">Nome</label>
+                        <label for="name" class="form-label mb-1">Nome / Fantasia</label>
                         <input type="text" name="name" id="name" class="form-control" value="<?= htmlspecialchars($this->data['filtros']['name'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="cnpj" class="form-label mb-1">CNPJ</label>
+                        <input type="text" name="cnpj" id="cnpj" class="form-control" value="<?= htmlspecialchars($this->data['filtros']['cnpj'] ?? '') ?>">
+                    </div>
+                    <div class="col-md-2">
+                        <label for="establishment_type" class="form-label mb-1">Tipo</label>
+                        <select name="establishment_type" id="establishment_type" class="form-select">
+                            <option value="">Todos</option>
+                            <?php foreach (BranchFormHelper::typeOptions() as $slug => $label): ?>
+                                <option value="<?= $slug ?>" <?= ($this->data['filtros']['establishment_type'] ?? '') === $slug ? 'selected' : '' ?>><?= $label ?></option>
+                            <?php endforeach; ?>
+                        </select>
                     </div>
                     <div class="col-md-2">
                         <label for="code" class="form-label mb-1">Código</label>
                         <input type="text" name="code" id="code" class="form-control" value="<?= htmlspecialchars($this->data['filtros']['code'] ?? '') ?>">
-                    </div>
-                    <div class="col-md-2">
-                        <label for="email" class="form-label mb-1">E-mail</label>
-                        <input type="text" name="email" id="email" class="form-control" value="<?= htmlspecialchars($this->data['filtros']['email'] ?? '') ?>">
                     </div>
                     <div class="col-md-2">
                         <label for="active" class="form-label mb-1">Status</label>
@@ -58,9 +68,9 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
                         </select>
                         <span class="form-label mb-1 ms-1">registros</span>
                     </div>
-                    <div class="col-md-2 mt-2">
-                        <button type="submit" class="btn btn-primary mt-4">Filtrar</button>
-                        <a href="?limpar_filtros=1" class="btn btn-secondary mt-4 ms-2">Limpar Filtros</a>
+                    <div class="col-12 mt-2">
+                        <button type="submit" class="btn btn-primary">Filtrar</button>
+                        <a href="?limpar_filtros=1" class="btn btn-secondary ms-2">Limpar Filtros</a>
                     </div>
                 </form>
                 <div class="table-responsive d-none d-md-block list-desktop">
@@ -68,24 +78,38 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
                     <thead>
                         <tr>
                             <th scope="col">ID</th>
-                            <th scope="col">Nome</th>
-                            <th scope="col">Código</th>
-                            <th scope="col">Endereço</th>
+                            <th scope="col">Tipo</th>
+                            <th scope="col">Nome fantasia</th>
+                            <th scope="col">CNPJ</th>
+                            <th scope="col">Município / UF</th>
                             <th scope="col">Telefone</th>
-                            <th scope="col">E-mail</th>
                             <th scope="col">Status</th>
                             <th scope="col" class="text-center">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
-                        <?php foreach ($this->data['branches'] as $branch) { extract($branch); ?>
+                        <?php foreach ($this->data['branches'] as $branch) {
+                            extract($branch);
+                            $tipoLabel = BranchFormHelper::typeLabel($establishment_type ?? null);
+                            $fantasia = $nome_fantasia ?: $name;
+                            $cnpjFmt = !empty($cnpj) ? BranchFormHelper::formatCnpj((string) $cnpj) : '—';
+                            ?>
                             <tr>
                                 <td><?php echo $id; ?></td>
-                                <td><?php echo $name; ?></td>
-                                <td><?php echo $code; ?></td>
-                                <td><?php echo $address; ?></td>
-                                <td><?php echo $phone; ?></td>
-                                <td><?php echo $email; ?></td>
+                                <td>
+                                    <?php if (($establishment_type ?? '') === BranchFormHelper::TYPE_MATRIZ): ?>
+                                        <span class="badge bg-primary"><?= $tipoLabel ?></span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary"><?= $tipoLabel ?></span>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?php echo htmlspecialchars((string) $fantasia); ?></td>
+                                <td><?php echo htmlspecialchars($cnpjFmt); ?></td>
+                                <td><?php
+                                    $loc = trim((string) (($municipio ?? '') . (!empty($uf) ? '/' . $uf : '')));
+                                    echo htmlspecialchars($loc !== '' ? $loc : '—');
+                                ?></td>
+                                <td><?php echo htmlspecialchars((string) (($phone ?? '') !== '' ? $phone : '—')); ?></td>
                                 <td><?php echo $active ? 'Ativo' : 'Inativo'; ?></td>
                                 <td class="text-center">
                                     <?php
@@ -124,14 +148,25 @@ $csrf_token = CSRFHelper::generateCSRFToken('form_delete_branch');
                 </div>
                 <!-- Cards mobile -->
                 <div class="d-block d-md-none list-mobile">
-                    <?php foreach ($this->data['branches'] as $branch) { extract($branch); ?>
+                    <?php foreach ($this->data['branches'] as $branch) {
+                        extract($branch);
+                        $tipoLabel = BranchFormHelper::typeLabel($establishment_type ?? null);
+                        $fantasia = $nome_fantasia ?: $name;
+                        $cnpjFmt = !empty($cnpj) ? BranchFormHelper::formatCnpj((string) $cnpj) : '—';
+                        ?>
                     <div class="card mb-2 shadow-sm">
                         <div class="card-body">
                             <div class="d-flex justify-content-between align-items-center mb-2">
-                                <strong><?= $name ?></strong>
+                                <strong><?= htmlspecialchars((string) $fantasia) ?></strong>
                                 <span class="text-muted small">ID: <?= $id ?></span>
                             </div>
-                            <div class="mb-1"><b>Código:</b> <?= $code ?></div>
+                            <div class="mb-1"><b>Tipo:</b> <?= $tipoLabel ?></div>
+                            <div class="mb-1"><b>CNPJ:</b> <?= htmlspecialchars($cnpjFmt) ?></div>
+                            <div class="mb-1"><b>Município:</b> <?php
+                                $loc = trim((string) (($municipio ?? '') . (!empty($uf) ? '/' . $uf : '')));
+                                echo htmlspecialchars($loc !== '' ? $loc : '—');
+                            ?></div>
+                            <div class="mb-1"><b>Telefone:</b> <?= htmlspecialchars((string) (($phone ?? '') !== '' ? $phone : '—')) ?></div>
                             <div class="mb-1"><b>Status:</b> <?= $active ? '<span class="badge bg-success">Ativo</span>' : '<span class="badge bg-danger">Inativo</span>' ?></div>
                             <div class="mt-2">
                                 <?php if (in_array('ViewBranch', $this->data['buttonPermission'])) {

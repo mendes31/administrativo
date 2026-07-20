@@ -75,14 +75,6 @@ document.getElementById('cep')?.addEventListener('input', function(e) {
     }
 });
 
-document.querySelectorAll('#userFormTabs [data-tab-key]').forEach(function (btn) {
-    btn.addEventListener('shown.bs.tab', function () {
-        var key = btn.getAttribute('data-tab-key');
-        var hidden = document.getElementById('user_form_active_tab');
-        if (hidden && key) {
-            hidden.value = key;
-        }
-    });
-});
 </script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260720"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>

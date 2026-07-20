@@ -1,7 +1,7 @@
-<h1>Listar Filiais</h1>
+<h1>Listar Filiais / Estabelecimentos</h1>
 
 <h2>Função no sistema</h2>
-<p>Lista e filtra registros de <strong>Listar Filiais</strong> no módulo Administração. Use esta tela para localizar itens, acessar visualização/edição e iniciar novos cadastros.</p>
+<p>Lista Matriz e Filiais cadastradas (estabelecimentos com CNPJ). Use esta tela para localizar unidades pela razão social, nome fantasia, CNPJ ou tipo, e acessar cadastro/edição.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>) para o fluxo completo da área.</p>
 
@@ -9,8 +9,8 @@
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Acesse o menu <strong>Administração</strong> e abra <strong>Listar Filiais</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
+    <li>Acesse o menu <strong>Administração</strong> e abra <strong>Filiais</strong>.</li>
+    <li>Filtre por nome/fantasia, CNPJ, tipo (Matriz/Filial), código ou status.</li>
     <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
     <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
     <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
@@ -18,16 +18,18 @@
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
-<div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
+<div class="help-field"><strong>Tipo (Matriz / Filial)</strong> Classificação do estabelecimento, como no comprovante da Receita Federal.</div>
+<div class="help-field"><strong>Nome fantasia</strong> Identifica a unidade quando a razão social é a mesma entre CNPJs.</div>
+<div class="help-field"><strong>CNPJ</strong> Número do estabelecimento (único no cadastro quando preenchido).</div>
+<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados.</div>
 <div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>ListBranches</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dt>Listagem vazia após atualização do sistema</dt>
+    <dd>Cadastre cada CNPJ (Matriz e Filiais) com razão social, nome fantasia e tipo. A tela antiga só tinha nome/código.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
 </dl>

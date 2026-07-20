@@ -53,13 +53,14 @@ class ValidationUserRakitService
         $isManagerUser = ($usernameValue === 'manager');
         $gerarSenha = !empty($data['gerar_senha']) && (string)$data['gerar_senha'] === '1';
 
-        // Se estiver ausente o ID, então é uma criação (cadastrar)
+            // Se estiver ausente o ID, então é uma criação (cadastrar)
         if(!isset($data['id'])){
             // Email opcional; se preenchido, validar formato e unicidade
             $rules['email'] = 'email|uniqueInColumns:adms_users,email;username';
             $rules['username'] = 'required|min:6|regex:/^\S*$/|uniqueInColumns:adms_users,email;username';
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf';
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
+            $rules['empresa_contratante'] = 'required|in:' . implode(',', UserFormHelper::EMPRESA_CONTRATANTE_SLUGS);
             // Senha: se gerar_senha estiver marcado, liberar regras de complexidade
             if ($gerarSenha) {
                 $rules['password'] = 'required';
@@ -80,6 +81,7 @@ class ValidationUserRakitService
             $rules['email'] = 'email|uniqueInColumns:adms_users,email;username,' . $data['id'];
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf,' . $data['id'];
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
+            $rules['empresa_contratante'] = 'nullable|in:' . implode(',', UserFormHelper::EMPRESA_CONTRATANTE_SLUGS);
             
             if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $rules['image'] = 'uploaded_file:0,2048K,png,jpg,jpeg,gif';
@@ -137,6 +139,8 @@ class ValidationUserRakitService
             'user_position_id:required'   => 'O campo cargo é obrigatório.',
             'user_position_id:integer'    => 'Cargo inválido.',
             'user_position_id:min'        => 'Selecione um cargo válido.',
+            'empresa_contratante:required' => 'O campo empresa contratante é obrigatório.',
+            'empresa_contratante:in'      => 'Empresa contratante inválida.',
             'sexo:in'                     => 'Valor de sexo inválido.',
             'filhos:in'                   => 'Valor inválido para filhos.',
             'estado_civil:in'             => 'Estado civil inválido.',

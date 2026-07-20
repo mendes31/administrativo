@@ -1,32 +1,42 @@
-<h1>Cadastrar Filial</h1>
+<h1>Cadastrar Filial / Estabelecimento</h1>
 
 <h2>Função no sistema</h2>
-<p>Cadastra um novo registro em <strong>Cadastrar Filial</strong>. Preencha os campos obrigatórios e salve; o registro passará a aparecer nas listagens e poderá receber permissões conforme o pacote.</p>
+<p>Cadastra uma <strong>Matriz</strong> ou <strong>Filial</strong> (estabelecimento). Quando vários CNPJs compartilham a mesma razão social, use o <strong>nome fantasia</strong> e o tipo para diferenciá-los — como no comprovante de inscrição da Receita Federal.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>) e a listagem <em>Filiais</em>.</p>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>CreateBranch</em>.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-branch</code>).</li>
-    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
-    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
-    <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
-    <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
+    <li>Na listagem, clique em <strong>Cadastrar</strong>.</li>
+    <li>Selecione o <strong>Tipo</strong>: Matriz ou Filial.</li>
+    <li>Informe o <strong>CNPJ</strong>, a <strong>data de abertura</strong> e um <strong>código interno</strong>.</li>
+    <li>Preencha <strong>razão social</strong>, <strong>nome fantasia</strong>, porte, CNAE principal e natureza jurídica (como no comprovante).</li>
+    <li>Complete o <strong>endereço</strong>: logradouro, número, complemento, CEP, bairro, município e UF.</li>
+    <li>Informe <strong>e-mail</strong>, <strong>telefone</strong> e situação cadastral (ex.: ATIVA).</li>
+    <li>Opcional: ajuste o <strong>nome interno</strong> usado nas seleções de lotação (se vazio, o sistema usa o nome fantasia).</li>
+    <li>Salve e confira na visualização.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
-<div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
+<div class="help-field"><strong>Tipo</strong> Matriz ou Filial — obrigatório.</div>
+<div class="help-field"><strong>CNPJ</strong> 14 dígitos; não pode repetir outro estabelecimento já cadastrado.</div>
+<div class="help-field"><strong>Nome empresarial (razão social)</strong> Pode ser igual em vários registros (ex.: mesmo grupo econômico).</div>
+<div class="help-field"><strong>Nome fantasia</strong> Diferencia a unidade/planta na operação do dia a dia.</div>
+<div class="help-field"><strong>Endereço</strong> Logradouro, número, complemento, CEP, bairro, município e UF — iguais ao comprovante CNPJ.</div>
+<div class="help-field"><strong>E-mail / Telefone</strong> Contato do estabelecimento (endereço eletrônico e telefone da Receita).</div>
+<div class="help-field"><strong>Nome interno</strong> Valor usado em listas de filial do colaborador; se omitido, copia o fantasia.</div>
+<div class="help-field"><strong>Código interno</strong> Identificador curto operacional (obrigatório).</div>
+<div class="help-field"><strong>Status / Ativo</strong> Inativo some das seleções de filial ativas.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>CNPJ já cadastrado</dt>
+    <dd>Cada CNPJ só pode existir uma vez. Edite o registro existente ou confira se digitou o número correto.</dd>
+    <dt>Razão social igual em duas filiais</dt>
+    <dd>É esperado. Diferencie pelo nome fantasia, CNPJ e tipo Matriz/Filial.</dd>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>CreateBranch</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão <em>CreateBranch</em> ausente no seu nível de acesso.</dd>
 </dl>

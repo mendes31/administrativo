@@ -181,7 +181,7 @@ class CreateUser
         $form['estado_civil'] = UserFormHelper::normalizeEstadoCivil($_POST['estado_civil'] ?? null);
         $form['escolaridade'] = UserFormHelper::normalizeEscolaridade($_POST['escolaridade'] ?? null);
         $form['raca'] = UserFormHelper::normalizeRaca($_POST['raca'] ?? null);
-        $form['empresa_contratante'] = UserFormHelper::normalizeEmpresaContratante($_POST['empresa_contratante'] ?? null);
+        $form = UserFormHelper::applyEmpresaContratanteToForm($form, $_POST['empresa_contratante'] ?? null);
         $form['matricula'] = UserFormHelper::normalizeOptionalText($_POST['matricula'] ?? null, 40);
         $form['pais_residencia_iso'] = UserFormHelper::normalizePaisResidenciaIso($_POST['pais_residencia_iso'] ?? null);
         $form['email_pessoal'] = UserFormHelper::normalizeEmailPessoal($_POST['email_pessoal'] ?? null);

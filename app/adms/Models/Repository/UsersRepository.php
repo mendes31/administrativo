@@ -713,6 +713,7 @@ class UsersRepository extends DbConnection
                     t0.escolaridade,
                     t0.raca,
                     t0.empresa_contratante,
+                    t0.user_branch_id,
                     t0.matricula,
                     t0.pais_residencia_iso,
                     t0.endereco,
@@ -977,9 +978,9 @@ class UsersRepository extends DbConnection
                 $data['image'] = 'icon_user.png';
             }
             $sql = 'INSERT INTO adms_users (
-                name, email, email_pessoal, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, escolaridade, raca, empresa_contratante, matricula, pais_residencia_iso, endereco, numero_endereco, complemento_endereco, bairro, cep, municipio, uf, super_usuario
+                name, email, email_pessoal, username, cpf, celular, user_department_id, user_position_id, immediate_supervisor_id, adms_work_shift_id, password, status, bloqueado, tentativas_login, senha_nunca_expira, modificar_senha_proximo_logon, enviar_boas_vindas_email, enviar_boas_vindas_whatsapp, created_at, image, data_nascimento, data_admissao, sexo, filhos, estado_civil, escolaridade, raca, empresa_contratante, user_branch_id, matricula, pais_residencia_iso, endereco, numero_endereco, complemento_endereco, bairro, cep, municipio, uf, super_usuario
             ) VALUES (
-                :name, :email, :email_pessoal, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :escolaridade, :raca, :empresa_contratante, :matricula, :pais_residencia_iso, :endereco, :numero_endereco, :complemento_endereco, :bairro, :cep, :municipio, :uf, :super_usuario
+                :name, :email, :email_pessoal, :username, :cpf, :celular, :user_department_id, :user_position_id, :immediate_supervisor_id, :adms_work_shift_id, :password, :status, :bloqueado, :tentativas_login, :senha_nunca_expira, :modificar_senha_proximo_logon, :enviar_boas_vindas_email, :enviar_boas_vindas_whatsapp, :created_at, :image, :data_nascimento, :data_admissao, :sexo, :filhos, :estado_civil, :escolaridade, :raca, :empresa_contratante, :user_branch_id, :matricula, :pais_residencia_iso, :endereco, :numero_endereco, :complemento_endereco, :bairro, :cep, :municipio, :uf, :super_usuario
             )';
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->bindValue(':name', $data['name'], PDO::PARAM_STR);
@@ -1038,6 +1039,11 @@ class UsersRepository extends DbConnection
                 $empIns !== null && $empIns !== '' ? $empIns : null,
                 $empIns !== null && $empIns !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
             );
+            $branchIns = isset($data['user_branch_id']) && is_numeric($data['user_branch_id']) ? (int) $data['user_branch_id'] : null;
+            if ($branchIns !== null && $branchIns <= 0) {
+                $branchIns = null;
+            }
+            $stmt->bindValue(':user_branch_id', $branchIns, $branchIns !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
             $matIns = $data['matricula'] ?? null;
             if ($matIns !== null && $matIns !== '') {
                 $matIns = mb_substr(trim((string) $matIns), 0, 40);
@@ -1368,6 +1374,9 @@ class UsersRepository extends DbConnection
             if (array_key_exists('empresa_contratante', $data)) {
                 $sql .= ', empresa_contratante = :empresa_contratante';
             }
+            if (array_key_exists('user_branch_id', $data)) {
+                $sql .= ', user_branch_id = :user_branch_id';
+            }
             if (array_key_exists('matricula', $data)) {
                 $sql .= ', matricula = :matricula';
             }
@@ -1503,6 +1512,14 @@ class UsersRepository extends DbConnection
                     $vEmp !== null && $vEmp !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL
                 );
             }
+            if (array_key_exists('user_branch_id', $data)) {
+                $vBranch = $data['user_branch_id'];
+                $vBranch = ($vBranch !== null && $vBranch !== '' && is_numeric($vBranch)) ? (int) $vBranch : null;
+                if ($vBranch !== null && $vBranch <= 0) {
+                    $vBranch = null;
+                }
+                $stmt->bindValue(':user_branch_id', $vBranch, $vBranch !== null ? PDO::PARAM_INT : PDO::PARAM_NULL);
+            }
             if (array_key_exists('matricula', $data)) {
                 $vMat = $data['matricula'];
                 if ($vMat !== null && $vMat !== '') {
@@ -1609,6 +1626,7 @@ class UsersRepository extends DbConnection
                     'escolaridade' => array_key_exists('escolaridade', $data) ? $data['escolaridade'] : ($dadosAntes['escolaridade'] ?? null),
                     'raca' => array_key_exists('raca', $data) ? $data['raca'] : ($dadosAntes['raca'] ?? null),
                     'empresa_contratante' => array_key_exists('empresa_contratante', $data) ? $data['empresa_contratante'] : ($dadosAntes['empresa_contratante'] ?? null),
+                    'user_branch_id' => array_key_exists('user_branch_id', $data) ? $data['user_branch_id'] : ($dadosAntes['user_branch_id'] ?? null),
                     'pais_residencia_iso' => array_key_exists('pais_residencia_iso', $data) ? $data['pais_residencia_iso'] : ($dadosAntes['pais_residencia_iso'] ?? null),
                 ];
                 \App\adms\Models\Services\LogAlteracaoService::registrarAlteracao(

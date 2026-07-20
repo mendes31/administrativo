@@ -1,30 +1,30 @@
-<h1>Editar Filial</h1>
+<h1>Editar Filial / Estabelecimento</h1>
 
 <h2>Função no sistema</h2>
-<p>Altera um registro existente de <strong>Editar Filial</strong>. Mudanças em campos de status ou vínculos podem afetar menu, permissões ou integrações.</p>
+<p>Altera Matriz ou Filial já cadastrada: tipo, CNPJ, razão social, nome fantasia, código e dados de contato.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte o cadastro (<code>create-branch</code>) e a listagem de Filiais.</p>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>UpdateBranch</em>.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Altere apenas os campos necessários; observe campos que afetam permissões ou integrações.</li>
-    <li>Salve as alterações e confira a mensagem de retorno.</li>
-    <li>Teste com um usuário do perfil impactado (logout/login) se mudou permissões ou status.</li>
+    <li>Na listagem ou na visualização, clique em <strong>Editar</strong>.</li>
+    <li>Ajuste tipo (Matriz/Filial), CNPJ, razão social e nome fantasia conforme o comprovante.</li>
+    <li>Salve e confira na tela de visualização.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
+<div class="help-field"><strong>Tipo / CNPJ / Razão social / Nome fantasia</strong> Mesmos significados do cadastro; CNPJ não pode colidir com outro registro.</div>
+<div class="help-field"><strong>Endereço / Telefone / E-mail</strong> Logradouro, número, complemento, CEP, bairro, município, UF e contatos — espelham o comprovante CNPJ.</div>
+<div class="help-field"><strong>Nome interno</strong> Afeta como a unidade aparece nas seleções de lotação do colaborador.</div>
+<div class="help-field"><strong>Status</strong> Inativar remove a unidade das listas ativas sem apagar o histórico.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>CNPJ já cadastrado</dt>
+    <dd>Outro estabelecimento já usa esse número. Confira o cadastro correto antes de salvar.</dd>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>UpdateBranch</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão <em>UpdateBranch</em> ausente no seu nível de acesso.</dd>
 </dl>

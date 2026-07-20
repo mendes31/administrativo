@@ -43,9 +43,21 @@ class ListBranches
         $filtros = [
             'name' => $_GET['name'] ?? '',
             'code' => $_GET['code'] ?? '',
+            'cnpj' => $_GET['cnpj'] ?? '',
+            'establishment_type' => $_GET['establishment_type'] ?? '',
             'email' => $_GET['email'] ?? '',
             'active' => $_GET['active'] ?? '',
         ];
+        if (isset($_GET['limpar_filtros'])) {
+            $filtros = [
+                'name' => '',
+                'code' => '',
+                'cnpj' => '',
+                'establishment_type' => '',
+                'email' => '',
+                'active' => '',
+            ];
+        }
         // Instanciar o Repository para recuperar os registros do banco de dados
         $listBranches = new BranchesRepository();
         $this->data['branches'] = $listBranches->getAllBranches((int) $page, (int) $this->limitResult, $filtros);

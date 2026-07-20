@@ -4,6 +4,7 @@ namespace App\adms\Controllers\branches;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\Validation\ValidationBranchService;
+use App\adms\Helpers\BranchFormHelper;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\BranchesRepository;
 use App\adms\Models\Repository\LogsRepository;
@@ -65,6 +66,8 @@ class CreateBranch
      */
     private function addBranch(): void
     {
+        $this->data['form'] = BranchFormHelper::normalizeFormPayload($this->data['form'] ?? []);
+
         $validationBranch = new ValidationBranchService();
         $this->data['errors'] = $validationBranch->validate($this->data['form']);
 

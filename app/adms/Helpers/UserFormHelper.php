@@ -298,6 +298,75 @@ final class UserFormHelper
         return in_array($v, self::EMPRESA_CONTRATANTE_SLUGS, true) ? $v : null;
     }
 
+    /** @return array<string, string> */
+    public static function empresaContratanteOptions(): array
+    {
+        $fromBranches = self::empresaContratanteOptionsFromBranches();
+        $out = [];
+        foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
+            $out[$slug] = $fromBranches[$slug] ?? self::empresaContratanteLabel($slug);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Lê rótulos (nome fantasia) de adms_branches.code = slug.
+     *
+     * @return array<string, string>
+     */
+    public static function empresaContratanteOptionsFromBranches(): array
+    {
+        try {
+            $repo = new \App\adms\Models\Repository\BranchesRepository();
+
+            return $repo->getEmpresaContratanteOptionsFromBranches();
+        } catch (\Throwable) {
+            return [];
+        }
+    }
+
+    /** Resolve FK adms_branches.id a partir do slug de empresa_contratante. */
+    public static function resolveUserBranchIdFromEmpresaSlug(?string $slug): ?int
+    {
+        $slug = self::normalizeEmpresaContratante($slug);
+        if ($slug === null) {
+            return null;
+        }
+        try {
+            $repo = new \App\adms\Models\Repository\BranchesRepository();
+
+            return $repo->getBranchIdByCode($slug);
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Dual-write: garante slug + user_branch_id coerentes no payload do formulário.
+     *
+     * @param array<string, mixed> $form
+     * @return array<string, mixed>
+     */
+    public static function applyEmpresaContratanteToForm(array $form, mixed $postedEmpresa): array
+    {
+        $slug = self::normalizeEmpresaContratante($postedEmpresa);
+        $form['empresa_contratante'] = $slug;
+        $form['user_branch_id'] = $slug !== null ? self::resolveUserBranchIdFromEmpresaSlug($slug) : null;
+
+        return $form;
+    }
+
+    /** @return 'usuario'|'pessoais'|'endereco'|'contratuais'|'formacoes' */
+    public static function normalizeUserFormActiveTab(mixed $value): string
+    {
+        $v = strtolower(trim((string) $value));
+        $v = preg_replace('/^#?tab-/', '', $v) ?? $v;
+        $allowed = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes'];
+
+        return in_array($v, $allowed, true) ? $v : 'usuario';
+    }
+
     /** Resolve slug a partir do cadastro (slug, rótulo curto ou razão social do PDF). */
     public static function resolveEmpresaContratanteSlug(mixed $value): ?string
     {
@@ -309,6 +378,7 @@ final class UserFormHelper
             return null;
         }
         $needle = strtolower(trim((string) $value));
+        $options = self::empresaContratanteOptions();
         foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
             if ($needle === strtolower($slug)) {
                 return $slug;
@@ -316,7 +386,17 @@ final class UserFormHelper
             if ($needle === strtolower(self::empresaContratanteLabel($slug))) {
                 return $slug;
             }
+            if ($needle === strtolower($options[$slug] ?? '')) {
+                return $slug;
+            }
             if ($needle === strtolower(self::empresaContratantePdfLabel($slug))) {
+                return $slug;
+            }
+            // Rótulos antigos (pré-migração de nomes fantasia)
+            if ($slug === 'lab_tiaraju_matriz' && in_array($needle, ['lab. tiaraju matriz', 'lab tiaraju matriz'], true)) {
+                return $slug;
+            }
+            if ($slug === 'lab_tiaraju_filial' && in_array($needle, ['lab. tiaraju filial', 'lab tiaraju filial'], true)) {
                 return $slug;
             }
         }
@@ -328,21 +408,10 @@ final class UserFormHelper
     {
         return match ($code) {
             'tiaraju_farma' => 'Tiaraju Farma',
-            'lab_tiaraju_matriz' => 'Lab. Tiaraju Matriz',
-            'lab_tiaraju_filial' => 'Lab. Tiaraju Filial',
+            'lab_tiaraju_matriz' => 'Laboratório Tiaraju',
+            'lab_tiaraju_filial' => 'Afra Pharma',
             default => 'Empresa contratante não informada',
         };
-    }
-
-    /** @return array<string, string> */
-    public static function empresaContratanteOptions(): array
-    {
-        $out = [];
-        foreach (self::EMPRESA_CONTRATANTE_SLUGS as $slug) {
-            $out[$slug] = self::empresaContratanteLabel($slug);
-        }
-
-        return $out;
     }
 
     /** Razão social exibida no PDF de encaminhamento ASO. */
@@ -350,8 +419,8 @@ final class UserFormHelper
     {
         return match ($slug) {
             'tiaraju_farma' => 'Tiaraju Farma, Alimentos e Cosméticos Ltda',
-            'lab_tiaraju_matriz' => 'Lab. Tiaraju Alimentos e Cosméticos Ltda',
-            'lab_tiaraju_filial' => 'Lab. Tiaraju Alimentos e Cosméticos Ltda - filial',
+            'lab_tiaraju_matriz' => 'Laboratorio Tiaraju Alimentos e Cosmeticos S/A',
+            'lab_tiaraju_filial' => 'Laboratorio Tiaraju Alimentos e Cosmeticos S/A',
             default => '',
         };
     }
