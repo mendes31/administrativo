@@ -64,6 +64,18 @@ use App\adms\Helpers\FormatHelper;
                             </td>
                         </tr>
                         <tr>
+                            <td><strong>Ciclo:</strong></td>
+                            <td>
+                                <?php if (!empty($this->data['review']['cycle_name'])): ?>
+                                    <a href="<?php echo $_ENV['URL_ADM']; ?>view-performance-cycle/<?= (int) ($this->data['review']['performance_cycle_id'] ?? 0) ?>">
+                                        <?= htmlspecialchars($this->data['review']['cycle_name']) ?>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="text-muted">Sem ciclo</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <tr>
                             <td><strong>Período:</strong></td>
                             <td>
                                 <?= FormatHelper::formatDate($this->data['review']['review_period_start'] ?? '') ?> a 

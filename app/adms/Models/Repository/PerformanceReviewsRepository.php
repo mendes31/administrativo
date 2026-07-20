@@ -17,11 +17,11 @@ class PerformanceReviewsRepository extends DbConnection
     public function create(array $data): int
     {
         $sql = "INSERT INTO adms_performance_reviews 
-                (employee_id, reviewer_id, review_type, review_period_start, review_period_end, 
+                (employee_id, reviewer_id, review_type, performance_cycle_id, review_period_start, review_period_end, 
                  review_date, status, overall_score, strengths, improvements, comments, 
                  employee_comments, evaluation_id, created_by)
                 VALUES 
-                (:employee_id, :reviewer_id, :review_type, :review_period_start, :review_period_end,
+                (:employee_id, :reviewer_id, :review_type, :performance_cycle_id, :review_period_start, :review_period_end,
                  :review_date, :status, :overall_score, :strengths, :improvements, :comments,
                  :employee_comments, :evaluation_id, :created_by)";
         
@@ -29,6 +29,12 @@ class PerformanceReviewsRepository extends DbConnection
         $stmt->bindValue(':employee_id', $data['employee_id'], PDO::PARAM_INT);
         $stmt->bindValue(':reviewer_id', $data['reviewer_id'], PDO::PARAM_INT);
         $stmt->bindValue(':review_type', $data['review_type']);
+        $cycleId = $data['performance_cycle_id'] ?? null;
+        if ($cycleId === null || $cycleId === '' || (int) $cycleId <= 0) {
+            $stmt->bindValue(':performance_cycle_id', null, PDO::PARAM_NULL);
+        } else {
+            $stmt->bindValue(':performance_cycle_id', (int) $cycleId, PDO::PARAM_INT);
+        }
         $stmt->bindValue(':review_period_start', $data['review_period_start']);
         $stmt->bindValue(':review_period_end', $data['review_period_end']);
         $stmt->bindValue(':review_date', $data['review_date']);
@@ -70,11 +76,13 @@ class PerformanceReviewsRepository extends DbConnection
         $sql = "SELECT pr.*, 
                        e.name as employee_name, e.email as employee_email,
                        r.name as reviewer_name, r.email as reviewer_email,
-                       c.name as creator_name
+                       c.name as creator_name,
+                       cy.name as cycle_name, cy.status as cycle_status
                 FROM adms_performance_reviews pr
                 INNER JOIN adms_users e ON pr.employee_id = e.id
                 INNER JOIN adms_users r ON pr.reviewer_id = r.id
                 INNER JOIN adms_users c ON pr.created_by = c.id
+                LEFT JOIN adms_performance_cycles cy ON cy.id = pr.performance_cycle_id
                 WHERE pr.id = :id";
         
         $stmt = $this->getConnection()->prepare($sql);
@@ -113,6 +121,11 @@ class PerformanceReviewsRepository extends DbConnection
             $where[] = 'pr.status = :status';
             $params[':status'] = $filters['status'];
         }
+
+        if (!empty($filters['performance_cycle_id'])) {
+            $where[] = 'pr.performance_cycle_id = :performance_cycle_id';
+            $params[':performance_cycle_id'] = (int) $filters['performance_cycle_id'];
+        }
         
         if (!empty($filters['search'])) {
             $where[] = '(e.name LIKE :search OR pr.comments LIKE :search)';
@@ -141,10 +154,12 @@ class PerformanceReviewsRepository extends DbConnection
         
         $sql = "SELECT pr.*, 
                        e.name as employee_name, e.email as employee_email,
-                       r.name as reviewer_name
+                       r.name as reviewer_name,
+                       cy.name as cycle_name
                 FROM adms_performance_reviews pr
                 INNER JOIN adms_users e ON pr.employee_id = e.id
                 INNER JOIN adms_users r ON pr.reviewer_id = r.id
+                LEFT JOIN adms_performance_cycles cy ON cy.id = pr.performance_cycle_id
                 WHERE " . implode(' AND ', $where) . "
                 ORDER BY pr.review_date DESC, pr.created_at DESC
                 LIMIT :limit OFFSET :offset";
@@ -181,6 +196,11 @@ class PerformanceReviewsRepository extends DbConnection
         if (!empty($filters['status'])) {
             $where[] = 'pr.status = :status';
             $params[':status'] = $filters['status'];
+        }
+
+        if (!empty($filters['performance_cycle_id'])) {
+            $where[] = 'pr.performance_cycle_id = :performance_cycle_id';
+            $params[':performance_cycle_id'] = (int) $filters['performance_cycle_id'];
         }
 
         if (!empty($filters['review_date_from'])) {
@@ -221,12 +241,12 @@ class PerformanceReviewsRepository extends DbConnection
         $fields = [];
         $values = [];
         
-        $allowedFields = ['review_type', 'review_period_start', 'review_period_end', 'review_date',
+        $allowedFields = ['review_type', 'performance_cycle_id', 'review_period_start', 'review_period_end', 'review_date',
                          'status', 'overall_score', 'strengths', 'improvements', 'comments',
                          'employee_comments', 'evaluation_id', 'completed_at'];
         
         foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $fields[] = "{$field} = :{$field}";
                 $values[":{$field}"] = $data[$field];
             }
@@ -245,9 +265,13 @@ class PerformanceReviewsRepository extends DbConnection
         $oldRow = $this->getById($id);
 
         foreach ($values as $key => $value) {
+            if ($key === ':performance_cycle_id' && ($value === null || $value === '' || (int) $value <= 0)) {
+                $stmt->bindValue($key, null, PDO::PARAM_NULL);
+                continue;
+            }
             $type = PDO::PARAM_STR;
-            if (in_array($key, [':id', ':overall_score'])) {
-                $type = PDO::PARAM_STR; // PDO::PARAM_INT para INT, mas overall_score é DECIMAL
+            if ($key === ':id' || $key === ':performance_cycle_id') {
+                $type = PDO::PARAM_INT;
             }
             $stmt->bindValue($key, $value, $type);
         }
@@ -329,6 +353,18 @@ class PerformanceReviewsRepository extends DbConnection
             $params[':period_end'] = $filters['period_end'];
         }
 
+        if (!empty($filters['performance_cycle_id'])) {
+            $where[] = 'pr.performance_cycle_id = :performance_cycle_id';
+            $params[':performance_cycle_id'] = (int) $filters['performance_cycle_id'];
+        }
+
+        $latestWhere = "status = 'completed'";
+        $latestParams = [];
+        if (!empty($filters['performance_cycle_id'])) {
+            $latestWhere .= ' AND performance_cycle_id = :latest_cycle_id';
+            $latestParams[':latest_cycle_id'] = (int) $filters['performance_cycle_id'];
+        }
+
         // Buscar avaliação mais recente de cada colaborador
         $sql = "SELECT 
                     pr.employee_id,
@@ -354,7 +390,7 @@ class PerformanceReviewsRepository extends DbConnection
                 INNER JOIN (
                     SELECT employee_id, MAX(review_date) as max_date
                     FROM adms_performance_reviews
-                    WHERE status = 'completed'
+                    WHERE {$latestWhere}
                     GROUP BY employee_id
                 ) latest ON pr.employee_id = latest.employee_id AND pr.review_date = latest.max_date
                 WHERE " . implode(' AND ', $where) . "
@@ -363,7 +399,7 @@ class PerformanceReviewsRepository extends DbConnection
                 ORDER BY e.name";
         
         $stmt = $this->getConnection()->prepare($sql);
-        foreach ($params as $key => $value) {
+        foreach (array_merge($params, $latestParams) as $key => $value) {
             $stmt->bindValue($key, $value);
         }
         $stmt->execute();

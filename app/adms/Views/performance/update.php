@@ -22,6 +22,19 @@ use App\adms\Helpers\FormatHelper;
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
             <form action="" method="POST" class="row g-3">
+                <div class="col-md-6">
+                    <label for="performance_cycle_id" class="form-label">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select">
+                        <option value="">Sem ciclo (legado)</option>
+                        <?php foreach (($this->data['cycles'] ?? []) as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>"
+                                <?= ((int) ($this->data['review']['performance_cycle_id'] ?? 0) === (int) $cycle['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cycle['name']) ?>
+                                (<?= htmlspecialchars($cycle['status']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
                 <div class="col-md-3">
                     <label for="review_type" class="form-label">Tipo de Avaliação</label>
                     <select name="review_type" id="review_type" class="form-select">

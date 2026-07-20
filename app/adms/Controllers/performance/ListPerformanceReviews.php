@@ -4,6 +4,7 @@ namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -43,6 +44,9 @@ class ListPerformanceReviews
         }
         if (isset($_GET['status']) && $_GET['status'] !== '') {
             $filters['status'] = $_GET['status'];
+        }
+        if (!empty($_GET['performance_cycle_id'])) {
+            $filters['performance_cycle_id'] = (int) $_GET['performance_cycle_id'];
         }
         if (isset($_GET['search']) && !empty($_GET['search'])) {
             $filters['search'] = $_GET['search'];
@@ -90,6 +94,8 @@ class ListPerformanceReviews
                 return isset($user['immediate_supervisor']) && $user['immediate_supervisor'] == $userId;
             });
         }
+
+        $this->data['cycles'] = (new PerformanceCyclesRepository())->getAll([], 1, 200);
 
         // Configurar elementos da página seguindo padrão do projeto
         $pageElements = [

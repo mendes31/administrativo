@@ -4,6 +4,7 @@ namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\DepartmentsRepository;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Views\Services\LoadViewService;
@@ -35,6 +36,9 @@ class NineBoxMatrix
         if (!empty($_GET['period_end'])) {
             $filters['period_end'] = $_GET['period_end'];
         }
+        if (!empty($_GET['performance_cycle_id'])) {
+            $filters['performance_cycle_id'] = (int) $_GET['performance_cycle_id'];
+        }
         
         // Buscar dados da matriz 9BOX
         $matrixData = $repository->getNineBoxData($filters);
@@ -47,6 +51,7 @@ class NineBoxMatrix
         // Dados para filtros
         $this->data['departments'] = $departmentsRepo->getAllDepartmentsSelect();
         $this->data['positions'] = $positionsRepo->getAllPositionsSelect();
+        $this->data['cycles'] = (new PerformanceCyclesRepository())->getAll([], 1, 200);
         
         // Estatísticas por box
         $this->data['box_stats'] = [];

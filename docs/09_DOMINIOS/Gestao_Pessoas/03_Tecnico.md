@@ -113,6 +113,8 @@ Toda mudança estrutural deve:
 - [Identidade (Pessoa/Vínculo/Lotação) — Expand](IDENTIDADE_EXPAND.md)
 - [Integração DP/SST (jornada) — Expand](INTEGRACAO_DP_SST_EXPAND.md)
 - [Ciclos de desempenho — Expand](DESENVOLVIMENTO_CICLOS_EXPAND.md)
+- [Avaliações ↔ ciclo — Expand](DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md)
+- [Calibração — Expand](DESENVOLVIMENTO_CALIBRACAO_EXPAND.md)
 - [Log de download de currículo — Expand](LOG_DOWNLOAD_CURRICULO_EXPAND.md)
 
 ## Referências

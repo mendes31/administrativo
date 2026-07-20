@@ -60,8 +60,20 @@ use App\adms\Helpers\FormatHelper;
                     </select>
                 </div>
                 <div class="col-md-3">
+                    <label for="performance_cycle_id" class="form-label mb-1">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select">
+                        <option value="">Todos</option>
+                        <?php foreach (($this->data['cycles'] ?? []) as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>"
+                                <?= ((int) ($this->data['filters']['performance_cycle_id'] ?? 0) === (int) $cycle['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cycle['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label for="search" class="form-label mb-1">Buscar</label>
-                    <input type="text" name="search" id="search" class="form-control" placeholder="Nome ou comentário..." value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
+                    <input type="text" name="search" id="search" class="form-control" placeholder="Nome..." value="<?= htmlspecialchars($this->data['filters']['search'] ?? '') ?>">
                 </div>
                 <div class="col-md-2">
                     <button type="submit" class="btn btn-primary w-100 mb-2"><i class="fas fa-search"></i> Filtrar</button>
@@ -80,6 +92,7 @@ use App\adms\Helpers\FormatHelper;
                             <tr>
                                 <th>ID</th>
                                 <th>Colaborador</th>
+                                <th>Ciclo</th>
                                 <th>Avaliador</th>
                                 <th>Tipo</th>
                                 <th>Período</th>
@@ -94,6 +107,15 @@ use App\adms\Helpers\FormatHelper;
                                 <tr>
                                     <td><?= $review['id'] ?></td>
                                     <td><?= htmlspecialchars($review['employee_name'] ?? '') ?></td>
+                                    <td>
+                                        <?php if (!empty($review['cycle_name'])): ?>
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>view-performance-cycle/<?= (int) ($review['performance_cycle_id'] ?? 0) ?>" class="text-decoration-none">
+                                                <?= htmlspecialchars($review['cycle_name']) ?>
+                                            </a>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($review['reviewer_name'] ?? '') ?></td>
                                     <td>
                                         <span class="badge bg-info"><?= htmlspecialchars($review['review_type']) ?>°</span>

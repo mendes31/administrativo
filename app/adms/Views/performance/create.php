@@ -43,6 +43,22 @@ use App\adms\Helpers\FormatHelper;
                         <?php endforeach; ?>
                     </select>
                 </div>
+
+                <div class="col-md-6">
+                    <label for="performance_cycle_id" class="form-label">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select">
+                        <option value="">Sem ciclo (legado)</option>
+                        <?php foreach (($this->data['cycles'] ?? []) as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>"
+                                    data-period-start="<?= htmlspecialchars($cycle['period_start'] ?? '') ?>"
+                                    data-period-end="<?= htmlspecialchars($cycle['period_end'] ?? '') ?>">
+                                <?= htmlspecialchars($cycle['name']) ?>
+                                (<?= htmlspecialchars($cycle['status']) ?>)
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <small class="form-text text-muted">Ao selecionar, o período pode ser preenchido automaticamente.</small>
+                </div>
                 
                 <div class="col-md-3">
                     <label for="review_type" class="form-label">Tipo de Avaliação <span class="text-danger">*</span></label>
@@ -105,4 +121,26 @@ use App\adms\Helpers\FormatHelper;
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const cycleSelect = document.getElementById('performance_cycle_id');
+    const periodStart = document.getElementById('review_period_start');
+    const periodEnd = document.getElementById('review_period_end');
+    if (!cycleSelect || !periodStart || !periodEnd) {
+        return;
+    }
+    cycleSelect.addEventListener('change', function () {
+        const option = cycleSelect.options[cycleSelect.selectedIndex];
+        const start = option.getAttribute('data-period-start') || '';
+        const end = option.getAttribute('data-period-end') || '';
+        if (start) {
+            periodStart.value = start;
+        }
+        if (end) {
+            periodEnd.value = end;
+        }
+    });
+});
+</script>
 

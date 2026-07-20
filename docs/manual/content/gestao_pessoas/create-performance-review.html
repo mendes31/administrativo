@@ -1,30 +1,22 @@
 <h1>Criar Avaliação de Desempenho</h1>
-<p>Cadastra um novo registro em <strong>Criar Avaliação de Desempenho</strong>. Preencha os campos obrigatórios e salve; o registro passará a aparecer nas listagens e poderá receber permissões conforme o pacote.</p>
+<p>Cadastra uma nova avaliação (90°/180°/360°/anual), com vínculo opcional a um <strong>ciclo</strong>.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Desempenho</em> (<code>gp-desempenho</code>) para o fluxo completo da área.</p>
-
-<p><strong>Quem acessa:</strong> usuários com permissão <em>CreatePerformanceReview</em>.</p>
+<p><strong>Quem acessa:</strong> <em>CreatePerformanceReview</em>.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-performance-review</code>).</li>
-    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
-    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
-    <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
-    <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
+    <li>Em Avaliações, clique em <strong>Nova Avaliação</strong>.</li>
+    <li>Selecione colaborador, avaliador e, se desejar, o <strong>ciclo</strong> (rascunho/aberto).</li>
+    <li>Ao escolher o ciclo, o período pode ser preenchido automaticamente — ajuste se necessário.</li>
+    <li>Salve e registre resultados depois, se for o caso.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
-<div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
+<div class="help-field"><strong>Ciclo</strong> Opcional. Ciclos fechados não aceitam novos vínculos.</div>
+<div class="help-field"><strong>Período início/fim</strong> Intervalo avaliado; pode herdar do ciclo.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>CreatePerformanceReview</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Mensagem de ciclo fechado</dt>
+    <dd>Escolha outro ciclo ou cadastre um novo em aberto.</dd>
 </dl>

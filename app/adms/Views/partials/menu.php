@@ -827,6 +827,11 @@ $menus = [
                         'permission' => 'ListPerformanceCycles'
                     ],
                     [
+                        'label' => 'Calibração',
+                        'url' => $_ENV['URL_ADM'] . 'list-performance-calibrations',
+                        'permission' => 'ListPerformanceCalibrations'
+                    ],
+                    [
                         'label' => 'Avaliações de Desempenho',
                         'url' => $_ENV['URL_ADM'] . 'list-performance-reviews',
                         'permission' => 'ListPerformanceReviews'

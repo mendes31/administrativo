@@ -81,7 +81,25 @@ $st = $statusLabels[$cycle['status'] ?? ''] ?? ['label' => $cycle['status'] ?? '
                 </div>
                 <div class="col-md-3">
                     <div class="text-muted small">Avaliações vinculadas</div>
-                    <div><?= (int) ($this->data['reviews_count'] ?? 0) ?></div>
+                    <div>
+                        <?= (int) ($this->data['reviews_count'] ?? 0) ?>
+                        <?php if ((int) ($this->data['reviews_count'] ?? 0) > 0) { ?>
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>list-performance-reviews?performance_cycle_id=<?= (int) $cycle['id'] ?>"
+                               class="ms-1 small">ver avaliações</a>
+                        <?php } ?>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-muted small">Calibração</div>
+                    <div>
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>create-performance-calibration?performance_cycle_id=<?= (int) $cycle['id'] ?>" class="small">
+                            abrir sessão
+                        </a>
+                        ·
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>nine-box-matrix?performance_cycle_id=<?= (int) $cycle['id'] ?>" class="small">
+                            Nine Box
+                        </a>
+                    </div>
                 </div>
                 <?php if (!empty($cycle['description'])): ?>
                     <div class="col-12">

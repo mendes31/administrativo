@@ -3,8 +3,10 @@
 namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PerformanceCycleService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -72,6 +74,25 @@ class UpdatePerformanceReview
         $evaluationRepo = new \App\adms\Models\Repository\EvaluationModelsRepository();
         $this->data['evaluations'] = $evaluationRepo->getAllModels([], 1, 100);
 
+        $cyclesRepo = new PerformanceCyclesRepository();
+        $this->data['cycles'] = $cyclesRepo->listLinkable();
+        $currentCycleId = (int) ($review['performance_cycle_id'] ?? 0);
+        if ($currentCycleId > 0) {
+            $currentCycle = $cyclesRepo->getById($currentCycleId);
+            if ($currentCycle) {
+                $alreadyListed = false;
+                foreach ($this->data['cycles'] as $c) {
+                    if ((int) $c['id'] === $currentCycleId) {
+                        $alreadyListed = true;
+                        break;
+                    }
+                }
+                if (!$alreadyListed) {
+                    $this->data['cycles'][] = $currentCycle;
+                }
+            }
+        }
+
         $pageElements = [
             'title_head' => 'Editar Avaliação de Desempenho',
             'menu' => 'update-performance-review',
@@ -91,6 +112,14 @@ class UpdatePerformanceReview
 
     private function update(int $id): void
     {
+        $repository = new PerformanceReviewsRepository();
+        $current = $repository->getById($id);
+        if (!$current) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: Avaliação não encontrada!</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'list-performance-reviews');
+            exit;
+        }
+
         $data = [
             'review_type' => $_POST['review_type'] ?? null,
             'review_period_start' => $_POST['review_period_start'] ?? null,
@@ -110,12 +139,24 @@ class UpdatePerformanceReview
             return $value !== null && $value !== '';
         });
 
+        $requestedCycleId = !empty($_POST['performance_cycle_id']) ? (int) $_POST['performance_cycle_id'] : null;
+        $currentCycleId = !empty($current['performance_cycle_id']) ? (int) $current['performance_cycle_id'] : null;
+        if ($requestedCycleId !== $currentCycleId) {
+            $cycleCheck = (new PerformanceCycleService())->assertMayLink($requestedCycleId);
+            if (!$cycleCheck['ok']) {
+                $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">'
+                    . htmlspecialchars($cycleCheck['error'] ?? 'Ciclo inválido.')
+                    . '</div>';
+                header('Location: ' . $_ENV['URL_ADM'] . 'update-performance-review/' . $id);
+                exit;
+            }
+            $data['performance_cycle_id'] = $cycleCheck['cycle_id'];
+        }
+
         if (isset($data['status']) && $data['status'] === 'completed') {
             $data['completed_at'] = date('Y-m-d H:i:s');
         }
 
-        $repository = new PerformanceReviewsRepository();
-        
         try {
             $success = $repository->update($id, $data);
             

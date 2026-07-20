@@ -80,8 +80,8 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 ## Fase 5 — Desenvolvimento
 
 - [x] ciclos e metas (ciclo + vínculo opcional) — [DESENVOLVIMENTO_CICLOS_EXPAND.md](DESENVOLVIMENTO_CICLOS_EXPAND.md);
-- avaliações 180° e 360° (amarrar reviews ao ciclo);
-- calibração;
+- [x] avaliações 180° e 360° (vínculo ao ciclo) — [DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md](DESENVOLVIMENTO_AVALIACOES_CICLO_EXPAND.md);
+- [x] calibração (sessão por ciclo + Nine Box por ciclo) — [DESENVOLVIMENTO_CALIBRACAO_EXPAND.md](DESENVOLVIMENTO_CALIBRACAO_EXPAND.md);
 - PDI integrado a competências e treinamentos;
 - carreira, sucessão e Nine Box.
 

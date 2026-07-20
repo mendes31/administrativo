@@ -3,8 +3,10 @@
 namespace App\adms\Controllers\performance;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\PerformanceCyclesRepository;
 use App\adms\Models\Repository\PerformanceReviewsRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PerformanceCycleService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -45,6 +47,7 @@ class CreatePerformanceReview
         // Buscar avaliações disponíveis (para vincular)
         $evaluationRepo = new \App\adms\Models\Repository\EvaluationModelsRepository();
         $this->data['evaluations'] = $evaluationRepo->getAllModels([], 1, 100);
+        $this->data['cycles'] = (new PerformanceCyclesRepository())->listLinkable();
 
         // Configurar elementos da página
         $pageElements = [
@@ -64,12 +67,38 @@ class CreatePerformanceReview
 
     private function create(): void
     {
+        $cycleId = !empty($_POST['performance_cycle_id']) ? (int) $_POST['performance_cycle_id'] : null;
+        $cycleCheck = (new PerformanceCycleService())->assertMayLink($cycleId);
+        if (!$cycleCheck['ok']) {
+            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">'
+                . htmlspecialchars($cycleCheck['error'] ?? 'Ciclo inválido.')
+                . '</div>';
+            header('Location: ' . $_ENV['URL_ADM'] . 'create-performance-review');
+            exit;
+        }
+        $cycleId = $cycleCheck['cycle_id'];
+
+        $periodStart = $_POST['review_period_start'] ?? '';
+        $periodEnd = $_POST['review_period_end'] ?? '';
+        if ($cycleId && ($periodStart === '' || $periodEnd === '')) {
+            $cycle = (new PerformanceCyclesRepository())->getById($cycleId);
+            if ($cycle) {
+                if ($periodStart === '') {
+                    $periodStart = $cycle['period_start'];
+                }
+                if ($periodEnd === '') {
+                    $periodEnd = $cycle['period_end'];
+                }
+            }
+        }
+
         $data = [
             'employee_id' => (int)($_POST['employee_id'] ?? 0),
             'reviewer_id' => (int)($_POST['reviewer_id'] ?? $_SESSION['user_id'] ?? 0),
             'review_type' => $_POST['review_type'] ?? '360',
-            'review_period_start' => $_POST['review_period_start'] ?? date('Y-m-d'),
-            'review_period_end' => $_POST['review_period_end'] ?? date('Y-m-d'),
+            'performance_cycle_id' => $cycleId,
+            'review_period_start' => $periodStart !== '' ? $periodStart : date('Y-m-d'),
+            'review_period_end' => $periodEnd !== '' ? $periodEnd : date('Y-m-d'),
             'review_date' => $_POST['review_date'] ?? date('Y-m-d'),
             'status' => $_POST['status'] ?? 'draft',
             'evaluation_id' => !empty($_POST['evaluation_id']) ? (int)$_POST['evaluation_id'] : null,
@@ -104,4 +133,3 @@ class CreatePerformanceReview
         }
     }
 }
-

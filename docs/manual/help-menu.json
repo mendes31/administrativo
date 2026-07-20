@@ -1110,6 +1110,17 @@
                         },
                         {
                             "type": "group",
+                            "label": "Calibração",
+                            "children": [
+                                {
+                                    "type": "topic",
+                                    "topic_id": "list-performance-calibrations",
+                                    "title": "Calibrações de Desempenho"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "group",
                             "label": "Ciclos de Desempenho",
                             "children": [
                                 {

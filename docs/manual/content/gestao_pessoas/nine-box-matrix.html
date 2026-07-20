@@ -1,28 +1,21 @@
 <h1>Matriz 9BOX</h1>
-<p>Tela <strong>Matriz 9BOX</strong> do módulo Gestão de Pessoas. Consulte os campos disponíveis na interface e o fluxo abaixo.</p>
-
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Desempenho</em> (<code>gp-desempenho</code>) para o fluxo completo da área.</p>
-
-<p><strong>Quem acessa:</strong> usuários com permissão <em>NineBoxMatrix</em>.</p>
-
-<h2>Fluxo principal (passo a passo)</h2>
+<p>Classifica colaboradores em 9 caixas (potencial × desempenho) com base nas avaliações <strong>concluídas</strong>.</p>
+<p><strong>Quem acessa:</strong> <em>NineBoxMatrix</em>.</p>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <strong>Matriz 9BOX</strong> pelo menu Gestão de Pessoas.</li>
-    <li>Identifique a ação principal da tela (consulta, processamento, relatório).</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Menu <strong>Desempenho → Matriz 9BOX</strong>.</li>
+    <li>Filtre por <strong>ciclo</strong>, departamento, cargo ou período.</li>
+    <li>Analise as caixas; exporte PDF/Excel se necessário.</li>
+    <li>Na calibração, use o atalho <em>Nine Box do ciclo</em> para abrir já filtrado.</li>
 </ol>
-
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
-
+<div class="help-field"><strong>Ciclo</strong> Restringe às avaliações concluídas vinculadas ao ciclo.</div>
+<div class="help-field"><strong>Departamento / Cargo</strong> Recortes organizacionais.</div>
+<div class="help-field"><strong>Período</strong> Filtro adicional por datas da avaliação (legado sem ciclo).</div>
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>NineBoxMatrix</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>F1 abre documentação genérica</dt>
-    <dd>Este tópico ainda está em expansão; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Matriz vazia com ciclo selecionado</dt>
+    <dd>Não há avaliações concluídas com esse ciclo, ou colaboradores inativos.</dd>
+    <dt>Seletor de ciclo só com “Todos”</dt>
+    <dd>Ainda não há ciclos cadastrados em Desempenho → Ciclos.</dd>
 </dl>

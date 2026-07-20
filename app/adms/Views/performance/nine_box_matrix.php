@@ -35,6 +35,17 @@ $boxLabels = [
         <div class="card-body">
             <form method="GET" action="<?php echo $_ENV['URL_ADM']; ?>nine-box-matrix" class="row g-3">
                 <div class="col-md-3">
+                    <label for="performance_cycle_id" class="form-label small">Ciclo</label>
+                    <select name="performance_cycle_id" id="performance_cycle_id" class="form-select form-select-sm">
+                        <option value="">Todos</option>
+                        <?php foreach ($this->data['cycles'] ?? [] as $cycle): ?>
+                            <option value="<?= (int) $cycle['id'] ?>" <?= ((int) ($this->data['filters']['performance_cycle_id'] ?? 0) === (int) $cycle['id']) ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($cycle['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-3">
                     <label for="department_id" class="form-label small">Departamento</label>
                     <select name="department_id" id="department_id" class="form-select form-select-sm">
                         <option value="">Todos</option>

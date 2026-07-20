@@ -43,7 +43,7 @@ final class PerformanceCyclesContractTest extends TestCase
     public function testServiceBlocksClosedCycleLink(): void
     {
         $service = $this->readProjectFile('app/adms/Models/Services/PerformanceCycleService.php');
-        self::assertStringContainsString('assertGoalMayLink', $service);
+        self::assertStringContainsString('assertMayLink', $service);
         self::assertStringContainsString('closed', $service);
     }
 

@@ -33,6 +33,9 @@ class ExportNineBoxMatrixPdf
             if (!empty($_GET['period_end'])) {
                 $filters['period_end'] = $_GET['period_end'];
             }
+            if (!empty($_GET['performance_cycle_id'])) {
+                $filters['performance_cycle_id'] = (int) $_GET['performance_cycle_id'];
+            }
             
             $matrixData = $repository->getNineBoxData($filters);
             

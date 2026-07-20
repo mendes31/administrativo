@@ -106,9 +106,9 @@ class PerformanceCycleService
     }
 
     /**
-     * Valida vínculo de meta a um ciclo (null permitido).
+     * Valida vínculo de meta/avaliação a um ciclo (null permitido).
      */
-    public function assertGoalMayLink(?int $cycleId): array
+    public function assertMayLink(?int $cycleId): array
     {
         if ($cycleId === null || $cycleId <= 0) {
             return ['ok' => true, 'cycle_id' => null];
@@ -119,10 +119,18 @@ class PerformanceCycleService
             return ['ok' => false, 'error' => 'Ciclo informado não existe.'];
         }
         if (($cycle['status'] ?? '') === 'closed') {
-            return ['ok' => false, 'error' => 'Não é possível vincular meta a ciclo fechado.'];
+            return ['ok' => false, 'error' => 'Não é possível vincular a ciclo fechado.'];
         }
 
         return ['ok' => true, 'cycle_id' => $cycleId];
+    }
+
+    /**
+     * @deprecated Use assertMayLink()
+     */
+    public function assertGoalMayLink(?int $cycleId): array
+    {
+        return $this->assertMayLink($cycleId);
     }
 
     private function repo(): PerformanceCyclesRepository
