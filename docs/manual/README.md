@@ -15,12 +15,15 @@ Documentação exibida pelo sistema de ajuda nas telas do administrativo.
 
 Sempre que criar ou alterar comportamento visível ao usuário (nova tela, novo botão, novo fluxo, nova permissão):
 
-1. **Tópico da tela** — Atualizar ou criar `content/<modulo>/<topic-id>.html` em português, com:
-   - objetivo da tela;
+1. **Tópico da tela** — Atualizar ou criar `content/<modulo>/<topic-id>.html` em português, nesta ordem:
+   - **`<h2>Função no sistema</h2>`** (obrigatório, logo após o `<h1>`) — resumo do papel da tela/função no fluxo do sistema, não só lista de campos;
    - permissões (`Quem acessa`);
    - fluxo passo a passo;
-   - campos/ações novos;
+   - campos/ações relevantes;
    - problemas comuns relacionados à mudança.
+
+   Para aplicar/reaplicar a seção em tópicos antigos:
+   `php scripts/manual_ensure_funcao_section.php` (use `--dry-run` para simular).
 
 2. **Tópico conceitual** — Se a mudança afeta um fluxo maior (ex.: matrizes, versionamento), atualizar o HTML de visão geral do módulo (ex.: `rh-trein-matrizes.html`).
 
