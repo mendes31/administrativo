@@ -14,9 +14,27 @@ Guia de referência do pipeline actual (jun/2026). Produção: `https://tiaraju.
 | Fallback | **lftp** upload-only (`scripts/deploy_lftp_upload.sh`) |
 | Tentativas | 2× incremental + 1× lftp se FTP falhar |
 | Validação | SHA-256 de 12 ficheiros críticos |
-| Tempo típico | **~15–30 s** (só docs/PHP alterados) · ~3 min no fallback lftp |
+| Tempo típico | **~15–30 s** (deploy rápido / FTP incremental) · **até ~1 h** no fallback lftp de volume alto |
+| Limite de push | **≤ 100 ficheiros** alterados por push (ver política abaixo) |
+| Deploy rápido | Só se ≤ **150** ficheiros no push (`DEPLOY_MAX_CHANGED`) |
 | SSH | `tiaraju02@web119.kinghost.net` |
 | Path | `/home/tiaraju/www/administrativo` |
+
+---
+
+## Política: commits e pushes pequenos (obrigatório)
+
+Para evitar o fallback lftp “repositório completo” (milhares de
+`Removing old file` / `Transferring file`, ~1 h):
+
+1. **Máximo 100 ficheiros** por commit/push em `dev-master` ou `main`.
+2. Separar **código/feature** de **lote documental** (manuais, scripts em massa).
+3. Se um lote documental for maior (ex.: centenas de HTML do manual), fatiar em
+   vários pushes de ≤100 ficheiros cada, com intervalo até o Actions concluir.
+4. Preferir sempre o caminho **Deploy rápido** (só ficheiros do push) — ele
+   só corre com ≤150 alterações; o limite de 100 dá margem de segurança.
+
+Referência de governança: [Plano Diretor — Deploy](00_PLANO_DIRETOR/README.md#deploy-e-dados-de-produção).
 
 ---
 

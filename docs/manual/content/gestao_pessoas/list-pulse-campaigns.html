@@ -2,24 +2,60 @@
 
 <h2>Função no sistema</h2>
 <p>
-As <strong>pesquisas Pulse/eNPS</strong> medem engajamento e recomendação da empresa
-como lugar para trabalhar (eNPS 0–10) ou pulsos rápidos (Likert/texto). Complementam
-People Analytics e o ciclo de desempenho: enquanto avaliações medem indivíduo,
-aqui se escuta o clima coletivo de forma anônima (quando configurado).
+Campanhas de clima organizacional: o RH cria pesquisas curtas, abre a coleta e
+acompanha o resultado; o colaborador responde na própria tela. Complementam
+People Analytics e o ciclo de desempenho — avaliações medem o indivíduo; aqui se
+escuta o clima coletivo (resposta anônima quando a campanha permitir).
 </p>
 
 <p><strong>Quem acessa:</strong> RH com <em>ListPulseCampaigns</em>; colaboradores com <em>RespondPulseCampaign</em>.</p>
 
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>eNPS (Employee Net Promoter Score)</dt>
+    <dd>
+        Indicador de “quanto o colaborador recomendaria a empresa como lugar
+        para trabalhar”, numa escala de <strong>0 a 10</strong>.
+        Respondentes com 9–10 são <em>promotores</em>; 7–8 são <em>neutros</em>;
+        0–6 são <em>detratores</em>. O score é
+        <code>% promotores − % detratores</code> (pode ser negativo). Use eNPS
+        para medir recomendação e tendência de retenção/engajamento ao longo do tempo.
+    </dd>
+    <dt>Pulse (pesquisa pulso)</dt>
+    <dd>
+        Pesquisa <strong>rápida e periódica</strong> (semanas ou meses) com poucas
+        perguntas — escala Likert (ex.: discordo… concordo) e/ou texto livre.
+        Serve para sentir o clima em temas pontuais (liderança, carga, comunicação)
+        sem o peso de uma pesquisa anual longa.
+    </dd>
+    <dt>Campanha</dt>
+    <dd>
+        Agrupa tipo (eNPS ou Pulse), perguntas, status
+        (<em>Rascunho</em> / <em>Aberta</em> / <em>Fechada</em>) e as respostas coletadas.
+    </dd>
+</dl>
+
 <h2>Fluxo principal</h2>
 <ol>
-<li>People Analytics → Pesquisas → Nova (tipo eNPS ou Pulse).</li>
-<li>Edite e mude status para <strong>Aberta</strong>.</li>
-<li>Colaboradores usam <strong>Responder</strong>; RH acompanha o eNPS na visualização.</li>
-<li>Feche a campanha ao encerrar a coleta.</li>
+    <li>Menu: <strong>Gestão de Pessoas → People Analytics → Pesquisas (Pulse/eNPS)</strong>.</li>
+    <li>Crie uma campanha (<strong>Nova</strong>) escolhendo tipo <strong>eNPS</strong> ou <strong>Pulse</strong>.</li>
+    <li>Edite se necessário e mude o status para <strong>Aberta</strong> para liberar respostas.</li>
+    <li>Colaboradores usam <strong>Responder</strong>; o RH acompanha o resumo (incl. score eNPS) na visualização.</li>
+    <li>Altere para <strong>Fechada</strong> ao encerrar a coleta.</li>
 </ol>
+
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Tipo</strong> eNPS (pergunta 0–10 automática) ou Pulse (perguntas configuráveis).</div>
+<div class="help-field"><strong>Status</strong> Rascunho (só edição), Aberta (aceita respostas), Fechada (somente leitura).</div>
+<div class="help-field"><strong>Anônimo</strong> Quando ativo, a resposta não fica vinculada ao usuário na consulta operacional.</div>
+<div class="help-field"><strong>Score eNPS</strong> Calculado na visualização da campanha a partir das respostas 0–10.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Menu não aparece</dt><dd>Rode migration <code>20260720280000</code> e relogue.</dd>
-<dt>Não consigo responder</dt><dd>Campanha precisa estar <em>Aberta</em>.</dd>
+    <dt>Menu não aparece</dt>
+    <dd>Confirme a migration <code>20260720280000</code> aplicada no ambiente e <strong>relogue</strong> (cache de permissões do menu).</dd>
+    <dt>Não consigo responder</dt>
+    <dd>A campanha precisa estar com status <em>Aberta</em> e você precisa da permissão <em>RespondPulseCampaign</em>.</dd>
+    <dt>Score eNPS zerado ou ausente</dt>
+    <dd>Ainda não há respostas válidas 0–10, ou a campanha é do tipo Pulse (o score eNPS aplica-se ao tipo eNPS).</dd>
 </dl>

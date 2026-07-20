@@ -320,8 +320,10 @@ git push → Deploy rápido (só ficheiros do push, ~10–20s) → SHA-256 OK
 
 1. **Deploy rápido** (`scripts/deploy_push_changed_files.php`) — envia **apenas** o que mudou no commit.
 2. Se falhar ou >150 ficheiros: **FTP-Deploy-Action** (incremental por hash).
-3. Se FTP falhar: **fallback lftp** (upload only, sem `--delete`).
+3. Se FTP falhar: **fallback lftp** (upload only, sem `--delete`) — em volume alto pode demorar **~1 h**.
 4. **Verificação SHA-256** de 12 ficheiros críticos.
+
+**Regra de push:** no máximo **100 ficheiros** por push (Plano Diretor + [DEPLOY_PRODUCAO.md](docs/DEPLOY_PRODUCAO.md)). Separar feature de lote de manuais.
 
 ### Política de segurança
 

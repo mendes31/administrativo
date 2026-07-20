@@ -1,0 +1,17 @@
+---
+description: Commits/pushes com no máximo 100 ficheiros para não disparar deploy lftp longo
+alwaysApply: true
+---
+
+# Deploy — commits pequenos (máx. 100 ficheiros)
+
+O pipeline em `dev-master`/`main` usa deploy rápido só com ≤150 ficheiros. Acima disso (ou se o FTP incremental falhar), o **fallback lftp** pode reenviar grande parte do repositório e demorar **cerca de 1 hora**.
+
+Ao preparar commits ou pushes (quando o utilizador pedir commit/push):
+
+1. **No máximo 100 ficheiros** por commit/push.
+2. Separar **código/feature** de **lote documental** (manuais HTML, scripts em massa).
+3. Se o working tree tiver mais de 100 ficheiros, **fatiar** em vários commits/pushes e, se possível, esperar o Actions do push anterior antes do próximo lote grande.
+4. Não agrupar centenas de `docs/manual/content/**` com código de feature no mesmo push.
+
+Documentação canónica: `docs/00_PLANO_DIRETOR/README.md` (secção Deploy) e `docs/DEPLOY_PRODUCAO.md` (política de commits pequenos).

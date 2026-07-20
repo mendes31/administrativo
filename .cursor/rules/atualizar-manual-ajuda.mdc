@@ -11,12 +11,13 @@ Ao implementar ou alterar funcionalidades visíveis ao usuário (telas novas, bo
 2. Revise `docs/manual/manifest.json`, `help-menu.json` e `page-topic-map.json` quando aplicável.
 3. Documente permissões novas no tópico (ex.: `EditCompletedTraining`, `DeleteCompletedTraining`).
 4. Texto em português; inclua fluxo passo a passo e problemas comuns.
-5. Consulte o checklist em `docs/manual/README.md`.
-6. **Identifique o que mudou** com o relatório dedicado:
+5. **Explique termos específicos** (siglas e jargão: eNPS, Pulse, OKR, Nine Box, PDI, etc.) na própria página do manual — secção “O que significam os termos” ou equivalente; não deixe só o nome técnico.
+6. Consulte o checklist em `docs/manual/README.md`.
+7. **Identifique o que mudou** com o relatório dedicado:
    ```bash
    php scripts/manual_changed_report.php
    ```
    Ele mapeia alterações git → slugs → `topic_id` → arquivo HTML e lista ações sugeridas.
-7. Valide com `php scripts/audit_manual_coverage.php --changed --strict` (use `--fix` para esqueletos; revise em português).
+8. Valide com `php scripts/audit_manual_coverage.php --changed --strict` (use `--fix` para esqueletos; revise em português).
 
 Não considere a entrega completa sem a documentação de ajuda alinhada ao comportamento implementado.

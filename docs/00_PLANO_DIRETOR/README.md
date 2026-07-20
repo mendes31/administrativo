@@ -109,6 +109,13 @@ storage privado. Política operacional e lista de exclusões:
 
 - [Deploy em produção](../DEPLOY_PRODUCAO.md)
 
+**Commits / pushes para `dev-master` ou `main`:** no máximo **100 ficheiros
+alterados por push**. Acima disso o pipeline abandona o deploy rápido (>150
+ficheiros) e, se o FTP incremental falhar, o fallback **lftp** pode reenviar
+grande parte do repositório e demorar cerca de **1 hora**. Preferir vários
+commits/pushes pequenos (código separado de lote documental, manuais em
+fatias). Detalhe operacional em [DEPLOY_PRODUCAO.md](../DEPLOY_PRODUCAO.md).
+
 Princípios 19 e 20 em
 [Princípios arquiteturais](../01_PRINCIPIOS/PRINCIPIOS_ARQUITETURAIS.md).
 

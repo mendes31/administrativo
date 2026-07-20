@@ -17,6 +17,7 @@ Sempre que criar ou alterar comportamento visível ao usuário (nova tela, novo 
 
 1. **Tópico da tela** — Atualizar ou criar `content/<modulo>/<topic-id>.html` em português, nesta ordem:
    - **`<h2>Função no sistema</h2>`** (obrigatório, logo após o `<h1>`) — resumo do papel da tela/função no fluxo do sistema, não só lista de campos;
+   - **Termos específicos** — se a tela usa jargão de negócio ou siglas (ex.: eNPS, Pulse, OKR, Nine Box, PDI), inclua uma secção curta (ex.: `<h2>O que significam os termos</h2>` ou entradas em Campos) com definição em português acessível; não assuma que o leitor já conhece o termo;
    - permissões (`Quem acessa`);
    - fluxo passo a passo;
    - campos/ações relevantes;
