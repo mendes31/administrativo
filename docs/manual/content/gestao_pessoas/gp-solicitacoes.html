@@ -1,28 +1,33 @@
-<h1>Solicitações RH</h1>
+<h1>Solicitações</h1>
 
 <h2>Função no sistema</h2>
-<p>Fluxos de solicitações (férias, benefícios, etc.) com aprovação em múltiplos níveis.</p>
+<p>Portal do colaborador + filas de aprovação + tipos com <strong>fluxo configurável por etapas</strong>.</p>
 
+<p><strong>Quem acessa:</strong> <em>ListEmployeeRequests</em>, <em>PendingApprovals</em>, <em>ListRequestTypes</em>, <em>ListApprovalDelegations</em>.</p>
 
-<p><strong>Quem acessa:</strong> colaboradores (<em>ListEmployeeRequests</em>) e aprovadores (<em>PendingApprovals</em>).</p>
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Como o fluxo funciona (resumo)</h2>
 <ol>
-<li>Configure <strong>tipos de solicitação</strong> em <strong>Gestão de Pessoas → Organização</strong>.</li>
-<li>Colaborador abre solicitação em <strong>Portal → Minhas Solicitações</strong>.</li>
-<li>Gestor/RH aprova em <strong>Solicitações (RH) → Aprovações Pendentes</strong>.</li>
-<li>RH finaliza se necessário.</li>
-<li>Histórico fica registrado na solicitação.</li>
+    <li>RH cadastra/edita o <strong>tipo</strong> e monta: <strong>1ª Etapa (gestor)</strong> e/ou <strong>2ª Etapa (RH)</strong>, mais exceções por nível.</li>
+    <li>Colaborador abre a solicitação no Portal.</li>
+    <li>Sistema atribui ao aprovador (imediato, delegado ou RH, conforme o tipo).</li>
+    <li>Sem resposta no SLA → escala até o limite → RH (se a etapa existir) ou finaliza.</li>
 </ol>
 
-<h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
-<div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
-<div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
+<h2>Onde configurar (não é na listagem de tipos)</h2>
+<p><strong>Gestão de Pessoas → Organização → Tipos de Solicitação → Editar</strong> → seção “Monte o fluxo por etapas”.</p>
+<p>Manual com exemplos A–E: tópico <em>Editar Tipo de Solicitação</em> (F1 nessa tela).</p>
+
+<h2>Telas relacionadas</h2>
+<ul>
+    <li><em>Aprovações Pendentes</em> — fila (para aprovar / acompanhar equipe).</li>
+    <li><em>Delegações de Aprovação</em> — substituto nas férias do gestor.</li>
+    <li><em>Minhas Solicitações</em> — abertura pelo colaborador.</li>
+</ul>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Solicitação sem aprovador</dt><dd>Gestor não cadastrado no usuário.</dd>
-<dt>Badge de pendências errado</dt><dd>Cache; atualize página.</dd>
-<dt>Tipo não aparece</dt><dd>Inativo ou sem permissão para o colaborador.</dd>
-<dt>Anexo obrigatório</dt><dd>Envie documento antes de submeter.</dd>
+    <dt>Manual da listagem não explica as regras</dt>
+    <dd>Correto: as regras estão no tópico <strong>Editar Tipo de Solicitação</strong>. Na listagem só há o caminho até o Editar.</dd>
+    <dt>Gestor de férias</dt>
+    <dd>Cadastre delegação ou aguarde escalação (CLI/cron).</dd>
 </dl>

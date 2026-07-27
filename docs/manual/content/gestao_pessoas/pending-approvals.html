@@ -1,30 +1,34 @@
 <h1>Aprovações Pendentes</h1>
 
 <h2>Função no sistema</h2>
-<p>Tela <strong>Aprovações Pendentes</strong> do módulo Gestão de Pessoas. Use o fluxo e os campos descritos abaixo para operar o recurso.</p>
+<p>Fila de solicitações aguardando aprovação do <strong>gestor/delegado</strong> ou do <strong>RH</strong>. Gestores de área também podem <strong>acompanhar</strong> a equipe (árvore de subordinados) sem necessariamente serem o aprovador da etapa.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Solicitações</em> (<code>gp-solicitacoes</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral:</strong> consulte <em>Solicitações</em> (<code>gp-solicitacoes</code>) e o Expand <em>Workflow de solicitações</em>.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>PendingApprovals</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>PendingApprovals</em>. Super Admin vê a fila do RH. Gestores/delegados veem a etapa do gestor.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Acesse <strong>Gestão de Pessoas → Solicitações (RH) → Aprovações Pendentes</strong>.</li>
-    <li>Use os filtros e ações da tela conforme sua permissão.</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Se for gestor, escolha <strong>Para aprovar</strong> (você é o aprovador atual ou substituto) ou <strong>Acompanhar equipe</strong> (toda a árvore abaixo de você).</li>
+    <li>Abra a solicitação e aprove/rejeite quando for o aprovador da etapa.</li>
+    <li>Use <strong>Delegações de Aprovação</strong> se estiver ausente (férias etc.).</li>
 </ol>
 
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<h2>Ausência do gestor imediato</h2>
+<ol>
+    <li><strong>Delegação</strong> vigente: o substituto aprova no lugar do gestor.</li>
+    <li>Sem ação no SLA da etapa (padrão 72h): escala automaticamente para o nível acima.</li>
+    <li>Sem nível acima: a solicitação segue para o RH.</li>
+</ol>
+<p>A escalação automática roda via CLI <code>php scripts/employee_request_escalate.php</code> (agendar no cron).</p>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>PendingApprovals</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Não vejo solicitações da equipe do coordenador</dt>
+    <dd>Use a aba <em>Acompanhar equipe</em>. A aba <em>Para aprovar</em> só lista o que está atribuído a você (ou via delegação).</dd>
+    <dt>O imediato está de férias e nada anda</dt>
+    <dd>Cadastre uma delegação ou aguarde o SLA de escalação (e confirme que o cron/CLI está agendado).</dd>
+    <dt>Não vejo o menu</dt>
+    <dd>Permissão <em>PendingApprovals</em> ausente no nível de acesso.</dd>
 </dl>

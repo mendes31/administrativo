@@ -5,23 +5,23 @@ namespace App\adms\Controllers\portal;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
-use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\EmployeeRequestWorkflowService;
 
 /**
- * Controller para gestor aprovar/rejeitar solicitações
+ * Controller para gestor aprovar/rejeitar solicitações (imediato, delegado ou escalado).
  */
 class ApproveEmployeeRequestManager
 {
     public function index(int|string $id): void
     {
-        if (!(int)$id) {
+        if (!(int) $id) {
             $_SESSION['error'] = 'Solicitação não encontrada.';
             header("Location: {$_ENV['URL_ADM']}list-employee-requests");
             return;
         }
 
         $repository = new EmployeeRequestsRepository();
-        $request = $repository->getById((int)$id);
+        $request = $repository->getById((int) $id);
 
         if (!$request) {
             $_SESSION['error'] = 'Solicitação não encontrada.';
@@ -29,17 +29,15 @@ class ApproveEmployeeRequestManager
             return;
         }
 
-        // Verificar se o usuário é o gestor do colaborador
-        $userId = $_SESSION['user_id'] ?? 0;
-        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
-        
-        if (!$isSuperAdmin && $request['immediate_supervisor_id'] != $userId) {
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        $workflow = new EmployeeRequestWorkflowService();
+
+        if (!$workflow->canActAsManager($request, $userId)) {
             $_SESSION['error'] = 'Você não tem permissão para aprovar esta solicitação.';
             header("Location: {$_ENV['URL_ADM']}view-employee-request/{$id}");
             return;
         }
 
-        // Verificar se está no status correto
         if ($request['status'] !== 'pending_manager_approval') {
             $_SESSION['error'] = 'Esta solicitação não está aguardando aprovação do gestor.';
             header("Location: {$_ENV['URL_ADM']}view-employee-request/{$id}");
@@ -48,8 +46,7 @@ class ApproveEmployeeRequestManager
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $action = $_POST['action'] ?? '';
-            
-            // Validar CSRF
+
             if (!CSRFHelper::validateCSRFToken('form_approve_request_manager', $_POST['csrf_token'] ?? '')) {
                 $_SESSION['error'] = 'Token de segurança inválido. Tente novamente.';
                 header("Location: {$_ENV['URL_ADM']}view-employee-request/{$id}");
@@ -57,25 +54,39 @@ class ApproveEmployeeRequestManager
             }
 
             if ($action === 'approve') {
-                if ($repository->approveByManager((int)$id, $userId)) {
-                    $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Solicitação aprovada pelo gestor! Agora aguarda aprovação do RH.</div>';
-                    GenerateLog::generateLog("info", "Solicitação aprovada pelo gestor.", ['request_id' => $id, 'manager_id' => $userId]);
+                $result = $workflow->approveManagerStep((int) $id, $userId);
+                if ($result['ok']) {
+                    $_SESSION['msg'] = '<div class="alert alert-success" role="alert">'
+                        . htmlspecialchars($result['message'])
+                        . '</div>';
+                    GenerateLog::generateLog('info', 'Solicitação aprovada pelo gestor.', [
+                        'request_id' => $id,
+                        'manager_id' => $userId,
+                        'via_delegation' => $result['via_delegation'],
+                    ]);
                 } else {
-                    $_SESSION['error'] = 'Erro ao aprovar solicitação.';
+                    $_SESSION['error'] = $result['message'];
                 }
             } elseif ($action === 'reject') {
                 $reason = trim($_POST['rejection_reason'] ?? '');
-                if (empty($reason)) {
+                if ($reason === '') {
                     $_SESSION['error'] = 'Motivo da rejeição é obrigatório.';
                     header("Location: {$_ENV['URL_ADM']}view-employee-request/{$id}");
                     return;
                 }
 
-                if ($repository->rejectByManager((int)$id, $userId, $reason)) {
-                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Solicitação rejeitada pelo gestor.</div>';
-                    GenerateLog::generateLog("info", "Solicitação rejeitada pelo gestor.", ['request_id' => $id, 'manager_id' => $userId, 'reason' => $reason]);
+                $result = $workflow->rejectManagerStep((int) $id, $userId, $reason);
+                if ($result['ok']) {
+                    $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">'
+                        . htmlspecialchars($result['message'])
+                        . '</div>';
+                    GenerateLog::generateLog('info', 'Solicitação rejeitada pelo gestor.', [
+                        'request_id' => $id,
+                        'manager_id' => $userId,
+                        'reason' => $reason,
+                    ]);
                 } else {
-                    $_SESSION['error'] = 'Erro ao rejeitar solicitação.';
+                    $_SESSION['error'] = $result['message'];
                 }
             }
         }
@@ -83,4 +94,3 @@ class ApproveEmployeeRequestManager
         header("Location: {$_ENV['URL_ADM']}view-employee-request/{$id}");
     }
 }
-

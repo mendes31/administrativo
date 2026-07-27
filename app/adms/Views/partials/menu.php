@@ -1123,6 +1123,16 @@ $menus = [
                             'list-pending-manager-approvals',
                         ],
                     ],
+                    [
+                        'label' => 'Delegações de Aprovação',
+                        'url' => $_ENV['URL_ADM'] . 'list-approval-delegations',
+                        'permission' => 'ListApprovalDelegations',
+                        'icon' => 'fas fa-user-clock',
+                        'related_routes' => [
+                            'list-approval-delegations', 'create-approval-delegation',
+                            'delete-approval-delegation',
+                        ],
+                    ],
                 ],
             ],
             [

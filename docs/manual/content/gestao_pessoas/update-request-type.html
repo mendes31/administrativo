@@ -1,30 +1,97 @@
-<h1>Editar Tipo de Solicitação</h1>
+<h1>Editar Tipo de Solicitação — fluxo por etapas</h1>
 
 <h2>Função no sistema</h2>
-<p>Altera um registro existente de <strong>Editar Tipo de Solicitação</strong>. Mudanças em campos de status ou vínculos podem afetar menu, permissões ou integrações.</p>
+<p>Aqui você <strong>monta o fluxo de aprovação etapa a etapa</strong> daquele tipo: ordem das etapas, quem aprova em cada uma, SLA e quem pode pular o gestor imediato.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Solicitações</em> (<code>gp-solicitacoes</code>) para o fluxo completo da área.</p>
+<p><strong>Quem acessa:</strong> <em>UpdateRequestType</em>.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>UpdateRequestType</em>.</p>
-
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Ideia geral (como montar)</h2>
 <ol>
-    <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Altere apenas os campos necessários; observe campos que afetam permissões ou integrações.</li>
-    <li>Salve as alterações e confira a mensagem de retorno.</li>
-    <li>Teste com um usuário do perfil impactado (logout/login) se mudou permissões ou status.</li>
+    <li>Role até <strong>Fluxo de aprovação</strong>.</li>
+    <li>Para cada etapa, escolha <strong>quem aprova</strong> (veja o significado abaixo).</li>
+    <li>Use <strong>Adicionar etapa</strong> / lixeira para montar a sequência.</li>
+    <li>Acompanhe a <strong>pré-visualização</strong> no topo do fluxo.</li>
+    <li>Opcional: em <em>Exceções</em>, marque níveis que pulam o gestor do solicitante.</li>
+    <li>Salve o tipo.</li>
+</ol>
+<p>É obrigatório ter <strong>pelo menos uma</strong> etapa.</p>
+
+<h2>O que cada tipo significa (importante)</h2>
+<ul>
+    <li><strong>Gestor na hierarquia</strong> — sobe N níveis a partir de <em>quem abriu a solicitação</em>: 1º = gestor imediato (André), 2º = chefe do gestor (Nathiele). Cada etapa com nível diferente é uma aprovação obrigatória.</li>
+    <li><strong>Fila do RH</strong> — quem tem permissão para aprovar como RH. <em>Não</em> é escolha por cargo.</li>
+    <li><strong>Pessoa específica</strong> — você escolhe o usuário à mão.</li>
+</ul>
+<p><strong>Escalação por prazo</strong> (dentro da etapa) ≠ segunda etapa: a escalação só sobe se ninguém responder no SLA. Para André <em>e depois</em> Nathiele sempre, use duas etapas (níveis 1º e 2º).</p>
+
+<h2>Exemplos prontos</h2>
+
+<h3>Exemplo A — André → Nathiele → RH (obrigatório)</h3>
+<ol>
+    <li>Etapa 1: <strong>Gestor na hierarquia</strong> · nível <strong>1º</strong> (André).</li>
+    <li>Etapa 2: <strong>Gestor na hierarquia</strong> · nível <strong>2º</strong> (Nathiele).</li>
+    <li>Etapa 3: <strong>Fila do RH</strong>.</li>
+</ol>
+<p><strong>Resultado:</strong> o solicitante precisa da aprovação do André <em>e depois</em> da Nathiele (ambos obrigatórios), e só então vai ao RH. Isso é diferente da escalação por prazo (que só sobe se André não responder).</p>
+
+<h3>Exemplo B — Férias clássicas com escalação por prazo</h3>
+<ol>
+    <li>Etapa 1: gestor nível 1º · SLA 72h · máx. 1 nível · política “subir na hierarquia”.</li>
+    <li>Etapa 2: RH.</li>
+</ol>
+<p><strong>Resultado:</strong> Operador → André; se André não responder no prazo, sobe para Nathiele <em>dentro da mesma etapa</em> → depois RH.</p>
+
+<h3>Exemplo B — Mesmo tipo, mas gerente que reporta à diretoria</h3>
+<ol>
+    <li>Fluxo igual ao Exemplo A.</li>
+    <li>Em <em>Exceções</em>, marque o nível do <strong>Gerente</strong> (solicitante) ou o nível <strong>Diretor(a)</strong> (gestor).</li>
+</ol>
+<p><strong>Resultado:</strong> Gerente abre férias → pula o gestor → segue para a próxima etapa (RH).</p>
+
+<h3>Exemplo C — Só RH</h3>
+<ol>
+    <li>Uma única etapa: <strong>RH</strong> (remova as demais).</li>
 </ol>
 
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
+<h3>Exemplo D — Só gestor (sem RH)</h3>
+<ol>
+    <li>Uma única etapa: <strong>Gestor imediato</strong>.</li>
+</ol>
+<p><strong>Resultado:</strong> o gestor (ou delegado/escalado) aprova e a solicitação <strong>já fica aprovada</strong>.</p>
+
+<h3>Exemplo E — Gestor → pessoa fixa → RH</h3>
+<ol>
+    <li>Etapa 1: Gestor imediato.</li>
+    <li>Etapa 2: <strong>Usuário específico</strong> (ex.: coordenador de área).</li>
+    <li>Etapa 3: RH.</li>
+</ol>
+
+<h3>Exemplo F — Sem escalação automática</h3>
+<ol>
+    <li>Na etapa de gestor: SLA = <strong>0</strong> ou política <strong>Não escalar</strong>.</li>
+    <li>Use <em>Delegações de Aprovação</em> se o gestor estiver ausente.</li>
+</ol>
+
+<h2>Campos (o que cada um faz)</h2>
+<div class="help-field"><strong>Gestor na hierarquia</strong> Nível N acima de quem abriu: 1º = imediato (André), 2º = chefe do gestor (Nathiele). Cada etapa = aprovação obrigatória.</div>
+<div class="help-field"><strong>Fila do RH</strong> Aprovação pela permissão de RH — não por cargo.</div>
+<div class="help-field"><strong>Pessoa específica</strong> Usuário escolhido manualmente nesta etapa.</div>
+<div class="help-field"><strong>Escalação por prazo</strong> Só sobe se estourar o SLA — diferente de criar outra etapa com nível 2º.</div>
+<div class="help-field"><strong>Solicitantes que pulam o gestor</strong> Níveis do <em>quem pede</em> que saltam etapas de gestor imediato e seguem no fluxo.</div>
+<div class="help-field"><strong>Gestor imediato destes níveis</strong> Se o chefe imediato for Diretoria (etc.), essa etapa de gestor é pulada.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>UpdateRequestType</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Acho confuso / não vejo etapas</dt>
+    <dd>Você precisa estar em <strong>Editar</strong> o tipo. No painel direito: <em>Fluxo de aprovação</em>, com a pré-visualização no topo.</dd>
+    <dt>Duas etapas “gestor” — quem recebe?</dt>
+    <dd>As duas vão para o <strong>mesmo</strong> gestor (o de quem abriu o pedido). O sistema avisa na tela. Para o chefe do gestor, use escalação ou “Pessoa específica”.</dd>
+    <dt>Diretoria ainda recebe pedido</dt>
+    <dd>Marque o nível do Diretor em “Se o gestor imediato for destes níveis” <em>ou</em> o nível do solicitante em “Solicitantes que pulam”. Salve e teste com uma solicitação <strong>nova</strong>.</dd>
+    <dt>Erro pedindo ao menos uma etapa</dt>
+    <dd>Deixe pelo menos uma linha no editor; não remova todas.</dd>
+    <dt>Usuário específico some ao salvar</dt>
+    <dd>Etapas “usuário específico” sem pessoa selecionada são ignoradas. Escolha o aprovador e salve de novo.</dd>
+    <dt>Escalação não sobe</dt>
+    <dd>Confirme SLA &gt; 0, política ≠ “Não escalar”, e o job <code>php scripts/employee_request_escalate.php</code> no servidor.</dd>
 </dl>

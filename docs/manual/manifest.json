@@ -1338,6 +1338,16 @@
                     "file": "gestao_pessoas/pending-approvals.html"
                 },
                 {
+                    "id": "list-approval-delegations",
+                    "title": "Delegações de Aprovação",
+                    "file": "gestao_pessoas/list-approval-delegations.html"
+                },
+                {
+                    "id": "create-approval-delegation",
+                    "title": "Nova Delegação de Aprovação",
+                    "file": "gestao_pessoas/create-approval-delegation.html"
+                },
+                {
                     "id": "create-policy-category",
                     "title": "Cadastrar Categoria Política",
                     "file": "gestao_pessoas/create-policy-category.html"

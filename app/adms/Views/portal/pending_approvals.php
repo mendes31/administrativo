@@ -34,8 +34,22 @@ $roleLabel = match($userRole) {
                         Solicitações Pendentes
                     <?php endif; ?>
                 </span>
-                <span class="badge bg-<?= $userRole === 'manager' ? 'info' : 'primary' ?> fs-6">
-                    <?= $this->data['totalRecords'] ?? 0 ?> pendente(s)
+                <span class="ms-auto d-flex gap-2 align-items-center">
+                    <?php if ($userRole === 'manager'): ?>
+                        <?php $mode = $_GET['mode'] ?? 'action'; ?>
+                        <a href="<?= $_ENV['URL_ADM']; ?>pending-approvals?mode=action"
+                           class="btn btn-sm <?= $mode !== 'team' ? 'btn-info' : 'btn-outline-info' ?>">Para aprovar</a>
+                        <a href="<?= $_ENV['URL_ADM']; ?>pending-approvals?mode=team"
+                           class="btn btn-sm <?= $mode === 'team' ? 'btn-info' : 'btn-outline-info' ?>">Acompanhar equipe</a>
+                    <?php endif; ?>
+                    <?php if (in_array('ListApprovalDelegations', $this->data['buttonPermission'] ?? [], true)): ?>
+                        <a href="<?= $_ENV['URL_ADM']; ?>list-approval-delegations" class="btn btn-sm btn-outline-secondary">
+                            <i class="fas fa-user-clock me-1"></i>Delegações
+                        </a>
+                    <?php endif; ?>
+                    <span class="badge bg-<?= $userRole === 'manager' ? 'info' : 'primary' ?> fs-6">
+                        <?= $this->data['totalRecords'] ?? 0 ?> pendente(s)
+                    </span>
                 </span>
             </div>
         </div>

@@ -14,6 +14,7 @@
 ## Aceitos neste domínio
 
 - [ADR-0006 — Modelo físico Pessoa/Vínculo/Lotação](../../08_ADR/ADR-0006_MODELO_FISICO_IDENTIDADE.md)
+- [ADR-0007 — Workflow de solicitações (delegação/escalação)](../../08_ADR/ADR-0007_WORKFLOW_SOLICITACOES.md)
 
 ## Decisões que ainda exigirão ADR
 

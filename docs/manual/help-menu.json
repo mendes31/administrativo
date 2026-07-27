@@ -1386,6 +1386,16 @@
                             "title": "Aprovações Pendentes"
                         },
                         {
+                            "type": "topic",
+                            "topic_id": "list-approval-delegations",
+                            "title": "Delegações de Aprovação"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "create-approval-delegation",
+                            "title": "Nova Delegação de Aprovação"
+                        },
+                        {
                             "type": "group",
                             "label": "Minhas Solicitações",
                             "children": [

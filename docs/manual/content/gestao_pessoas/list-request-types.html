@@ -1,33 +1,31 @@
 <h1>Listar Tipos de Solicitação</h1>
 
 <h2>Função no sistema</h2>
-<p>Lista e filtra registros de <strong>Listar Tipos de Solicitação</strong> no módulo Gestão de Pessoas. Use esta tela para localizar itens, acessar visualização/edição e iniciar novos cadastros.</p>
+<p>Catálogo dos tipos que o colaborador pode abrir no Portal (férias, documento, etc.).
+<strong>O fluxo de aprovação de cada tipo se configura na tela Editar</strong> — não nesta listagem.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Solicitações</em> (<code>gp-solicitacoes</code>) para o fluxo completo da área.</p>
+<p class="help-note">Ajuda detalhada do fluxo: abra um tipo → <strong>Editar</strong> → pressione <kbd>F1</kbd> (tópico <em>Editar Tipo de Solicitação</em>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>ListRequestTypes</em>.</p>
+<p><strong>Quem acessa:</strong> <em>ListRequestTypes</em>.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Como chegar no fluxo (passo a passo)</h2>
 <ol>
-    <li>Acesse o menu <strong>Gestão de Pessoas → Organização</strong> e abra <strong>Tipos de Solicitação</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
-    <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
-    <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
-    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
+    <li>Menu <strong>Gestão de Pessoas → Organização → Tipos de Solicitação</strong>.</li>
+    <li>Na linha do tipo (ex.: Férias), clique em <strong>Editar</strong>.</li>
+    <li>Role até <strong>Monte o fluxo etapa a etapa</strong>, adicione/remova etapas e configure cada uma (gestor, RH ou usuário específico).</li>
+    <li>Salve. Novas solicitações desse tipo já usam o fluxo.</li>
 </ol>
 
-<h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
-<div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
-<div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
+<h2>O que esta tela faz</h2>
+<ul>
+    <li>Listar, filtrar e abrir cadastro/edição dos tipos.</li>
+    <li><strong>Não</strong> define etapas aqui — isso é no Editar.</li>
+</ul>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>ListRequestTypes</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>Não acho onde montar Etapa 1 / Etapa 2</dt>
+    <dd>Clique em <strong>Editar</strong> no tipo desejado (não use só esta listagem). Consulte o tópico <em>Editar Tipo de Solicitação</em> no menu ao lado.</dd>
+    <dt>Sem permissão</dt>
+    <dd>Falta <em>ListRequestTypes</em> / <em>UpdateRequestType</em> no nível de acesso.</dd>
 </dl>

@@ -5,6 +5,7 @@ namespace App\adms\Controllers\portal;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestWorkflowService;
 
 /**
  * Controller para RH aprovar/rejeitar solicitações
@@ -56,11 +57,15 @@ class ApproveEmployeeRequestHR
             }
 
             if ($action === 'approve') {
-                if ($repository->approveByHR((int)$id, $userId)) {
-                    $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Solicitação aprovada pelo RH!</div>';
+                $workflow = new EmployeeRequestWorkflowService();
+                $result = $workflow->approveHrStep((int) $id, (int) $userId);
+                if (!empty($result['ok'])) {
+                    $_SESSION['msg'] = '<div class="alert alert-success" role="alert">'
+                        . htmlspecialchars((string) ($result['message'] ?? 'Solicitação aprovada pelo RH!'))
+                        . '</div>';
                     GenerateLog::generateLog("info", "Solicitação aprovada pelo RH.", ['request_id' => $id, 'hr_id' => $userId]);
                 } else {
-                    $_SESSION['error'] = 'Erro ao aprovar solicitação.';
+                    $_SESSION['error'] = (string) ($result['message'] ?? 'Erro ao aprovar solicitação.');
                 }
             } elseif ($action === 'reject') {
                 $reason = trim($_POST['rejection_reason'] ?? '');

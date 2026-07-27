@@ -153,11 +153,25 @@ use App\adms\Helpers\FormatHelper;
             $request = $this->data['request'];
             $userId = $_SESSION['user_id'] ?? 0;
             $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
-            $isManager = !$isSuperAdmin && !empty($request['immediate_supervisor_id']) && $request['immediate_supervisor_id'] == $userId;
-            $canApproveAsManager = ($request['status'] === 'pending_manager_approval') && ($isSuperAdmin || $isManager);
-            $canApproveAsHR = ($request['status'] === 'pending_hr_approval') && $isSuperAdmin; // TODO: Adicionar verificação de permissão RH
+            $canApproveAsManager = !empty($this->data['can_approve_as_manager']);
+            $canApproveAsHR = ($request['status'] === 'pending_hr_approval') && $isSuperAdmin;
             ?>
             
+            <?php if (!empty($request['current_approver_name']) && $request['status'] === 'pending_manager_approval'): ?>
+                <div class="alert alert-info py-2">
+                    Aprovador atual:
+                    <strong><?= htmlspecialchars($request['current_approver_name']) ?></strong>
+                    <?php if (!empty($request['original_approver_name'])
+                        && $request['original_approver_name'] !== $request['current_approver_name']): ?>
+                        <span class="text-muted">(original: <?= htmlspecialchars($request['original_approver_name']) ?>)</span>
+                    <?php endif; ?>
+                    <?php if (!empty($request['escalate_after_hours']) && !empty($request['stage_started_at'])): ?>
+                        · SLA <?= (int) $request['escalate_after_hours'] ?>h desde
+                        <?= date('d/m/Y H:i', strtotime($request['stage_started_at'])) ?>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if ($request['requires_manager_approval'] || $request['status'] === 'pending_hr_approval' || $request['status'] === 'approved'): ?>
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
@@ -242,6 +256,31 @@ use App\adms\Helpers\FormatHelper;
                     <div class="p-3 bg-danger bg-opacity-10 rounded border border-danger">
                         <?= nl2br(htmlspecialchars($this->data['request']['rejection_reason'])) ?>
                     </div>
+                </div>
+            <?php endif; ?>
+
+            <?php $events = $this->data['approval_events'] ?? []; ?>
+            <?php if (!empty($events)): ?>
+                <div class="mb-3">
+                    <h5><i class="fas fa-history me-2"></i>Histórico do workflow</h5>
+                    <ul class="list-group list-group-flush">
+                        <?php foreach ($events as $ev): ?>
+                            <li class="list-group-item px-0">
+                                <span class="badge bg-secondary me-1"><?= htmlspecialchars($ev['action'] ?? '') ?></span>
+                                <?php if (!empty($ev['stage_code'])): ?>
+                                    <code class="me-1"><?= htmlspecialchars($ev['stage_code']) ?></code>
+                                <?php endif; ?>
+                                <?= htmlspecialchars($ev['actor_name'] ?? 'sistema') ?>
+                                <?php if (!empty($ev['on_behalf_name'])): ?>
+                                    <span class="text-muted">(em nome de <?= htmlspecialchars($ev['on_behalf_name']) ?>)</span>
+                                <?php endif; ?>
+                                <small class="text-muted ms-2"><?= date('d/m/Y H:i', strtotime($ev['created_at'])) ?></small>
+                                <?php if (!empty($ev['notes'])): ?>
+                                    <div class="small text-muted"><?= htmlspecialchars($ev['notes']) ?></div>
+                                <?php endif; ?>
+                            </li>
+                        <?php endforeach; ?>
+                    </ul>
                 </div>
             <?php endif; ?>
         </div>

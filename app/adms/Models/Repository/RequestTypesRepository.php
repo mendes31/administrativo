@@ -83,6 +83,39 @@ class RequestTypesRepository extends DbConnection
     }
 
     /**
+     * @param mixed $raw
+     * @return list<int>
+     */
+    public static function decodeLevelIds(mixed $raw): array
+    {
+        if (is_array($raw)) {
+            return array_values(array_unique(array_filter(array_map('intval', $raw))));
+        }
+        if (!is_string($raw) || trim($raw) === '') {
+            return [];
+        }
+        $decoded = json_decode($raw, true);
+        if (!is_array($decoded)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(array_map('intval', $decoded))));
+    }
+
+    /**
+     * @param mixed $ids
+     */
+    public static function encodeLevelIds(mixed $ids): ?string
+    {
+        $clean = self::decodeLevelIds($ids);
+        if ($clean === []) {
+            return null;
+        }
+
+        return json_encode($clean, JSON_UNESCAPED_UNICODE);
+    }
+
+    /**
      * Criar tipo
      */
     public function create(array $data): int
@@ -131,16 +164,31 @@ class RequestTypesRepository extends DbConnection
     {
         $allowedFields = [
             'code', 'name', 'description', 'requires_responsible', 'default_responsible_user_id',
-            'requires_quantity', 'is_active'
+            'requires_quantity', 'is_active',             'requires_manager_approval', 'requires_hr_approval', 'requires_dates',
+            'requires_days', 'requires_amount', 'icon', 'color', 'status', 'sort_order',
+            'skip_immediate_requester_level_ids', 'skip_immediate_supervisor_level_ids',
         ];
         
         $updates = [];
         $params = [':id' => $id];
         
         foreach ($allowedFields as $field) {
-            if (isset($data[$field])) {
+            if (array_key_exists($field, $data)) {
                 $updates[] = "$field = :$field";
-                $params[":$field"] = $data[$field];
+                if (in_array($field, [
+                    'requires_responsible', 'requires_quantity', 'is_active',
+                    'requires_manager_approval', 'requires_hr_approval', 'requires_dates', 'requires_days',
+                    'requires_amount', 'status',
+                ], true)) {
+                    $params[":$field"] = !empty($data[$field]) ? 1 : 0;
+                } elseif (in_array($field, [
+                    'skip_immediate_requester_level_ids',
+                    'skip_immediate_supervisor_level_ids',
+                ], true)) {
+                    $params[":$field"] = self::encodeLevelIds($data[$field]);
+                } else {
+                    $params[":$field"] = $data[$field];
+                }
             }
         }
         
@@ -174,6 +222,20 @@ class RequestTypesRepository extends DbConnection
                     'UPDATE',
                     $oldRow,
                     $newRow
+                );
+            }
+
+            if (array_key_exists('requires_manager_approval', $data)
+                || array_key_exists('requires_hr_approval', $data)
+            ) {
+                $row = $this->getById($id) ?: [];
+                $stagesRepo = new RequestTypeStagesRepository();
+                $stagesRepo->ensureStagesForType(
+                    $id,
+                    !empty($data['requires_manager_approval'] ?? $row['requires_manager_approval']),
+                    array_key_exists('requires_hr_approval', $data)
+                        ? !empty($data['requires_hr_approval'])
+                        : !empty($row['requires_hr_approval'] ?? true)
                 );
             }
         }
@@ -218,5 +280,21 @@ class RequestTypesRepository extends DbConnection
         }
 
         return $ok;
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function getSkipImmediateRequesterLevelIds(array $type): array
+    {
+        return self::decodeLevelIds($type['skip_immediate_requester_level_ids'] ?? null);
+    }
+
+    /**
+     * @return list<int>
+     */
+    public function getSkipImmediateSupervisorLevelIds(array $type): array
+    {
+        return self::decodeLevelIds($type['skip_immediate_supervisor_level_ids'] ?? null);
     }
 }
