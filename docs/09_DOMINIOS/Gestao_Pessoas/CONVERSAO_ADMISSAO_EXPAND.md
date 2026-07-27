@@ -10,6 +10,13 @@ Converter oferta **aceita** em colaborador do Portal de forma explícita e
 auditável, sem unificação automática por e-mail/CPF e sem inventar tabelas
 Pessoa/Vínculo físicas antes do Expand de identidade (ADR-0002).
 
+## Garantia: não é o único caminho
+
+A conversão ATS é **opcional**. Continua válido cadastrar ou importar usuário
+sem processo seletivo (`CreateUser` / `ImportUsers`). O modo `vincular` existe
+justamente para associar um candidato a uma conta já criada manualmente.
+Histórico de passagens permanece em `adms_employment_history`.
+
 ## Decisão deste incremento
 
 - Destino da conversão: `adms_users` (fachada atual de Pessoa+Conta+Vínculo).

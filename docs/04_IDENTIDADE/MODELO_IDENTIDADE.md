@@ -18,6 +18,29 @@ Colaborador ativo (Portal) ── 1:1 ── Conta de acesso
 Manter conta para colaboradores não é o problema. O problema é a tabela acumular
 responsabilidades distintas na mesma entidade.
 
+## Garantias operacionais (Tiaraju)
+
+Enquanto a relação operacional for 1:1 entre colaborador e acesso ao Portal:
+
+1. **`adms_users` permanece a entidade principal do colaborador** (fachada Conta +
+   dados legados). O Contract físico (remover campos / migrar FKs para
+   Pessoa/Vínculo) **só** ocorre se surgir requisito real que a fachada não atenda.
+2. **Cadastro manual e importação continuam válidos** (`CreateUser`, `ImportUsers`).
+   Não é obrigatório passar por processo seletivo para criar colaborador.
+3. **Histórico de passagens** permanece em `adms_employment_history` (admissão,
+   desligamento, recontratação), independente da origem do cadastro.
+4. **Pré-contratação** (candidato, entrevistas, oferta, pré-admissão) vive no
+   módulo GP/Talentos (`rh_candidatos` e correlatos), **sem** conta de Portal.
+5. **Conversão oferta → colaborador** é um caminho **adicional** (criar conta ou
+   vincular a usuário já existente), não o único.
+
+```text
+Caminhos legítimos para adms_users
+├── CreateUser / ImportUsers          (manual / lote — sempre disponível)
+├── Conversão ATS (criar | vincular)  (quando houver processo seletivo)
+└── Recontratação / histórico         (adms_employment_history)
+```
+
 ## Problema atual
 
 `adms_users` centraliza corretamente o acesso dos colaboradores, mas acumula, na

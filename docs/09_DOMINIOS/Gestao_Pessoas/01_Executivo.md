@@ -29,7 +29,10 @@ pelo gate do [Plano Diretor](../../00_PLANO_DIRETOR/README.md).
   - matching Nine Box→PDI (1º incremento: PDI rascunho a partir do quadrante);
 - Treinamentos e Folha Digital permanecem entre os blocos mais maduros;
 - Portal e analytics ainda parciais;
-- `adms_users` ainda concentra conta + vínculo; Contract de identidade pendente.
+- `adms_users` permanece fachada do colaborador (1:1 com Portal); Contract
+  físico de identidade **adiado** até requisito real ([ADR-0002](../../08_ADR/ADR-0002_PESSOA_E_CONTA.md));
+- cadastro manual / importação / histórico de emprego **coexistem** com a
+  conversão ATS (não é obrigatório passar por processo seletivo).
 
 ## Benefícios esperados
 
