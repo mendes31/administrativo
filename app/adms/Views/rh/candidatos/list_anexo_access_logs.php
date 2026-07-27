@@ -3,6 +3,7 @@ $getParams = $_GET;
 unset($getParams['url']);
 $queryString = http_build_query($getParams);
 $canExport = in_array('ExportRhCandidatoAnexoAccessLogsExcel', $this->data['buttonPermission'] ?? [], true);
+$canExportPdf = in_array('ExportRhCandidatoAnexoAccessLogsPdf', $this->data['buttonPermission'] ?? [], true);
 $filtros = $this->data['filtros'] ?? [];
 $logs = $this->data['logs'] ?? [];
 $total = (int) ($this->data['total_registros'] ?? 0);
@@ -85,6 +86,10 @@ $base = $_ENV['URL_ADM'] ?? '';
                     <?php if ($canExport): ?>
                         <a href="<?= htmlspecialchars($base) ?>export-rh-candidato-anexo-access-logs-excel?<?= htmlspecialchars($queryString) ?>"
                            class="btn btn-success btn-sm"><i class="fas fa-file-excel me-1"></i>Excel</a>
+                    <?php endif; ?>
+                    <?php if ($canExportPdf): ?>
+                        <a href="<?= htmlspecialchars($base) ?>export-rh-candidato-anexo-access-logs-pdf?<?= htmlspecialchars($queryString) ?>"
+                           class="btn btn-danger btn-sm"><i class="fas fa-file-pdf me-1"></i>PDF</a>
                     <?php endif; ?>
                 </div>
             </form>

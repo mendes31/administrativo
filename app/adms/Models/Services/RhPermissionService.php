@@ -11,7 +11,7 @@ use App\adms\Models\Repository\RhVagasRepository;
  * Regras gerais:
  * - Super Admin (access_level_id = 1) sempre tem acesso total.
  * - Usuário responsável pela vaga (responsavel_id) pode editar/vincular/mover pipeline dessa vaga.
- * - Gestores (mesma lógica de hierarquia do CRM) também podem gerenciar vagas do seu time/área.
+ * - Gestores CRM só gerenciam vagas do seu time (responsável na árvore) ou da mesma área (area_id).
  */
 class RhPermissionService extends DbConnection
 {
@@ -79,6 +79,43 @@ class RhPermissionService extends DbConnection
     }
 
     /**
+     * Gestor com relação real à vaga: mesma área (departamento) OU responsável
+     * na árvore de subordinados (inclui o próprio usuário como responsável).
+     * Fail-closed quando não há área nem responsável na equipe.
+     *
+     * @param array<string, mixed> $vaga
+     */
+    public static function isManagerOfVaga(array $vaga): bool
+    {
+        if (!self::isManager()) {
+            return false;
+        }
+
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $areaId = (int) ($vaga['area_id'] ?? 0);
+        $userDeptId = (int) ($_SESSION['user_department_id'] ?? 0);
+        if ($areaId > 0 && $userDeptId > 0 && $areaId === $userDeptId) {
+            return true;
+        }
+
+        $responsavelId = (int) ($vaga['responsavel_id'] ?? 0);
+        if ($responsavelId <= 0) {
+            return false;
+        }
+        if ($responsavelId === $userId) {
+            return true;
+        }
+
+        $subordinates = \App\adms\Models\Services\CrmPermissionService::getAllSubordinates($userId);
+
+        return in_array($responsavelId, $subordinates, true);
+    }
+
+    /**
      * Verifica se o usuário pode editar os dados da vaga.
      */
     public static function canEditVaga(array $vaga): bool
@@ -91,7 +128,7 @@ class RhPermissionService extends DbConnection
             return true;
         }
 
-        if (self::isManager()) {
+        if (self::isManagerOfVaga($vaga)) {
             return true;
         }
 

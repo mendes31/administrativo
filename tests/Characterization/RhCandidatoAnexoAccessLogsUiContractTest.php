@@ -17,8 +17,14 @@ final class RhCandidatoAnexoAccessLogsUiContractTest extends TestCase
         self::assertStringContainsString('ExportRhCandidatoAnexoAccessLogsExcel', $m);
         self::assertStringContainsString('ListLogAcessos', $m);
 
+        $pdfMig = $this->read(
+            'database/migrations/20260727150000_register_rh_candidato_anexo_access_logs_pdf_export.php'
+        );
+        self::assertStringContainsString('ExportRhCandidatoAnexoAccessLogsPdf', $pdfMig);
+
         self::assertFileExists(PROJECT_ROOT . '/app/adms/Controllers/rh/ListRhCandidatoAnexoAccessLogs.php');
         self::assertFileExists(PROJECT_ROOT . '/app/adms/Controllers/rh/ExportRhCandidatoAnexoAccessLogsExcel.php');
+        self::assertFileExists(PROJECT_ROOT . '/app/adms/Controllers/rh/ExportRhCandidatoAnexoAccessLogsPdf.php');
         self::assertFileExists(PROJECT_ROOT . '/app/adms/Views/rh/candidatos/list_anexo_access_logs.php');
     }
 

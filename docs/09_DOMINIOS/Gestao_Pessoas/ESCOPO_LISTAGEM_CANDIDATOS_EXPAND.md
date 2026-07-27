@@ -20,7 +20,8 @@ Migration `20260727130000_contract_rh_candidatos_view_all_scope.php`:
 - **Mantém** ViewAll em níveis RH / DP / Super Admin.
 - **Revoga** nos demais (filtro `related` passa a valer).
 
-Pendência conhecida: restringir bypass de gestor CRM por área/equipe (matriz).
+Pendência conhecida: nenhuma no Contract ViewAll; bypass de gestor CRM na ficha
+usa `isManagerOfVaga` (área ou time do responsável), não mais gestor global.
 
 ## Alinhamento objeto × listagem
 

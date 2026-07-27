@@ -268,6 +268,7 @@
     "rh-candidatos": "rh-candidatos",
     "list-rh-candidato-anexo-access-logs": "list-rh-candidato-anexo-access-logs",
     "export-rh-candidato-anexo-access-logs-excel": "list-rh-candidato-anexo-access-logs",
+    "export-rh-candidato-anexo-access-logs-pdf": "list-rh-candidato-anexo-access-logs",
     "rh-candidatos-create": "rh-candidatos-create",
     "rh-candidatos-delete": "rh-candidatos",
     "rh-candidatos-download-anexo": "rh-candidatos-view",

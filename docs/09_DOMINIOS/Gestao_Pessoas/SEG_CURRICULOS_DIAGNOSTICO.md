@@ -34,7 +34,7 @@
 | A3 | Sem FK/cascade | **Corrigido** (migration) |
 | A4 | Consentimento automático sem evidência | **Corrigido** (checkbox + termo + registro) |
 | M1–M4 | Anonimização/nome/enctype/storage | **Corrigido** / dual-read privado |
-| L1 | Sem log de download | **Corrigido** (`rh_candidato_anexo_access_logs`; UI posterior) |
+| L1 | Sem log de download | **Corrigido** (`rh_candidato_anexo_access_logs`; UI listagem + Excel + PDF) |
 
 ## Deploy / produção
 

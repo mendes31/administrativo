@@ -54,7 +54,10 @@ class ListRhCandidatoAnexoAccessLogs
         $pageElements = [
             'title_head' => 'Log de download de currículos',
             'menu' => 'list-rh-candidato-anexo-access-logs',
-            'buttonPermission' => ['ExportRhCandidatoAnexoAccessLogsExcel'],
+            'buttonPermission' => [
+                'ExportRhCandidatoAnexoAccessLogsExcel',
+                'ExportRhCandidatoAnexoAccessLogsPdf',
+            ],
         ];
         $pageLayoutService = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayoutService->configurePageElements($pageElements));

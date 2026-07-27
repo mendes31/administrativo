@@ -31,7 +31,7 @@ Diagnósticos:
 
 - [x] matriz de autorização de Talentos ([MATRIZ_AUTORIZACAO_TALENTOS.md](MATRIZ_AUTORIZACAO_TALENTOS.md));
 - [x] catálogo de eventos de Talentos ([CATALOGO_EVENTOS_TALENTOS.md](CATALOGO_EVENTOS_TALENTOS.md));
-- [x] policies/escopos de listagem — piloto vagas + entrevistas + candidatos ([ESCOPO_LISTAGEM_VAGAS_EXPAND.md](ESCOPO_LISTAGEM_VAGAS_EXPAND.md), [ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md](ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md), [ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md); **Contract aplicado** nos três — lacuna restante: gestor CRM por área);
+- [x] policies/escopos de listagem — piloto vagas + entrevistas + candidatos ([ESCOPO_LISTAGEM_VAGAS_EXPAND.md](ESCOPO_LISTAGEM_VAGAS_EXPAND.md), [ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md](ESCOPO_LISTAGEM_ENTREVISTAS_EXPAND.md), [ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md](ESCOPO_LISTAGEM_CANDIDATOS_EXPAND.md); **Contract aplicado**; gestor CRM restringido por área/time via `isManagerOfVaga`);
 - [x] outbox + emissão dos eventos de entrevista e consumo pelo worker SMTP —
   [COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md);
 - [x] ADRs das correções estruturais de Fase 0 / 0.5 ([ADR-0003](../../08_ADR/ADR-0003_STORAGE_PRIVADO_CURRICULOS.md), [ADR-0004](../../08_ADR/ADR-0004_ESCOPO_VIEWALL_ATS.md)).

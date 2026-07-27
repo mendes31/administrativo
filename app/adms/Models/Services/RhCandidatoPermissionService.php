@@ -14,7 +14,7 @@ use PDO;
  * Permite:
  * - Super Admin;
  * - operadores com RhCandidatosViewAll (banco completo — alinhado à listagem);
- * - gestores (mesma regra do CRM/RH);
+ * - gestores CRM com relação à vaga vinculada (área ou time do responsável);
  * - responsável de qualquer vaga vinculada ao candidato.
  *
  * Expand: ACL operacional (RhCandidatos*) não abre mais qualquer ficha;
@@ -42,7 +42,7 @@ final class RhCandidatoPermissionService
             return true;
         }
 
-        if (RhPermissionService::isManager()) {
+        if (self::isManagerOfAnyVagaDoCandidato($candidatoId)) {
             return true;
         }
 
@@ -73,6 +73,35 @@ final class RhCandidatoPermissionService
         $id = (int) $m[1];
 
         return $id > 0 ? $id : null;
+    }
+
+    private static function isManagerOfAnyVagaDoCandidato(int $candidatoId): bool
+    {
+        if (!RhPermissionService::isManager()) {
+            return false;
+        }
+
+        try {
+            $repo = new RhVagasRepository();
+            $pdo = $repo->getConnection();
+            $sql = 'SELECT v.id, v.area_id, v.responsavel_id
+                    FROM rh_candidatos_vagas cv
+                    INNER JOIN rh_vagas v ON v.id = cv.rh_vaga_id
+                    WHERE cv.rh_candidato_id = :candidato_id';
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            foreach ($rows as $vaga) {
+                if (RhPermissionService::isManagerOfVaga($vaga)) {
+                    return true;
+                }
+            }
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return false;
     }
 
     private static function isResponsavelDeVagaDoCandidato(int $candidatoId, int $userId): bool

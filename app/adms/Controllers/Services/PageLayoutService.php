@@ -125,6 +125,7 @@ class PageLayoutService
             'ListLogAcessos',
             'ListRhCandidatoAnexoAccessLogs',
             'ExportRhCandidatoAnexoAccessLogsExcel',
+            'ExportRhCandidatoAnexoAccessLogsPdf',
             'ListConnectedUsers',
             'ListDatabaseTables',
             'ViewDatabaseTable',

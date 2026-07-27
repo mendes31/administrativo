@@ -22,7 +22,7 @@ Migration `20260727120000_contract_rh_vagas_view_all_scope.php`:
 - Detalhe da vaga (`RhVagasView`) exige `canViewVaga` (ViewAll / Super / responsável).
 - Lista de candidatos disponíveis para vínculo na view respeita `resolveCandidatosListScope`.
 
-Pendências: Contract de Entrevistas/Candidatos; escopo de gestor por área/equipe.
+Pendências: nenhuma no Contract ViewAll; gestor CRM restrito por área/time (`isManagerOfVaga`).
 
 ## Migrations
 

@@ -44,6 +44,8 @@ deploy.
 
 ### Negativas e riscos
 
-- gestores CRM ainda acessam fichas sem filtro de área (lacuna conhecida);
+- gestores CRM ainda acessam fichas **somente** se a vaga vinculada for da área
+  (`user_department_id`) ou o responsável estiver na árvore de subordinados
+  (`isManagerOfVaga`);
 - Contract exige decisão de negócio por perfil antes de revogar ViewAll;
 - páginas ViewAll não têm controller físico (só ACL).
