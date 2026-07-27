@@ -29,7 +29,9 @@
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Só vejo minhas vagas</dt>
-    <dd>Falta a permissão <em>RhVagasViewAll</em> no nível de acesso. Após a migration de escopo, quem já tinha <em>RhVagas</em> recebe ViewAll automaticamente; se foi removida depois, solicite a inclusão.</dd>
+    <dd>Falta a permissão <em>RhVagasViewAll</em> no nível de acesso. Níveis de RH/DP costumam mantê-la; gestores e outros perfis podem ter tido a permissão revogada pelo Contract (filtro por responsável). Solicite inclusão no pacote se precisar ver todas.</dd>
+    <dt>Abri o link da vaga e fui barrado</dt>
+    <dd>Sem <em>RhVagasViewAll</em>, só o responsável da vaga (ou Super Admin) pode abrir o detalhe. Peça para ser o responsável ou a permissão ViewAll.</dd>
     <dt>Não consigo marcar a vaga como publicada</dt>
     <dd>O status precisa ser <em>Aberta</em>. Vagas pausadas, fechadas ou canceladas não podem ficar publicadas; ao fechar, a publicação é desligada automaticamente.</dd>
     <dt>Marquei como publicada e o candidato não vê a vaga</dt>
@@ -39,5 +41,5 @@
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhVagas</em> ausente no seu nível de acesso.</dd>
     <dt>Erro ao carregar após deploy</dt>
-    <dd>Rode as migrations <code>20260719210000_register_rh_vagas_view_all_scope</code> e <code>20260719235000_add_rh_vagas_publicacao_flag</code>.</dd>
+    <dd>Rode as migrations <code>20260719210000_register_rh_vagas_view_all_scope</code>, <code>20260727120000_contract_rh_vagas_view_all_scope</code> e <code>20260719235000_add_rh_vagas_publicacao_flag</code>.</dd>
 </dl>

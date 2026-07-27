@@ -46,6 +46,39 @@ class RhPermissionService extends DbConnection
     }
 
     /**
+     * Verifica se o usuário pode visualizar o detalhe da vaga.
+     * Alinhado ao escopo da listagem: ViewAll / Super / responsável.
+     * (Gestores sem ViewAll e sem ser responsável não acessam por deep-link.)
+     */
+    public static function canViewVaga(array $vaga): bool
+    {
+        if (self::isSuperAdmin()) {
+            return true;
+        }
+
+        $scope = self::resolveVagasListScope();
+        if (($scope['mode'] ?? '') === 'all') {
+            return true;
+        }
+
+        return self::isVagaResponsavel($vaga);
+    }
+
+    /**
+     * Helper para buscar a vaga por ID e aplicar canViewVaga.
+     */
+    public static function canViewVagaById(int $vagaId): bool
+    {
+        $repo = new RhVagasRepository();
+        $vaga = $repo->getById($vagaId);
+        if (!$vaga) {
+            return false;
+        }
+
+        return self::canViewVaga($vaga);
+    }
+
+    /**
      * Verifica se o usuário pode editar os dados da vaga.
      */
     public static function canEditVaga(array $vaga): bool

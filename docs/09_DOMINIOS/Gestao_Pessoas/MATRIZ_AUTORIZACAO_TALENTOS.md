@@ -25,7 +25,7 @@
 | Candidato | `create` | ACL `RhCandidatosCreate` | — | Consentimento LGPD obrigatório + termo `curriculo_candidato` | Consentimento em `lgpd_consentimentos` |
 | Anexo/currículo | `download` | Mesma regra de acesso ao candidato | Objeto | Storage privado; rota `rh-candidatos-download-anexo`; log em `rh_candidato_anexo_access_logs` | Sim (access log) |
 | Vaga | `list` | ACL `RhVagas` | `all` se `RhVagasViewAll` / Super; senão `responsible` | Expand compatível: ViewAll concedida a quem já tem RhVagas | Não |
-| Vaga | `view` | ACL `RhVagas*` | Objeto (detalhe) | — | Não |
+| Vaga | `view` | ACL `RhVagas*` + `canViewVaga` | Objeto: ViewAll / Super / responsável | Deep-link sem relação negado | Não |
 | Vaga | `update` / `delete` | Super, responsável ou gestor | Objeto | CSRF no update; delete com senha+justificativa | Sim |
 | Candidatura (vínculo) | `create` / `delete` / `sync` | `canManagePipeline` da vaga | Vaga | Vaga não fechada/cancelada; sync atômico | Parcial |
 | Candidatura | `transition` (pipeline) | `canManagePipelineByVagaId` | Vínculo existente | CSRF; status válido; transação | Log de status do candidato |
@@ -42,7 +42,7 @@
 
 ## Lacunas conhecidas (próximos incrementos)
 
-1. Contract de `RhVagasViewAll` / `RhEntrevistasViewAll` / `RhCandidatosViewAll`: retirar de perfis restritos quando a regra de negócio estiver definida.
+1. Contract de `RhEntrevistasViewAll` / `RhCandidatosViewAll`: ainda pendente (piloto Vagas já aplicado).
 2. Entrevistador/avaliador designado ainda não tem policy “somente suas entrevistas” na **visualização/edição** (listagem já tem modo `related`).
 3. Escopo de gestor não valida área da vaga (qualquer gestor CRM passa na edição/pipeline e na ficha de candidato).
 4. Convite/aceite de avaliador ainda não existe (painel é interno, sem comunicação).

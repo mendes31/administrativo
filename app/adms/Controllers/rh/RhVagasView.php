@@ -32,16 +32,26 @@ class RhVagasView
             return;
         }
 
+        if (!RhPermissionService::canViewVaga($vaga)) {
+            $_SESSION['error'] = 'Você não tem permissão para visualizar esta vaga.';
+            header("Location: {$_ENV['URL_ADM']}rh-vagas");
+            return;
+        }
+
         $this->data['vaga'] = $vaga;
         $this->data['candidatos'] = $repo->getCandidatosByVaga((int)$id);
         $this->data['can_manage_pipeline'] = RhPermissionService::canManagePipeline($vaga);
         $this->data['pipeline_stages'] = \App\adms\Models\Services\RhPipelineStageCatalog::all();
-        
-        // Buscar todos os candidatos disponíveis para vincular (exceto os já vinculados)
+
+        // Candidatos disponíveis para vínculo: respeitam o mesmo escopo da listagem de candidatos.
         $candidatosVinculadosIds = array_column($this->data['candidatos'], 'rh_candidato_id');
         $candRepo = new \App\adms\Models\Repository\RhCandidatosRepository();
-        $todosCandidatos = $candRepo->getAll([], 1, 1000);
-        $this->data['candidatos_disponiveis'] = array_filter($todosCandidatos['data'] ?? [], function($c) use ($candidatosVinculadosIds) {
+        $candScope = RhPermissionService::resolveCandidatosListScope();
+        $todosCandidatos = $candRepo->getAll([
+            'scope_mode' => $candScope['mode'],
+            'scope_user_id' => $candScope['user_id'],
+        ], 1, 1000);
+        $this->data['candidatos_disponiveis'] = array_filter($todosCandidatos['data'] ?? [], function ($c) use ($candidatosVinculadosIds) {
             return !in_array($c['id'], $candidatosVinculadosIds, true);
         });
 
@@ -51,7 +61,7 @@ class RhVagasView
         $pageElements = [
             'title_head' => 'Visualizar Vaga',
             'menu'       => 'rh-vagas',
-            'buttonPermission' => ['RhVagas', 'RhVagasEdit', 'RhVagasDelete'],
+            'buttonPermission' => ['RhVagas', 'RhVagasEdit', 'RhVagasDelete', 'RhVagasViewAll'],
         ];
 
         $pageLayoutService = new PageLayoutService();
@@ -61,4 +71,3 @@ class RhVagasView
         $loadView->loadView();
     }
 }
-

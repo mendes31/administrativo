@@ -20,6 +20,9 @@ deploy.
 3. Sem ViewAll, a listagem filtra por relação (`responsible` / `related`).
 4. Autorização por objeto de candidato usa o mesmo critério ViewAll (Expand).
 5. Contract futuro: retirar ViewAll seletivamente dos perfis restritos.
+   **Piloto Vagas (27/07/2026):** migration
+   `20260727120000_contract_rh_vagas_view_all_scope` mantém ViewAll em níveis RH/DP/Super
+   e revoga nos demais; `RhVagasView` exige `canViewVaga` alinhado à listagem.
 
 ## Alternativas consideradas
 

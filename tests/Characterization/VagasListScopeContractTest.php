@@ -30,6 +30,7 @@ final class VagasListScopeContractTest extends TestCase
         self::assertStringContainsString('resolveVagasListScope', $source);
         self::assertStringContainsString('RhVagasViewAll', $source);
         self::assertStringContainsString("'responsible'", $source);
+        self::assertStringContainsString('canViewVaga', $source);
     }
 
     public function testRepositoryAndControllerApplyScopeFilter(): void
@@ -43,6 +44,25 @@ final class VagasListScopeContractTest extends TestCase
 
         $routes = $this->readProjectFile('routes/LoadPageAdm.php');
         self::assertStringContainsString('RhVagasViewAll', $routes);
+    }
+
+    public function testContractMigrationRevokesNonRhViewAll(): void
+    {
+        $source = $this->readProjectFile(
+            'database/migrations/20260727120000_contract_rh_vagas_view_all_scope.php'
+        );
+
+        self::assertStringContainsString('RhVagasViewAll', $source);
+        self::assertStringContainsString('permission = 0', $source);
+        self::assertStringContainsString('recursos', $source);
+    }
+
+    public function testVagasViewEnforcesObjectPolicyAndCandidateScope(): void
+    {
+        $source = $this->readProjectFile('app/adms/Controllers/rh/RhVagasView.php');
+        self::assertStringContainsString('canViewVaga', $source);
+        self::assertStringContainsString('resolveCandidatosListScope', $source);
+        self::assertStringContainsString('scope_mode', $source);
     }
 
     private function readProjectFile(string $relativePath): string
