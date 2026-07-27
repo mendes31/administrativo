@@ -56,3 +56,8 @@ Serviço: `app/adms/Models/Services/EmployeeRequestNotificationService.php`
 - **Aprovação final / rejeição:** aviso ao solicitante.
 - Abrir a solicitação marca as notificações como lidas (`markNotificationsRead`).
 - Em **base de teste/homologação**, título e mensagem in-app trazem `[TESTE]` e o nome do banco; e-mails usam faixa `[TESTE/HOMOLOGAÇÃO]` via `AppEnvironmentHelper` + `SendEmailService`.
+
+## UI
+
+- **Reordenar etapas:** setas ↑/↓ no editor de tipos (`update_request_type.php`); `stage_order` segue a ordem visual ao salvar.
+- **Linha do tempo:** visualização em `view_request.php` com eventos, etapa atual destacada e status final.

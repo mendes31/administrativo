@@ -1,6 +1,62 @@
 <?php
 use App\adms\Helpers\FormatHelper;
 ?>
+<style>
+    .wf-timeline {
+        position: relative;
+        padding-left: 1.75rem;
+    }
+    .wf-timeline::before {
+        content: '';
+        position: absolute;
+        left: .55rem;
+        top: .35rem;
+        bottom: .35rem;
+        width: 2px;
+        background: #dee2e6;
+    }
+    .wf-timeline-item {
+        position: relative;
+        padding-bottom: 1.1rem;
+    }
+    .wf-timeline-item:last-child {
+        padding-bottom: 0;
+    }
+    .wf-timeline-dot {
+        position: absolute;
+        left: -1.75rem;
+        top: .15rem;
+        width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 50%;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #dee2e6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: .55rem;
+        color: #fff;
+        z-index: 1;
+    }
+    .wf-timeline-item.is-current .wf-timeline-dot {
+        box-shadow: 0 0 0 2px #0d6efd;
+        animation: wf-pulse 1.5s ease-in-out infinite;
+    }
+    @keyframes wf-pulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+    }
+    .wf-timeline-card {
+        border: 1px solid #e9ecef;
+        border-radius: .5rem;
+        padding: .65rem .85rem;
+        background: #fff;
+    }
+    .wf-timeline-item.is-current .wf-timeline-card {
+        border-color: #b6d4fe;
+        background: #f8fbff;
+    }
+</style>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3">Solicitação #<?= $this->data['request']['id'] ?></h2>
@@ -260,28 +316,142 @@ use App\adms\Helpers\FormatHelper;
                 </div>
             <?php endif; ?>
 
-            <?php $events = $this->data['approval_events'] ?? []; ?>
-            <?php if (!empty($events)): ?>
+            <?php
+            $events = $this->data['approval_events'] ?? [];
+            $requestStatus = (string) ($request['status'] ?? '');
+            $actionMeta = [
+                'approved' => ['label' => 'Aprovado', 'icon' => 'fa-check', 'color' => '#198754', 'badge' => 'success'],
+                'delegated_act' => ['label' => 'Aprovado por delegação', 'icon' => 'fa-user-friends', 'color' => '#0dcaf0', 'badge' => 'info'],
+                'rejected' => ['label' => 'Rejeitado', 'icon' => 'fa-times', 'color' => '#dc3545', 'badge' => 'danger'],
+                'escalated' => ['label' => 'Escalado', 'icon' => 'fa-level-up-alt', 'color' => '#fd7e14', 'badge' => 'warning'],
+            ];
+            $timelineItems = [];
+            $timelineItems[] = [
+                'label' => 'Solicitação criada',
+                'icon' => 'fa-file-alt',
+                'color' => '#6c757d',
+                'badge' => 'secondary',
+                'actor' => (string) ($request['employee_name'] ?? 'Colaborador'),
+                'on_behalf' => null,
+                'notes' => null,
+                'created_at' => $request['created_at'] ?? null,
+                'is_current' => false,
+            ];
+            foreach ($events as $ev) {
+                $action = (string) ($ev['action'] ?? '');
+                $meta = $actionMeta[$action] ?? ['label' => ucfirst($action), 'icon' => 'fa-circle', 'color' => '#6c757d', 'badge' => 'secondary'];
+                $timelineItems[] = [
+                    'label' => $meta['label'],
+                    'icon' => $meta['icon'],
+                    'color' => $meta['color'],
+                    'badge' => $meta['badge'],
+                    'actor' => (string) ($ev['actor_name'] ?? 'sistema'),
+                    'on_behalf' => $ev['on_behalf_name'] ?? null,
+                    'notes' => $ev['notes'] ?? null,
+                    'stage_code' => $ev['stage_code'] ?? null,
+                    'created_at' => $ev['created_at'] ?? null,
+                    'is_current' => false,
+                ];
+            }
+            if ($requestStatus === 'pending_manager_approval') {
+                $pendingLabel = 'Aguardando aprovação';
+                if (!empty($request['current_approver_name'])) {
+                    $pendingLabel .= ' de ' . $request['current_approver_name'];
+                } elseif (!empty($request['current_stage_code'])) {
+                    $pendingLabel .= ' (' . $request['current_stage_code'] . ')';
+                }
+                $timelineItems[] = [
+                    'label' => $pendingLabel,
+                    'icon' => 'fa-hourglass-half',
+                    'color' => '#0d6efd',
+                    'badge' => 'primary',
+                    'actor' => null,
+                    'on_behalf' => null,
+                    'notes' => !empty($request['stage_started_at'])
+                        ? 'Desde ' . date('d/m/Y H:i', strtotime((string) $request['stage_started_at']))
+                        : null,
+                    'stage_code' => $request['current_stage_code'] ?? null,
+                    'created_at' => null,
+                    'is_current' => true,
+                ];
+            } elseif ($requestStatus === 'pending_hr_approval') {
+                $timelineItems[] = [
+                    'label' => 'Aguardando aprovação do RH',
+                    'icon' => 'fa-hourglass-half',
+                    'color' => '#6f42c1',
+                    'badge' => 'primary',
+                    'actor' => null,
+                    'on_behalf' => null,
+                    'notes' => !empty($request['stage_started_at'])
+                        ? 'Desde ' . date('d/m/Y H:i', strtotime((string) $request['stage_started_at']))
+                        : null,
+                    'stage_code' => $request['current_stage_code'] ?? null,
+                    'created_at' => null,
+                    'is_current' => true,
+                ];
+            } elseif ($requestStatus === 'approved') {
+                $timelineItems[] = [
+                    'label' => 'Solicitação finalizada',
+                    'icon' => 'fa-flag-checkered',
+                    'color' => '#198754',
+                    'badge' => 'success',
+                    'actor' => null,
+                    'on_behalf' => null,
+                    'notes' => null,
+                    'created_at' => $request['approved_at'] ?? null,
+                    'is_current' => false,
+                ];
+            } elseif ($requestStatus === 'rejected') {
+                $timelineItems[] = [
+                    'label' => 'Solicitação rejeitada',
+                    'icon' => 'fa-ban',
+                    'color' => '#dc3545',
+                    'badge' => 'danger',
+                    'actor' => null,
+                    'on_behalf' => null,
+                    'notes' => $request['rejection_reason'] ?? null,
+                    'created_at' => $request['manager_approved_at'] ?? $request['hr_approved_at'] ?? null,
+                    'is_current' => false,
+                ];
+            }
+            ?>
+            <?php if (!empty($timelineItems)): ?>
                 <div class="mb-3">
-                    <h5><i class="fas fa-history me-2"></i>Histórico do workflow</h5>
-                    <ul class="list-group list-group-flush">
-                        <?php foreach ($events as $ev): ?>
-                            <li class="list-group-item px-0">
-                                <span class="badge bg-secondary me-1"><?= htmlspecialchars($ev['action'] ?? '') ?></span>
-                                <?php if (!empty($ev['stage_code'])): ?>
-                                    <code class="me-1"><?= htmlspecialchars($ev['stage_code']) ?></code>
-                                <?php endif; ?>
-                                <?= htmlspecialchars($ev['actor_name'] ?? 'sistema') ?>
-                                <?php if (!empty($ev['on_behalf_name'])): ?>
-                                    <span class="text-muted">(em nome de <?= htmlspecialchars($ev['on_behalf_name']) ?>)</span>
-                                <?php endif; ?>
-                                <small class="text-muted ms-2"><?= date('d/m/Y H:i', strtotime($ev['created_at'])) ?></small>
-                                <?php if (!empty($ev['notes'])): ?>
-                                    <div class="small text-muted"><?= htmlspecialchars($ev['notes']) ?></div>
-                                <?php endif; ?>
-                            </li>
+                    <h5 class="mb-3"><i class="fas fa-stream me-2"></i>Linha do tempo do workflow</h5>
+                    <div class="wf-timeline">
+                        <?php foreach ($timelineItems as $item): ?>
+                            <div class="wf-timeline-item<?= !empty($item['is_current']) ? ' is-current' : '' ?>">
+                                <div class="wf-timeline-dot" style="background: <?= htmlspecialchars((string) $item['color']) ?>">
+                                    <i class="fas <?= htmlspecialchars((string) $item['icon']) ?>"></i>
+                                </div>
+                                <div class="wf-timeline-card">
+                                    <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                                        <span class="badge bg-<?= htmlspecialchars((string) $item['badge']) ?>">
+                                            <?= htmlspecialchars((string) $item['label']) ?>
+                                        </span>
+                                        <?php if (!empty($item['stage_code'])): ?>
+                                            <code class="small"><?= htmlspecialchars((string) $item['stage_code']) ?></code>
+                                        <?php endif; ?>
+                                        <?php if (!empty($item['created_at'])): ?>
+                                            <small class="text-muted ms-auto"><?= date('d/m/Y H:i', strtotime((string) $item['created_at'])) ?></small>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if (!empty($item['actor'])): ?>
+                                        <div class="small">
+                                            <i class="fas fa-user me-1 text-muted"></i>
+                                            <?= htmlspecialchars((string) $item['actor']) ?>
+                                            <?php if (!empty($item['on_behalf'])): ?>
+                                                <span class="text-muted">(em nome de <?= htmlspecialchars((string) $item['on_behalf']) ?>)</span>
+                                            <?php endif; ?>
+                                        </div>
+                                    <?php endif; ?>
+                                    <?php if (!empty($item['notes'])): ?>
+                                        <div class="small text-muted mt-1"><?= htmlspecialchars((string) $item['notes']) ?></div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
                         <?php endforeach; ?>
-                    </ul>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

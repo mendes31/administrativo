@@ -123,6 +123,15 @@ foreach ($users as $u) {
     .stage-row.is-dup-immediate .stage-warn-dup {
         display: block;
     }
+    .stage-move-btns {
+        display: flex;
+        flex-direction: column;
+        gap: .25rem;
+    }
+    .stage-move-btns .btn {
+        padding: .15rem .45rem;
+        line-height: 1;
+    }
 </style>
 
 <div class="container-fluid px-4">
@@ -266,9 +275,19 @@ foreach ($users as $u) {
                                                 <div class="stage-kind-summary text-muted small"><?= htmlspecialchars($kind === 'immediate' ? $hierarchyHint : $meta['short']) ?></div>
                                             </div>
                                         </div>
-                                        <button type="button" class="btn btn-sm btn-outline-danger btn-remove-stage" title="Remover etapa">
-                                            <i class="fas fa-trash"></i>
-                                        </button>
+                                        <div class="d-flex align-items-start gap-1">
+                                            <div class="stage-move-btns">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-move-stage-up" title="Subir etapa" <?= $idx === 0 ? 'disabled' : '' ?>>
+                                                    <i class="fas fa-chevron-up"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-secondary btn-move-stage-down" title="Descer etapa" <?= $idx === count($stages) - 1 ? 'disabled' : '' ?>>
+                                                    <i class="fas fa-chevron-down"></i>
+                                                </button>
+                                            </div>
+                                            <button type="button" class="btn btn-sm btn-outline-danger btn-remove-stage" title="Remover etapa">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     <div class="row g-3">
@@ -425,9 +444,19 @@ foreach ($users as $u) {
                         <div class="stage-kind-summary text-muted small">1º nível = gestor imediato de quem abriu (ex.: André)</div>
                     </div>
                 </div>
-                <button type="button" class="btn btn-sm btn-outline-danger btn-remove-stage" title="Remover etapa">
-                    <i class="fas fa-trash"></i>
-                </button>
+                <div class="d-flex align-items-start gap-1">
+                    <div class="stage-move-btns">
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-move-stage-up" title="Subir etapa">
+                            <i class="fas fa-chevron-up"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary btn-move-stage-down" title="Descer etapa">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                    </div>
+                    <button type="button" class="btn btn-sm btn-outline-danger btn-remove-stage" title="Remover etapa">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
             </div>
             <div class="row g-3">
                 <div class="col-md-5">
@@ -551,9 +580,26 @@ foreach ($users as $u) {
             row.querySelectorAll('[name^="stages["]').forEach((el) => {
                 el.name = el.name.replace(/stages\[\d+]/, 'stages[' + idx + ']');
             });
+            const upBtn = row.querySelector('.btn-move-stage-up');
+            const downBtn = row.querySelector('.btn-move-stage-down');
+            const total = editor.querySelectorAll('.stage-row').length;
+            if (upBtn) upBtn.disabled = idx === 0;
+            if (downBtn) downBtn.disabled = idx >= total - 1;
         });
         markDuplicateImmediate();
         renderPreview();
+    }
+
+    function moveStage(row, direction) {
+        if (!row) return;
+        const sibling = direction < 0 ? row.previousElementSibling : row.nextElementSibling;
+        if (!sibling || !sibling.classList.contains('stage-row')) return;
+        if (direction < 0) {
+            editor.insertBefore(row, sibling);
+        } else {
+            editor.insertBefore(sibling, row);
+        }
+        renumber();
     }
 
     function toggleRow(row) {
@@ -650,6 +696,16 @@ foreach ($users as $u) {
     });
 
     editor.addEventListener('click', (e) => {
+        const upBtn = e.target.closest('.btn-move-stage-up');
+        if (upBtn && !upBtn.disabled) {
+            moveStage(upBtn.closest('.stage-row'), -1);
+            return;
+        }
+        const downBtn = e.target.closest('.btn-move-stage-down');
+        if (downBtn && !downBtn.disabled) {
+            moveStage(downBtn.closest('.stage-row'), 1);
+            return;
+        }
         const btn = e.target.closest('.btn-remove-stage');
         if (!btn) return;
         const rows = editor.querySelectorAll('.stage-row');
