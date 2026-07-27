@@ -5,6 +5,7 @@ namespace App\adms\Controllers\portal;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestNotificationService;
 use App\adms\Models\Services\EmployeeRequestPermissionService;
 use App\adms\Models\Services\EmployeeRequestWorkflowService;
 
@@ -75,6 +76,7 @@ class ApproveEmployeeRequestHR
                 }
 
                 if ($repository->rejectByHR((int)$id, $userId, $reason)) {
+                    EmployeeRequestNotificationService::notifyRejected((int) $id, $userId);
                     $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Solicitação rejeitada pelo RH.</div>';
                     GenerateLog::generateLog("info", "Solicitação rejeitada pelo RH.", ['request_id' => $id, 'hr_id' => $userId, 'reason' => $reason]);
                 } else {

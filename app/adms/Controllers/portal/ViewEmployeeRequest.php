@@ -4,6 +4,7 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestNotificationService;
 use App\adms\Models\Services\EmployeeRequestPermissionService;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
@@ -56,6 +57,8 @@ class ViewEmployeeRequest
         $this->data['can_approve_as_hr'] = EmployeeRequestPermissionService::canApproveAsHr($userId)
             && $request['status'] === 'pending_hr_approval';
         $this->data['approval_events'] = $repository->listApprovalEvents((int) $id);
+
+        EmployeeRequestNotificationService::markNotificationsRead($userId, (int) $id);
 
         // Verificar se pode editar
         $canEdit = empty($request['manager_approved_by']) && 

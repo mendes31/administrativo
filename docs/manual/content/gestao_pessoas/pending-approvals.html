@@ -13,6 +13,7 @@
     <li>Se for gestor, escolha <strong>Para aprovar</strong> (você é o aprovador atual ou substituto) ou <strong>Acompanhar equipe</strong> (toda a árvore abaixo de você).</li>
     <li>Abra a solicitação e aprove/rejeite quando for o aprovador da etapa.</li>
     <li>Use <strong>Delegações de Aprovação</strong> se estiver ausente (férias etc.).</li>
+    <li>Você recebe <strong>notificação no sino</strong> (e e-mail, se cadastrado) quando uma solicitação entra na sua etapa ou é escalada para você. Em base de teste/homologação, o aviso indica a base (ex.: <code>[TESTE]</code> e nome do banco).</li>
 </ol>
 
 <h2>Ausência do gestor imediato</h2>
@@ -31,6 +32,8 @@
     <dd>Cadastre uma delegação ou aguarde o SLA de escalação (e confirme que o cron/CLI está agendado).</dd>
     <dt>Não consigo aprovar como RH</dt>
     <dd>Confirme a permissão <em>ApproveEmployeeRequestHR</em> no nível de acesso (em geral vem junto com <em>PendingApprovals</em> após a migration de ACL).</dd>
+    <dt>Não recebi aviso de nova solicitação</dt>
+    <dd>Confira o sino no topo do sistema e o e-mail cadastrado no seu usuário. A escalação automática também gera notificação ao próximo aprovador.</dd>
     <dt>Não vejo o menu</dt>
     <dd>Permissão <em>PendingApprovals</em> ausente no nível de acesso.</dd>
 </dl>

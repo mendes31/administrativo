@@ -45,4 +45,30 @@ final class EmployeeRequestWorkflowContractTest extends TestCase
         self::assertStringContainsString('EmployeeRequestPermissionService', $source);
         self::assertStringContainsString('canApproveAsHr', $source);
     }
+
+    public function testWorkflowNotificationServiceExists(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/adms/Models/Services/EmployeeRequestNotificationService.php';
+        self::assertFileExists($path);
+        $source = (string) file_get_contents($path);
+        self::assertStringContainsString('notifyPendingForRequest', $source);
+        self::assertStringContainsString('notifyFinalApproved', $source);
+        self::assertStringContainsString('notifyRejected', $source);
+    }
+
+    public function testWorkflowDispatchesNotifications(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/adms/Models/Services/EmployeeRequestWorkflowService.php';
+        $source = (string) file_get_contents($path);
+        self::assertStringContainsString('EmployeeRequestNotificationService', $source);
+        self::assertStringContainsString('notifyPendingForRequest', $source);
+    }
+
+    public function testCreateRequestDispatchesNotification(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/adms/Controllers/portal/CreateEmployeeRequest.php';
+        $source = (string) file_get_contents($path);
+        self::assertStringContainsString('EmployeeRequestNotificationService', $source);
+        self::assertStringContainsString('notifyPendingForRequest', $source);
+    }
 }

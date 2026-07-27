@@ -219,6 +219,8 @@ class EmployeeRequestWorkflowService
                 'Aprovado e finalizado (última etapa do fluxo)'
             );
 
+            EmployeeRequestNotificationService::notifyFinalApproved($requestId, $actorUserId);
+
             return [
                 'ok' => true,
                 'message' => 'Solicitação aprovada e finalizada.',
@@ -249,6 +251,8 @@ class EmployeeRequestWorkflowService
             $viaDelegation ? $onBehalfOf : null,
             $viaDelegation ? 'Aprovado por delegação' : 'Etapa aprovada; avançou no fluxo'
         );
+
+        EmployeeRequestNotificationService::notifyPendingForRequest($requestId, $actorUserId);
 
         $msg = ($next['status'] ?? '') === 'pending_hr_approval'
             ? 'Solicitação aprovada! Agora aguarda a etapa de RH.'
@@ -295,6 +299,8 @@ class EmployeeRequestWorkflowService
             ]);
             $this->logEvent($requestId, $stageCode, 'approved', $actorUserId, null, 'Aprovado pelo RH (fim do fluxo)');
 
+            EmployeeRequestNotificationService::notifyFinalApproved($requestId, $actorUserId);
+
             return ['ok' => true, 'message' => 'Solicitação aprovada pelo RH!'];
         }
 
@@ -315,6 +321,8 @@ class EmployeeRequestWorkflowService
         }
 
         $this->logEvent($requestId, $stageCode, 'approved', $actorUserId, null, 'RH aprovou; avançou no fluxo');
+
+        EmployeeRequestNotificationService::notifyPendingForRequest($requestId, $actorUserId);
 
         return ['ok' => true, 'message' => 'Etapa de RH aprovada. Seguiu para a próxima.'];
     }
@@ -354,6 +362,8 @@ class EmployeeRequestWorkflowService
             $viaDelegation ? $onBehalfOf : null,
             $reason
         );
+
+        EmployeeRequestNotificationService::notifyRejected($requestId, $actorUserId);
 
         return ['ok' => true, 'message' => 'Solicitação rejeitada.'];
     }
@@ -424,6 +434,10 @@ class EmployeeRequestWorkflowService
                 $resolved['approver_id'],
                 $from > 0 ? $from : null,
                 'Escalado nível ' . ($count + 1) . '/' . $maxLevels
+            );
+            EmployeeRequestNotificationService::notifyEscalated(
+                $requestId,
+                (int) $resolved['approver_id']
             );
             $escalated++;
         }
@@ -625,6 +639,7 @@ class EmployeeRequestWorkflowService
             ], true);
             if ($ok) {
                 $this->logEvent($requestId, $stageCode, 'escalated', null, $fromUserId > 0 ? $fromUserId : null, 'Escalação sem próxima etapa — finalizado');
+                EmployeeRequestNotificationService::notifyFinalApproved($requestId);
             }
 
             return $ok;
@@ -646,6 +661,7 @@ class EmployeeRequestWorkflowService
                 ? 'Escalado para etapa RH'
                 : 'Escalado para próxima etapa do fluxo';
             $this->logEvent($requestId, $stageCode, 'escalated', null, $fromUserId > 0 ? $fromUserId : null, $note);
+            EmployeeRequestNotificationService::notifyPendingForRequest($requestId);
         }
 
         return $ok;

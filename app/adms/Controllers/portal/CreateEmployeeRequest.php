@@ -4,6 +4,7 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestNotificationService;
 use App\adms\Models\Services\EmployeeRequestWorkflowService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -94,6 +95,7 @@ class CreateEmployeeRequest
         $id = $repository->create($data);
 
         if ($id > 0) {
+            EmployeeRequestNotificationService::notifyPendingForRequest($id, $employeeId);
             $_SESSION['msg'] = '<div class="alert alert-success" role="alert">Solicitação criada com sucesso!</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'view-employee-request/' . $id);
             exit;

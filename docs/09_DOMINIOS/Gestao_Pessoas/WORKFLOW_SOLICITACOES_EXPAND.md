@@ -46,3 +46,13 @@ Manual: `docs/manual/content/gestao_pessoas/update-request-type.html`.
 - `database/migrations/20260721130000_add_requires_hr_approval_to_request_types.php`
 - `database/migrations/20260722080000_add_hierarchy_level_to_request_type_stages.php`
 - `database/migrations/20260727100000_register_employee_request_hr_approval_acl.php`
+
+## Notificações
+
+Serviço: `app/adms/Models/Services/EmployeeRequestNotificationService.php`
+
+- **Nova etapa / criação:** sino + e-mail para o aprovador (gestor/delegado) ou fila RH.
+- **Escalação SLA:** aviso ao próximo nível na hierarquia.
+- **Aprovação final / rejeição:** aviso ao solicitante.
+- Abrir a solicitação marca as notificações como lidas (`markNotificationsRead`).
+- Em **base de teste/homologação**, título e mensagem in-app trazem `[TESTE]` e o nome do banco; e-mails usam faixa `[TESTE/HOMOLOGAÇÃO]` via `AppEnvironmentHelper` + `SendEmailService`.

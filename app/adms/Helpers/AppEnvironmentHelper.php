@@ -69,6 +69,50 @@ final class AppEnvironmentHelper
     }
 
     /**
+     * Sufixo para mensagem in-app com identificação da base (ex.: homologação).
+     */
+    public static function inAppMessageSuffix(): string
+    {
+        if (!self::isLocalTestEnvironment()) {
+            return '';
+        }
+
+        $db = trim((string) ($_ENV['DB_NAME'] ?? ''));
+        $app = trim((string) ($_ENV['APP_NAME'] ?? ''));
+        $parts = [];
+        if ($db !== '') {
+            $parts[] = 'base ' . $db;
+        }
+        if ($app !== '') {
+            $parts[] = $app;
+        }
+
+        return $parts !== []
+            ? ' [' . implode(' · ', $parts) . ' — NÃO é produção]'
+            : ' [ambiente de teste — NÃO é produção]';
+    }
+
+    public static function formatInAppTitle(string $title): string
+    {
+        $prefix = self::inAppTitlePrefix();
+        if ($prefix === '' || stripos($title, '[TESTE') === 0) {
+            return $title;
+        }
+
+        return $prefix . $title;
+    }
+
+    public static function formatInAppMessage(string $message): string
+    {
+        $suffix = self::inAppMessageSuffix();
+        if ($suffix === '' || str_contains($message, 'NÃO é produção')) {
+            return $message;
+        }
+
+        return $message . $suffix;
+    }
+
+    /**
      * Texto curto para assunto de e-mail, ex.: "[TESTE/HOMOLOGAÇÃO] ".
      */
     public static function emailSubjectPrefix(): string
