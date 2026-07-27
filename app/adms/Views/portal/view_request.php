@@ -154,7 +154,7 @@ use App\adms\Helpers\FormatHelper;
             $userId = $_SESSION['user_id'] ?? 0;
             $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
             $canApproveAsManager = !empty($this->data['can_approve_as_manager']);
-            $canApproveAsHR = ($request['status'] === 'pending_hr_approval') && $isSuperAdmin;
+            $canApproveAsHR = !empty($this->data['can_approve_as_hr']);
             ?>
             
             <?php if (!empty($request['current_approver_name']) && $request['status'] === 'pending_manager_approval'): ?>
@@ -176,9 +176,10 @@ use App\adms\Helpers\FormatHelper;
                 <div class="mb-4">
                     <div class="d-flex justify-content-between align-items-center mb-3">
                         <h5 class="mb-0"><i class="fas fa-check-double me-2"></i>Fluxo de Aprovação</h5>
-                        <?php if ($isSuperAdmin && in_array($request['status'], ['pending_manager_approval', 'pending_hr_approval'])): ?>
+                        <?php if (($isSuperAdmin || $canApproveAsHR) && in_array($request['status'], ['pending_manager_approval', 'pending_hr_approval'])): ?>
                             <span class="badge bg-info">
-                                <i class="fas fa-user-shield me-1"></i>Super Admin: Você pode aprovar esta solicitação
+                                <i class="fas fa-user-shield me-1"></i>
+                                <?= $isSuperAdmin ? 'Super Admin: ' : '' ?>Você pode aprovar esta solicitação
                             </span>
                         <?php endif; ?>
                     </div>

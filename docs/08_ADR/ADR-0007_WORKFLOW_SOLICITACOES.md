@@ -36,4 +36,4 @@ aprovar e acompanhar a árvore (ex.: coordenador aprova; gerente de área acompa
 
 - depende de hierarquia (`immediate_supervisor_id`) cadastrada;
 - escalação exige cron/CLI periódico;
-- etapa RH ainda sem ACL específica além de Super Admin neste incremento.
+- etapa RH com ACL via página <em>ApproveEmployeeRequestHR</em> (concedida automaticamente a quem já tem <em>PendingApprovals</em>).

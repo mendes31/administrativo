@@ -5,6 +5,7 @@ namespace App\adms\Controllers\portal;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestPermissionService;
 use App\adms\Models\Services\EmployeeRequestWorkflowService;
 
 /**
@@ -29,14 +30,12 @@ class ApproveEmployeeRequestHR
             return;
         }
 
-        // Verificar se o usuário tem permissão (super admin ou RH)
-        $userId = $_SESSION['user_id'] ?? 0;
-        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
-        
-        // TODO: Adicionar verificação de permissão específica para RH
-        if (!$isSuperAdmin) {
-            // Por enquanto, apenas super admin pode aprovar como RH
-            // Pode ser melhorado depois com permissões específicas
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
+
+        if (!EmployeeRequestPermissionService::canApproveAsHr($userId)) {
+            $_SESSION['error'] = 'Você não tem permissão para aprovar solicitações como RH.';
+            header("Location: {$_ENV['URL_ADM']}view-employee-request/{$id}");
+            return;
         }
 
         // Verificar se está no status correto

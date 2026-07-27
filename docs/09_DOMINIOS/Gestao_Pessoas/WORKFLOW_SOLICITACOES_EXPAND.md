@@ -44,3 +44,5 @@ Manual: `docs/manual/content/gestao_pessoas/update-request-type.html`.
 - `database/migrations/20260721110000_add_max_escalation_levels_to_request_workflow.php`
 - `database/migrations/20260721120000_add_skip_immediate_access_levels_to_request_types.php`
 - `database/migrations/20260721130000_add_requires_hr_approval_to_request_types.php`
+- `database/migrations/20260722080000_add_hierarchy_level_to_request_type_stages.php`
+- `database/migrations/20260727100000_register_employee_request_hr_approval_acl.php`

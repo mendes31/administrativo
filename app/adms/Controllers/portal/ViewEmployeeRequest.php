@@ -4,6 +4,7 @@ namespace App\adms\Controllers\portal;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestPermissionService;
 use App\adms\Models\Services\LogResumoService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -37,8 +38,14 @@ class ViewEmployeeRequest
         $workflow = new \App\adms\Models\Services\EmployeeRequestWorkflowService();
         $canAct = $workflow->canActAsManager($request, $userId);
         $canViewTeam = $workflow->canViewInTeamTree($request, $userId);
+        $canViewAsHr = EmployeeRequestPermissionService::canViewAsHrApprover($userId);
 
-        if (!$isSuperAdmin && (int) $request['employee_id'] !== $userId && !$canAct && !$canViewTeam) {
+        if (!$isSuperAdmin
+            && (int) $request['employee_id'] !== $userId
+            && !$canAct
+            && !$canViewTeam
+            && !$canViewAsHr
+        ) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: Você não tem permissão para acessar esta solicitação!</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'list-employee-requests');
             exit;
@@ -46,6 +53,8 @@ class ViewEmployeeRequest
 
         $this->data['request'] = $request;
         $this->data['can_approve_as_manager'] = $canAct && $request['status'] === 'pending_manager_approval';
+        $this->data['can_approve_as_hr'] = EmployeeRequestPermissionService::canApproveAsHr($userId)
+            && $request['status'] === 'pending_hr_approval';
         $this->data['approval_events'] = $repository->listApprovalEvents((int) $id);
 
         // Verificar se pode editar
@@ -65,6 +74,7 @@ class ViewEmployeeRequest
             'buttonPermission' => [
                 'ListEmployeeRequests',
                 'UpdateEmployeeRequest',
+                'ApproveEmployeeRequestHR',
             ],
         ];
         

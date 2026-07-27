@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\CrmPermissionService;
+use App\adms\Models\Services\EmployeeRequestPermissionService;
 use App\adms\Models\Services\EmployeeRequestWorkflowService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -105,6 +106,10 @@ class PendingApprovals
             return 'manager';
         }
 
+        if (EmployeeRequestPermissionService::canAccessHrApprovalQueue($userId)) {
+            return 'hr';
+        }
+
         return 'none';
     }
 
@@ -134,7 +139,7 @@ class PendingApprovals
                 $filters['status'] = 'pending_manager_approval';
                 $filters['skip_owner_scope'] = true;
             }
-        } elseif ($userRole === 'hr' || $isSuperAdmin) {
+        } elseif ($userRole === 'hr') {
             $filters['status'] = 'pending_hr_approval';
             $filters['skip_owner_scope'] = true;
         }

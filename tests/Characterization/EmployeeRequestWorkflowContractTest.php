@@ -28,4 +28,21 @@ final class EmployeeRequestWorkflowContractTest extends TestCase
         self::assertStringContainsString('EmployeeRequestWorkflowService', $source);
         self::assertStringContainsString('--dry-run', $source);
     }
+
+    public function testHrApprovalAclMigrationExists(): void
+    {
+        $path = dirname(__DIR__, 2) . '/database/migrations/20260727100000_register_employee_request_hr_approval_acl.php';
+        self::assertFileExists($path);
+        $source = (string) file_get_contents($path);
+        self::assertStringContainsString('ApproveEmployeeRequestHR', $source);
+        self::assertStringContainsString('PendingApprovals', $source);
+    }
+
+    public function testHrApprovalUsesPermissionService(): void
+    {
+        $path = dirname(__DIR__, 2) . '/app/adms/Controllers/portal/ApproveEmployeeRequestHR.php';
+        $source = (string) file_get_contents($path);
+        self::assertStringContainsString('EmployeeRequestPermissionService', $source);
+        self::assertStringContainsString('canApproveAsHr', $source);
+    }
 }

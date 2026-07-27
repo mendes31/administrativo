@@ -5,7 +5,7 @@
 
 <p class="help-note"><strong>Visão geral:</strong> consulte <em>Solicitações</em> (<code>gp-solicitacoes</code>) e o Expand <em>Workflow de solicitações</em>.</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>PendingApprovals</em>. Super Admin vê a fila do RH. Gestores/delegados veem a etapa do gestor.</p>
+<p><strong>Quem acessa:</strong> permissão <em>PendingApprovals</em> (fila). Para <strong>aprovar como RH</strong>, é necessário também <em>ApproveEmployeeRequestHR</em> (concedida automaticamente a quem já tem a fila).</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
@@ -29,6 +29,8 @@
     <dd>Use a aba <em>Acompanhar equipe</em>. A aba <em>Para aprovar</em> só lista o que está atribuído a você (ou via delegação).</dd>
     <dt>O imediato está de férias e nada anda</dt>
     <dd>Cadastre uma delegação ou aguarde o SLA de escalação (e confirme que o cron/CLI está agendado).</dd>
+    <dt>Não consigo aprovar como RH</dt>
+    <dd>Confirme a permissão <em>ApproveEmployeeRequestHR</em> no nível de acesso (em geral vem junto com <em>PendingApprovals</em> após a migration de ACL).</dd>
     <dt>Não vejo o menu</dt>
     <dd>Permissão <em>PendingApprovals</em> ausente no nível de acesso.</dd>
 </dl>

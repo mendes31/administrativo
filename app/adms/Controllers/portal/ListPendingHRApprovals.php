@@ -5,6 +5,7 @@ namespace App\adms\Controllers\portal;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\EmployeeRequestsRepository;
+use App\adms\Models\Services\EmployeeRequestPermissionService;
 use App\adms\Views\Services\LoadViewService;
 
 /**
@@ -25,11 +26,7 @@ class ListPendingHRApprovals
             $page = is_numeric($page) ? (int)$page : 1;
         }
 
-        // Verificar se é super admin ou RH
-        $isSuperAdmin = \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
-        
-        if (!$isSuperAdmin) {
-            // TODO: Verificar se tem permissão de RH
+        if (!EmployeeRequestPermissionService::canAccessHrApprovalQueue()) {
             $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Erro: Você não tem permissão para acessar esta página!</div>';
             header('Location: ' . $_ENV['URL_ADM'] . 'dashboard');
             exit;
@@ -37,7 +34,8 @@ class ListPendingHRApprovals
 
         // Filtros
         $filters = [
-            'status' => 'pending_hr_approval'
+            'status' => 'pending_hr_approval',
+            'skip_owner_scope' => true,
         ];
 
         // Filtros adicionais
@@ -50,8 +48,8 @@ class ListPendingHRApprovals
 
         // Buscar solicitações
         $repository = new EmployeeRequestsRepository();
-        $this->data['requests'] = $repository->getAllPendingHRApprovals($filters, $page, $this->limitResult);
-        $totalRecords = $repository->countPendingHRApprovals($filters);
+        $this->data['requests'] = $repository->getAll($filters, $page, $this->limitResult);
+        $totalRecords = $repository->count($filters);
 
         // Paginação
         $pagination = PaginationService::generatePagination(
