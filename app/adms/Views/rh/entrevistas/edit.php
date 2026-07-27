@@ -116,7 +116,8 @@ if ($dataHora && strpos($dataHora, ' ') !== false) {
                             <?php endforeach; ?>
                         </select>
                         <div class="form-text">
-                            Painel interno apenas — não envia convite nem concede permissão automaticamente. Segure Ctrl/Cmd para selecionar vários.
+                            Avaliadores adicionais recebem convite (notificação e e-mail) e só passam a ativo após aceitar.
+                            O entrevistador principal fica ativo de imediato. Segure Ctrl/Cmd para selecionar vários.
                         </div>
                     </div>
                 </div>

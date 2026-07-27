@@ -200,7 +200,7 @@ class RhPermissionService extends DbConnection
 
     /**
      * Visualização alinhada ao escopo da listagem (`related` / ViewAll).
-     * Entrevistador principal, avaliador ativo ou responsável da vaga podem ver
+     * Entrevistador principal, avaliador ativo/convidado ou responsável da vaga podem ver
      * mesmo sem poder gerenciar o pipeline.
      *
      * @param array<string, mixed> $entrevista
@@ -247,10 +247,11 @@ class RhPermissionService extends DbConnection
     {
         try {
             $pdo = (new RhVagasRepository())->getConnection();
+            // ativo = já aceitou; convidado = precisa ver a entrevista para responder ao convite
             $sql = 'SELECT 1 FROM rh_entrevista_avaliadores
                     WHERE rh_entrevista_id = :entrevista_id
                       AND avaliador_id = :user_id
-                      AND status = \'ativo\'
+                      AND status IN (\'ativo\', \'convidado\')
                     LIMIT 1';
             $stmt = $pdo->prepare($sql);
             $stmt->bindValue(':entrevista_id', $entrevistaId, \PDO::PARAM_INT);
@@ -296,7 +297,7 @@ class RhPermissionService extends DbConnection
      * Escopo da listagem de entrevistas (Expand Fase 0.5).
      *
      * - `all`: Super Admin ou RhEntrevistasViewAll
-     * - `related`: entrevistador principal, avaliador ativo no painel ou responsável da vaga
+     * - `related`: entrevistador principal, avaliador ativo/convidado no painel ou responsável da vaga
      *
      * @return array{mode: 'all'|'related', user_id: int}
      */

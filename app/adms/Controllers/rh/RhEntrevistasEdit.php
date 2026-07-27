@@ -10,6 +10,7 @@ use App\adms\Models\Repository\RhEntrevistaAvaliadoresRepository;
 use App\adms\Models\Repository\RhEntrevistaScorecardRepository;
 use App\adms\Models\Repository\RhCandidatosRepository;
 use App\adms\Models\Repository\RhVagasRepository;
+use App\adms\Models\Services\RhEntrevistaAvaliadorConviteService;
 use App\adms\Views\Services\LoadViewService;
 
 class RhEntrevistasEdit
@@ -107,12 +108,15 @@ class RhEntrevistasEdit
             $warnings = [];
             try {
                 $principalId = !empty($form['entrevistador_id']) ? (int) $form['entrevistador_id'] : null;
-                (new RhEntrevistaAvaliadoresRepository())->syncPainel(
+                $toInvite = (new RhEntrevistaAvaliadoresRepository())->syncPainel(
                     $id,
                     $principalId,
                     $form['avaliadores_adicionais'] ?? [],
                     $avaliadorId
                 );
+                if ($toInvite !== []) {
+                    (new RhEntrevistaAvaliadorConviteService())->enviarConvites($id, $toInvite, $avaliadorId);
+                }
             } catch (\Throwable $e) {
                 GenerateLog::generateLog('error', 'Entrevista salva, mas painel de avaliadores falhou.', [
                     'entrevista_id' => $id,
@@ -163,7 +167,7 @@ class RhEntrevistasEdit
     private function loadAvaliadoresAdicionaisIds(int $entrevistaId): array
     {
         try {
-            return (new RhEntrevistaAvaliadoresRepository())->listIdsAdicionaisAtivos($entrevistaId);
+            return (new RhEntrevistaAvaliadoresRepository())->listIdsAdicionaisSelecionados($entrevistaId);
         } catch (\Throwable $e) {
             GenerateLog::generateLog('warning', 'Painel de avaliadores indisponível ao carregar edição.', [
                 'entrevista_id' => $entrevistaId,

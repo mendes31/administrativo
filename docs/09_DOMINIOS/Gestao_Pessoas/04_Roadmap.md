@@ -53,6 +53,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 
 - [x] scorecards + critérios/pesos na edição da entrevista ([SCORECARD_ENTREVISTA_EXPAND.md](SCORECARD_ENTREVISTA_EXPAND.md));
 - [x] painel interno de múltiplos avaliadores ([AVALIADORES_ENTREVISTA_EXPAND.md](AVALIADORES_ENTREVISTA_EXPAND.md));
+- [x] convite/aceite de avaliadores adicionais (mesmo doc Expand);
 - [x] agenda e reagendamento auditável ([AGENDA_ENTREVISTA_EXPAND.md](AGENDA_ENTREVISTA_EXPAND.md));
 - [x] templates + registro de intenção/outbox de entrevista ([COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md](COMUNICACAO_ENTREVISTA_OUTBOX_EXPAND.md));
 - [x] preflight CLI `recorded → ready|blocked` (sem SMTP) — script `rh_entrevista_comunicacoes_preflight.php`;

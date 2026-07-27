@@ -10,8 +10,7 @@ use Exception;
 use PDO;
 
 /**
- * Painel interno de avaliadores da entrevista (Expand Fase 2).
- * Não concede ACL e não dispara comunicação.
+ * Painel de avaliadores da entrevista (Expand: convite/aceite).
  */
 class RhEntrevistaAvaliadoresRepository extends DbConnection
 {
@@ -19,6 +18,8 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
     public const PAPEL_AVALIADOR = 'avaliador';
     public const STATUS_ATIVO = 'ativo';
     public const STATUS_REMOVIDO = 'removido';
+    public const STATUS_CONVIDADO = 'convidado';
+    public const STATUS_RECUSADO = 'recusado';
 
     /**
      * @return list<array<string, mixed>>
@@ -29,7 +30,7 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
     }
 
     /**
-     * Painel completo (ativos + removidos) com status do scorecard quando existir.
+     * Painel completo com status do scorecard quando existir.
      *
      * @return list<array<string, mixed>>
      */
@@ -50,7 +51,12 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
                 WHERE a.rh_entrevista_id = :entrevista_id
                 ORDER BY
                     CASE a.papel WHEN \'principal\' THEN 0 ELSE 1 END,
-                    CASE a.status WHEN \'ativo\' THEN 0 ELSE 1 END,
+                    CASE a.status
+                        WHEN \'ativo\' THEN 0
+                        WHEN \'convidado\' THEN 1
+                        WHEN \'recusado\' THEN 2
+                        ELSE 3
+                    END,
                     u.name ASC';
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
@@ -84,7 +90,27 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
     }
 
     /**
-     * IDs dos avaliadores adicionais ativos (exclui o principal).
+     * IDs dos adicionais ainda no painel (ativo/convidado/recusado) — para o multi-select.
+     *
+     * @return list<int>
+     */
+    public function listIdsAdicionaisSelecionados(int $entrevistaId): array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT avaliador_id FROM rh_entrevista_avaliadores
+             WHERE rh_entrevista_id = :entrevista_id
+               AND papel = :papel
+               AND status IN (\'ativo\', \'convidado\', \'recusado\')'
+        );
+        $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
+        $stmt->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
+    }
+
+    /**
+     * Compat: só ativos (scorecard / legado).
      *
      * @return list<int>
      */
@@ -104,18 +130,33 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
         return array_map('intval', $stmt->fetchAll(PDO::FETCH_COLUMN) ?: []);
     }
 
+    public function getByEntrevistaAndAvaliador(int $entrevistaId, int $avaliadorId): ?array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT * FROM rh_entrevista_avaliadores
+             WHERE rh_entrevista_id = :entrevista_id AND avaliador_id = :avaliador_id
+             LIMIT 1'
+        );
+        $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
+        $stmt->bindValue(':avaliador_id', $avaliadorId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     /**
-     * Sincroniza o painel a partir do entrevistador legado + IDs adicionais.
-     * Remoção é lógica (status=removido). Não envia notificação.
+     * Sincroniza o painel. Retorna IDs de avaliadores que precisam de convite (novos/reconvites).
      *
      * @param list<int|string> $avaliadoresAdicionaisIds
+     * @return list<int>
      */
     public function syncPainel(
         int $entrevistaId,
         ?int $entrevistadorPrincipalId,
         array $avaliadoresAdicionaisIds,
         int $actorId
-    ): void {
+    ): array {
         if ($entrevistaId <= 0) {
             throw new Exception('Entrevista inválida.');
         }
@@ -132,6 +173,7 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
             $adicionais[$id] = $id;
         }
         $adicionais = array_values($adicionais);
+        $toInvite = [];
 
         $pdo = $this->getConnection();
         $owns = !$pdo->inTransaction();
@@ -141,15 +183,9 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
 
         try {
             if ($entrevistadorPrincipalId !== null && $entrevistadorPrincipalId > 0) {
-                $this->upsertAvaliador(
-                    $entrevistaId,
-                    $entrevistadorPrincipalId,
-                    self::PAPEL_PRINCIPAL,
-                    $actorId
-                );
+                $this->upsertPrincipal($entrevistaId, $entrevistadorPrincipalId, $actorId);
             }
 
-            // Principais antigos que não são mais o entrevistador → rebaixar/remover.
             $stmtOld = $pdo->prepare(
                 'SELECT id, avaliador_id FROM rh_entrevista_avaliadores
                  WHERE rh_entrevista_id = :entrevista_id AND papel = :papel AND status = :status'
@@ -163,7 +199,6 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
                 if ($entrevistadorPrincipalId !== null && $uid === $entrevistadorPrincipalId) {
                     continue;
                 }
-                // Se ainda está na lista de adicionais, vira avaliador; senão remove.
                 if (in_array($uid, $adicionais, true)) {
                     $upd = $pdo->prepare(
                         'UPDATE rh_entrevista_avaliadores
@@ -180,24 +215,19 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
             }
 
             foreach ($adicionais as $avaliadorId) {
-                $this->upsertAvaliador(
-                    $entrevistaId,
-                    $avaliadorId,
-                    self::PAPEL_AVALIADOR,
-                    $actorId
-                );
+                if ($this->upsertAdicional($entrevistaId, $avaliadorId, $actorId)) {
+                    $toInvite[] = $avaliadorId;
+                }
             }
 
-            // Remover adicionais ativos que saíram da seleção.
             $stmtExtras = $pdo->prepare(
                 'SELECT id, avaliador_id FROM rh_entrevista_avaliadores
                  WHERE rh_entrevista_id = :entrevista_id
                    AND papel = :papel
-                   AND status = :status'
+                   AND status IN (\'ativo\', \'convidado\', \'recusado\')'
             );
             $stmtExtras->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
             $stmtExtras->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
-            $stmtExtras->bindValue(':status', self::STATUS_ATIVO, PDO::PARAM_STR);
             $stmtExtras->execute();
             foreach ($stmtExtras->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
                 if (!in_array((int) $row['avaliador_id'], $adicionais, true)) {
@@ -218,9 +248,77 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
             ]);
             throw $e;
         }
+
+        return array_values(array_unique($toInvite));
     }
 
-    private function upsertAvaliador(int $entrevistaId, int $avaliadorId, string $papel, int $actorId): void
+    public function aceitarConvite(int $entrevistaId, int $avaliadorId): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE rh_entrevista_avaliadores
+             SET status = :ativo, respondido_at = NOW(), updated_at = NOW()
+             WHERE rh_entrevista_id = :entrevista_id
+               AND avaliador_id = :avaliador_id
+               AND status = :convidado
+               AND papel = :papel'
+        );
+        $stmt->bindValue(':ativo', self::STATUS_ATIVO, PDO::PARAM_STR);
+        $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
+        $stmt->bindValue(':avaliador_id', $avaliadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':convidado', self::STATUS_CONVIDADO, PDO::PARAM_STR);
+        $stmt->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    public function recusarConvite(int $entrevistaId, int $avaliadorId): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE rh_entrevista_avaliadores
+             SET status = :recusado, respondido_at = NOW(), updated_at = NOW()
+             WHERE rh_entrevista_id = :entrevista_id
+               AND avaliador_id = :avaliador_id
+               AND status = :convidado
+               AND papel = :papel'
+        );
+        $stmt->bindValue(':recusado', self::STATUS_RECUSADO, PDO::PARAM_STR);
+        $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
+        $stmt->bindValue(':avaliador_id', $avaliadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':convidado', self::STATUS_CONVIDADO, PDO::PARAM_STR);
+        $stmt->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    /**
+     * Reabre convite (convidado) e marca convidado_at. Retorna true se atualizou.
+     */
+    public function marcarComoConvidado(int $entrevistaId, int $avaliadorId): bool
+    {
+        $stmt = $this->getConnection()->prepare(
+            'UPDATE rh_entrevista_avaliadores
+             SET status = :convidado,
+                 convidado_at = NOW(),
+                 respondido_at = NULL,
+                 removido_at = NULL,
+                 updated_at = NOW()
+             WHERE rh_entrevista_id = :entrevista_id
+               AND avaliador_id = :avaliador_id
+               AND papel = :papel
+               AND status IN (\'convidado\', \'recusado\', \'removido\')'
+        );
+        $stmt->bindValue(':convidado', self::STATUS_CONVIDADO, PDO::PARAM_STR);
+        $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
+        $stmt->bindValue(':avaliador_id', $avaliadorId, PDO::PARAM_INT);
+        $stmt->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return $stmt->rowCount() > 0;
+    }
+
+    private function upsertPrincipal(int $entrevistaId, int $avaliadorId, int $actorId): void
     {
         $pdo = $this->getConnection();
         $sql = 'INSERT INTO rh_entrevista_avaliadores
@@ -229,25 +327,93 @@ class RhEntrevistaAvaliadoresRepository extends DbConnection
                     (:entrevista_id, :avaliador_id, :papel, :status, :designado_por, NOW(), NOW())
                 ON DUPLICATE KEY UPDATE
                     papel = VALUES(papel),
-                    status = VALUES(status),
+                    status = :status_upd,
                     designado_por = COALESCE(VALUES(designado_por), designado_por),
-                    designado_at = CASE
-                        WHEN status = \'removido\' THEN NOW()
-                        ELSE COALESCE(designado_at, NOW())
-                    END,
+                    designado_at = COALESCE(designado_at, NOW()),
                     removido_at = NULL,
                     updated_at = NOW()';
         $stmt = $pdo->prepare($sql);
         $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
         $stmt->bindValue(':avaliador_id', $avaliadorId, PDO::PARAM_INT);
-        $stmt->bindValue(':papel', $papel, PDO::PARAM_STR);
+        $stmt->bindValue(':papel', self::PAPEL_PRINCIPAL, PDO::PARAM_STR);
         $stmt->bindValue(':status', self::STATUS_ATIVO, PDO::PARAM_STR);
+        $stmt->bindValue(':status_upd', self::STATUS_ATIVO, PDO::PARAM_STR);
         $stmt->bindValue(
             ':designado_por',
             $actorId > 0 ? $actorId : null,
             $actorId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
         );
         $stmt->execute();
+    }
+
+    /**
+     * @return bool true se precisa enviar/reenviar convite
+     */
+    private function upsertAdicional(int $entrevistaId, int $avaliadorId, int $actorId): bool
+    {
+        $existing = $this->getByEntrevistaAndAvaliador($entrevistaId, $avaliadorId);
+        $pdo = $this->getConnection();
+
+        if ($existing === null) {
+            $sql = 'INSERT INTO rh_entrevista_avaliadores
+                        (rh_entrevista_id, avaliador_id, papel, status, designado_por, designado_at,
+                         convidado_at, created_at)
+                    VALUES
+                        (:entrevista_id, :avaliador_id, :papel, :status, :designado_por, NOW(),
+                         NOW(), NOW())';
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':entrevista_id', $entrevistaId, PDO::PARAM_INT);
+            $stmt->bindValue(':avaliador_id', $avaliadorId, PDO::PARAM_INT);
+            $stmt->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+            $stmt->bindValue(':status', self::STATUS_CONVIDADO, PDO::PARAM_STR);
+            $stmt->bindValue(
+                ':designado_por',
+                $actorId > 0 ? $actorId : null,
+                $actorId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
+            $stmt->execute();
+
+            return true;
+        }
+
+        $status = (string) ($existing['status'] ?? '');
+        if ($status === self::STATUS_ATIVO || $status === self::STATUS_CONVIDADO) {
+            $upd = $pdo->prepare(
+                'UPDATE rh_entrevista_avaliadores
+                 SET papel = :papel, removido_at = NULL, updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $upd->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+            $upd->bindValue(':id', (int) $existing['id'], PDO::PARAM_INT);
+            $upd->execute();
+
+            return $status === self::STATUS_CONVIDADO && empty($existing['convidado_at']);
+        }
+
+        // removido / recusado → reconvidar
+        $upd = $pdo->prepare(
+            'UPDATE rh_entrevista_avaliadores
+             SET papel = :papel,
+                 status = :status,
+                 designado_por = COALESCE(:designado_por, designado_por),
+                 designado_at = NOW(),
+                 convidado_at = NOW(),
+                 respondido_at = NULL,
+                 removido_at = NULL,
+                 updated_at = NOW()
+             WHERE id = :id'
+        );
+        $upd->bindValue(':papel', self::PAPEL_AVALIADOR, PDO::PARAM_STR);
+        $upd->bindValue(':status', self::STATUS_CONVIDADO, PDO::PARAM_STR);
+        $upd->bindValue(
+            ':designado_por',
+            $actorId > 0 ? $actorId : null,
+            $actorId > 0 ? PDO::PARAM_INT : PDO::PARAM_NULL
+        );
+        $upd->bindValue(':id', (int) $existing['id'], PDO::PARAM_INT);
+        $upd->execute();
+
+        return true;
     }
 
     private function markRemoved(int $id): void

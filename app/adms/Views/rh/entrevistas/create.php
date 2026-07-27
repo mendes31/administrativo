@@ -82,6 +82,31 @@ $form = $this->data['form'] ?? [];
                 </div>
                 <div class="row mb-3">
                     <div class="col-md-12 mb-2">
+                        <label for="avaliadores_adicionais" class="form-label">Avaliadores adicionais</label>
+                        <?php
+                        $avaliadoresSel = array_map('intval', (array) ($form['avaliadores_adicionais'] ?? []));
+                        $principalSel = (int) ($form['entrevistador_id'] ?? 0);
+                        ?>
+                        <select name="form[avaliadores_adicionais][]" id="avaliadores_adicionais" class="form-select" multiple size="5">
+                            <?php foreach ($this->data['users'] ?? [] as $u): ?>
+                                <?php
+                                $uid = (int) ($u['id'] ?? 0);
+                                if ($uid <= 0 || $uid === $principalSel) {
+                                    continue;
+                                }
+                                ?>
+                                <option value="<?= $uid ?>" <?= in_array($uid, $avaliadoresSel, true) ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($u['name'] ?? '') ?>
+                                </option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">
+                            Recebem convite (notificação e e-mail) e só ficam ativos após aceitar. Segure Ctrl/Cmd para selecionar vários.
+                        </div>
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-12 mb-2">
                         <label for="local" class="form-label">Local</label>
                         <input type="text" name="form[local]" id="local" class="form-control"
                                value="<?= htmlspecialchars($form['local'] ?? '') ?>" placeholder="Ex.: Sala 3, Google Meet">

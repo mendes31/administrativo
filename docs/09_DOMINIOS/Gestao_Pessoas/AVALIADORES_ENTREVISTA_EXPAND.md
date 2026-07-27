@@ -1,8 +1,8 @@
 # Painel de avaliadores da entrevista — Expand Fase 2
 
 - Domínio: Gestão de Pessoas / Talentos.
-- Data: 19/07/2026.
-- Status: painel interno entregue (sem convite/comunicação).
+- Data: 27/07/2026.
+- Status: painel + **convite/aceite** de avaliadores adicionais.
 
 ## Modelo
 
@@ -10,24 +10,29 @@ Tabela `rh_entrevista_avaliadores`:
 
 - unique `(rh_entrevista_id, avaliador_id)`
 - `papel`: `principal` | `avaliador`
-- `status`: `ativo` | `removido` (remoção lógica)
+- `status`: `ativo` | `convidado` | `recusado` | `removido`
+- `convidado_at` / `respondido_at`
 - backfill de `rh_entrevistas.entrevistador_id` como principal
 
 O campo legado `entrevistador_id` permanece canônico para o principal durante o Expand.
 
 ## Regras
 
-- UI em `RhEntrevistasEdit` / `RhEntrevistasView` (sem nova permissão/rota).
-- Designação **não** concede ACL e **não** dispara e-mail/notificação.
-- Scorecard continua por `avaliador_id`; o painel só mostra presença/status da avaliação.
-- Remoção é lógica para preservar histórico.
+- **Principal**: entra/atualiza como `ativo` imediato (sem convite).
+- **Adicional novo**: nasce `convidado`; recebe notificação in-app + e-mail; só após **Aceitar** passa a `ativo` e ganha `canViewEntrevista` pleno (já com `convidado` pode abrir a entrevista para responder).
+- **Recusar** → `recusado` (sai do escopo de leitura).
+- **Reenviar** (gestor/`canManageEntrevista` + ACL `RhEntrevistasReenviarConviteAvaliador`): reabre como `convidado` e dispara novo convite.
+- Remoção é lógica (`removido`) para preservar histórico.
+- Scorecard continua por `avaliador_id`; só quem está `ativo` deve avaliar na prática (edição da entrevista exige gerenciar vaga).
+- Controllers: `RhEntrevistasAceitarAvaliacao`, `RhEntrevistasRecusarAvaliacao`, `RhEntrevistasReenviarConviteAvaliador`.
+- Serviço: `RhEntrevistaAvaliadorConviteService` (sino + `SendEmailService`, prefixo `[TESTE]` em homolog).
 
-## Migration
+## Migrations
 
-`database/migrations/20260719180000_create_rh_entrevista_avaliadores.php`
+- `database/migrations/20260719180000_create_rh_entrevista_avaliadores.php`
+- `database/migrations/20260727160000_expand_rh_entrevista_avaliador_convite_aceite.php`
 
 ## Próximos incrementos
 
-- policy “avaliador designado vê só suas entrevistas” + escopo de listagem;
-- convite/aceite via outbox (Fase 0.5/2);
-- agenda e reagendamento com histórico.
+- agenda/ICS para avaliadores;
+- convite via outbox unificado (opcional, hoje é envio síncrono como salas/solicitações).

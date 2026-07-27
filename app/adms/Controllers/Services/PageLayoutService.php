@@ -591,6 +591,9 @@ class PageLayoutService
             'RhEntrevistasDelete',
             'RhEntrevistasViewAll',
             'RhEntrevistasResendComunicacao',
+            'RhEntrevistasAceitarAvaliacao',
+            'RhEntrevistasRecusarAvaliacao',
+            'RhEntrevistasReenviarConviteAvaliador',
             // Reserva de Salas
             'ListMeetingRooms',
             'CreateMeetingRoom',

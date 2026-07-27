@@ -4,8 +4,11 @@ namespace App\adms\Controllers\rh;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\GenerateLog;
 use App\adms\Models\Repository\RhCandidatosRepository;
+use App\adms\Models\Repository\RhEntrevistaAvaliadoresRepository;
 use App\adms\Models\Repository\RhVagasRepository;
+use App\adms\Models\Services\RhEntrevistaAvaliadorConviteService;
 use App\adms\Views\Services\LoadViewService;
 
 class RhEntrevistasCreate
@@ -47,9 +50,35 @@ class RhEntrevistasCreate
                 return;
             }
 
+            $form['avaliadores_adicionais'] = array_values(array_filter(
+                array_map('intval', (array) ($form['avaliadores_adicionais'] ?? [])),
+                static fn (int $v): bool => $v > 0
+            ));
+
             try {
                 $movimentacao = new \App\adms\Models\Services\RhCandidaturaMovimentacaoService();
                 $id = $movimentacao->criarEntrevista($form);
+                $actorId = (int) ($_SESSION['user_id'] ?? 0);
+                $principalId = !empty($form['entrevistador_id']) ? (int) $form['entrevistador_id'] : null;
+                try {
+                    $toInvite = (new RhEntrevistaAvaliadoresRepository())->syncPainel(
+                        (int) $id,
+                        $principalId,
+                        $form['avaliadores_adicionais'],
+                        $actorId
+                    );
+                    if ($toInvite !== []) {
+                        (new RhEntrevistaAvaliadorConviteService())->enviarConvites((int) $id, $toInvite, $actorId);
+                    }
+                } catch (\Throwable $e) {
+                    GenerateLog::generateLog('error', 'Entrevista criada, mas painel de avaliadores falhou.', [
+                        'entrevista_id' => (int) $id,
+                        'error' => $e->getMessage(),
+                    ]);
+                    $_SESSION['error'] = 'Entrevista criada, porém o painel de avaliadores falhou: ' . $e->getMessage();
+                    header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");
+                    return;
+                }
                 $_SESSION['success'] = "Entrevista cadastrada com sucesso!";
                 header("Location: {$_ENV['URL_ADM']}rh-entrevistas-view/$id");
                 return;

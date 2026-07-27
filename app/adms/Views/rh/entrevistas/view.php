@@ -228,7 +228,17 @@ $e = $this->data['entrevista'] ?? [];
         </div>
     </div>
 
-    <?php $painel = $this->data['painel_avaliadores'] ?? []; ?>
+    <?php
+    $painel = $this->data['painel_avaliadores'] ?? [];
+    $currentUserId = (int) ($this->data['current_user_id'] ?? 0);
+    $canManage = !empty($this->data['can_manage_entrevista']);
+    $canAccept = in_array('RhEntrevistasAceitarAvaliacao', $this->data['buttonPermission'] ?? [], true);
+    $canRefuse = in_array('RhEntrevistasRecusarAvaliacao', $this->data['buttonPermission'] ?? [], true);
+    $canResendInvite = in_array('RhEntrevistasReenviarConviteAvaliador', $this->data['buttonPermission'] ?? [], true);
+    $csrfAceitar = (string) ($this->data['csrf_aceitar_avaliacao'] ?? '');
+    $csrfRecusar = (string) ($this->data['csrf_recusar_avaliacao'] ?? '');
+    $csrfReenviar = (string) ($this->data['csrf_reenviar_convite_avaliador'] ?? '');
+    ?>
     <div class="card mb-4 border-light shadow">
         <div class="card-header"><i class="fas fa-users me-2"></i>Painel de avaliadores</div>
         <div class="card-body">
@@ -243,11 +253,15 @@ $e = $this->data['entrevista'] ?? [];
                                 <th>Papel</th>
                                 <th>Status</th>
                                 <th>Scorecard</th>
+                                <th></th>
                             </tr>
                         </thead>
                         <tbody>
                             <?php foreach ($painel as $av): ?>
                                 <?php
+                                $avStatus = (string) ($av['status'] ?? 'ativo');
+                                $avUserId = (int) ($av['avaliador_id'] ?? 0);
+                                $avPapel = (string) ($av['papel'] ?? 'avaliador');
                                 $scStatus = $av['scorecard_status'] ?? null;
                                 if ($scStatus === null || $scStatus === '') {
                                     $scLabel = 'ausente';
@@ -259,15 +273,62 @@ $e = $this->data['entrevista'] ?? [];
                                     $scLabel = 'rascunho';
                                     $scClass = 'bg-secondary';
                                 }
+                                $statusClass = match ($avStatus) {
+                                    'ativo' => 'bg-success',
+                                    'convidado' => 'bg-warning text-dark',
+                                    'recusado' => 'bg-danger',
+                                    'removido' => 'bg-secondary',
+                                    default => 'bg-secondary',
+                                };
+                                $isOwnInvite = $avStatus === 'convidado'
+                                    && $avPapel === 'avaliador'
+                                    && $avUserId > 0
+                                    && $avUserId === $currentUserId;
+                                $canResendRow = $canManage
+                                    && $canResendInvite
+                                    && $avPapel === 'avaliador'
+                                    && in_array($avStatus, ['convidado', 'recusado'], true);
                                 ?>
-                                <tr class="<?= ($av['status'] ?? '') === 'removido' ? 'text-muted' : '' ?>">
-                                    <td><?= htmlspecialchars($av['avaliador_nome'] ?? ('#' . (int) ($av['avaliador_id'] ?? 0))) ?></td>
-                                    <td><?= htmlspecialchars($av['papel'] ?? 'avaliador') ?></td>
-                                    <td><?= htmlspecialchars($av['status'] ?? 'ativo') ?></td>
+                                <tr class="<?= $avStatus === 'removido' ? 'text-muted' : '' ?>">
+                                    <td><?= htmlspecialchars($av['avaliador_nome'] ?? ('#' . $avUserId)) ?></td>
+                                    <td><?= htmlspecialchars($avPapel) ?></td>
+                                    <td><span class="badge <?= $statusClass ?>"><?= htmlspecialchars($avStatus) ?></span></td>
                                     <td>
                                         <span class="badge <?= $scClass ?>"><?= htmlspecialchars($scLabel) ?></span>
                                         <?php if (isset($av['scorecard_nota']) && $av['scorecard_nota'] !== null && $av['scorecard_nota'] !== ''): ?>
                                             <span class="small text-muted ms-1"><?= number_format((float) $av['scorecard_nota'], 2, ',', '.') ?></span>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end text-nowrap">
+                                        <?php if ($isOwnInvite && $canAccept): ?>
+                                            <form method="post"
+                                                  action="<?= htmlspecialchars($_ENV['URL_ADM'] . 'rh-entrevistas-aceitar-avaliacao') ?>"
+                                                  class="d-inline">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfAceitar) ?>">
+                                                <input type="hidden" name="entrevista_id" value="<?= (int) ($e['id'] ?? 0) ?>">
+                                                <button type="submit" class="btn btn-sm btn-success">Aceitar</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        <?php if ($isOwnInvite && $canRefuse): ?>
+                                            <form method="post"
+                                                  action="<?= htmlspecialchars($_ENV['URL_ADM'] . 'rh-entrevistas-recusar-avaliacao') ?>"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Recusar o convite para avaliar esta entrevista?');">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfRecusar) ?>">
+                                                <input type="hidden" name="entrevista_id" value="<?= (int) ($e['id'] ?? 0) ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-danger">Recusar</button>
+                                            </form>
+                                        <?php endif; ?>
+                                        <?php if ($canResendRow): ?>
+                                            <form method="post"
+                                                  action="<?= htmlspecialchars($_ENV['URL_ADM'] . 'rh-entrevistas-reenviar-convite-avaliador') ?>"
+                                                  class="d-inline"
+                                                  onsubmit="return confirm('Reenviar convite a este avaliador?');">
+                                                <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfReenviar) ?>">
+                                                <input type="hidden" name="entrevista_id" value="<?= (int) ($e['id'] ?? 0) ?>">
+                                                <input type="hidden" name="avaliador_id" value="<?= $avUserId ?>">
+                                                <button type="submit" class="btn btn-sm btn-outline-primary">Reenviar</button>
+                                            </form>
                                         <?php endif; ?>
                                     </td>
                                 </tr>
@@ -275,7 +336,10 @@ $e = $this->data['entrevista'] ?? [];
                         </tbody>
                     </table>
                 </div>
-                <p class="small text-muted mt-2 mb-0">A designação no painel não concede acesso automático à entrevista.</p>
+                <p class="small text-muted mt-2 mb-0">
+                    O entrevistador principal fica ativo de imediato. Avaliadores adicionais só ganham acesso após aceitar o convite
+                    (status <em>ativo</em>). Designação no painel não substitui a ACL de edição da vaga.
+                </p>
             <?php endif; ?>
         </div>
     </div>

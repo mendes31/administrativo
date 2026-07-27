@@ -5,18 +5,19 @@
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A <strong>visualização</strong> usa <em>canViewEntrevista</em> (ViewAll, entrevistador, avaliador ativo ou responsável da vaga). A edição exige gerenciar a vaga/pipeline. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, o modo restrito. O botão <strong>Reenviar</strong> no histórico de comunicações exige <em>RhEntrevistasResendComunicacao</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A <strong>visualização</strong> usa <em>canViewEntrevista</em> (ViewAll, entrevistador, avaliador ativo ou convidado, ou responsável da vaga). A edição exige gerenciar a vaga/pipeline. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, o modo restrito. O botão <strong>Reenviar</strong> no histórico de comunicações exige <em>RhEntrevistasResendComunicacao</em>. Aceitar/recusar convite de avaliação exigem <em>RhEntrevistasAceitarAvaliacao</em> / <em>RhEntrevistasRecusarAvaliacao</em>; reenviar convite de avaliador exige <em>RhEntrevistasReenviarConviteAvaliador</em> e poder gerenciar a entrevista.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Abra <strong>Listar Entrevistas</strong> ou agende a partir do candidato/vaga.</li>
-    <li>Preencha data/hora, tipo, entrevistador principal, local e, se quiser, <strong>avaliadores adicionais</strong> (o painel adicional permanece interno).</li>
-    <li>Ao agendar ou reagendar, o sistema registra um evento e uma <strong>intenção de e-mail</strong>. O envio real só ocorre com o interruptor <strong>Envio automático de comunicações de entrevista</strong> ligado na tela <em>Configuração de E-mail</em> e com o worker técnico em execução; acompanhe o estado no histórico de comunicações.</li>
+    <li>Preencha data/hora, tipo, entrevistador principal, local e, se quiser, <strong>avaliadores adicionais</strong>. O principal fica ativo de imediato; cada adicional recebe <strong>convite</strong> (notificação e e-mail) e só passa a ativo após aceitar.</li>
+    <li>O convidado abre a entrevista pelo link do convite e usa <strong>Aceitar</strong> ou <strong>Recusar</strong> no painel. Quem gerencia a vaga pode <strong>Reenviar</strong> o convite se estiver pendente ou recusado.</li>
+    <li>Ao agendar ou reagendar, o sistema registra um evento e uma <strong>intenção de e-mail</strong> para o candidato. O envio real só ocorre com o interruptor <strong>Envio automático de comunicações de entrevista</strong> ligado na tela <em>Configuração de E-mail</em> e com o worker técnico em execução; acompanhe o estado no histórico de comunicações.</li>
     <li>Se uma comunicação ficar <em>bloqueada</em> ou <em>falhou</em>, corrija o e-mail do candidato se necessário e use <strong>Reenviar</strong> na visualização: o sistema cria uma nova intenção (o registro original permanece no histórico). O envio SMTP ainda depende do interruptor e do worker.</li>
     <li>Para <strong>reagendar</strong> uma entrevista já agendada, altere a data/hora e informe o <strong>motivo</strong> (obrigatório). O histórico fica na visualização.</li>
     <li>Na edição, use o <strong>scorecard</strong> para lançar notas (0–10) por critério e parecer. A nota ponderada é só informativa — não muda o resultado nem o pipeline.</li>
     <li>Ao salvar resultado <strong>aprovado</strong> ou <strong>reprovado</strong>, o status da candidatura no pipeline é atualizado na mesma operação (com motivo automático e histórico).</li>
-    <li>Na visualização, consulte comunicações, reagendamentos, painel de avaliadores, scorecards e a linha do tempo do candidato.</li>
+    <li>Na visualização, consulte comunicações, reagendamentos, painel de avaliadores (com status do convite), scorecards e a linha do tempo do candidato.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -27,9 +28,13 @@
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Só vejo parte das entrevistas</dt>
-    <dd>Falta <em>RhEntrevistasViewAll</em>. Níveis de RH/DP costumam mantê-la; outros perfis podem ter tido a permissão revogada pelo Contract. Sem ViewAll você vê só onde é entrevistador, avaliador ativo ou responsável da vaga.</dd>
+    <dd>Falta <em>RhEntrevistasViewAll</em>. Níveis de RH/DP costumam mantê-la; outros perfis podem ter tido a permissão revogada pelo Contract. Sem ViewAll você vê só onde é entrevistador, avaliador ativo/convidado ou responsável da vaga.</dd>
     <dt>Vejo a entrevista mas não o botão Editar</dt>
     <dd>Entrevistadores/avaliadores podem visualizar; editar exige permissão de gerenciar a vaga (responsável/gestor) e <em>RhEntrevistasEdit</em>.</dd>
+    <dt>Fui convidado mas não consigo aceitar</dt>
+    <dd>Confirme se o status no painel é <em>convidado</em> e se você está logado com o usuário convidado. É necessário <em>RhEntrevistasAceitarAvaliacao</em> (concedida junto com quem tem <em>RhEntrevistas</em> após a migration de convite).</dd>
+    <dt>Adicionei avaliador e ele não recebeu e-mail</dt>
+    <dd>Confira se o usuário tem e-mail válido. A notificação in-app deve aparecer mesmo assim. Em ambiente de teste o assunto/corpo podem trazer o marcador <em>[TESTE]</em>.</dd>
     <dt>Informe o motivo do reagendamento ao alterar a data/hora</dt>
     <dd>A entrevista já estava agendada (ou com resultado). Preencha o campo de motivo na edição. No primeiro agendamento a partir de <em>pendente</em>, o motivo não é exigido.</dd>
     <dt>Comunicação aparece como registrada (<em>recorded</em>)</dt>
@@ -45,9 +50,9 @@
     <dt>Candidato não está vinculado a esta vaga</dt>
     <dd>O resultado aprovado/reprovado exige vínculo ativo candidato–vaga. Vincule o candidato antes de registrar o resultado, ou a edição é revertida por completo.</dd>
     <dt>Você não tem permissão para editar/visualizar esta entrevista</dt>
-    <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga. Estar no painel de avaliadores <em>não</em> libera acesso sozinho.</dd>
+    <dd>Falta ACL de entrevista ou vínculo como responsável/gestor da vaga. Avaliador só vê se estiver <em>ativo</em> ou <em>convidado</em> no painel (recusado/removido não).</dd>
     <dt>Erro ao carregar após deploy</dt>
-    <dd>Rode as migrations de entrevista/outbox, <code>20260719232000</code> (template v2), <code>20260719233000</code> (interruptor de envio) e <code>20260719234000</code> (reenvio).</dd>
+    <dd>Rode as migrations de entrevista/outbox, <code>20260719232000</code> (template v2), <code>20260719233000</code> (interruptor de envio), <code>20260719234000</code> (reenvio) e <code>20260727160000</code> (convite/aceite de avaliador).</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhEntrevistas</em> ausente no nível de acesso.</dd>
 </dl>

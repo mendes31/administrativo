@@ -246,7 +246,7 @@ class RhEntrevistasRepository extends DbConnection
             $params[':entrevistador_id'] = (int) $filters['entrevistador_id'];
         }
 
-        // Escopo Expand: related = entrevistador, avaliador ativo ou responsável da vaga.
+        // Escopo Expand: related = entrevistador, avaliador ativo/convidado ou responsável da vaga.
         $scopeMode = (string) ($filters['scope_mode'] ?? 'all');
         $scopeUserId = (int) ($filters['scope_user_id'] ?? 0);
         if ($scopeMode === 'related') {
@@ -260,7 +260,7 @@ class RhEntrevistasRepository extends DbConnection
                         SELECT 1 FROM rh_entrevista_avaliadores ea
                         WHERE ea.rh_entrevista_id = e.id
                           AND ea.avaliador_id = :scope_user_avaliador
-                          AND ea.status = \'ativo\'
+                          AND ea.status IN (\'ativo\', \'convidado\')
                     )
                 )';
                 $params[':scope_user_entrevistador'] = $scopeUserId;

@@ -30,7 +30,7 @@
 | Candidatura (vínculo) | `create` / `delete` / `sync` | `canManagePipeline` da vaga | Vaga | Vaga não fechada/cancelada; sync atômico | Parcial |
 | Candidatura | `transition` (pipeline) | `canManagePipelineByVagaId` | Vínculo existente | CSRF; status válido; transação | Log de status do candidato |
 | Entrevista | `list` | ACL `RhEntrevistas` | `all` se `RhEntrevistasViewAll` / Super; senão `related` | Expand compatível | Não |
-| Entrevista | `view` | ACL + `canViewEntrevista` | Objeto: ViewAll / Super / entrevistador / avaliador ativo / responsável ou gestor da vaga | Alinhado ao modo `related` da listagem | Não |
+| Entrevista | `view` | ACL + `canViewEntrevista` | Objeto: ViewAll / Super / entrevistador / avaliador ativo ou convidado / responsável ou gestor da vaga | Alinhado ao modo `related` da listagem | Não |
 | Entrevista | `create` / `update` / `delete` | `canManageEntrevista` (vaga ou candidato) | Objeto | CSRF; delete só POST | Parcial |
 | Comunicação entrevista | `resend` | ACL `RhEntrevistasResendComunicacao` + `canManageEntrevista` | Objeto | CSRF POST; só `failed`/`blocked`; nova intenção | Expand |
 
@@ -46,7 +46,7 @@
 1. ~~Contract de `RhEntrevistasViewAll` / `RhCandidatosViewAll`~~ (aplicado 27/07/2026; mesmo critério RH/DP/Super que Vagas).
 2. ~~Entrevistador/avaliador designado ainda não tem policy “somente suas entrevistas” na **visualização**~~ (`canViewEntrevista`); edição continua em `canManageEntrevista`.
 3. ~~Escopo de gestor não valida área da vaga~~ — `isManagerOfVaga` (área = `user_department_id` **ou** responsável na árvore de subordinados).
-4. Convite/aceite de avaliador ainda não existe (painel é interno, sem comunicação).
+4. ~~Convite/aceite de avaliador ainda não existe~~ — status `convidado`/`recusado`, notificação + e-mail, Aceitar/Recusar/Reenviar (`20260727160000`).
 5. ~~UI/exportação do log de download de currículo~~ (listagem + Excel + PDF).
 
 ## Referências

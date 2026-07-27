@@ -93,6 +93,16 @@ class RhEntrevistasView
         $this->data['csrf_resend_comunicacao'] = CSRFHelper::generateCSRFToken(
             'form_resend_rh_entrevista_comunicacao'
         );
+        $this->data['csrf_aceitar_avaliacao'] = CSRFHelper::generateCSRFToken(
+            'form_aceitar_avaliacao_entrevista'
+        );
+        $this->data['csrf_recusar_avaliacao'] = CSRFHelper::generateCSRFToken(
+            'form_recusar_avaliacao_entrevista'
+        );
+        $this->data['csrf_reenviar_convite_avaliador'] = CSRFHelper::generateCSRFToken(
+            'form_reenviar_convite_avaliador'
+        );
+        $this->data['current_user_id'] = (int) ($_SESSION['user_id'] ?? 0);
 
         $pageElements = [
             'title_head' => 'Visualizar Entrevista',
@@ -102,6 +112,9 @@ class RhEntrevistasView
                 'RhEntrevistasEdit',
                 'RhEntrevistasDelete',
                 'RhEntrevistasResendComunicacao',
+                'RhEntrevistasAceitarAvaliacao',
+                'RhEntrevistasRecusarAvaliacao',
+                'RhEntrevistasReenviarConviteAvaliador',
                 'RhEntrevistasViewAll',
             ],
         ];

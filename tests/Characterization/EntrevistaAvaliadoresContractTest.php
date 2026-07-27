@@ -22,31 +22,51 @@ final class EntrevistaAvaliadoresContractTest extends TestCase
         self::assertStringContainsString('principal', $source);
     }
 
-    public function testSyncIsAdditiveWithoutInviteOrAcl(): void
+    public function testInviteExpandMigrationAndStatuses(): void
     {
+        $migration = $this->readProjectFile(
+            'database/migrations/20260727160000_expand_rh_entrevista_avaliador_convite_aceite.php'
+        );
+        self::assertStringContainsString('convidado', $migration);
+        self::assertStringContainsString('recusado', $migration);
+        self::assertStringContainsString('RhEntrevistasAceitarAvaliacao', $migration);
+        self::assertStringContainsString('RhEntrevistasRecusarAvaliacao', $migration);
+        self::assertStringContainsString('RhEntrevistasReenviarConviteAvaliador', $migration);
+
         $repo = $this->readProjectFile(
             'app/adms/Models/Repository/RhEntrevistaAvaliadoresRepository.php'
         );
+        self::assertStringContainsString('STATUS_CONVIDADO', $repo);
+        self::assertStringContainsString('aceitarConvite', $repo);
+        self::assertStringContainsString('recusarConvite', $repo);
 
-        self::assertStringContainsString('syncPainel', $repo);
-        self::assertStringContainsString('STATUS_REMOVIDO', $repo);
-        self::assertStringNotContainsString('SendEmail', $repo);
-        self::assertStringNotContainsString('canManageEntrevista', $repo);
+        $service = $this->readProjectFile(
+            'app/adms/Models/Services/RhEntrevistaAvaliadorConviteService.php'
+        );
+        self::assertStringContainsString('SendEmailService', $service);
+        self::assertStringContainsString('NotificationsRepository', $service);
     }
 
-    public function testEditAndViewSurfacePainel(): void
+    public function testEditCreateAndViewSurfaceInviteFlow(): void
     {
         $edit = $this->readProjectFile('app/adms/Controllers/rh/RhEntrevistasEdit.php');
         self::assertStringContainsString('RhEntrevistaAvaliadoresRepository', $edit);
         self::assertStringContainsString('syncPainel', $edit);
+        self::assertStringContainsString('RhEntrevistaAvaliadorConviteService', $edit);
+
+        $create = $this->readProjectFile('app/adms/Controllers/rh/RhEntrevistasCreate.php');
+        self::assertStringContainsString('syncPainel', $create);
+        self::assertStringContainsString('enviarConvites', $create);
 
         $editView = $this->readProjectFile('app/adms/Views/rh/entrevistas/edit.php');
         self::assertStringContainsString('avaliadores_adicionais', $editView);
-        self::assertStringContainsString('não envia convite', $editView);
+        self::assertStringContainsString('recebem convite', mb_strtolower($editView));
 
         $view = $this->readProjectFile('app/adms/Views/rh/entrevistas/view.php');
         self::assertStringContainsString('Painel de avaliadores', $view);
-        self::assertStringContainsString('não concede acesso automático', $view);
+        self::assertStringContainsString('rh-entrevistas-aceitar-avaliacao', $view);
+        self::assertStringContainsString('rh-entrevistas-recusar-avaliacao', $view);
+        self::assertStringContainsString('só ganham acesso após aceitar', $view);
     }
 
     private function readProjectFile(string $relativePath): string
