@@ -36,13 +36,14 @@ class RhEntrevistasView
             return;
         }
 
-        if (!RhPermissionService::canManageEntrevista($entrevista)) {
+        if (!RhPermissionService::canViewEntrevista($entrevista)) {
             $_SESSION['error'] = 'Você não tem permissão para visualizar esta entrevista.';
             header('Location: ' . $_ENV['URL_ADM'] . 'rh-entrevistas');
             return;
         }
 
         $this->data['entrevista'] = $entrevista;
+        $this->data['can_manage_entrevista'] = RhPermissionService::canManageEntrevista($entrevista);
         $this->data['scorecards'] = [];
         $this->data['painel_avaliadores'] = [];
         $this->data['reagendamentos'] = [];
@@ -101,6 +102,7 @@ class RhEntrevistasView
                 'RhEntrevistasEdit',
                 'RhEntrevistasDelete',
                 'RhEntrevistasResendComunicacao',
+                'RhEntrevistasViewAll',
             ],
         ];
 

@@ -33,6 +33,23 @@ final class EntrevistasListScopeContractTest extends TestCase
         self::assertStringContainsString('resolveEntrevistasListScope', $controller);
     }
 
+    public function testContractMigrationAndCanViewEntrevista(): void
+    {
+        $migration = $this->readProjectFile(
+            'database/migrations/20260727140000_contract_rh_entrevistas_view_all_scope.php'
+        );
+        self::assertStringContainsString('RhEntrevistasViewAll', $migration);
+        self::assertStringContainsString('permission = 0', $migration);
+
+        $service = $this->readProjectFile('app/adms/Models/Services/RhPermissionService.php');
+        self::assertStringContainsString('canViewEntrevista', $service);
+        self::assertStringContainsString('isAvaliadorAtivoDaEntrevista', $service);
+
+        $view = $this->readProjectFile('app/adms/Controllers/rh/RhEntrevistasView.php');
+        self::assertStringContainsString('canViewEntrevista', $view);
+        self::assertStringContainsString('can_manage_entrevista', $view);
+    }
+
     private function readProjectFile(string $relativePath): string
     {
         $source = file_get_contents(PROJECT_ROOT . '/' . $relativePath);

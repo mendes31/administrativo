@@ -17,7 +17,8 @@ $e = $this->data['entrevista'] ?? [];
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="fas fa-calendar-alt me-2"></i>Entrevista #<?= (int)($e['id'] ?? 0) ?></span>
             <div class="btn-group">
-                <?php if (!empty($this->data['buttonPermission']['RhEntrevistasEdit'])): ?>
+                <?php if (!empty($this->data['buttonPermission']['RhEntrevistasEdit'])
+                    && !empty($this->data['can_manage_entrevista'])): ?>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-edit/<?= (int)$e['id'] ?>" class="btn btn-secondary btn-sm">
                     <i class="fas fa-edit me-1"></i>Editar
                 </a>

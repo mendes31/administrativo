@@ -33,6 +33,16 @@ final class CandidatosListScopeContractTest extends TestCase
         self::assertStringContainsString('resolveCandidatosListScope', $controller);
     }
 
+    public function testContractMigrationRevokesNonRhViewAll(): void
+    {
+        $source = $this->readProjectFile(
+            'database/migrations/20260727130000_contract_rh_candidatos_view_all_scope.php'
+        );
+        self::assertStringContainsString('RhCandidatosViewAll', $source);
+        self::assertStringContainsString('permission = 0', $source);
+        self::assertStringContainsString('recursos', $source);
+    }
+
     private function readProjectFile(string $relativePath): string
     {
         $source = file_get_contents(PROJECT_ROOT . '/' . $relativePath);

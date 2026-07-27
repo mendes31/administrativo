@@ -162,6 +162,71 @@ class RhPermissionService extends DbConnection
     }
 
     /**
+     * Visualização alinhada ao escopo da listagem (`related` / ViewAll).
+     * Entrevistador principal, avaliador ativo ou responsável da vaga podem ver
+     * mesmo sem poder gerenciar o pipeline.
+     *
+     * @param array<string, mixed> $entrevista
+     */
+    public static function canViewEntrevista(array $entrevista): bool
+    {
+        if (self::isSuperAdmin()) {
+            return true;
+        }
+
+        $scope = self::resolveEntrevistasListScope();
+        if (($scope['mode'] ?? '') === 'all') {
+            return true;
+        }
+
+        $userId = (int) ($scope['user_id'] ?? 0);
+        if ($userId <= 0) {
+            return false;
+        }
+
+        if ((int) ($entrevista['entrevistador_id'] ?? 0) === $userId) {
+            return true;
+        }
+
+        $vagaId = (int) ($entrevista['rh_vaga_id'] ?? 0);
+        if ($vagaId > 0) {
+            $repo = new RhVagasRepository();
+            $vaga = $repo->getById($vagaId);
+            if ($vaga && self::isVagaResponsavel($vaga)) {
+                return true;
+            }
+        }
+
+        $entrevistaId = (int) ($entrevista['id'] ?? 0);
+        if ($entrevistaId > 0 && self::isAvaliadorAtivoDaEntrevista($entrevistaId, $userId)) {
+            return true;
+        }
+
+        // Quem gerencia a vaga/pipeline também visualiza.
+        return self::canManageEntrevista($entrevista);
+    }
+
+    private static function isAvaliadorAtivoDaEntrevista(int $entrevistaId, int $userId): bool
+    {
+        try {
+            $pdo = (new RhVagasRepository())->getConnection();
+            $sql = 'SELECT 1 FROM rh_entrevista_avaliadores
+                    WHERE rh_entrevista_id = :entrevista_id
+                      AND avaliador_id = :user_id
+                      AND status = \'ativo\'
+                    LIMIT 1';
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':entrevista_id', $entrevistaId, \PDO::PARAM_INT);
+            $stmt->bindValue(':user_id', $userId, \PDO::PARAM_INT);
+            $stmt->execute();
+
+            return (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            return false;
+        }
+    }
+
+    /**
      * Escopo da listagem de vagas (Expand Fase 0.5).
      *
      * - `all`: Super Admin ou permissão técnica RhVagasViewAll

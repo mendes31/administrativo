@@ -23,6 +23,10 @@ deploy.
    **Piloto Vagas (27/07/2026):** migration
    `20260727120000_contract_rh_vagas_view_all_scope` mantém ViewAll em níveis RH/DP/Super
    e revoga nos demais; `RhVagasView` exige `canViewVaga` alinhado à listagem.
+   **Candidatos / Entrevistas (27/07/2026):** migrations
+   `20260727130000_contract_rh_candidatos_view_all_scope` e
+   `20260727140000_contract_rh_entrevistas_view_all_scope` (mesmo critério);
+   `canViewEntrevista` alinha detalhe ao modo `related`.
 
 ## Alternativas consideradas
 

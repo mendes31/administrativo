@@ -5,7 +5,7 @@
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A visualização também exige permissão sobre o objeto. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, apenas entrevistas em que o usuário é entrevistador, avaliador no painel ou responsável da vaga. O botão <strong>Reenviar</strong> no histórico de comunicações exige <em>RhEntrevistasResendComunicacao</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>RhEntrevistas</em> (e <em>RhEntrevistasEdit</em> para editar), além da autorização por objeto da entrevista/vaga. A <strong>visualização</strong> usa <em>canViewEntrevista</em> (ViewAll, entrevistador, avaliador ativo ou responsável da vaga). A edição exige gerenciar a vaga/pipeline. Com <em>RhEntrevistasViewAll</em> a listagem mostra todas; sem ela, o modo restrito. O botão <strong>Reenviar</strong> no histórico de comunicações exige <em>RhEntrevistasResendComunicacao</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
@@ -27,7 +27,9 @@
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Só vejo parte das entrevistas</dt>
-    <dd>Falta <em>RhEntrevistasViewAll</em>. Após a migration de escopo, quem já tinha <em>RhEntrevistas</em> recebe ViewAll automaticamente.</dd>
+    <dd>Falta <em>RhEntrevistasViewAll</em>. Níveis de RH/DP costumam mantê-la; outros perfis podem ter tido a permissão revogada pelo Contract. Sem ViewAll você vê só onde é entrevistador, avaliador ativo ou responsável da vaga.</dd>
+    <dt>Vejo a entrevista mas não o botão Editar</dt>
+    <dd>Entrevistadores/avaliadores podem visualizar; editar exige permissão de gerenciar a vaga (responsável/gestor) e <em>RhEntrevistasEdit</em>.</dd>
     <dt>Informe o motivo do reagendamento ao alterar a data/hora</dt>
     <dd>A entrevista já estava agendada (ou com resultado). Preencha o campo de motivo na edição. No primeiro agendamento a partir de <em>pendente</em>, o motivo não é exigido.</dd>
     <dt>Comunicação aparece como registrada (<em>recorded</em>)</dt>
