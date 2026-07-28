@@ -118,13 +118,23 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_vaga');
                                    <?= !empty($this->data['form']['mostrar_salario']) ? 'checked' : '' ?>>
                         </div>
                     </div>
+                    <div class="col-md-3 mb-2">
+                        <label for="visibilidade" class="form-label">Divulgação</label>
+                        <?php $vis = $this->data['form']['visibilidade'] ?? 'externa'; ?>
+                        <select name="form[visibilidade]" id="visibilidade" class="form-select">
+                            <option value="externa" <?= $vis === 'externa' ? 'selected' : '' ?>>Externa (portal / LinkedIn / site)</option>
+                            <option value="interna" <?= $vis === 'interna' ? 'selected' : '' ?>>Interna (app / informativos)</option>
+                            <option value="ambas" <?= $vis === 'ambas' ? 'selected' : '' ?>>Externa e interna</option>
+                        </select>
+                        <div class="form-text">Interna: anuncie no app via Informativos. Externa: portal <code>vagas-abertas</code>.</div>
+                    </div>
                     <div class="col-md-2 mb-2">
                         <label for="publicada" class="form-label">Publicar (portal)</label>
                         <div class="form-check form-switch mt-2">
                             <input type="checkbox" name="form[publicada]" id="publicada" class="form-check-input" value="1"
                                    <?= !empty($this->data['form']['publicada']) ? 'checked' : '' ?>>
                         </div>
-                        <div class="form-text">Só com status Aberta. Aparece em <code>vagas-abertas</code> (somente leitura).</div>
+                        <div class="form-text">Só com status Aberta e divulgação externa/ambas. Formulário seguro em <code>vagas-abertas/{id}</code>.</div>
                     </div>
                     <div class="col-md-3 mb-2">
                         <label for="quantidade_vagas" class="form-label">Quantidade de Vagas</label>

@@ -1334,6 +1334,11 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "vagas-internas",
+                                    "title": "Vagas internas (colaborador)"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "rh-vagas-publicas-config",
                                     "title": "Configuração — Portal de Vagas (CAPTCHA)"
                                 },

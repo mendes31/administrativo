@@ -509,6 +509,7 @@ class PageLayoutService
             'ExportAnalysisInfo',
             // Portal do Colaborador
             'EmployeePortal',
+            'VagasInternas',
             'ImportPayrollDocuments',
             'PayrollImportBatchReport',
             'PayrollImportBatchAudit',

@@ -23,19 +23,23 @@ class RhVagasRepository extends DbConnection
             }
 
             $status = (string) ($data['status'] ?? 'aberta');
+            $visibilidade = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade(
+                $data['visibilidade'] ?? 'externa'
+            );
+            $data['visibilidade'] = $visibilidade;
             $publicada = $this->normalizePublicadaFlag($data, $status);
 
             $sql = 'INSERT INTO rh_vagas 
                         (titulo, descricao, requisitos, beneficios,
                          area_id, cargo_id, tipo_contrato,
-                         salario_min, salario_max, mostrar_salario, publicada, publicado_em,
+                         salario_min, salario_max, mostrar_salario, publicada, publicado_em, visibilidade,
                          status, data_abertura, data_limite_inscricao,
                          quantidade_vagas, local_trabalho, jornada_trabalho,
                          observacoes, responsavel_id, personnel_request_id, created_at)
                     VALUES
                         (:titulo, :descricao, :requisitos, :beneficios,
                          :area_id, :cargo_id, :tipo_contrato,
-                         :salario_min, :salario_max, :mostrar_salario, :publicada, :publicado_em,
+                         :salario_min, :salario_max, :mostrar_salario, :publicada, :publicado_em, :visibilidade,
                          :status, :data_abertura, :data_limite_inscricao,
                          :quantidade_vagas, :local_trabalho, :jornada_trabalho,
                          :observacoes, :responsavel_id, :personnel_request_id, NOW())';
@@ -57,6 +61,7 @@ class RhVagasRepository extends DbConnection
                 $publicada === 1 ? date('Y-m-d H:i:s') : null,
                 $publicada === 1 ? PDO::PARAM_STR : PDO::PARAM_NULL
             );
+            $stmt->bindValue(':visibilidade', $visibilidade, PDO::PARAM_STR);
             $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             $stmt->bindValue(':data_abertura', $data['data_abertura'] ?? date('Y-m-d H:i:s'), PDO::PARAM_STR);
             $stmt->bindValue(':data_limite_inscricao', !empty($data['data_limite_inscricao']) ? $data['data_limite_inscricao'] : null, $data['data_limite_inscricao'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
@@ -120,6 +125,10 @@ class RhVagasRepository extends DbConnection
             }
 
             $status = (string) ($data['status'] ?? 'aberta');
+            $visibilidade = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade(
+                $data['visibilidade'] ?? ($dadosAntes['visibilidade'] ?? 'externa')
+            );
+            $data['visibilidade'] = $visibilidade;
             $publicada = $this->normalizePublicadaFlag($data, $status);
             $wasPublicada = (int) ($dadosAntes['publicada'] ?? 0) === 1;
             $publicadoEmSql = '';
@@ -142,6 +151,7 @@ class RhVagasRepository extends DbConnection
                         salario_max = :salario_max,
                         mostrar_salario = :mostrar_salario,
                         publicada = :publicada' . $publicadoEmSql . ',
+                        visibilidade = :visibilidade,
                         status = :status,
                         data_limite_inscricao = :data_limite_inscricao,
                         quantidade_vagas = :quantidade_vagas,
@@ -165,6 +175,7 @@ class RhVagasRepository extends DbConnection
             $stmt->bindValue(':salario_max', !empty($data['salario_max']) ? $data['salario_max'] : null, PDO::PARAM_STR);
             $stmt->bindValue(':mostrar_salario', !empty($data['mostrar_salario']) ? 1 : 0, PDO::PARAM_BOOL);
             $stmt->bindValue(':publicada', $publicada, PDO::PARAM_INT);
+            $stmt->bindValue(':visibilidade', $visibilidade, PDO::PARAM_STR);
             $stmt->bindValue(':status', $status, PDO::PARAM_STR);
             $stmt->bindValue(':data_limite_inscricao', !empty($data['data_limite_inscricao']) ? $data['data_limite_inscricao'] : null, $data['data_limite_inscricao'] !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':quantidade_vagas', !empty($data['quantidade_vagas']) ? (int)$data['quantidade_vagas'] : 1, PDO::PARAM_INT);
@@ -301,6 +312,88 @@ class RhVagasRepository extends DbConnection
                 LEFT JOIN adms_positions p ON p.id = v.cargo_id
                 WHERE v.id = :id
                   AND v.publicada = 1
+                  AND v.status = 'aberta'
+                  AND (v.data_limite_inscricao IS NULL OR v.data_limite_inscricao >= NOW())
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Listagem autenticada (colaboradores): visibilidade interna|ambas + aberta + prazo.
+     *
+     * @param array{titulo?: string} $filters
+     * @return array{data: list<array<string, mixed>>, total: int}
+     */
+    public function listInternas(array $filters = [], int $page = 1, int $perPage = 20): array
+    {
+        $page = max(1, $page);
+        $perPage = max(1, min(50, $perPage));
+        $offset = ($page - 1) * $perPage;
+        $where = [
+            "v.visibilidade IN ('interna', 'ambas')",
+            "v.status = 'aberta'",
+            '(v.data_limite_inscricao IS NULL OR v.data_limite_inscricao >= NOW())',
+        ];
+        $params = [];
+
+        if (!empty($filters['titulo'])) {
+            $where[] = 'v.titulo LIKE :titulo';
+            $params[':titulo'] = '%' . $filters['titulo'] . '%';
+        }
+
+        $whereSql = 'WHERE ' . implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) AS total FROM rh_vagas v {$whereSql}";
+        $stmtCount = $this->getConnection()->prepare($sqlCount);
+        foreach ($params as $key => $value) {
+            $stmtCount->bindValue($key, $value);
+        }
+        $stmtCount->execute();
+        $total = (int) ($stmtCount->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+
+        $sql = 'SELECT ' . self::PUBLIC_SELECT . ", v.visibilidade
+                FROM rh_vagas v
+                LEFT JOIN adms_departments d ON d.id = v.area_id
+                LEFT JOIN adms_positions p ON p.id = v.cargo_id
+                {$whereSql}
+                ORDER BY v.data_abertura DESC, v.id DESC
+                LIMIT :limit OFFSET :offset";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->bindValue(':limit', $perPage, PDO::PARAM_INT);
+        $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return [
+            'data' => $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [],
+            'total' => $total,
+        ];
+    }
+
+    /**
+     * Detalhe para portal interno autenticado. Null se fora do escopo (evita IDOR).
+     *
+     * @return array<string, mixed>|null
+     */
+    public function getInternaById(int $id): ?array
+    {
+        if ($id <= 0) {
+            return null;
+        }
+
+        $sql = 'SELECT ' . self::PUBLIC_SELECT . ", v.visibilidade
+                FROM rh_vagas v
+                LEFT JOIN adms_departments d ON d.id = v.area_id
+                LEFT JOIN adms_positions p ON p.id = v.cargo_id
+                WHERE v.id = :id
+                  AND v.visibilidade IN ('interna', 'ambas')
                   AND v.status = 'aberta'
                   AND (v.data_limite_inscricao IS NULL OR v.data_limite_inscricao >= NOW())
                 LIMIT 1";
@@ -1026,13 +1119,20 @@ class RhVagasRepository extends DbConnection
     }
 
     /**
-     * Publicação só é permitida com status aberta (portal futuro).
+     * Publicação no portal público: status aberta + visibilidade externa/ambas.
      *
      * @param array<string, mixed> $data
      */
     private function normalizePublicadaFlag(array $data, string $status): int
     {
         if ($status !== 'aberta') {
+            return 0;
+        }
+
+        $vis = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade(
+            $data['visibilidade'] ?? 'externa'
+        );
+        if (!\App\adms\Models\Services\RhVagaDivulgacaoService::permitePortalPublico($vis)) {
             return 0;
         }
 

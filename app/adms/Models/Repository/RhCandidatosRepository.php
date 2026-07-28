@@ -570,7 +570,7 @@ class RhCandidatosRepository extends DbConnection
         }
 
         $stmt = $this->getConnection()->prepare(
-            'SELECT id, nome, email, lgpd_status
+            'SELECT id, nome, email, lgpd_status, adms_user_id
              FROM rh_candidatos
              WHERE LOWER(TRIM(email)) = :email
                AND (lgpd_status IS NULL OR lgpd_status <> \'Anonimizado\')
@@ -578,6 +578,32 @@ class RhCandidatosRepository extends DbConnection
              LIMIT 1'
         );
         $stmt->bindValue(':email', $email, PDO::PARAM_STR);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
+    /**
+     * Candidato ativo vinculado a um usuário do sistema.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function findActiveByAdmsUserId(int $userId): ?array
+    {
+        if ($userId <= 0) {
+            return null;
+        }
+
+        $stmt = $this->getConnection()->prepare(
+            'SELECT id, nome, email, lgpd_status, adms_user_id
+             FROM rh_candidatos
+             WHERE adms_user_id = :user_id
+               AND (lgpd_status IS NULL OR lgpd_status <> \'Anonimizado\')
+             ORDER BY id DESC
+             LIMIT 1'
+        );
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
         $stmt->execute();
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
 

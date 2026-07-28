@@ -61,7 +61,7 @@ class RhVagasView
         $pageElements = [
             'title_head' => 'Visualizar Vaga',
             'menu'       => 'rh-vagas',
-            'buttonPermission' => ['RhVagas', 'RhVagasEdit', 'RhVagasDelete', 'RhVagasViewAll'],
+            'buttonPermission' => ['RhVagas', 'RhVagasEdit', 'RhVagasDelete', 'RhVagasViewAll', 'CreateInformativo'],
         ];
 
         $pageLayoutService = new PageLayoutService();

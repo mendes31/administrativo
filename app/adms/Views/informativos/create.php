@@ -22,12 +22,22 @@ use App\adms\Helpers\CSRFHelper;
                             Seu usuário não possui departamento vinculado. Não é possível publicar informativos até que um administrador associe um departamento ao seu cadastro (ou use um perfil com permissão total).
                         </div>
                     <?php endif; ?>
+                    <?php
+                    $prefill = $this->data['form_prefill'] ?? [];
+                    $prefillTitulo = (string) ($prefill['titulo'] ?? '');
+                    $prefillConteudo = (string) ($prefill['conteudo'] ?? '');
+                    ?>
                     <form method="POST" enctype="multipart/form-data" style="max-width: 700px; margin: 0 auto;">
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('create_informativo'); ?>">
+                        <?php if (!empty($prefill['from_vaga'])): ?>
+                            <div class="alert alert-info py-2" role="alert">
+                                Rascunho sugerido a partir da vaga #<?= (int) $prefill['from_vaga'] ?>. Revise o texto, escolha a categoria e os departamentos a notificar.
+                            </div>
+                        <?php endif; ?>
                         <div class="row g-3 mb-3" style="margin-bottom: 2.5rem !important;">
                             <div class="col-md-6">
                                 <label for="titulo" class="form-label fw-semibold">Título *</label>
-                                <input type="text" class="form-control form-control-lg rounded-3" id="titulo" name="titulo" required maxlength="255" placeholder="Digite o título do comunicado">
+                                <input type="text" class="form-control form-control-lg rounded-3" id="titulo" name="titulo" required maxlength="255" placeholder="Digite o título do comunicado" value="<?= htmlspecialchars($prefillTitulo, ENT_QUOTES, 'UTF-8') ?>">
                             </div>
                             <div class="col-md-6">
                                 <label for="categoria_id" class="form-label fw-semibold">Categoria *</label>
@@ -74,7 +84,7 @@ use App\adms\Helpers\CSRFHelper;
                         <hr class="my-4">
                         <div class="mb-3">
                             <label for="conteudo" class="form-label fw-semibold">Conteúdo *</label>
-                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" placeholder="Digite o conteúdo do comunicado"></textarea>
+                            <textarea class="form-control form-control-lg rounded-3" id="conteudo" name="conteudo" rows="6" placeholder="Digite o conteúdo do comunicado"><?= htmlspecialchars($prefillConteudo, ENT_QUOTES, 'UTF-8') ?></textarea>
                         </div>
                         <div class="row g-3 mb-3 mt-3">
                             <div class="col-auto">

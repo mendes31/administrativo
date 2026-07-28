@@ -20,6 +20,7 @@ class CreateInformativo
     public function index()
     {
         $this->data = [];
+        $this->applyVagaPrefillFromQuery();
         
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $this->create();
@@ -265,5 +266,37 @@ class CreateInformativo
             return $folder . '/' . $filename;
         }
         return null;
+    }
+
+    /**
+     * Prefill a partir de create-informativo?from_vaga=&titulo=&conteudo= (GET).
+     */
+    private function applyVagaPrefillFromQuery(): void
+    {
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            return;
+        }
+
+        $titulo = trim((string) ($_GET['titulo'] ?? ''));
+        $conteudo = (string) ($_GET['conteudo'] ?? '');
+        $fromVaga = (int) ($_GET['from_vaga'] ?? 0);
+
+        if ($titulo === '' && $conteudo === '' && $fromVaga <= 0) {
+            return;
+        }
+
+        // Limite defensivo de tamanho (query string).
+        if (mb_strlen($titulo) > 255) {
+            $titulo = mb_substr($titulo, 0, 255);
+        }
+        if (mb_strlen($conteudo) > 20000) {
+            $conteudo = mb_substr($conteudo, 0, 20000);
+        }
+
+        $this->data['form_prefill'] = [
+            'titulo' => $titulo,
+            'conteudo' => $conteudo,
+            'from_vaga' => $fromVaga,
+        ];
     }
 } 

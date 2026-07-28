@@ -1568,6 +1568,11 @@
                     "file": "gestao_pessoas/vagas-abertas.html"
                 },
                 {
+                    "id": "vagas-internas",
+                    "title": "Vagas internas (colaborador)",
+                    "file": "gestao_pessoas/vagas-internas.html"
+                },
+                {
                     "id": "rh-vagas-publicas-config",
                     "title": "Configuração — Portal de Vagas (CAPTCHA)",
                     "file": "gestao_pessoas/rh-vagas-publicas-config.html"

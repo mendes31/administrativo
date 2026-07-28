@@ -1,0 +1,41 @@
+<h1>Vagas internas</h1>
+
+<h2>Função no sistema</h2>
+<p>Lista oportunidades com divulgação interna (ou ambas) e permite ao colaborador autenticado candidatar-se sem usar o portal público.</p>
+
+<p class="help-note"><strong>Relacionado:</strong> <em>Listar Vagas</em> (<code>rh-vagas</code>), <em>Vagas abertas</em> (<code>vagas-abertas</code>) e <em>Portal do Colaborador</em> (<code>employee-portal</code>).</p>
+
+<p><strong>Quem acessa:</strong> permissão <em>VagasInternas</em> (concedida aos níveis que já têm <em>EmployeePortal</em> após a migration). Exige login.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Divulgação interna</dt>
+    <dd>Canal da vaga no ATS: aparece em <code>vagas-internas</code> para colaboradores; não exige publicação no portal público.</dd>
+    <dt>LGPD</dt>
+    <dd>Consentimento obrigatório no envio da candidatura (mesmo termo usado no portal público de vagas).</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>No Portal do Colaborador, abra <strong>Vagas internas</strong> (ou a URL <code>vagas-internas</code>).</li>
+    <li>Escolha uma vaga aberta e dentro do prazo.</li>
+    <li>Leia a descrição, aceite o termo LGPD e envie (mensagem opcional).</li>
+    <li>O sistema cria/reutiliza o cadastro de candidato ligado ao seu usuário e vincula à vaga.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Busca</strong> Filtra pelo título da vaga.</div>
+<div class="help-field"><strong>Mensagem</strong> Texto opcional anexado à candidatura.</div>
+<div class="help-field"><strong>Consentimento LGPD</strong> Obrigatório para enviar.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo nenhuma vaga</dt>
+    <dd>Só entram vagas com divulgação <em>interna</em> ou <em>ambas</em>, status <em>Aberta</em> e prazo válido. Peça ao RH para conferir o cadastro da vaga.</dd>
+    <dt>Você já se candidatou</dt>
+    <dd>O mesmo usuário/e-mail não pode se candidatar duas vezes à mesma vaga.</dd>
+    <dt>Termo LGPD indisponível</dt>
+    <dd>Falta termo ativo do tipo <code>curriculo_candidato</code>. Contate o RH/LGPD.</dd>
+    <dt>Não vejo o card no portal</dt>
+    <dd>Falta a permissão <em>VagasInternas</em> no nível de acesso. Rode a migration <code>20260727180000</code> e atualize o cache de permissões.</dd>
+</dl>

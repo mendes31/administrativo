@@ -87,6 +87,18 @@ class ValidationRhVagaService
             $errors['publicada'] = 'Somente vagas com status Aberta podem ser marcadas como publicadas.';
         }
 
+        $vis = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade(
+            $data['visibilidade'] ?? 'externa'
+        );
+        if (!in_array($vis, \App\adms\Models\Services\RhVagaDivulgacaoService::visibilidadesValidas(), true)) {
+            $errors['visibilidade'] = 'Visibilidade de divulgação inválida.';
+        } elseif (
+            !empty($data['publicada'])
+            && !\App\adms\Models\Services\RhVagaDivulgacaoService::permitePortalPublico($vis)
+        ) {
+            $errors['publicada'] = 'Vaga só interna não pode ser publicada no portal público. Use Informativos no app.';
+        }
+
         return $errors;
     }
 }

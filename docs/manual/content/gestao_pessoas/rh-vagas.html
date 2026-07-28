@@ -17,7 +17,9 @@
 <ol>
     <li>Acesse <strong>Vagas de Emprego</strong> no menu Recrutamento.</li>
     <li>Use filtros (título, status, publicação, área, cargo) e abra o detalhe ou o pipeline.</li>
-    <li>Na criação/edição, marque <strong>Publicar (portal)</strong> apenas se o status for <em>Aberta</em>. A vaga passa a aparecer em <code>vagas-abertas</code>, onde o candidato pode se candidatar (sem upload de currículo).</li>
+    <li>Na criação/edição, escolha a <strong>Divulgação</strong>: <em>externa</em> (site/LinkedIn), <em>interna</em> (app/informativos) ou <em>ambas</em>.</li>
+    <li>Marque <strong>Publicar (portal)</strong> só se o status for <em>Aberta</em> e a divulgação for externa ou ambas. Aí a vaga aparece em <code>vagas-abertas/{id}</code> com formulário seguro.</li>
+    <li>Na visualização da vaga, use o bloco <strong>Divulgação</strong> para copiar links (com UTM) ou o botão <strong>Criar informativo desta vaga</strong> para anunciar no app aos colaboradores.</li>
     <li>Para abrir uma vaga a partir de headcount aprovado, use <strong>Requisições</strong>.</li>
 </ol>
 
@@ -33,13 +35,15 @@
     <dt>Abri o link da vaga e fui barrado</dt>
     <dd>Sem <em>RhVagasViewAll</em>, só o responsável da vaga (ou Super Admin) pode abrir o detalhe. Peça para ser o responsável ou a permissão ViewAll.</dd>
     <dt>Não consigo marcar a vaga como publicada</dt>
-    <dd>O status precisa ser <em>Aberta</em>. Vagas pausadas, fechadas ou canceladas não podem ficar publicadas; ao fechar, a publicação é desligada automaticamente.</dd>
+    <dd>O status precisa ser <em>Aberta</em> e a divulgação não pode ser só <em>interna</em>. Vagas pausadas/fechadas/canceladas não ficam publicadas; ao fechar, a publicação é desligada automaticamente.</dd>
     <dt>Marquei como publicada e o candidato não vê a vaga</dt>
-    <dd>Confirme status <em>Aberta</em>, prazo de inscrição vigente e a URL pública <code>{URL_ADM}vagas-abertas</code>.</dd>
+    <dd>Confirme status <em>Aberta</em>, divulgação externa/ambas, prazo vigente e a URL <code>{URL_ADM}vagas-abertas</code>.</dd>
+    <dt>Onde anuncio vaga interna?</dt>
+    <dd>Defina divulgação <em>interna</em> (ou <em>ambas</em>). Colaboradores se candidatam em <code>vagas-internas</code>. Use <strong>Criar informativo desta vaga</strong> para notificar departamentos no app.</dd>
     <dt>Candidato não consegue enviar a candidatura</dt>
     <dd>Verifique termo LGPD ativo (<code>curriculo_candidato</code>), CAPTCHA em <code>rh-vagas-publicas-config</code> (se ativado, chaves corretas), rate limit e se o e-mail já não foi usado nesta vaga.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>RhVagas</em> ausente no seu nível de acesso.</dd>
     <dt>Erro ao carregar após deploy</dt>
-    <dd>Rode as migrations <code>20260719210000_register_rh_vagas_view_all_scope</code>, <code>20260727120000_contract_rh_vagas_view_all_scope</code> e <code>20260719235000_add_rh_vagas_publicacao_flag</code>.</dd>
+    <dd>Rode as migrations de ViewAll/publicação e <code>20260727170000_add_rh_vagas_visibilidade_divulgacao</code>.</dd>
 </dl>

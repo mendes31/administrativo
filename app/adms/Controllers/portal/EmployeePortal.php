@@ -54,6 +54,7 @@ class EmployeePortal
                 'ListEmployeeTickets',
                 'CreateEmployeeTicket',
                 'MyPayrollDocuments',
+                'VagasInternas',
             ],
         ];
         

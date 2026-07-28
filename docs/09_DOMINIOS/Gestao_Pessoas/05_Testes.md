@@ -103,3 +103,7 @@ Para cada ação:
 - testes de pipeline e entrevistas;
 - execução automatizada antes do deploy ou merge;
 - teste de regressão para cada risco crítico corrigido.
+
+## Roteiros manuais pontuais
+
+- [Convite/aceite e autorizações ATS (27/07/2026)](ROTEIRO_TESTES_MANUAIS_ATS_20260727.md)

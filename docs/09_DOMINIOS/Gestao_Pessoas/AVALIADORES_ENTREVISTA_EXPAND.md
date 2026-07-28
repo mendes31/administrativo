@@ -36,3 +36,7 @@ O campo legado `entrevistador_id` permanece canônico para o principal durante o
 
 - agenda/ICS para avaliadores;
 - convite via outbox unificado (opcional, hoje é envio síncrono como salas/solicitações).
+
+## Testes manuais
+
+Roteiro passo a passo: [ROTEIRO_TESTES_MANUAIS_ATS_20260727.md](ROTEIRO_TESTES_MANUAIS_ATS_20260727.md).

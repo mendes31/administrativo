@@ -73,6 +73,15 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                         <?php else: ?>
                             <span class="badge bg-light text-dark">Não publicada</span>
                         <?php endif; ?>
+                        <?php
+                        $visBadge = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade($v['visibilidade'] ?? 'externa');
+                        $visBadgeClass = match ($visBadge) {
+                            'interna' => 'bg-warning text-dark',
+                            'ambas' => 'bg-info text-dark',
+                            default => 'bg-secondary',
+                        };
+                        ?>
+                        <span class="badge <?= $visBadgeClass ?>"><?= htmlspecialchars(\App\adms\Models\Services\RhVagaDivulgacaoService::labelVisibilidade($visBadge)) ?></span>
                         <?php if (!empty($v['area_nome'])): ?>
                             <span class="badge bg-info"><?= htmlspecialchars($v['area_nome']) ?></span>
                         <?php endif; ?>
@@ -141,6 +150,11 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                         <dt class="col-sm-5">Data de Fechamento</dt>
                         <dd class="col-sm-7"><?= FormatHelper::formatDateTime($v['data_fechamento'] ?? null) ?></dd>
 
+                        <dt class="col-sm-5">Divulgação</dt>
+                        <dd class="col-sm-7">
+                            <?= htmlspecialchars(\App\adms\Models\Services\RhVagaDivulgacaoService::labelVisibilidade((string) ($v['visibilidade'] ?? 'externa'))) ?>
+                        </dd>
+
                         <dt class="col-sm-5">Publicação (portal)</dt>
                         <dd class="col-sm-7">
                             <?php if (!empty($v['publicada'])): ?>
@@ -148,9 +162,12 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                 <?php if (!empty($v['publicado_em'])): ?>
                                     <small class="text-muted">(desde <?= FormatHelper::formatDateTime($v['publicado_em']) ?>)</small>
                                 <?php endif; ?>
-                                <br><small class="text-muted">Visível em <code>vagas-abertas</code> (somente leitura; candidatura online ainda não).</small>
+                                <br><small class="text-muted">Candidatura pública em <code>vagas-abertas/<?= (int) ($v['id'] ?? 0) ?></code>.</small>
                             <?php else: ?>
                                 Não
+                                <?php if (\App\adms\Models\Services\RhVagaDivulgacaoService::permiteDivulgacaoInterna((string) ($v['visibilidade'] ?? ''))): ?>
+                                    <br><small class="text-muted">Para o público interno, use Informativos no app (bloco abaixo).</small>
+                                <?php endif; ?>
                             <?php endif; ?>
                         </dd>
 
@@ -163,6 +180,112 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                     </dl>
                 </div>
             </div>
+
+            <?php
+            $visNow = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade($v['visibilidade'] ?? 'externa');
+            $showExternalLinks = !empty($v['publicada'])
+                && \App\adms\Models\Services\RhVagaDivulgacaoService::permitePortalPublico($visNow);
+            $showInternalHint = \App\adms\Models\Services\RhVagaDivulgacaoService::permiteDivulgacaoInterna($visNow);
+            $canCreateInformativo = in_array('CreateInformativo', $this->data['buttonPermission'] ?? [], true);
+            $linksExt = $showExternalLinks
+                ? \App\adms\Models\Services\RhVagaDivulgacaoService::linksExternos((int) ($v['id'] ?? 0))
+                : [];
+            $informativoUrl = \App\adms\Models\Services\RhVagaDivulgacaoService::createInformativoUrl($v);
+            ?>
+            <?php if ($showExternalLinks || $showInternalHint): ?>
+            <div class="card mb-4 border-light shadow">
+                <div class="card-header"><i class="fas fa-share-alt me-2"></i>Divulgação</div>
+                <div class="card-body">
+                    <?php if ($showExternalLinks): ?>
+                        <p class="small text-muted mb-2">
+                            Copie o link adequado para cada canal. O formulário público exige CSRF, honeypot, LGPD
+                            <?= !empty($this->data['captcha_hint']) ? ' e CAPTCHA' : '' ?>
+                            (configurável em Portal de Vagas).
+                        </p>
+                        <div class="table-responsive mb-3">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Canal</th>
+                                        <th>URL</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($linksExt as $linkRow): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars($linkRow['label']) ?></td>
+                                            <td>
+                                                <input type="text" class="form-control form-control-sm font-monospace"
+                                                       id="share-url-<?= htmlspecialchars($linkRow['canal']) ?>"
+                                                       value="<?= htmlspecialchars($linkRow['url']) ?>" readonly>
+                                            </td>
+                                            <td class="text-nowrap">
+                                                <button type="button" class="btn btn-sm btn-outline-secondary"
+                                                        data-copy-target="share-url-<?= htmlspecialchars($linkRow['canal']) ?>">
+                                                    Copiar
+                                                </button>
+                                                <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
+                                                   href="<?= htmlspecialchars($linkRow['url']) ?>">Abrir</a>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    <?php elseif ($visNow === 'interna'): ?>
+                        <p class="small text-muted mb-2">
+                            Esta vaga é <strong>só interna</strong>: não aparece em <code>vagas-abertas</code>.
+                            Divulgue no app pelos Informativos (colaboradores logados, com push/ciência se quiser).
+                        </p>
+                    <?php endif; ?>
+
+                    <?php if ($showInternalHint): ?>
+                        <div class="d-flex flex-wrap gap-2 align-items-center">
+                            <a href="<?= htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/vagas-internas/' . (int) ($v['id'] ?? 0)) ?>"
+                               class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
+                                Abrir no portal interno
+                            </a>
+                            <?php if ($canCreateInformativo): ?>
+                                <a href="<?= htmlspecialchars($informativoUrl) ?>" class="btn btn-sm btn-success">
+                                    <i class="fas fa-bullhorn me-1"></i>Criar informativo desta vaga
+                                </a>
+                            <?php else: ?>
+                                <span class="small text-muted">
+                                    Sem permissão <em>CreateInformativo</em> — peça a alguém de Comunicação/RH para publicar o anúncio no app.
+                                </span>
+                            <?php endif; ?>
+                            <span class="small text-muted">
+                                No informativo, restrinja a notificação aos departamentos desejados.
+                            </span>
+                        </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+            <script>
+            (function () {
+                document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
+                    btn.addEventListener('click', function () {
+                        var id = btn.getAttribute('data-copy-target');
+                        var input = id ? document.getElementById(id) : null;
+                        if (!input) return;
+                        var text = input.value || '';
+                        if (navigator.clipboard && navigator.clipboard.writeText) {
+                            navigator.clipboard.writeText(text).then(function () {
+                                btn.textContent = 'Copiado';
+                                setTimeout(function () { btn.textContent = 'Copiar'; }, 1500);
+                            });
+                        } else {
+                            input.select();
+                            document.execCommand('copy');
+                            btn.textContent = 'Copiado';
+                            setTimeout(function () { btn.textContent = 'Copiar'; }, 1500);
+                        }
+                    });
+                });
+            })();
+            </script>
+            <?php endif; ?>
 
             <?php if (!empty($v['descricao'])): ?>
                 <div class="mb-3">

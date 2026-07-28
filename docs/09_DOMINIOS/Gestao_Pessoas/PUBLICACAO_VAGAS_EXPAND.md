@@ -1,8 +1,8 @@
 # Publicação de vagas — Expand Fase 3
 
 - Domínio: Gestão de Pessoas / Talentos.
-- Data: 19/07/2026.
-- Status: flag admin + listagem pública + **candidatura com LGPD/CAPTCHA/dedupe** entregues.
+- Data: 27/07/2026.
+- Status: flag admin + listagem pública + candidatura LGPD/CAPTCHA/dedupe + **links de divulgação** + **visibilidade interna/externa**.
 
 ## Modelo
 
@@ -10,27 +10,38 @@ Colunas em `rh_vagas`:
 
 | Coluna | Default | Uso |
 |--------|---------|-----|
-| `publicada` | `0` | Intenção de exibir no portal |
+| `publicada` | `0` | Intenção de exibir no portal público |
 | `publicado_em` | `NULL` | Timestamp da (re)publicação |
+| `visibilidade` | `externa` | `externa` \| `interna` \| `ambas` |
 
 Regras:
 
 - `status` continua sendo o ciclo interno (`aberta|pausada|fechada|cancelada`);
-- só vagas com `status = aberta` podem ficar `publicada = 1` (caso contrário o save força `0`);
+- só vagas com `status = aberta` **e** `visibilidade` em `externa|ambas` podem ficar `publicada = 1`;
+- vaga **só interna** nunca entra em `vagas-abertas` (o save força `publicada = 0`);
 - `mostrar_salario` permanece independente;
 - portal público usa `listPublicadas` / `getPublicadaById` (nunca `getById` admin).
 
+## Onde publicar?
+
+| Público-alvo | Canal | Como |
+|--------------|-------|------|
+| Candidatos externos (site, LinkedIn, redes) | Portal `vagas-abertas/{id}` | Divulgação = externa ou ambas + **Publicar (portal)**; copiar links na visualização da vaga (UTM por canal) |
+| Colaboradores (app autenticado) | **`vagas-internas`** + Informativos | Divulgação = interna ou ambas; colaboradores se candidatam logados; use Informativos para anunciar/notificar departamentos |
+
+Não use o portal público para vagas confidenciais só internas.
+
 ## Admin
 
-- checkbox em criar/editar;
-- badge e filtro na listagem;
-- data de publicação na visualização.
+- select **Divulgação** + checkbox **Publicar (portal)** em criar/editar;
+- badge e bloco **Divulgação** na visualização (copiar URL / abrir / criar informativo);
+- serviço: `RhVagaDivulgacaoService`.
 
 ## Portal público
 
 - URL: `{URL_ADM}vagas-abertas` e `{URL_ADM}vagas-abertas/{id}`
+- Query opcional: `utm_source` / `utm_medium` / `utm_campaign` (só rastreio; não altera segurança)
 - Página `adms_pages` com `public_page=1` (controller `RhVagasPublicas`)
-- Layout próprio (sem menu admin)
 - Critério: `publicada=1` + `status=aberta` + prazo de inscrição vigente (se houver)
 - Não expõe `observacoes`, responsável nem dados de pipeline
 - Salário só se `mostrar_salario=1`
@@ -38,19 +49,16 @@ Regras:
 ### Candidatura (POST)
 
 - Formulário no detalhe da vaga; CSRF + honeypot + rate limit
-- CAPTCHA **opcional e configurável** em `rh-vagas-publicas-config` (tabela `rh_vagas_publicas_config`) — independente do Canal de Denúncias
+- CAPTCHA **opcional e configurável** em `rh-vagas-publicas-config`
 - Consentimento LGPD obrigatório (termo ativo `curriculo_candidato`)
 - Sem upload de currículo neste incremento
-- Dedupe: mesmo e-mail não se candidata duas vezes à mesma vaga; reutiliza candidato ativo existente
-- Origem do histórico: `portal`; origem do cadastro novo: `form_trabalhe_conosco`
+- Dedupe: mesmo e-mail não se candidata duas vezes à mesma vaga
 - Serviço: `RhCandidaturaPublicaService` / CAPTCHA: `RhVagasPublicasCaptchaService`
 
-## Contract / próximos Expand
+## Próximo incremento (opcional)
 
-1. [x] Listagem pública read-only
-2. [x] Candidatura pública + consentimento LGPD + CAPTCHA + deduplicação
-3. [x] Oferta / pré-admissão (aceite RH + checklist; sem conversão Pessoa)
-4. Conversão auditável Pessoa/Vínculo — entregue via fachada `adms_users` ([CONVERSAO_ADMISSAO_EXPAND.md](CONVERSAO_ADMISSAO_EXPAND.md)); tabelas físicas ficam na Fase 4.
+- (entregue) Listagem autenticada `vagas-internas` + candidatura ligada ao `user_id`.
+- Melhorias: upload de currículo interno, UTM analytics no admin, QR code.
 
 ## Migrations
 
@@ -59,3 +67,7 @@ Regras:
 `database/migrations/20260719236000_register_rh_vagas_publicas_page.php`
 
 `database/migrations/20260719237000_create_rh_vagas_publicas_config_captcha.php`
+
+`database/migrations/20260727170000_add_rh_vagas_visibilidade_divulgacao.php`
+
+`database/migrations/20260727180000_register_vagas_internas_portal_page.php`

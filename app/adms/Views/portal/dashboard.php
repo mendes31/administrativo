@@ -109,6 +109,25 @@ use App\adms\Helpers\PositionDisplayHelper;
     </div>
 
     <div class="row g-4 mt-2">
+        <?php if (in_array('VagasInternas', $this->data['buttonPermission'] ?? [], true)): ?>
+        <div class="col-12">
+            <div class="card mb-4 border-light shadow">
+                <div class="card-header hstack gap-2">
+                    <span><i class="fas fa-briefcase me-2"></i>Vagas internas</span>
+                    <span class="ms-auto">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>vagas-internas" class="btn btn-sm btn-primary">
+                            Ver oportunidades
+                        </a>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <p class="mb-0 text-muted small">
+                        Consulte vagas abertas para colaboradores e candidate-se com o seu usuário logado.
+                    </p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
         <!-- Solicitações Pendentes -->
         <div class="col-md-6">
             <div class="card mb-4 border-light shadow">
