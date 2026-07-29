@@ -100,8 +100,8 @@ class CreateInformativo
 
             return;
         }
-        $publishAt = trim($_POST['publish_at'] ?? '');
-        $expireAt = trim($_POST['expire_at'] ?? '');
+        $publishAt = \App\adms\Helpers\AdmsDateTimeFormHelper::fromPost('publish_at', '00:00');
+        $expireAt = \App\adms\Helpers\AdmsDateTimeFormHelper::fromPost('expire_at', '23:59');
         $urgente = isset($_POST['urgente']);
         $requiresAck = isset($_POST['requires_ack']);
         $ativo = isset($_POST['ativo']);

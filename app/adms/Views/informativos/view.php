@@ -172,7 +172,7 @@ $informativo = $this->data['informativo'];
                             // Compatibilidade: se vier HTML (ex.: TinyMCE), renderiza como HTML.
                             // Se vier texto puro/Markdown sem HTML, mantém escape e quebra de linha.
                             if (preg_match('/<[^>]+>/', $conteudo)) {
-                                echo $conteudo;
+                                echo \App\adms\Helpers\AdmsHtmlLinkHelper::absolutizeAppLinks($conteudo);
                             } else {
                                 echo nl2br(htmlspecialchars($conteudo));
                             }

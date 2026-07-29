@@ -93,8 +93,9 @@ final class RhVagaDivulgacaoService
     }
 
     /**
-     * Rascunho de título/conteúdo para informativo a partir da vaga.
-     * Montado no servidor (não vai na query string — Apache/WAF costuma devolver 403 com HTML na URL).
+     * Rascunho de título/conteúdo para informativo de seleção interna.
+     * Inclui dados da oportunidade (descrição, requisitos, etc.) e um único CTA
+     * “Candidatar-se” no portal autenticado — sem URL pública.
      *
      * @param array<string, mixed> $vaga
      * @return array{from_vaga: int, titulo: string, conteudo: string}
@@ -104,30 +105,75 @@ final class RhVagaDivulgacaoService
         $id = (int) ($vaga['id'] ?? 0);
         $tituloVaga = trim((string) ($vaga['titulo'] ?? 'Vaga'));
         $titulo = 'Vaga interna: ' . $tituloVaga;
+        $linkInterno = self::baseUrl() . 'vagas-internas/' . $id;
 
-        $vis = self::normalizeVisibilidade($vaga['visibilidade'] ?? self::VIS_EXTERNA);
-        $publicada = !empty($vaga['publicada']) && self::permitePortalPublico($vis);
-        $interna = self::permiteDivulgacaoInterna($vis);
+        $parts = [];
+        $parts[] = '<p>Está aberta a vaga interna <strong>'
+            . htmlspecialchars($tituloVaga, ENT_QUOTES, 'UTF-8')
+            . '</strong>.</p>';
 
-        $body = '<p>Abrimos a vaga <strong>' . htmlspecialchars($tituloVaga, ENT_QUOTES, 'UTF-8') . '</strong> para candidaturas internas.</p>';
-        if ($interna) {
-            $linkInterno = self::baseUrl() . 'vagas-internas/' . $id;
-            $body .= '<p>Colaboradores: candidatem-se no app em '
-                . '<a href="' . htmlspecialchars($linkInterno, ENT_QUOTES, 'UTF-8') . '">'
-                . htmlspecialchars($linkInterno, ENT_QUOTES, 'UTF-8') . '</a>.</p>';
+        $meta = [];
+        $area = trim((string) ($vaga['area_nome'] ?? ''));
+        $cargo = trim((string) ($vaga['cargo_nome'] ?? ''));
+        $local = trim((string) ($vaga['local_trabalho'] ?? ''));
+        $jornada = trim((string) ($vaga['jornada_trabalho'] ?? ''));
+        $contrato = trim((string) ($vaga['tipo_contrato'] ?? ''));
+        $qtd = (int) ($vaga['quantidade_vagas'] ?? 0);
+        if ($area !== '') {
+            $meta[] = '<strong>Área:</strong> ' . htmlspecialchars($area, ENT_QUOTES, 'UTF-8');
         }
-        if ($publicada) {
-            $link = self::portalVagaUrl($id, 'informativo');
-            $body .= '<p>Também há formulário público: <a href="' . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '">'
-                . htmlspecialchars($link, ENT_QUOTES, 'UTF-8') . '</a></p>';
-        } elseif (!$interna) {
-            $body .= '<p>Entre em contato com o RH para se candidatar.</p>';
+        if ($cargo !== '') {
+            $meta[] = '<strong>Cargo:</strong> ' . htmlspecialchars($cargo, ENT_QUOTES, 'UTF-8');
         }
+        if ($local !== '') {
+            $meta[] = '<strong>Local:</strong> ' . htmlspecialchars($local, ENT_QUOTES, 'UTF-8');
+        }
+        if ($jornada !== '') {
+            $meta[] = '<strong>Jornada:</strong> ' . htmlspecialchars($jornada, ENT_QUOTES, 'UTF-8');
+        }
+        if ($contrato !== '') {
+            $meta[] = '<strong>Contrato:</strong> ' . htmlspecialchars($contrato, ENT_QUOTES, 'UTF-8');
+        }
+        if ($qtd > 0) {
+            $meta[] = '<strong>Vagas:</strong> ' . $qtd;
+        }
+        if ($meta !== []) {
+            $parts[] = '<p>' . implode('<br>', $meta) . '</p>';
+        }
+
+        $descricao = trim((string) ($vaga['descricao'] ?? ''));
+        if ($descricao !== '') {
+            $parts[] = '<p><strong>Descrição</strong></p>'
+                . '<p>' . nl2br(htmlspecialchars($descricao, ENT_QUOTES, 'UTF-8'), false) . '</p>';
+        }
+
+        $requisitos = trim((string) ($vaga['requisitos'] ?? ''));
+        if ($requisitos !== '') {
+            $parts[] = '<p><strong>Requisitos</strong></p>'
+                . '<p>' . nl2br(htmlspecialchars($requisitos, ENT_QUOTES, 'UTF-8'), false) . '</p>';
+        }
+
+        $beneficios = trim((string) ($vaga['beneficios'] ?? ''));
+        if ($beneficios !== '') {
+            $parts[] = '<p><strong>Benefícios</strong></p>'
+                . '<p>' . nl2br(htmlspecialchars($beneficios, ENT_QUOTES, 'UTF-8'), false) . '</p>';
+        }
+
+        if ($descricao === '' && $requisitos === '' && $beneficios === '') {
+            $parts[] = '<p><em>Descrição e requisitos ainda não estão preenchidos na ficha da vaga. '
+                . 'Complete-os em Vagas (ATS) e gere o informativo de novo, edite este texto, '
+                . 'ou anexe um PDF com os detalhes.</em></p>';
+        }
+
+        $parts[] = '<p>Para a descrição completa da oportunidade (folder, detalhes adicionais), '
+            . 'consulte o <strong>arquivo em anexo</strong> neste comunicado, quando houver.</p>';
+        $parts[] = '<p>Se tiver interesse, candidate-se pelo app — seus dados de colaborador já estão disponíveis.</p>';
+        $parts[] = '<p><a href="' . htmlspecialchars($linkInterno, ENT_QUOTES, 'UTF-8') . '"><strong>Candidatar-se</strong></a></p>';
 
         return [
             'from_vaga' => $id,
             'titulo' => $titulo,
-            'conteudo' => $body,
+            'conteudo' => implode("\n", $parts),
         ];
     }
 

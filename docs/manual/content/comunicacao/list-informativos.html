@@ -24,6 +24,8 @@
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Cliquei no link da vaga e apareceu “Informativo não encontrado”</dt>
+    <dd>O editor TinyMCE convertia o link absoluto em relativo; ao abrir em <code>view-informativo/{id}</code> o sistema interpretava como outro informativo. Já corrigido na exibição e no editor — recarregue a página e teste o link de novo (não precisa republicar o texto antigo).</dd>
     <dt>No celular não consigo fechar o PDF / imagem</dt>
     <dd>Anexos PDF abrem no modal interno da aplicação (X e botão Fechar). Se ainda abrir “solto” no visualizador do sistema sem voltar, atualize a página (cache) ou reinstale o atalho PWA. Imagens também têm Fechar no rodapé em mobile.</dd>
     <dt>Não vejo o menu desta tela</dt>

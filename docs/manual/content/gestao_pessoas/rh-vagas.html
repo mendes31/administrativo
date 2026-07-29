@@ -41,7 +41,7 @@
     <dt>Como sei de onde veio o candidato?</dt>
     <dd>Use um link por canal na divulgação. O sistema grava o canal na candidatura (veja na vaga / ficha do candidato e filtre por Origem na listagem). Candidatura pelo app interno fica como Portal interno.</dd>
     <dt>Onde anuncio vaga interna?</dt>
-    <dd>Defina divulgação <em>interna</em> (ou <em>ambas</em>). Colaboradores se candidatam em <code>vagas-internas</code>. Use <strong>Criar informativo desta vaga</strong> para notificar departamentos no app.</dd>
+    <dd>Defina divulgação <em>interna</em> (ou <em>ambas</em>). Use <strong>Criar informativo desta vaga</strong>: o rascunho traz só o link <strong>Candidatar-se</strong> no portal (<code>vagas-internas</code>). Links públicos com UTM ficam no bloco Divulgação da vaga, não no informativo.</dd>
     <dt>403 Forbidden ao clicar em “Criar informativo desta vaga”</dt>
     <dd>Versões antigas colocavam o texto HTML na URL e o Apache bloqueava. O link agora usa só <code>create-informativo?from_vaga={id}</code>; o rascunho é montado no servidor. Atualize o sistema e tente de novo (é preciso permissão <em>CreateInformativo</em>).</dd>
     <dt>Candidato não consegue enviar a candidatura</dt>

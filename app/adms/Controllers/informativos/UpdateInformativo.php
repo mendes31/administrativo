@@ -99,8 +99,8 @@ class UpdateInformativo
             (int)($_POST['department_id'] ?? 0),
             $udept
         );
-        $publishAt = trim($_POST['publish_at'] ?? '');
-        $expireAt = trim($_POST['expire_at'] ?? '');
+        $publishAt = \App\adms\Helpers\AdmsDateTimeFormHelper::fromPost('publish_at', '00:00');
+        $expireAt = \App\adms\Helpers\AdmsDateTimeFormHelper::fromPost('expire_at', '23:59');
         $urgente = isset($_POST['urgente']) ? true : false;
         $requiresAck = isset($_POST['requires_ack']) ? true : false;
         $ativo = isset($_POST['ativo']) ? true : false;

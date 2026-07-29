@@ -10,7 +10,7 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-informativo</code>).</li>
-    <li>Opcional: a partir da vaga no RH, use <strong>Criar informativo desta vaga</strong> — o formulário abre com título, texto e categoria <em>Seleção Interna</em> sugeridos (<code>?from_vaga={id}</code>).</li>
+    <li>Opcional: a partir da vaga no RH, use <strong>Criar informativo desta vaga</strong> — abre com categoria <em>Seleção Interna</em>, texto com área/cargo, descrição, requisitos e benefícios da vaga (se cadastrados), nota para o <strong>anexo PDF</strong> e um único link <strong>Candidatar-se</strong> em <code>vagas-internas/{id}</code>.</li>
     <li>Preencha categoria, departamentos a notificar e demais campos obrigatórios.</li>
     <li>Revise o texto e publique ou salve conforme o fluxo do módulo.</li>
     <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
@@ -18,6 +18,7 @@
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Publicar em / Expira em</strong> Campos separados de <em>data</em> e <em>hora</em> (visíveis lado a lado). Sem data de publicação = imediato; sem hora de publicação = 00:00; sem data de expiração = sem validade; sem hora de expiração = 23:59.</div>
 <div class="help-field"><strong>Categoria</strong> Inclui <em>Seleção Interna</em> para anúncios de vaga no app. Com pré-preenchimento da vaga, essa categoria é sugerida automaticamente (após a migration).</div>
 <div class="help-field"><strong>from_vaga</strong> Parâmetro opcional na URL; o sistema carrega a vaga e pré-preenche título/conteúdo/categoria no servidor (sem HTML na query).</div>
 <div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>

@@ -78,13 +78,57 @@ $informativo = $this->data['informativo'];
                         </div>
 
                         <div class="mb-3 row g-2">
+                            <?php
+                            $pubDate = !empty($informativo['publish_at']) ? date('Y-m-d', strtotime((string) $informativo['publish_at'])) : '';
+                            $pubTime = !empty($informativo['publish_at']) ? date('H:i', strtotime((string) $informativo['publish_at'])) : '';
+                            $expDate = !empty($informativo['expire_at']) ? date('Y-m-d', strtotime((string) $informativo['expire_at'])) : '';
+                            $expTime = !empty($informativo['expire_at']) ? date('H:i', strtotime((string) $informativo['expire_at'])) : '';
+                            ?>
                             <div class="col-md-6">
-                                <label for="publish_at" class="form-label">Publicar em</label>
-                                <input type="datetime-local" class="form-control" id="publish_at" name="publish_at" value="<?= !empty($informativo['publish_at']) ? date('Y-m-d\TH:i', strtotime($informativo['publish_at'])) : '' ?>">
+                                <label class="form-label">Publicar em</label>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-7 col-sm-8">
+                                        <input type="date"
+                                               class="form-control"
+                                               id="publish_at_date"
+                                               name="publish_at_date"
+                                               value="<?= htmlspecialchars($pubDate, ENT_QUOTES, 'UTF-8') ?>"
+                                               aria-label="Data de publicação">
+                                    </div>
+                                    <div class="col-5 col-sm-4">
+                                        <input type="time"
+                                               class="form-control"
+                                               id="publish_at_time"
+                                               name="publish_at_time"
+                                               step="60"
+                                               value="<?= htmlspecialchars($pubTime, ENT_QUOTES, 'UTF-8') ?>"
+                                               aria-label="Hora de publicação">
+                                    </div>
+                                </div>
+                                <div class="form-text">Data e horário. Vazio = imediato. Sem hora = 00:00.</div>
                             </div>
                             <div class="col-md-6">
-                                <label for="expire_at" class="form-label">Expira em</label>
-                                <input type="datetime-local" class="form-control" id="expire_at" name="expire_at" value="<?= !empty($informativo['expire_at']) ? date('Y-m-d\TH:i', strtotime($informativo['expire_at'])) : '' ?>">
+                                <label class="form-label">Expira em</label>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-7 col-sm-8">
+                                        <input type="date"
+                                               class="form-control"
+                                               id="expire_at_date"
+                                               name="expire_at_date"
+                                               value="<?= htmlspecialchars($expDate, ENT_QUOTES, 'UTF-8') ?>"
+                                               aria-label="Data de expiração">
+                                    </div>
+                                    <div class="col-5 col-sm-4">
+                                        <input type="time"
+                                               class="form-control"
+                                               id="expire_at_time"
+                                               name="expire_at_time"
+                                               step="60"
+                                               value="<?= htmlspecialchars($expTime, ENT_QUOTES, 'UTF-8') ?>"
+                                               aria-label="Hora de expiração">
+                                    </div>
+                                </div>
+                                <div class="form-text">Data e horário. Vazio = não expira. Sem hora = 23:59.</div>
                             </div>
                         </div>
                         
@@ -525,6 +569,11 @@ tinymce.init({
     height: 420,
     language: 'pt_BR',
     language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
-    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }'
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+    // Evita href relativo (ex.: vagas-internas/1) que quebra em /view-informativo/{id}
+    relative_urls: false,
+    remove_script_host: false,
+    convert_urls: false,
+    document_base_url: "<?php echo $_ENV['URL_ADM']; ?>"
 });
 </script>

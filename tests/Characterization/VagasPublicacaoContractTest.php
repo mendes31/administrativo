@@ -57,6 +57,13 @@ final class VagasPublicacaoContractTest extends TestCase
         self::assertStringContainsString('createInformativoUrl', $service);
         self::assertStringContainsString('buildInformativoPrefill', $service);
         self::assertStringContainsString("'from_vaga' => \$id", $service);
+        self::assertStringContainsString('Candidatar-se', $service);
+        self::assertStringContainsString('vagas-internas/', $service);
+        self::assertStringContainsString('Descrição', $service);
+        self::assertStringContainsString('Requisitos', $service);
+        self::assertStringContainsString('Benefícios', $service);
+        self::assertStringContainsString('arquivo em anexo', $service);
+        self::assertStringNotContainsString('formulário público', $service);
         self::assertDoesNotMatchRegularExpression(
             "/create-informativo\?'\s*\.\s*http_build_query\(\[[^\]]*conteudo/s",
             $service,

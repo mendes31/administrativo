@@ -32,7 +32,9 @@ use App\adms\Helpers\CSRFHelper;
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('create_informativo'); ?>">
                         <?php if (!empty($prefill['from_vaga'])): ?>
                             <div class="alert alert-info py-2" role="alert">
-                                Rascunho sugerido a partir da vaga #<?= (int) $prefill['from_vaga'] ?>. Revise o texto, escolha a categoria e os departamentos a notificar.
+                                Rascunho de <em>seleção interna</em> a partir da vaga #<?= (int) $prefill['from_vaga'] ?>.
+                                O texto traz descrição/requisitos/benefícios cadastrados na vaga, orientação para o <strong>anexo PDF</strong> e o link <strong>Candidatar-se</strong>.
+                                Confirme a categoria, anexe o folder se houver e escolha os departamentos a notificar.
                             </div>
                         <?php endif; ?>
                         <div class="row g-3 mb-3" style="margin-bottom: 2.5rem !important;">
@@ -52,7 +54,7 @@ use App\adms\Helpers\CSRFHelper;
                             </div>
                         </div>
                         <div class="row g-3 mb-3">
-                            <div class="col-md-6">
+                            <div class="col-12">
                                 <?php
                                 $deptLocked = !empty($this->data['department_select_locked']);
                                 $firstDept = ($this->data['departments'] ?? [])[0] ?? null;
@@ -73,13 +75,53 @@ use App\adms\Helpers\CSRFHelper;
                                     <div class="form-text">O comunicado é publicado em nome do seu departamento. Apenas perfis com permissão total podem alterar o departamento publicante.</div>
                                 <?php endif; ?>
                             </div>
-                            <div class="col-md-3">
-                                <label for="publish_at" class="form-label fw-semibold">Publicar em</label>
-                                <input type="datetime-local" class="form-control form-control-lg rounded-3" id="publish_at" name="publish_at">
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Publicar em</label>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-7 col-sm-8">
+                                        <input type="date"
+                                               class="form-control form-control-lg rounded-3"
+                                               id="publish_at_date"
+                                               name="publish_at_date"
+                                               autocomplete="off"
+                                               aria-label="Data de publicação">
+                                    </div>
+                                    <div class="col-5 col-sm-4">
+                                        <input type="time"
+                                               class="form-control form-control-lg rounded-3"
+                                               id="publish_at_time"
+                                               name="publish_at_time"
+                                               step="60"
+                                               autocomplete="off"
+                                               aria-label="Hora de publicação">
+                                    </div>
+                                </div>
+                                <div class="form-text">Data e horário separados. Vazio = publicar imediatamente. Sem hora = 00:00.</div>
                             </div>
-                            <div class="col-md-3">
-                                <label for="expire_at" class="form-label fw-semibold">Expira em</label>
-                                <input type="datetime-local" class="form-control form-control-lg rounded-3" id="expire_at" name="expire_at">
+                            <div class="col-md-6">
+                                <label class="form-label fw-semibold">Expira em</label>
+                                <div class="row g-2 align-items-center">
+                                    <div class="col-7 col-sm-8">
+                                        <input type="date"
+                                               class="form-control form-control-lg rounded-3"
+                                               id="expire_at_date"
+                                               name="expire_at_date"
+                                               autocomplete="off"
+                                               aria-label="Data de expiração">
+                                    </div>
+                                    <div class="col-5 col-sm-4">
+                                        <input type="time"
+                                               class="form-control form-control-lg rounded-3"
+                                               id="expire_at_time"
+                                               name="expire_at_time"
+                                               step="60"
+                                               autocomplete="off"
+                                               aria-label="Hora de expiração">
+                                    </div>
+                                </div>
+                                <div class="form-text">Data e horário separados. Vazio = não expira. Sem hora = 23:59.</div>
                             </div>
                         </div>
                         <hr class="my-4">
@@ -382,7 +424,12 @@ tinymce.init({
     height: 420,
     language: 'pt_BR',
     language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
-    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }'
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+    // Evita href relativo (ex.: vagas-internas/1) que quebra em /view-informativo/{id}
+    relative_urls: false,
+    remove_script_host: false,
+    convert_urls: false,
+    document_base_url: "<?php echo $_ENV['URL_ADM']; ?>"
 });
 
 document.querySelector('form')?.addEventListener('submit', function () {
