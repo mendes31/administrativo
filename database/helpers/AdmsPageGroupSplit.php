@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Cisão de mega-grupos ACL (GP / SST / LGPD / Estoque / CRM).
+ * Cisão de mega-grupos ACL (GP / SST / LGPD / Estoque / CRM / Comunicação Social).
  * Usado por migration Expand e seed - resolve grupos por nome (nunca por ID fixo).
  * Não altera adms_access_levels_pages.
  */
@@ -36,6 +36,9 @@ final class AdmsPageGroupSplit
             'Estoque - Custeio',
             'CRM - Operação',
             'CRM - Integrações e configurações',
+            'Comunicação Social - Timeline',
+            'Comunicação Social - Gamificação',
+            'Comunicação Social - Eventos',
         ];
     }
 
@@ -117,9 +120,10 @@ final class AdmsPageGroupSplit
             'lgpd' => self::groupIdByName($fetchRow, 'LGPD'),
             'estoque' => self::groupIdByName($fetchRow, 'Estoque'),
             'crm' => self::groupIdByName($fetchRow, 'CRM'),
+            'comsoc' => self::groupIdByName($fetchRow, 'Comunicação Social'),
         ];
 
-        foreach (['gp', 'sst', 'lgpd', 'estoque', 'crm'] as $key) {
+        foreach (['gp', 'sst', 'lgpd', 'estoque', 'crm', 'comsoc'] as $key) {
             if ($parents[$key] <= 0) {
                 continue;
             }
@@ -143,6 +147,7 @@ final class AdmsPageGroupSplit
                     'lgpd' => self::classifyLgpd($controller, $directory),
                     'estoque' => self::classifyEstoque($controller),
                     'crm' => self::classifyCrm($controller, $directory),
+                    'comsoc' => self::classifyComunicacaoSocial($controller, $directory),
                     default => null,
                 };
                 if ($targetName === null || !isset($ids[$targetName]) || $ids[$targetName] <= 0) {
@@ -316,6 +321,26 @@ final class AdmsPageGroupSplit
         }
 
         return 'CRM - Operação';
+    }
+
+    public static function classifyComunicacaoSocial(string $controller, string $directory): string
+    {
+        $lc = strtolower($controller);
+        if (
+            $directory === 'gamification'
+            || str_contains($lc, 'gamification')
+        ) {
+            return 'Comunicação Social - Gamificação';
+        }
+        if (
+            $directory === 'companyEvents'
+            || str_contains($lc, 'companyevent')
+            || str_contains($lc, 'eventrsvp')
+        ) {
+            return 'Comunicação Social - Eventos';
+        }
+
+        return 'Comunicação Social - Timeline';
     }
 
     private static function quote(string $value): string

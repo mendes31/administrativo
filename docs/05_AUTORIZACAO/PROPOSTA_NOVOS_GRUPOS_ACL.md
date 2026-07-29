@@ -1,6 +1,6 @@
 # Proposta de novos grupos ACL (padrão de nomes)
 
-- Status: **P1 + P2 aplicados** (GP/SST/LGPD + Estoque/CRM) — migrations `20260729120000` e `20260729160000`
+- Status: **P1 + P2 + P3 aplicados** (GP/SST/LGPD + Estoque/CRM + Comunicação Social)
 - Data: 2026-07-29
 - Base: inventário homologação (`adms_pages` / `adms_groups_pages`)
 - Contexto / riscos / fases: [PLANO_SEPARACAO_GRUPOS_PAGINAS.md](PLANO_SEPARACAO_GRUPOS_PAGINAS.md)
@@ -11,6 +11,7 @@
 |----------|--------|
 | `database/migrations/20260729120000_split_gp_sst_lgpd_page_groups.php` | P1: GP / SST / LGPD |
 | `database/migrations/20260729160000_split_estoque_crm_page_groups.php` | P2: Estoque / CRM |
+| `database/migrations/20260729170000_split_comunicacao_social_page_groups.php` | P3: Comunicação Social |
 | `database/helpers/AdmsPageGroupSplit.php` | Classificação compartilhada (por **nome** de grupo) |
 | `database/seeds/AddAdmsGroupsPages.php` | Lista os novos grupos para installs/seeds |
 | `database/seeds/AddAdmsPages.php` | Ao final, reaplica a cisão (idempotente) |
@@ -100,7 +101,6 @@ Alinhado ao menu `Segurança e Medicina` (cadastros, EPI, equipamentos, medicina
 
 | Grupo | Páginas | Motivo |
 |-------|--------:|--------|
-| Comunicação Social | 40 | P3 - só se públicos forem distintos |
 | Reserva de Salas, SAC, Logs, etc. | ≤34 | OK |
 
 ### P2 aplicado (Estoque / CRM)
@@ -111,6 +111,16 @@ Alinhado ao menu `Segurança e Medicina` (cadastros, EPI, equipamentos, medicina
 | **Estoque - Custeio** | Períodos de custo, DRE/RH, fatores, simulações, operações/recursos/papéis de produção |
 | **CRM - Operação** | Dashboard, pipeline, parceiros, oportunidades, atividades, tags, automações, relatórios, import/export |
 | **CRM - Integrações e configurações** | WhatsApp, SAP API, MCP chat, calendário (`directory=settings` no grupo CRM) |
+
+### P3 aplicado (Comunicação Social)
+
+| Novo grupo | ~Páginas | Conteúdo |
+|------------|--------:|----------|
+| **Comunicação Social - Timeline** | 15 | Feed, posts, comentários, moderação, perfis |
+| **Comunicação Social - Gamificação** | 16 | Pontos, quizzes, ranking, engajamento |
+| **Comunicação Social - Eventos** | 9 | Eventos corporativos, RSVP, relatórios |
+
+Informativos permanece no grupo próprio (não misturar).
 
 ---
 

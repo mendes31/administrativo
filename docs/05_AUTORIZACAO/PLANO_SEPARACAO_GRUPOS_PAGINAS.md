@@ -1,6 +1,6 @@
 # Plano - Separação de grupos ACL (Opção A)
 
-- Status: **P1 + P2 executados** (homolog; produção conforme migrate)
+- Status: **P1 + P2 + P3 executados** (homolog; produção conforme migrate)
 - Data: 2026-07-29
 - Base: homologação `tiaraju04_homologacao`
 - Relacionado: [Modelo de autorização](MODELO_AUTORIZACAO.md), [Plano Diretor](../00_PLANO_DIRETOR/README.md), [Proposta de nomes](PROPOSTA_NOVOS_GRUPOS_ACL.md)
@@ -24,7 +24,7 @@ páginas; acima de **~80** priorizar cisão; entre **50–80** revisar se o
 | 102 | 31 | LGPD | **P1 - cisão** |
 | 62 | 33 | Estoque | **P2 - feito** (Itens × Custeio) |
 | 59 | 34 | CRM | **P2 - feito** (Operação × Integrações) |
-| 40 | 40 | Comunicação Social | **P3 - observar** |
+| 40 | 40 | Comunicação Social | **P3 - feito** (Timeline / Gamificação / Eventos) |
 | 34 | 37 | Reserva de Salas | OK |
 | 28 | 25 | Avaliações | OK (já separado do GP) |
 | 28 | 24 | Treinamentos | OK (já separado do GP) |
