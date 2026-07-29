@@ -1,6 +1,6 @@
 # Proposta de novos grupos ACL (padrão de nomes)
 
-- Status: **aprovado para execução / Expand aplicado em homologação** (migration `20260729120000`)
+- Status: **P1 + P2 aplicados** (GP/SST/LGPD + Estoque/CRM) — migrations `20260729120000` e `20260729160000`
 - Data: 2026-07-29
 - Base: inventário homologação (`adms_pages` / `adms_groups_pages`)
 - Contexto / riscos / fases: [PLANO_SEPARACAO_GRUPOS_PAGINAS.md](PLANO_SEPARACAO_GRUPOS_PAGINAS.md)
@@ -9,7 +9,8 @@
 
 | Artefato | Papel |
 |----------|--------|
-| `database/migrations/20260729120000_split_gp_sst_lgpd_page_groups.php` | Ambientes existentes (homolog/prod): cria grupos + reatribui páginas |
+| `database/migrations/20260729120000_split_gp_sst_lgpd_page_groups.php` | P1: GP / SST / LGPD |
+| `database/migrations/20260729160000_split_estoque_crm_page_groups.php` | P2: Estoque / CRM |
 | `database/helpers/AdmsPageGroupSplit.php` | Classificação compartilhada (por **nome** de grupo) |
 | `database/seeds/AddAdmsGroupsPages.php` | Lista os novos grupos para installs/seeds |
 | `database/seeds/AddAdmsPages.php` | Ao final, reaplica a cisão (idempotente) |
@@ -99,10 +100,17 @@ Alinhado ao menu `Segurança e Medicina` (cadastros, EPI, equipamentos, medicina
 
 | Grupo | Páginas | Motivo |
 |-------|--------:|--------|
-| Estoque | 62 | P2 - opcional depois (Itens × Custeio) |
-| CRM | 59 | P2 - opcional (Operação × Integrações) |
 | Comunicação Social | 40 | P3 - só se públicos forem distintos |
 | Reserva de Salas, SAC, Logs, etc. | ≤34 | OK |
+
+### P2 aplicado (Estoque / CRM)
+
+| Novo grupo | Conteúdo |
+|------------|----------|
+| **Estoque - Itens e movimentações** | Itens, estoques, posições, unidades, categorias, entradas/saídas/transferências/ajustes, relatórios de saldo/histórico |
+| **Estoque - Custeio** | Períodos de custo, DRE/RH, fatores, simulações, operações/recursos/papéis de produção |
+| **CRM - Operação** | Dashboard, pipeline, parceiros, oportunidades, atividades, tags, automações, relatórios, import/export |
+| **CRM - Integrações e configurações** | WhatsApp, SAP API, MCP chat, calendário (`directory=settings` no grupo CRM) |
 
 ---
 

@@ -3,7 +3,7 @@
 declare(strict_types=1);
 
 /**
- * Cisão de mega-grupos ACL (GP / SST / LGPD).
+ * Cisão de mega-grupos ACL (GP / SST / LGPD / Estoque / CRM).
  * Usado por migration Expand e seed - resolve grupos por nome (nunca por ID fixo).
  * Não altera adms_access_levels_pages.
  */
@@ -32,6 +32,10 @@ final class AdmsPageGroupSplit
             'LGPD - Dashboard / Termos / Legal',
             'LGPD - RIPD',
             'LGPD - Titulares',
+            'Estoque - Itens e movimentações',
+            'Estoque - Custeio',
+            'CRM - Operação',
+            'CRM - Integrações e configurações',
         ];
     }
 
@@ -111,9 +115,11 @@ final class AdmsPageGroupSplit
             'gp' => self::groupIdByName($fetchRow, 'Gestão de Pessoas'),
             'sst' => self::groupIdByName($fetchRow, 'Segurança e Medicina'),
             'lgpd' => self::groupIdByName($fetchRow, 'LGPD'),
+            'estoque' => self::groupIdByName($fetchRow, 'Estoque'),
+            'crm' => self::groupIdByName($fetchRow, 'CRM'),
         ];
 
-        foreach (['gp', 'sst', 'lgpd'] as $key) {
+        foreach (['gp', 'sst', 'lgpd', 'estoque', 'crm'] as $key) {
             if ($parents[$key] <= 0) {
                 continue;
             }
@@ -135,6 +141,8 @@ final class AdmsPageGroupSplit
                     'gp' => self::classifyGp($controller, $directory),
                     'sst' => self::classifySst($controller),
                     'lgpd' => self::classifyLgpd($controller, $directory),
+                    'estoque' => self::classifyEstoque($controller),
+                    'crm' => self::classifyCrm($controller, $directory),
                     default => null,
                 };
                 if ($targetName === null || !isset($ids[$targetName]) || $ids[$targetName] <= 0) {
@@ -278,6 +286,36 @@ final class AdmsPageGroupSplit
         }
 
         return 'LGPD - Dashboard / Termos / Legal';
+    }
+
+    public static function classifyEstoque(string $controller): string
+    {
+        $lc = strtolower($controller);
+        if (
+            str_contains($lc, 'invcost')
+            || str_contains($lc, 'cost')
+            || str_contains($lc, 'complexity')
+            || str_contains($lc, 'energyclass')
+            || str_contains($lc, 'laborrole')
+            || str_contains($lc, 'productionresource')
+            || str_contains($lc, 'inventoryoperation')
+        ) {
+            return 'Estoque - Custeio';
+        }
+
+        return 'Estoque - Itens e movimentações';
+    }
+
+    public static function classifyCrm(string $controller, string $directory): string
+    {
+        if (
+            $directory === 'settings'
+            || preg_match('/WhatsAppConfig|SapApi|McpChat|CalendarConfig/i', $controller) === 1
+        ) {
+            return 'CRM - Integrações e configurações';
+        }
+
+        return 'CRM - Operação';
     }
 
     private static function quote(string $value): string

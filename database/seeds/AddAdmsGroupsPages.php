@@ -89,6 +89,11 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'LGPD - Dashboard / Termos / Legal', 'obs' => 'Dashboard, termos e páginas legais.'],
             ['name' => 'LGPD - RIPD', 'obs' => 'Relatório de impacto (RIPD).'],
             ['name' => 'LGPD - Titulares', 'obs' => 'Categorias e titulares.'],
+            // Cisão ACL Expand P2 (2026-07-29) - Estoque / CRM
+            ['name' => 'Estoque - Itens e movimentações', 'obs' => 'Itens, posições, cadastros e movimentações de estoque.'],
+            ['name' => 'Estoque - Custeio', 'obs' => 'Períodos de custo, DRE, fatores, simulações e recursos de produção.'],
+            ['name' => 'CRM - Operação', 'obs' => 'Pipeline, parceiros, oportunidades, atividades e relatórios CRM.'],
+            ['name' => 'CRM - Integrações e configurações', 'obs' => 'WhatsApp, SAP API, MCP chat e calendário vinculados ao CRM.'],
         ];
 
         foreach ($grupos as $grupo) {

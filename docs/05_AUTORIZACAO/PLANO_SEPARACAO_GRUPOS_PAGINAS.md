@@ -1,9 +1,9 @@
 # Plano - Separação de grupos ACL (Opção A)
 
-- Status: proposta para decisão / execução futura (sem alteração aplicada)
-- Data: 2026-07-29 (atualizado com inventário **de todos** os grupos)
-- Base: homologação `tiaraju04_homologacao` (~1010 páginas)
-- Relacionado: [Modelo de autorização](MODELO_AUTORIZACAO.md), [Plano Diretor](../00_PLANO_DIRETOR/README.md)
+- Status: **P1 + P2 executados** (homolog; produção conforme migrate)
+- Data: 2026-07-29
+- Base: homologação `tiaraju04_homologacao`
+- Relacionado: [Modelo de autorização](MODELO_AUTORIZACAO.md), [Plano Diretor](../00_PLANO_DIRETOR/README.md), [Proposta de nomes](PROPOSTA_NOVOS_GRUPOS_ACL.md)
 
 ## Problema
 
@@ -22,8 +22,8 @@ páginas; acima de **~80** priorizar cisão; entre **50–80** revisar se o
 | 178 | 36 | Gestão de Pessoas | **P1 - cisão** |
 | 169 | 42 | Segurança e Medicina | **P1 - cisão** |
 | 102 | 31 | LGPD | **P1 - cisão** |
-| 62 | 33 | Estoque | **P2 - revisar / cisão leve** |
-| 59 | 34 | CRM | **P2 - revisar / cisão leve** |
+| 62 | 33 | Estoque | **P2 - feito** (Itens × Custeio) |
+| 59 | 34 | CRM | **P2 - feito** (Operação × Integrações) |
 | 40 | 40 | Comunicação Social | **P3 - observar** |
 | 34 | 37 | Reserva de Salas | OK |
 | 28 | 25 | Avaliações | OK (já separado do GP) |
