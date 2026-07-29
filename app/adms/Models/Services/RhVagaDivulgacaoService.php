@@ -93,11 +93,13 @@ final class RhVagaDivulgacaoService
     }
 
     /**
-     * URL do formulário de novo informativo já pré-preenchido.
+     * Rascunho de título/conteúdo para informativo a partir da vaga.
+     * Montado no servidor (não vai na query string — Apache/WAF costuma devolver 403 com HTML na URL).
      *
      * @param array<string, mixed> $vaga
+     * @return array{from_vaga: int, titulo: string, conteudo: string}
      */
-    public static function createInformativoUrl(array $vaga): string
+    public static function buildInformativoPrefill(array $vaga): array
     {
         $id = (int) ($vaga['id'] ?? 0);
         $tituloVaga = trim((string) ($vaga['titulo'] ?? 'Vaga'));
@@ -122,10 +124,24 @@ final class RhVagaDivulgacaoService
             $body .= '<p>Entre em contato com o RH para se candidatar.</p>';
         }
 
-        return self::baseUrl() . 'create-informativo?' . http_build_query([
+        return [
             'from_vaga' => $id,
             'titulo' => $titulo,
             'conteudo' => $body,
+        ];
+    }
+
+    /**
+     * URL do formulário de novo informativo (só o id da vaga na query — o texto é montado no servidor).
+     *
+     * @param array<string, mixed> $vaga
+     */
+    public static function createInformativoUrl(array $vaga): string
+    {
+        $id = (int) ($vaga['id'] ?? 0);
+
+        return self::baseUrl() . 'create-informativo?' . http_build_query([
+            'from_vaga' => $id,
         ]);
     }
 }

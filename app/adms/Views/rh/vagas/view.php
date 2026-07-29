@@ -198,7 +198,9 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                 <div class="card-body">
                     <?php if ($showExternalLinks): ?>
                         <p class="small text-muted mb-2">
-                            Copie o link adequado para cada canal. O formulário público exige CSRF, honeypot, LGPD
+                            Copie o link adequado para cada canal. Os parâmetros <code>utm_source</code> são gravados na candidatura
+                            (Canal / Origem), para saber se veio do LinkedIn, site, redes ou informativo.
+                            O formulário público exige CSRF, honeypot, LGPD
                             <?= !empty($this->data['captcha_hint']) ? ' e CAPTCHA' : '' ?>
                             (configurável em Portal de Vagas).
                         </p>
@@ -338,6 +340,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                     <th>Nome</th>
                                     <th>E-mail</th>
                                     <th>Telefone</th>
+                                    <th>Canal</th>
                                     <th>Status</th>
                                     <th>Data Candidatura</th>
                                     <th>Ações</th>
@@ -349,6 +352,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                         <td><?= htmlspecialchars($cand['candidato_nome'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($cand['candidato_email'] ?? '') ?></td>
                                         <td><?= htmlspecialchars($cand['candidato_telefone'] ?? '') ?></td>
+                                        <td><?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($cand['canal_origem'] ?? ''))) ?></td>
                                         <td>
                                             <?php if (!empty($this->data['can_manage_pipeline'])): ?>
                                                 <select class="form-select form-select-sm status-candidatura" 

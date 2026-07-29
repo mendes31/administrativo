@@ -65,7 +65,7 @@ Saída Fase 1: recrutamento com histórico, motivos, etapas catalogadas, projeç
 ## Fase 3 — Portal público e pré-admissão
 
 - [x] publicação de vagas (flag admin `publicada`/`publicado_em` + listagem pública em `vagas-abertas`) — [PUBLICACAO_VAGAS_EXPAND.md](PUBLICACAO_VAGAS_EXPAND.md);
-- [x] candidatura pública + consentimento LGPD + CAPTCHA + dedupe (e-mail+vaga) — sem upload de currículo;
+- [x] candidatura pública + consentimento LGPD + CAPTCHA + dedupe (e-mail+vaga) + **upload de currículo** (storage privado);
 - [x] oferta + aceite/recusa (RH) + checklist de pré-admissão — [OFERTA_PREADMISSAO_EXPAND.md](OFERTA_PREADMISSAO_EXPAND.md);
 - [x] conversão auditável oferta → colaborador (`adms_users` + `rh_conversoes_admissao`) — [CONVERSAO_ADMISSAO_EXPAND.md](CONVERSAO_ADMISSAO_EXPAND.md).
 

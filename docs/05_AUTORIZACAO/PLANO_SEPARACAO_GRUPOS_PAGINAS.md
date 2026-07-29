@@ -25,6 +25,7 @@ páginas; acima de **~80** priorizar cisão; entre **50–80** revisar se o
 | 62 | 33 | Estoque | **P2 - feito** (Itens × Custeio) |
 | 59 | 34 | CRM | **P2 - feito** (Operação × Integrações) |
 | 40 | 40 | Comunicação Social | **P3 - feito** (Timeline / Gamificação / Eventos) |
+| - | - | Portal SST (EPI/treinamentos) | **corrigido** — saíram de GP Portal → `SST - EPI` / `SST - Treinamentos` (`20260729180000`) |
 | 34 | 37 | Reserva de Salas | OK |
 | 28 | 25 | Avaliações | OK (já separado do GP) |
 | 28 | 24 | Treinamentos | OK (já separado do GP) |

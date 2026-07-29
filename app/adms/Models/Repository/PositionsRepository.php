@@ -316,6 +316,40 @@ class PositionsRepository extends DbConnection
     }
 
     /**
+     * Mapa cargo → departamentos onde há colaboradores ativos com aquele cargo.
+     * Não existe vínculo oficial cargo↔área no cadastro; usa a lotação atual.
+     *
+     * @return array<int, list<int>> position_id => [department_id, ...]
+     */
+    public function getActivePositionDepartmentMap(): array
+    {
+        $sql = 'SELECT DISTINCT user_position_id AS position_id, user_department_id AS department_id
+                FROM adms_users
+                WHERE status = :status
+                  AND user_position_id IS NOT NULL
+                  AND user_department_id IS NOT NULL';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':status', 'Ativo', PDO::PARAM_STR);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $map = [];
+        foreach ($rows as $row) {
+            $positionId = (int) ($row['position_id'] ?? 0);
+            $departmentId = (int) ($row['department_id'] ?? 0);
+            if ($positionId <= 0 || $departmentId <= 0) {
+                continue;
+            }
+            $map[$positionId] ??= [];
+            if (!in_array($departmentId, $map[$positionId], true)) {
+                $map[$positionId][] = $departmentId;
+            }
+        }
+
+        return $map;
+    }
+
+    /**
      * Obter cargo pelo nome (case-insensitive, trim, UTF-8 safe)
      */
     public function getByName(string $name): array|bool

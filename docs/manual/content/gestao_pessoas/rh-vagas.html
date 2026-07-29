@@ -19,7 +19,7 @@
     <li>Use filtros (título, status, publicação, área, cargo) e abra o detalhe ou o pipeline.</li>
     <li>Na criação/edição, escolha a <strong>Divulgação</strong>: <em>externa</em> (site/LinkedIn), <em>interna</em> (app/informativos) ou <em>ambas</em>.</li>
     <li>Marque <strong>Publicar (portal)</strong> só se o status for <em>Aberta</em> e a divulgação for externa ou ambas. Aí a vaga aparece em <code>vagas-abertas/{id}</code> com formulário seguro.</li>
-    <li>Na visualização da vaga, use o bloco <strong>Divulgação</strong> para copiar links (com UTM) ou o botão <strong>Criar informativo desta vaga</strong> para anunciar no app aos colaboradores.</li>
+    <li>Na visualização da vaga, use o bloco <strong>Divulgação</strong> para copiar o link de cada canal (UTM diferente) ou o botão <strong>Criar informativo desta vaga</strong> (categoria sugerida: <em>Seleção Interna</em>).</li>
     <li>Para abrir uma vaga a partir de headcount aprovado, use <strong>Requisições</strong>.</li>
 </ol>
 
@@ -38,8 +38,12 @@
     <dd>O status precisa ser <em>Aberta</em> e a divulgação não pode ser só <em>interna</em>. Vagas pausadas/fechadas/canceladas não ficam publicadas; ao fechar, a publicação é desligada automaticamente.</dd>
     <dt>Marquei como publicada e o candidato não vê a vaga</dt>
     <dd>Confirme status <em>Aberta</em>, divulgação externa/ambas, prazo vigente e a URL <code>{URL_ADM}vagas-abertas</code>.</dd>
+    <dt>Como sei de onde veio o candidato?</dt>
+    <dd>Use um link por canal na divulgação. O sistema grava o canal na candidatura (veja na vaga / ficha do candidato e filtre por Origem na listagem). Candidatura pelo app interno fica como Portal interno.</dd>
     <dt>Onde anuncio vaga interna?</dt>
     <dd>Defina divulgação <em>interna</em> (ou <em>ambas</em>). Colaboradores se candidatam em <code>vagas-internas</code>. Use <strong>Criar informativo desta vaga</strong> para notificar departamentos no app.</dd>
+    <dt>403 Forbidden ao clicar em “Criar informativo desta vaga”</dt>
+    <dd>Versões antigas colocavam o texto HTML na URL e o Apache bloqueava. O link agora usa só <code>create-informativo?from_vaga={id}</code>; o rascunho é montado no servidor. Atualize o sistema e tente de novo (é preciso permissão <em>CreateInformativo</em>).</dd>
     <dt>Candidato não consegue enviar a candidatura</dt>
     <dd>Verifique termo LGPD ativo (<code>curriculo_candidato</code>), CAPTCHA em <code>rh-vagas-publicas-config</code> (se ativado, chaves corretas), rate limit e se o e-mail já não foi usado nesta vaga.</dd>
     <dt>Não vejo o menu desta tela</dt>

@@ -24,7 +24,7 @@ $canConvert = $status === 'approved';
                 <dt class="col-sm-3">Área / Cargo</dt>
                 <dd class="col-sm-9">
                     <?= htmlspecialchars($r['area_nome'] ?? '-') ?> /
-                    <?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string) ($r['cargo_nome'] ?? '')) ?: '-') ?>
+                    <?= htmlspecialchars((string) ($r['cargo_nome'] ?? '') ?: '-') ?>
                 </dd>
                 <dt class="col-sm-3">Quantidade</dt>
                 <dd class="col-sm-9"><?= (int) ($r['quantidade'] ?? 1) ?> (<?= htmlspecialchars($r['tipo_contrato'] ?? '') ?>)</dd>

@@ -6,6 +6,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\LgpdAuditHelper;
+use App\adms\Helpers\RhCandidatoOrigemHelper;
 use App\adms\Models\Repository\LgpdConsentimentosRepository;
 use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Models\Repository\RhCandidatosRepository;
@@ -22,7 +23,7 @@ final class RhCandidaturaInternaService
 {
     public const LGPD_TERMO_TIPO = 'curriculo_candidato';
 
-    public const ORIGEM_CANDIDATO = 'portal_interno';
+    public const ORIGEM_CANDIDATO = RhCandidatoOrigemHelper::PORTAL_INTERNO;
 
     /**
      * @param array<string, mixed> $input mensagem opcional + lgpd_consent=1
@@ -122,7 +123,8 @@ final class RhCandidaturaInternaService
                 $pdo,
                 $vagaId,
                 $candidatoId,
-                $mensagem !== '' ? mb_substr($mensagem, 0, 1000) : null
+                $mensagem !== '' ? mb_substr($mensagem, 0, 1000) : null,
+                RhCandidatoOrigemHelper::PORTAL_INTERNO
             );
 
             $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
@@ -194,7 +196,8 @@ final class RhCandidaturaInternaService
         PDO $pdo,
         int $vagaId,
         int $candidatoId,
-        ?string $observacoes
+        ?string $observacoes,
+        string $canalOrigem = RhCandidatoOrigemHelper::PORTAL_INTERNO
     ): int {
         $stmtCheck = $pdo->prepare(
             'SELECT id FROM rh_candidatos_vagas
@@ -211,9 +214,9 @@ final class RhCandidaturaInternaService
 
         $stmt = $pdo->prepare(
             'INSERT INTO rh_candidatos_vagas
-                (rh_candidato_id, rh_vaga_id, status, data_candidatura, observacoes, created_at)
+                (rh_candidato_id, rh_vaga_id, status, data_candidatura, observacoes, canal_origem, created_at)
              VALUES
-                (:candidato_id, :vaga_id, :status, NOW(), :observacoes, NOW())'
+                (:candidato_id, :vaga_id, :status, NOW(), :observacoes, :canal_origem, NOW())'
         );
         $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
         $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
@@ -223,6 +226,7 @@ final class RhCandidaturaInternaService
             $observacoes,
             $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
         );
+        $stmt->bindValue(':canal_origem', $canalOrigem, PDO::PARAM_STR);
         if (!$stmt->execute()) {
             throw new Exception('Erro ao vincular candidatura à vaga.');
         }
@@ -236,9 +240,10 @@ final class RhCandidaturaInternaService
             'status_anterior' => null,
             'status_novo' => 'candidatado',
             'origem' => RhCandidaturaHistoricoRepository::ORIGEM_PORTAL,
-            'observacoes' => $observacoes !== null
-                ? ('[interna] ' . $observacoes)
-                : '[interna]',
+            'observacoes' => trim(
+                'Canal: ' . RhCandidatoOrigemHelper::label($canalOrigem)
+                . ($observacoes !== null && $observacoes !== '' ? ' — ' . $observacoes : '')
+            ),
         ]);
 
         return $candidaturaId;

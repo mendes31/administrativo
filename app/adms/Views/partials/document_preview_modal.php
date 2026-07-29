@@ -9,6 +9,55 @@
 #admsDocumentPreviewModalFrame {
     transition: opacity 0.2s ease;
 }
+/* Cabeçalho/rodapé sempre acessíveis no mobile (PWA sem barra do Chrome) */
+#admsDocumentPreviewModal .modal-content {
+    max-height: 100dvh;
+}
+#admsDocumentPreviewModal .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: #1a1a1a;
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+#admsDocumentPreviewModal .modal-footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    background: #1a1a1a;
+    padding-bottom: max(0.5rem, env(safe-area-inset-bottom));
+}
+#admsDocumentPreviewModal .btn-close {
+    width: 2.75rem;
+    height: 2.75rem;
+    opacity: 1;
+}
+@media (max-width: 991.98px) {
+    #admsDocumentPreviewModal .modal-body {
+        min-height: 0 !important;
+        flex: 1 1 auto;
+    }
+    #admsDocumentPreviewModalFrame {
+        min-height: 50vh !important;
+        height: calc(100dvh - 8.5rem) !important;
+    }
+    #admsDocumentPreviewModal .btn-adms-doc-close {
+        min-width: 5.5rem;
+        font-weight: 600;
+    }
+}
+#informativoImageModal .modal-header {
+    position: sticky;
+    top: 0;
+    z-index: 5;
+    background: rgba(0, 0, 0, 0.85);
+    padding-top: max(0.5rem, env(safe-area-inset-top));
+}
+#informativoImageModal .btn-close {
+    width: 2.75rem;
+    height: 2.75rem;
+    opacity: 1;
+}
 </style>
 <script>
 (function () {
@@ -29,16 +78,11 @@
     }
 
     /**
-     * Modal com iframe só em desktop — em mobile o iframe mostra ecrã "Abrir" extra.
+     * Sempre preferir modal interno para PDF.
+     * Em mobile/PWA, window.location no PDF remove a app e some o X do Chrome (display-mode: standalone).
      */
     if (typeof window.admsPreferDocumentPreviewModal !== 'function') {
         window.admsPreferDocumentPreviewModal = function () {
-            if (window.matchMedia('(max-width: 991.98px)').matches) {
-                return false;
-            }
-            if (window.matchMedia('(hover: none) and (pointer: coarse)').matches) {
-                return false;
-            }
             return true;
         };
     }
@@ -82,13 +126,13 @@
             modalEl.setAttribute('tabindex', '-1');
             modalEl.setAttribute('aria-hidden', 'true');
             modalEl.innerHTML = ''
-                + '<div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down modal-xl modal-dialog-scrollable">'
-                + '  <div class="modal-content border-0 bg-dark bg-opacity-90">'
-                + '    <div class="modal-header border-0 py-2">'
-                + '      <span class="text-white-50 small"><i class="fas fa-file-pdf text-danger me-1"></i>Documento PDF</span>'
+                + '<div class="modal-dialog modal-dialog-centered modal-fullscreen-lg-down modal-xl">'
+                + '  <div class="modal-content border-0 bg-dark d-flex flex-column" style="min-height:100%;">'
+                + '    <div class="modal-header border-0 py-2 align-items-center">'
+                + '      <span class="text-white small"><i class="fas fa-file-pdf text-danger me-1"></i>Documento PDF</span>'
                 + '      <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>'
                 + '    </div>'
-                + '    <div class="modal-body p-0 d-flex flex-column position-relative" style="min-height:70vh;">'
+                + '    <div class="modal-body p-0 d-flex flex-column position-relative flex-grow-1" style="min-height:70vh;">'
                 + '      <div id="admsDocumentPreviewModalLoading" class="position-absolute top-50 start-50 translate-middle text-center">'
                 + '        <div class="spinner-border text-light" role="status" aria-hidden="true"></div>'
                 + '        <div class="text-white-50 small mt-2">Carregando documento...</div>'
@@ -97,7 +141,7 @@
                 + '    </div>'
                 + '    <div class="modal-footer border-0 py-2 justify-content-between">'
                 + '      <a id="admsDocumentPreviewModalDownload" href="#" class="btn btn-sm btn-outline-light" download><i class="fas fa-download me-1"></i>Download</a>'
-                + '      <button type="button" class="btn btn-sm btn-light" data-bs-dismiss="modal">Fechar</button>'
+                + '      <button type="button" class="btn btn-sm btn-light btn-adms-doc-close" data-bs-dismiss="modal">Fechar</button>'
                 + '    </div>'
                 + '  </div>'
                 + '</div>';

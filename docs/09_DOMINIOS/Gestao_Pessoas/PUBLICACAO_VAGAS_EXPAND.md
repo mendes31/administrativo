@@ -2,7 +2,7 @@
 
 - Domínio: Gestão de Pessoas / Talentos.
 - Data: 27/07/2026.
-- Status: flag admin + listagem pública + candidatura LGPD/CAPTCHA/dedupe + **links de divulgação** + **visibilidade interna/externa**.
+- Status: flag admin + listagem pública + candidatura LGPD/CAPTCHA/dedupe + **upload de currículo** + links de divulgação + visibilidade interna/externa.
 
 ## Modelo
 
@@ -51,14 +51,16 @@ Não use o portal público para vagas confidenciais só internas.
 - Formulário no detalhe da vaga; CSRF + honeypot + rate limit
 - CAPTCHA **opcional e configurável** em `rh-vagas-publicas-config`
 - Consentimento LGPD obrigatório (termo ativo `curriculo_candidato`)
-- Sem upload de currículo neste incremento
+- **Upload obrigatório de currículo** (PDF/DOC/DOCX, máx. 10 MB) via `RhCandidatoAnexoService::storeCurriculo` → storage privado (ADR-0003) + `rh_candidatos_anexos`
+- Download permanece autenticado (`RhCandidatosDownloadAnexo` + access log)
 - Dedupe: mesmo e-mail não se candidata duas vezes à mesma vaga
 - Serviço: `RhCandidaturaPublicaService` / CAPTCHA: `RhVagasPublicasCaptchaService`
 
 ## Próximo incremento (opcional)
 
 - (entregue) Listagem autenticada `vagas-internas` + candidatura ligada ao `user_id`.
-- Melhorias: upload de currículo interno, UTM analytics no admin, QR code.
+- (entregue) Upload de currículo no portal público `vagas-abertas`.
+- Melhorias: upload de currículo em `vagas-internas`, UTM analytics no admin, QR code.
 
 ## Migrations
 

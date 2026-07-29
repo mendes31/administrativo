@@ -3,27 +3,39 @@
 <h2>Função no sistema</h2>
 <p>Solicita e aprova necessidade de contratação (headcount) antes de abrir a vaga no ATS.</p>
 
-
-
 <p class="help-note"><strong>Visão geral:</strong> <em>Recrutamento</em> (<code>gp-recrutamento</code>).</p>
 
-<p><strong>Quem acessa:</strong> permissões <em>RhPersonnelRequests*</em> (mesmos níveis que já acessam Vagas, após a migration).</p>
+<p><strong>Quem acessa:</strong> permissões <em>RhPersonnelRequests</em>, <em>RhPersonnelRequestsCreate</em>, <em>RhPersonnelRequestsView</em>, <em>RhPersonnelRequestsApprove</em>, <em>RhPersonnelRequestsReject</em> e <em>RhPersonnelRequestsConvert</em> (mesmos níveis que já acessam Vagas, após a migration).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>JR / PL / SR</dt>
+    <dd>Níveis de senioridade no cadastro do cargo (Júnior, Pleno, Sênior). Na requisição o sistema mostra o <strong>nome completo</strong> do cargo, para distinguir registros que só diferem pela senioridade.</dd>
+    <dt>Área</dt>
+    <dd>Departamento solicitante (cadastro de departamentos).</dd>
+</dl>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Crie a requisição com área, cargo, quantidade e justificativa.</li>
+    <li>Crie a requisição escolhendo <strong>Área</strong> e <strong>Cargo</strong>, quantidade e justificativa.</li>
+    <li>Ao escolher a área, a lista de cargos é filtrada pelos cargos já usados por colaboradores <em>Ativos</em> daquela área. Marque <strong>Mostrar todos os cargos</strong> se a função for nova na área.</li>
     <li>Outro usuário com permissão <strong>aprova</strong> ou <strong>rejeita</strong> (não pode ser o solicitante).</li>
     <li>Se aprovada, use <strong>Converter em vaga</strong> — a vaga nasce <em>pausada</em> para completar detalhes e abrir o pipeline.</li>
 </ol>
 
-
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros ou formulário</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
-<div class="help-field"><strong>Resultado / painel</strong> Área onde o sistema mostra listagens, totais ou detalhe do registro.</div>
-<div class="help-field"><strong>Ações</strong> Botões e links disponíveis conforme sua permissão.</div>
+<div class="help-field"><strong>Área</strong> Departamento da necessidade; filtra a lista de cargos (salvo “Mostrar todos”).</div>
+<div class="help-field"><strong>Cargo</strong> Nome completo como cadastrado em Cargos (inclui JR/PL/SR). O valor gravado é o <code>id</code> do cargo.</div>
+<div class="help-field"><strong>Mostrar todos os cargos</strong> Desliga o filtro por área e lista todo o cadastro de cargos.</div>
+<div class="help-field"><strong>Quantidade / Contrato / Motivo / Data desejada / Faixa salarial / Justificativa</strong> Detalhes da necessidade enviados à aprovação.</div>
+<div class="help-field"><strong>Ações</strong> Aprovar, rejeitar e converter em vaga conforme status e permissão.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Cargos “iguais” na lista</dt>
+    <dd>São registros distintos (ex.: Analista JR, PL e SR). Nesta tela o nome completo aparece para diferenciá-los.</dd>
+    <dt>Cargo não aparece após escolher a área</dt>
+    <dd>O filtro usa lotação atual de colaboradores ativos. Marque <strong>Mostrar todos os cargos</strong> para funções novas na área.</dd>
     <dt>Não é permitido aprovar a própria requisição</dt>
     <dd>Peça a outro aprovador RH/gestor com a permissão.</dd>
     <dt>Erro ao carregar requisições</dt>

@@ -142,7 +142,9 @@ final class AdmsPageGroupSplit
                     continue;
                 }
                 $targetName = match ($key) {
-                    'gp' => self::classifyGp($controller, $directory),
+                    'gp' => self::isSstRelatedController($controller)
+                        ? self::classifySst($controller)
+                        : self::classifyGp($controller, $directory),
                     'sst' => self::classifySst($controller),
                     'lgpd' => self::classifyLgpd($controller, $directory),
                     'estoque' => self::classifyEstoque($controller),
@@ -162,6 +164,99 @@ final class AdmsPageGroupSplit
                 );
             }
         }
+
+        self::reassignMisplacedSstFromGpSubgroups($fetchRow, $fetchAll, $execute, $ids, $now);
+    }
+
+    /**
+     * Páginas SST no portal (directory=portal) caíram em subgrupos GP na 1ª cisão.
+     * Reatribui para SST - EPI / Treinamentos sem mexer em ACL por page_id.
+     *
+     * @param callable(string): (array|false|null) $fetchRow
+     * @param callable(string): mixed $fetchAll
+     * @param callable(string): void $execute
+     * @param array<string, int> $ids
+     */
+    private static function reassignMisplacedSstFromGpSubgroups(
+        callable $fetchRow,
+        callable $fetchAll,
+        callable $execute,
+        array $ids,
+        string $now
+    ): void {
+        $gpNames = [
+            'Gestão de Pessoas',
+            'Gestão de Pessoas - Talentos (ATS)',
+            'Gestão de Pessoas - Portal / Solicitações',
+            'Gestão de Pessoas - Desempenho e Carreira',
+            'Gestão de Pessoas - Organização / Políticas',
+            'GP - Talentos (ATS)',
+            'GP - Portal / Solicitações',
+            'GP - Desempenho e Carreira',
+            'GP - Organização / Políticas',
+        ];
+        $gpIds = [];
+        foreach ($gpNames as $name) {
+            $id = self::groupIdByName($fetchRow, $name);
+            if ($id > 0) {
+                $gpIds[] = $id;
+            }
+        }
+        $gpIds = array_values(array_unique($gpIds));
+        if ($gpIds === []) {
+            return;
+        }
+
+        $inList = implode(',', $gpIds);
+        $rows = $fetchAll(
+            "SELECT id, controller, directory FROM adms_pages WHERE adms_groups_page_id IN ({$inList})"
+        );
+        if (!is_array($rows)) {
+            return;
+        }
+
+        foreach ($rows as $row) {
+            $pageId = (int) ($row['id'] ?? 0);
+            $controller = (string) ($row['controller'] ?? '');
+            if ($pageId <= 0 || $controller === '' || !self::isSstRelatedController($controller)) {
+                continue;
+            }
+            $targetName = self::classifySst($controller);
+            if (!isset($ids[$targetName]) || $ids[$targetName] <= 0) {
+                continue;
+            }
+            $newId = $ids[$targetName];
+            $execute(
+                "UPDATE adms_pages
+                 SET adms_groups_page_id = {$newId}, updated_at = " . self::quote($now) . "
+                 WHERE id = {$pageId}
+                 LIMIT 1"
+            );
+        }
+    }
+
+    public static function isSstRelatedController(string $controller): bool
+    {
+        $lc = strtolower($controller);
+        if (str_starts_with($controller, 'Sst') || str_starts_with($controller, 'ViewSst')) {
+            return true;
+        }
+        if (str_starts_with($controller, 'MySst')) {
+            return true;
+        }
+        // Portal do colaborador (EPI / SST) — directory=portal, mas domínio SST
+        if (in_array($controller, [
+            'MyEpiDeliveries',
+            'SignEpiFicha',
+            'ViewEpiFichaPdf',
+            'MySstTreinamentos',
+            'ViewSstTreinamentoCertificadoPdf',
+        ], true)) {
+            return true;
+        }
+
+        return str_contains($lc, 'sst')
+            || (str_contains($lc, 'epi') && !str_contains($lc, 'receipt')); // evita falsos positivos raros
     }
 
     /** @param callable(string): (array|false|null) $fetchRow */
@@ -174,6 +269,7 @@ final class AdmsPageGroupSplit
 
     public static function classifyGp(string $controller, string $directory): string
     {
+        // Callers must route isSstRelatedController() to classifySst() first.
         $lc = strtolower($controller);
         if ($directory === 'rh' || str_starts_with($controller, 'Rh') || str_contains($lc, 'personnel')) {
             return 'Gestão de Pessoas - Talentos (ATS)';

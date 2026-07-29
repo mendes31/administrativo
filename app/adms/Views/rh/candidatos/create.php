@@ -59,18 +59,12 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_create_rh_candidato');
                         <label for="origem" class="form-label">Origem</label>
                         <?php
                         $origemAtual = $this->data['form']['origem'] ?? 'manual';
-                        $origens = [
-                            'email'                => 'E-mail',
-                            'whatsapp'             => 'WhatsApp',
-                            'form_trabalhe_conosco'=> 'Trabalhe Conosco',
-                            'manual'               => 'Manual',
-                            'outro'                => 'Outro',
-                        ];
+                        $origens = \App\adms\Helpers\RhCandidatoOrigemHelper::opcoesSelect();
                         ?>
                         <select name="form[origem]" id="origem" class="form-select">
                             <?php foreach ($origens as $valor => $label): ?>
-                                <option value="<?= $valor ?>" <?= $origemAtual === $valor ? 'selected' : '' ?>>
-                                    <?= $label ?>
+                                <option value="<?= htmlspecialchars($valor) ?>" <?= $origemAtual === $valor ? 'selected' : '' ?>>
+                                    <?= htmlspecialchars($label) ?>
                                 </option>
                             <?php endforeach; ?>
                         </select>

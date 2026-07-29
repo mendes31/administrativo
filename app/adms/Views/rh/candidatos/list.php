@@ -51,19 +51,12 @@ $csrfTokenVinculoFromCandidato = CSRFHelper::generateCSRFToken('form_rh_vincular
                     <label for="origem" class="form-label mb-1">Origem</label>
                     <?php
                     $origemAtual = $_GET['origem'] ?? '';
-                    $origens = [
-                        ''                    => 'Todas',
-                        'email'               => 'E-mail',
-                        'whatsapp'            => 'WhatsApp',
-                        'form_trabalhe_conosco' => 'Trabalhe Conosco',
-                        'manual'              => 'Manual',
-                        'outro'               => 'Outro',
-                    ];
+                    $origens = ['' => 'Todas'] + \App\adms\Helpers\RhCandidatoOrigemHelper::opcoesSelect();
                     ?>
                     <select name="origem" id="origem" class="form-select form-select-sm">
                         <?php foreach ($origens as $valor => $label): ?>
-                            <option value="<?= $valor ?>" <?= $origemAtual === $valor ? 'selected' : '' ?>>
-                                <?= $label ?>
+                            <option value="<?= htmlspecialchars((string) $valor) ?>" <?= $origemAtual === (string) $valor ? 'selected' : '' ?>>
+                                <?= htmlspecialchars($label) ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -137,7 +130,7 @@ $csrfTokenVinculoFromCandidato = CSRFHelper::generateCSRFToken('form_rh_vincular
                                         <td><?= $cand['id'] ?></td>
                                         <td><?= htmlspecialchars($cand['nome']) ?></td>
                                         <td><?= htmlspecialchars($cand['email'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($cand['origem'] ?? '') ?></td>
+                                        <td><?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($cand['origem'] ?? ''))) ?></td>
                                         <td>
                                             <?php
                                             $st = $cand['status_processo'] ?? '';

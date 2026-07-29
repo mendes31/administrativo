@@ -82,7 +82,7 @@ use App\adms\Helpers\CSRFHelper;
                                     <td>#<?= (int) $r['id'] ?></td>
                                     <td><?= htmlspecialchars($r['requester_nome'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($r['area_nome'] ?? '-') ?></td>
-                                    <td><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string) ($r['cargo_nome'] ?? '')) ?: '-') ?></td>
+                                    <td><?= htmlspecialchars((string) ($r['cargo_nome'] ?? '') ?: '-') ?></td>
                                     <td><?= (int) ($r['quantidade'] ?? 1) ?></td>
                                     <td><span class="badge bg-secondary"><?= htmlspecialchars($r['status'] ?? '') ?></span></td>
                                     <td><?= FormatHelper::formatDateTime($r['created_at'] ?? null) ?></td>

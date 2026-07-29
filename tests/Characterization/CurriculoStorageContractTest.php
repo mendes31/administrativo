@@ -25,6 +25,11 @@ final class CurriculoStorageContractTest extends TestCase
 
         self::assertStringContainsString('RhCandidatoAnexoService::storeCurriculo', $create);
         self::assertStringContainsString('RhCandidatoAnexoService::storeCurriculo', $edit);
+
+        $public = $this->readProjectFile(
+            'app/adms/Models/Services/RhCandidaturaPublicaService.php'
+        );
+        self::assertStringContainsString('RhCandidatoAnexoService::storeCurriculo', $public);
     }
 
     public function testAnexoServiceStoresInPrivateStorageWithStrongValidation(): void

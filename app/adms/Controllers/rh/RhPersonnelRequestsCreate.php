@@ -36,7 +36,8 @@ class RhPersonnelRequestsCreate
         $deptRepo = new \App\adms\Models\Repository\DepartmentsRepository();
         $posRepo = new \App\adms\Models\Repository\PositionsRepository();
         $this->data['departments'] = $deptRepo->getAllDepartments(1, 1000) ?: [];
-        $this->data['positions'] = $posRepo->getAllPositions(1, 1000) ?: [];
+        $this->data['positions'] = $posRepo->getAllPositionsSelect() ?: [];
+        $this->data['position_department_map'] = $posRepo->getActivePositionDepartmentMap();
 
         $pageElements = [
             'title_head' => 'Nova Requisição de Pessoal',

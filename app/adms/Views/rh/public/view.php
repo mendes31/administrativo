@@ -106,8 +106,9 @@ $captchaProvider = (string) ($captcha_provider ?? 'hcaptcha');
     <?php if (!$candidaturaHabilitada): ?>
         <p class="vp-meta mb-0">Candidatura temporariamente indisponível. Entre em contato com o RH pelos canais oficiais.</p>
     <?php else: ?>
-        <form method="post" action="<?= htmlspecialchars($base_url . '/' . $vagaId, ENT_QUOTES, 'UTF-8') ?>" novalidate>
+        <form method="post" action="<?= htmlspecialchars($base_url . '/' . $vagaId, ENT_QUOTES, 'UTF-8') ?>" enctype="multipart/form-data" novalidate>
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars((string) ($csrf_token ?? ''), ENT_QUOTES, 'UTF-8') ?>">
+            <input type="hidden" name="form[utm_source]" value="<?= htmlspecialchars((string) ($form['utm_source'] ?? ($_GET['utm_source'] ?? '')), ENT_QUOTES, 'UTF-8') ?>">
             <div style="position:absolute;left:-10000px;top:auto;width:1px;height:1px;overflow:hidden;" aria-hidden="true">
                 <label for="website">Website</label>
                 <input type="text" name="website" id="website" tabindex="-1" autocomplete="off">
@@ -148,6 +149,12 @@ $captchaProvider = (string) ($captcha_provider ?? 'hcaptcha');
                     <label class="form-label" for="mensagem">Mensagem / experiência (opcional)</label>
                     <textarea class="form-control" name="form[mensagem]" id="mensagem" rows="3" maxlength="2000"><?= htmlspecialchars((string) ($form['mensagem'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
+                <div class="col-12">
+                    <label class="form-label" for="curriculo">Currículo (PDF ou DOC/DOCX) *</label>
+                    <input class="form-control" type="file" name="curriculo" id="curriculo" required
+                           accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document">
+                    <div class="form-text">Arquivo único, máximo 10 MB. O arquivo fica armazenado de forma privada e só o RH autorizado pode baixar.</div>
+                </div>
             </div>
 
             <?php if ($termo !== null): ?>
@@ -179,7 +186,7 @@ $captchaProvider = (string) ($captcha_provider ?? 'hcaptcha');
                     Enviar candidatura
                 </button>
             </div>
-            <p class="vp-meta mt-2 mb-0">Envio de currículo em arquivo ainda não está disponível neste formulário.</p>
+            <p class="vp-meta mt-2 mb-0">Ao enviar, você anexa o currículo ao processo seletivo desta vaga.</p>
         </form>
     <?php endif; ?>
 </section>

@@ -55,6 +55,13 @@ final class VagasPublicacaoContractTest extends TestCase
         self::assertStringContainsString('data-copy-target', $view);
         self::assertStringContainsString('linksExternos', $service);
         self::assertStringContainsString('createInformativoUrl', $service);
+        self::assertStringContainsString('buildInformativoPrefill', $service);
+        self::assertStringContainsString("'from_vaga' => \$id", $service);
+        self::assertDoesNotMatchRegularExpression(
+            "/create-informativo\?'\s*\.\s*http_build_query\(\[[^\]]*conteudo/s",
+            $service,
+            'URL do informativo não deve enviar HTML (conteudo) na query string'
+        );
     }
 
     public function testVisibilidadeMigration(): void

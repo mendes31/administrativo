@@ -26,6 +26,7 @@ class AddAdmsInformativosCategorias extends AbstractSeed
             'Resultados',
             'Saúde',
             'Segurança',
+            'Seleção Interna',
             'Sustentabilidade',
             'Tecnologia',
             'Welcome Baby',

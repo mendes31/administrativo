@@ -31,7 +31,8 @@ final class VagasPublicasCandidaturaContractTest extends TestCase
         self::assertStringContainsString('lgpd_consent', $service);
         self::assertStringContainsString('website', $service);
         self::assertStringContainsString('ORIGEM_PORTAL', $service);
-        self::assertStringNotContainsString('storeCurriculo', $service);
+        self::assertStringContainsString('storeCurriculo', $service);
+        self::assertStringContainsString('rh_candidatos_anexos', $service);
     }
 
     public function testViewHasApplicationForm(): void
@@ -40,6 +41,9 @@ final class VagasPublicasCandidaturaContractTest extends TestCase
         self::assertStringContainsString('lgpd_consent', $view);
         self::assertStringContainsString('form[email]', $view);
         self::assertStringContainsString('Enviar candidatura', $view);
+        self::assertStringContainsString('multipart/form-data', $view);
+        self::assertStringContainsString('name="curriculo"', $view);
+        self::assertStringNotContainsString('ainda não está disponível', $view);
     }
 
     private function readProjectFile(string $relativePath): string

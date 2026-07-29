@@ -90,6 +90,10 @@ final class RhVagasPublicas
             RhCandidaturaPublicaService::LGPD_TERMO_TIPO
         );
 
+        if ($form === [] && isset($_GET['utm_source'])) {
+            $form['utm_source'] = (string) $_GET['utm_source'];
+        }
+
         $this->render('view', [
             'title' => (string) ($vaga['titulo'] ?? 'Vaga'),
             'vaga' => $vaga,
@@ -145,8 +149,12 @@ final class RhVagasPublicas
         $rateLimit->recordAttempt(self::RL_SCOPE);
 
         try {
-            (new RhCandidaturaPublicaService())->candidatar($vagaId, $form);
-            $_SESSION['portal_vagas_success'] = 'Candidatura registrada com sucesso. O RH poderá entrar em contato pelo e-mail informado.';
+            (new RhCandidaturaPublicaService())->candidatar(
+                $vagaId,
+                $form,
+                isset($_FILES['curriculo']) && is_array($_FILES['curriculo']) ? $_FILES['curriculo'] : null
+            );
+            $_SESSION['portal_vagas_success'] = 'Candidatura e currículo registrados com sucesso. O RH poderá entrar em contato pelo e-mail informado.';
             header('Location: ' . rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/vagas-abertas/' . $vagaId);
             exit;
         } catch (\Throwable $e) {

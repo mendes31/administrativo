@@ -6,6 +6,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\GenerateLog;
 use App\adms\Helpers\LgpdAuditHelper;
+use App\adms\Helpers\RhCandidatoOrigemHelper;
 use App\adms\Models\Repository\LgpdConsentimentosRepository;
 use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Models\Repository\RhCandidatosRepository;
@@ -16,18 +17,21 @@ use PDO;
 
 /**
  * Candidatura pública em vaga publicada (Expand Fase 3).
- * Sem upload de currículo; dedupe por e-mail + vaga.
+ * Inclui upload obrigatório de currículo no storage privado (ADR-0003).
+ * Dedupe por e-mail + vaga.
  */
 final class RhCandidaturaPublicaService
 {
     public const LGPD_TERMO_TIPO = 'curriculo_candidato';
-    public const ORIGEM_CANDIDATO = 'form_trabalhe_conosco';
+    /** @deprecated Preferir RhCandidatoOrigemHelper::FORM_TRABALHE_CONOSCO / fromUtmSource */
+    public const ORIGEM_CANDIDATO = RhCandidatoOrigemHelper::FORM_TRABALHE_CONOSCO;
 
     /**
      * @param array<string, mixed> $input
-     * @return array{candidato_id: int, created_candidato: bool, vinculo_id: int}
+     * @param array<string, mixed>|null $curriculoFile entrada de $_FILES['curriculo']
+     * @return array{candidato_id: int, created_candidato: bool, vinculo_id: int, anexo_id: int}
      */
-    public function candidatar(int $vagaId, array $input): array
+    public function candidatar(int $vagaId, array $input, ?array $curriculoFile = null): array
     {
         $vaga = (new RhVagasRepository())->getPublicadaById($vagaId);
         if ($vaga === null) {
@@ -41,6 +45,9 @@ final class RhCandidaturaPublicaService
         $estado = strtoupper(trim((string) ($input['estado'] ?? '')));
         $areaInteresse = trim((string) ($input['area_interesse'] ?? ''));
         $mensagem = trim((string) ($input['mensagem'] ?? ''));
+        $canalOrigem = RhCandidatoOrigemHelper::normalizeFromInput(
+            $input['utm_source'] ?? $input['canal_origem'] ?? ''
+        );
 
         if (mb_strlen($nome) < 3) {
             throw new Exception('Informe seu nome completo.');
@@ -60,6 +67,12 @@ final class RhCandidaturaPublicaService
         // Honeypot
         if (trim((string) ($input['website'] ?? '')) !== '') {
             throw new Exception('Não foi possível enviar a candidatura.');
+        }
+
+        $file = is_array($curriculoFile) ? $curriculoFile : [];
+        $phpError = (int) ($file['error'] ?? UPLOAD_ERR_NO_FILE);
+        if ($phpError === UPLOAD_ERR_NO_FILE || trim((string) ($file['name'] ?? '')) === '') {
+            throw new Exception('Anexe o currículo em PDF ou DOC/DOCX (máximo 10 MB).');
         }
 
         $termo = (new LgpdTermosRepository())->getTermoAtivoPorTipo(self::LGPD_TERMO_TIPO);
@@ -82,6 +95,7 @@ final class RhCandidaturaPublicaService
 
         $pdo = $candRepo->getConnection();
         $pdo->beginTransaction();
+        $storedPath = null;
 
         try {
             $consentId = $this->registrarConsentimento($nome, $email, $termo, $vagaId);
@@ -100,9 +114,10 @@ final class RhCandidaturaPublicaService
                     'area_interesse' => $areaInteresse,
                     'graduacao' => null,
                     'ultima_experiencia' => $mensagem !== '' ? mb_substr($mensagem, 0, 2000) : null,
-                    'origem' => self::ORIGEM_CANDIDATO,
+                    'origem' => $canalOrigem,
                     'status_processo' => 'candidatado',
-                    'observacoes' => 'Candidatura pelo portal público vagas-abertas.',
+                    'observacoes' => 'Candidatura pelo portal público vagas-abertas ('
+                        . RhCandidatoOrigemHelper::label($canalOrigem) . ').',
                     'lgpd_termo_id' => (int) ($termo['id'] ?? 0),
                     'lgpd_consentimento_id' => $consentId,
                     'lgpd_data_consentimento' => date('Y-m-d H:i:s'),
@@ -118,12 +133,41 @@ final class RhCandidaturaPublicaService
                 $candRepo->touchLgpdConsent($candidatoId, (int) ($termo['id'] ?? 0), $consentId);
             }
 
+            $obsVinculo = $mensagem !== '' ? mb_substr($mensagem, 0, 1000) : null;
             $vinculoId = $this->vincularNaTransacao(
                 $pdo,
                 $vagaId,
                 $candidatoId,
-                $mensagem !== '' ? mb_substr($mensagem, 0, 1000) : null
+                $obsVinculo,
+                $canalOrigem
             );
+
+            $stored = RhCandidatoAnexoService::storeCurriculo($candidatoId, $file);
+            if (!($stored['ok'] ?? false)) {
+                throw new Exception((string) ($stored['error'] ?? 'Erro ao salvar o currículo.'));
+            }
+            $storedPath = (string) ($stored['relative_path'] ?? '');
+            $stmtAnexo = $pdo->prepare(
+                'INSERT INTO rh_candidatos_anexos
+                    (rh_candidato_id, tipo, arquivo_caminho, nome_original, created_at)
+                 VALUES
+                    (:candidato_id, :tipo, :caminho, :nome, NOW())'
+            );
+            $stmtAnexo->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+            $stmtAnexo->bindValue(':tipo', 'curriculo', PDO::PARAM_STR);
+            $stmtAnexo->bindValue(':caminho', $storedPath, PDO::PARAM_STR);
+            $stmtAnexo->bindValue(
+                ':nome',
+                (string) ($stored['original_name'] ?? 'curriculo'),
+                PDO::PARAM_STR
+            );
+            if (!$stmtAnexo->execute()) {
+                throw new Exception('Não foi possível registrar o currículo na candidatura.');
+            }
+            $anexoId = (int) $pdo->lastInsertId();
+            if ($anexoId <= 0) {
+                throw new Exception('Não foi possível registrar o currículo na candidatura.');
+            }
 
             $novoStatus = $candRepo->calcularStatusGeralPorVinculos($candidatoId);
             if ($novoStatus) {
@@ -136,10 +180,14 @@ final class RhCandidaturaPublicaService
                 'candidato_id' => $candidatoId,
                 'created_candidato' => $createdCandidato,
                 'vinculo_id' => $vinculoId,
+                'anexo_id' => (int) $anexoId,
             ];
         } catch (\Throwable $e) {
             if ($pdo->inTransaction()) {
                 $pdo->rollBack();
+            }
+            if (is_string($storedPath) && $storedPath !== '') {
+                RhCandidatoAnexoService::deletePhysicalFile($storedPath);
             }
             GenerateLog::generateLog('error', 'Falha na candidatura pública.', [
                 'vaga_id' => $vagaId,
@@ -193,7 +241,8 @@ final class RhCandidaturaPublicaService
         PDO $pdo,
         int $vagaId,
         int $candidatoId,
-        ?string $observacoes
+        ?string $observacoes,
+        string $canalOrigem = RhCandidatoOrigemHelper::FORM_TRABALHE_CONOSCO
     ): int {
         $stmtCheck = $pdo->prepare(
             'SELECT id FROM rh_candidatos_vagas
@@ -210,9 +259,9 @@ final class RhCandidaturaPublicaService
 
         $stmt = $pdo->prepare(
             'INSERT INTO rh_candidatos_vagas
-                (rh_candidato_id, rh_vaga_id, status, data_candidatura, observacoes, created_at)
+                (rh_candidato_id, rh_vaga_id, status, data_candidatura, observacoes, canal_origem, created_at)
              VALUES
-                (:candidato_id, :vaga_id, :status, NOW(), :observacoes, NOW())'
+                (:candidato_id, :vaga_id, :status, NOW(), :observacoes, :canal_origem, NOW())'
         );
         $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
         $stmt->bindValue(':vaga_id', $vagaId, PDO::PARAM_INT);
@@ -222,6 +271,7 @@ final class RhCandidaturaPublicaService
             $observacoes,
             $observacoes !== null ? PDO::PARAM_STR : PDO::PARAM_NULL
         );
+        $stmt->bindValue(':canal_origem', $canalOrigem, PDO::PARAM_STR);
         if (!$stmt->execute()) {
             throw new Exception('Erro ao vincular candidatura à vaga.');
         }
@@ -235,7 +285,10 @@ final class RhCandidaturaPublicaService
             'status_anterior' => null,
             'status_novo' => 'candidatado',
             'origem' => RhCandidaturaHistoricoRepository::ORIGEM_PORTAL,
-            'observacoes' => $observacoes,
+            'observacoes' => trim(
+                'Canal: ' . RhCandidatoOrigemHelper::label($canalOrigem)
+                . ($observacoes !== null && $observacoes !== '' ? ' — ' . $observacoes : '')
+            ),
         ]);
 
         return $candidaturaId;

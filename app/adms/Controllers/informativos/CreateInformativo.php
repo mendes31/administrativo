@@ -269,7 +269,8 @@ class CreateInformativo
     }
 
     /**
-     * Prefill a partir de create-informativo?from_vaga=&titulo=&conteudo= (GET).
+     * Prefill a partir de create-informativo?from_vaga= (GET).
+     * Título/conteúdo são montados no servidor — não use HTML na query (Apache/WAF → 403).
      */
     private function applyVagaPrefillFromQuery(): void
     {
@@ -277,26 +278,24 @@ class CreateInformativo
             return;
         }
 
-        $titulo = trim((string) ($_GET['titulo'] ?? ''));
-        $conteudo = (string) ($_GET['conteudo'] ?? '');
         $fromVaga = (int) ($_GET['from_vaga'] ?? 0);
-
-        if ($titulo === '' && $conteudo === '' && $fromVaga <= 0) {
+        if ($fromVaga <= 0) {
             return;
         }
 
-        // Limite defensivo de tamanho (query string).
-        if (mb_strlen($titulo) > 255) {
-            $titulo = mb_substr($titulo, 0, 255);
-        }
-        if (mb_strlen($conteudo) > 20000) {
-            $conteudo = mb_substr($conteudo, 0, 20000);
+        $vaga = (new \App\adms\Models\Repository\RhVagasRepository())->getById($fromVaga);
+        if ($vaga === null) {
+            $_SESSION['error'] = 'Vaga #' . $fromVaga . ' não encontrada para pré-preencher o informativo.';
+            return;
         }
 
-        $this->data['form_prefill'] = [
-            'titulo' => $titulo,
-            'conteudo' => $conteudo,
-            'from_vaga' => $fromVaga,
-        ];
+        $this->data['form_prefill'] = \App\adms\Models\Services\RhVagaDivulgacaoService::buildInformativoPrefill($vaga);
+
+        foreach ((new InformativosRepository())->getCategorias() as $cat) {
+            if (strcasecmp(trim((string) ($cat['name'] ?? '')), 'Seleção Interna') === 0) {
+                $this->data['form_prefill']['categoria_id'] = (int) ($cat['id'] ?? 0);
+                break;
+            }
+        }
     }
 } 

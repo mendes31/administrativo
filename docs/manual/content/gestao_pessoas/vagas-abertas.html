@@ -1,11 +1,9 @@
 <h1>Vagas abertas (portal público)</h1>
 
 <h2>Função no sistema</h2>
-<p>Página pública (sem login) que lista vagas publicadas e permite candidatura com consentimento LGPD.</p>
+<p>Página pública (sem login) que lista vagas publicadas e permite candidatura com consentimento LGPD e envio de currículo.</p>
 
-
-
-<p class="help-note"><strong>Relacionado:</strong> gestão interna em <em>Listar Vagas</em> (<code>rh-vagas</code>).</p>
+<p class="help-note"><strong>Relacionado:</strong> gestão interna em <em>Listar Vagas</em> (<code>rh-vagas</code>) e ficha do candidato (<code>rh-candidatos-view</code>).</p>
 
 <p><strong>Quem acessa:</strong> qualquer visitante (página pública). Não exige permissão ACL.</p>
 
@@ -13,9 +11,9 @@
 <dl>
     <dt>LGPD</dt>
     <dd>Lei Geral de Proteção de Dados: regras para tratar dados pessoais com base legal, segurança e direitos do titular.</dd>
+    <dt>Storage privado</dt>
+    <dd>O currículo não fica em pasta pública da web; só usuários autorizados baixam pelo sistema, com registro de acesso.</dd>
 </dl>
-
-
 
 <h2>Fluxo principal</h2>
 <ol>
@@ -23,32 +21,36 @@
     <li>Busque por título, se quiser, e abra o detalhe da vaga.</li>
     <li>Consulte descrição, requisitos e benefícios. O salário só aparece se o RH marcou <em>Mostrar salário</em>.</li>
     <li>Preencha o formulário <em>Candidatar-se</em> (nome, e-mail, telefone, área de interesse).</li>
+    <li>Anexe o <strong>currículo</strong> em PDF ou DOC/DOCX (obrigatório, até 10 MB).</li>
     <li>Aceite o termo LGPD. Se o RH tiver ativado o CAPTCHA em <em>Portal de Vagas (CAPTCHA)</em>, complete a verificação e envie.</li>
 </ol>
 
 <h2>Regras importantes</h2>
 <ul>
     <li>Um mesmo e-mail não pode se candidatar duas vezes à mesma vaga.</li>
-    <li>Não há envio de arquivo de currículo neste formulário.</li>
+    <li>O currículo é obrigatório neste formulário e fica no storage privado (mesmo padrão do cadastro interno de candidatos).</li>
+    <li>O download do arquivo só ocorre no admin, por usuários autorizados, com log de acesso.</li>
     <li>Se o termo LGPD do tipo <code>curriculo_candidato</code> não estiver ativo, a candidatura fica indisponível.</li>
 </ul>
 
-
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros ou formulário</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
-<div class="help-field"><strong>Resultado / painel</strong> Área onde o sistema mostra listagens, totais ou detalhe do registro.</div>
-<div class="help-field"><strong>Ações</strong> Botões e links disponíveis conforme sua permissão.</div>
+<div class="help-field"><strong>Nome, e-mail, telefone, área</strong> Dados mínimos da candidatura; e-mail identifica se já existe cadastro ativo.</div>
+<div class="help-field"><strong>Currículo</strong> Arquivo PDF/DOC/DOCX até 10 MB; gravado em <code>storage/private</code> e registrado em <code>rh_candidatos_anexos</code>.</div>
+<div class="help-field"><strong>Consentimento LGPD</strong> Obrigatório; gera registro de consentimento vinculado ao termo ativo.</div>
+<div class="help-field"><strong>CAPTCHA</strong> Opcional conforme configuração do RH em <code>rh-vagas-publicas-config</code>.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo a vaga que o RH publicou</dt>
-    <dd>A vaga precisa estar <em>publicada</em>, com status <em>Aberta</em> e dentro do prazo de inscrição (se houver). Peça ao RH para conferir esses campos.</dd>
+    <dd>A vaga precisa estar <em>publicada</em>, com status <em>Aberta</em>, divulgação externa/ambas e dentro do prazo de inscrição (se houver).</dd>
     <dt>Mensagem de candidatura já registrada</dt>
     <dd>O e-mail informado já foi usado nesta vaga. Use outro e-mail ou aguarde o contato do RH.</dd>
+    <dt>Erro ao enviar o currículo</dt>
+    <dd>Confirme extensão (PDF/DOC/DOCX), tamanho até 10 MB e tente outro arquivo. Se persistir, contate o RH.</dd>
     <dt>Candidatura temporariamente indisponível</dt>
     <dd>Falta termo LGPD ativo ou a vaga deixou de estar publicada. Contate o RH.</dd>
     <dt>Muitas tentativas / CAPTCHA</dt>
-    <dd>Aguarde alguns minutos, recarregue a página e complete o CAPTCHA (se o RH o tiver ativado em <code>rh-vagas-publicas-config</code>).</dd>
+    <dd>Aguarde alguns minutos, recarregue a página e complete o CAPTCHA (se o RH o tiver ativado).</dd>
     <dt>Erro 006 / página não encontrada após deploy</dt>
     <dd>Execute a migration <code>20260719236000_register_rh_vagas_publicas_page</code>.</dd>
 </dl>

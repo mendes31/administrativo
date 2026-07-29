@@ -10,14 +10,16 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, clique em <strong>Cadastrar</strong> (ou acesse diretamente <code>create-informativo</code>).</li>
-    <li>Preencha todos os campos obrigatórios marcados no formulário.</li>
-    <li>Revise o impacto de status, vínculos e flags (ativo, público, padrão) antes de salvar.</li>
-    <li>Confirme o cadastro; o sistema exibirá mensagem de sucesso ou erro de validação.</li>
+    <li>Opcional: a partir da vaga no RH, use <strong>Criar informativo desta vaga</strong> — o formulário abre com título, texto e categoria <em>Seleção Interna</em> sugeridos (<code>?from_vaga={id}</code>).</li>
+    <li>Preencha categoria, departamentos a notificar e demais campos obrigatórios.</li>
+    <li>Revise o texto e publique ou salve conforme o fluxo do módulo.</li>
     <li>Volte à listagem e verifique se o novo registro aparece com os filtros corretos.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Categoria</strong> Inclui <em>Seleção Interna</em> para anúncios de vaga no app. Com pré-preenchimento da vaga, essa categoria é sugerida automaticamente (após a migration).</div>
+<div class="help-field"><strong>from_vaga</strong> Parâmetro opcional na URL; o sistema carrega a vaga e pré-preenche título/conteúdo/categoria no servidor (sem HTML na query).</div>
 <div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
 <div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
 
@@ -25,8 +27,10 @@
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>CreateInformativo</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dt>403 Forbidden ao abrir o link vindo da vaga</dt>
+    <dd>Não use links antigos com <code>titulo</code>/<code>conteudo</code> na URL. Use o botão atual da vaga (<code>?from_vaga=</code> apenas).</dd>
+    <dt>Vaga não encontrada para pré-preencher</dt>
+    <dd>O id em <code>from_vaga</code> não existe mais ou você não tem acesso aos dados; abra o informativo em branco e redija o texto.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
 </dl>

@@ -59,7 +59,7 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                         </dd>
 
                         <dt class="col-sm-4">Origem</dt>
-                        <dd class="col-sm-8"><?= htmlspecialchars($c['origem'] ?? '') ?></dd>
+                        <dd class="col-sm-8"><?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($c['origem'] ?? ''))) ?></dd>
 
                         <dt class="col-sm-4">Status do processo</dt>
                         <dd class="col-sm-8">
@@ -186,6 +186,7 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                         <th>Área</th>
                                         <th>Cargo</th>
                                         <th>Status</th>
+                                        <th>Canal</th>
                                         <th>Data Candidatura</th>
                                         <th>Ações</th>
                                     </tr>
@@ -212,6 +213,7 @@ $csrfVincular = CSRFHelper::generateCSRFToken('form_rh_vincular_candidato_vaga')
                                                     <?= htmlspecialchars(ucfirst(str_replace('_', ' ', $vaga['status'] ?? ''))) ?>
                                                 </span>
                                             </td>
+                                            <td><?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($vaga['canal_origem'] ?? ''))) ?></td>
                                             <td><?= FormatHelper::formatDateTime($vaga['data_candidatura'] ?? null) ?></td>
                                             <td>
                                                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-view/<?= $vaga['rh_vaga_id'] ?>" 

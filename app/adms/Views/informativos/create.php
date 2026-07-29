@@ -26,6 +26,7 @@ use App\adms\Helpers\CSRFHelper;
                     $prefill = $this->data['form_prefill'] ?? [];
                     $prefillTitulo = (string) ($prefill['titulo'] ?? '');
                     $prefillConteudo = (string) ($prefill['conteudo'] ?? '');
+                    $prefillCategoriaId = (int) ($prefill['categoria_id'] ?? 0);
                     ?>
                     <form method="POST" enctype="multipart/form-data" style="max-width: 700px; margin: 0 auto;">
                         <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('create_informativo'); ?>">
@@ -44,7 +45,7 @@ use App\adms\Helpers\CSRFHelper;
                                 <select class="form-select form-select-lg rounded-3" id="categoria_id" name="categoria_id" required>
                                     <option value="">Selecione uma categoria</option>
                                     <?php foreach (($this->data['categorias'] ?? []) as $categoria): ?>
-                                        <option value="<?= (int)$categoria['id'] ?>"><?= htmlspecialchars($categoria['name']) ?></option>
+                                        <option value="<?= (int)$categoria['id'] ?>" <?= $prefillCategoriaId === (int) $categoria['id'] ? 'selected' : '' ?>><?= htmlspecialchars($categoria['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
                                 <input type="hidden" name="categoria" id="categoria_nome_hidden">
