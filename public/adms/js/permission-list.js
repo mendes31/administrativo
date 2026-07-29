@@ -104,14 +104,15 @@ function expandAllGroups() {
     console.log('📂 Expandindo todos os grupos (DESKTOP + MOBILE)');
     
     // Desktop
-    const allGroups = document.querySelectorAll('[data-group]');
+    const allGroups = document.querySelectorAll('tr.group-header[data-group]:not(.acl-filter-hidden)');
     console.log(`📊 Total de grupos desktop encontrados: ${allGroups.length}`);
     
     let expandedCount = 0;
     allGroups.forEach((group, index) => {
         if (!group.classList.contains('expanded')) {
             const groupId = group.dataset.group;
-            const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
+            const contentRows = getAclFilterIndex().desktop.find((g) => g.groupId === groupId)?.contentRows
+                || Array.from(document.querySelectorAll('tr[data-group-content]')).filter((r) => r.dataset.groupContent === groupId);
             const toggleIcon = group.querySelector('.toggle-icon');
             
             console.log(`📂 Expandindo grupo desktop ${index + 1}: ${groupId} (${contentRows.length} linhas)`);
@@ -163,14 +164,15 @@ function collapseAllGroups() {
     console.log('📁 Colapsando todos os grupos (DESKTOP + MOBILE)');
     
     // Desktop
-    const allGroups = document.querySelectorAll('[data-group]');
+    const allGroups = document.querySelectorAll('tr.group-header[data-group]');
     console.log(`📊 Total de grupos desktop encontrados: ${allGroups.length}`);
     
     let collapsedCount = 0;
     allGroups.forEach((group, index) => {
         if (group.classList.contains('expanded')) {
             const groupId = group.dataset.group;
-            const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
+            const contentRows = getAclFilterIndex().desktop.find((g) => g.groupId === groupId)?.contentRows
+                || Array.from(document.querySelectorAll('tr[data-group-content]')).filter((r) => r.dataset.groupContent === groupId);
             const toggleIcon = group.querySelector('.toggle-icon');
             
             console.log(`📁 Colapsando grupo desktop ${index + 1}: ${groupId} (${contentRows.length} linhas)`);
@@ -359,56 +361,111 @@ function updateGroupCounters(groupId) {
 
 // ===== FUNÇÕES DE FILTRO =====
 
-// Filtrar grupos por termo de busca
-function filterGroups(searchTerm) {
-    console.log('🔍 Filtrando grupos por:', searchTerm);
-    
-    // Desktop
-    const allGroups = document.querySelectorAll('[data-group]');
-    const searchLower = searchTerm.toLowerCase();
-    
-    allGroups.forEach(group => {
-        const groupId = group.dataset.group;
-        const groupName = groupId.toLowerCase();
-        const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
-        
-        if (searchTerm === '' || groupName.includes(searchLower)) {
-            // Mostrar grupo
-            group.style.display = 'table-row';
-            contentRows.forEach(row => {
-                if (group.classList.contains('expanded')) {
-                    row.style.display = 'table-row';
-                }
-            });
-        } else {
-            // Ocultar grupo
-            group.style.display = 'none';
-            contentRows.forEach(row => {
-                row.style.display = 'none';
-            });
+// Normaliza traços (em-dash/en-dash/hífen) para a busca da matriz
+function normalizeAclSearchText(value) {
+    return String(value || '')
+        .toLowerCase()
+        .replace(/[\u2014\u2013\u2212\ufe58\ufe63\uff0d]/g, '-')
+        .replace(/\s*-\s*/g, '-');
+}
+
+let aclFilterIndex = null;
+let aclFilterTimer = null;
+const ACL_FILTER_DEBOUNCE_MS = 120;
+
+function buildAclFilterIndex() {
+    const contentByGroup = new Map();
+    document.querySelectorAll('tr[data-group-content]').forEach((row) => {
+        const id = row.dataset.groupContent || '';
+        if (!contentByGroup.has(id)) {
+            contentByGroup.set(id, []);
         }
+        contentByGroup.get(id).push(row);
     });
-    
-    // Mobile
-    const allGroupCards = document.querySelectorAll('.group-card');
-    allGroupCards.forEach(card => {
-        const groupId = card.dataset.group;
-        const groupName = groupId.toLowerCase();
-        const contentMobile = card.querySelector('.group-content-mobile');
-        
-        if (searchTerm === '' || groupName.includes(searchLower)) {
-            // Mostrar grupo
-            card.style.display = 'block';
-        } else {
-            // Ocultar grupo
-            card.style.display = 'none';
-            if (contentMobile) {
-                contentMobile.style.display = 'none';
+
+    const desktop = [];
+    document.querySelectorAll('tr.group-header[data-group]').forEach((header) => {
+        const groupId = header.dataset.group || '';
+        desktop.push({
+            header,
+            groupId,
+            norm: normalizeAclSearchText(groupId),
+            contentRows: contentByGroup.get(groupId) || [],
+        });
+    });
+
+    const mobile = [];
+    document.querySelectorAll('.group-card[data-group]').forEach((card) => {
+        const groupId = card.dataset.group || '';
+        mobile.push({
+            card,
+            groupId,
+            norm: normalizeAclSearchText(groupId),
+            content: card.querySelector('.group-content-mobile'),
+        });
+    });
+
+    aclFilterIndex = { desktop, mobile };
+    return aclFilterIndex;
+}
+
+function getAclFilterIndex() {
+    return aclFilterIndex || buildAclFilterIndex();
+}
+
+function invalidateAclFilterIndex() {
+    aclFilterIndex = null;
+}
+
+function applyFilterGroups(searchTerm) {
+    const index = getAclFilterIndex();
+    const term = String(searchTerm || '');
+    const searchNorm = normalizeAclSearchText(term);
+    const showAll = term.trim() === '';
+
+    for (const item of index.desktop) {
+        const match = showAll || item.norm.includes(searchNorm);
+        item.header.classList.toggle('acl-filter-hidden', !match);
+        if (!match) {
+            for (const row of item.contentRows) {
+                row.classList.add('acl-filter-hidden');
+                row.style.display = 'none';
+            }
+            continue;
+        }
+        for (const row of item.contentRows) {
+            row.classList.remove('acl-filter-hidden');
+            if (item.header.classList.contains('expanded')) {
+                row.style.display = 'table-row';
             }
         }
-    });
-    
-    console.log('Filtro aplicado para desktop e mobile');
+    }
+
+    for (const item of index.mobile) {
+        const match = showAll || item.norm.includes(searchNorm);
+        item.card.classList.toggle('acl-filter-hidden', !match);
+        if (!match && item.content) {
+            item.content.style.display = 'none';
+        }
+    }
+}
+
+// Agenda o filtro (não bloqueia a digitação)
+function filterGroups(searchTerm) {
+    if (aclFilterTimer) {
+        clearTimeout(aclFilterTimer);
+    }
+    aclFilterTimer = setTimeout(() => {
+        aclFilterTimer = null;
+        applyFilterGroups(searchTerm);
+    }, ACL_FILTER_DEBOUNCE_MS);
+}
+
+function scheduleFilterGroupsFromInput(inputEl) {
+    if (!inputEl) {
+        return;
+    }
+    filterGroups(inputEl.value);
 }
 
 // ===== FUNÇÕES DE SALVAMENTO =====
@@ -694,6 +751,18 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
+    // Busca de grupos: input assíncrono (não trava a digitação)
+    buildAclFilterIndex();
+    ['searchGroup', 'searchGroupMobile'].forEach((id) => {
+        const input = document.getElementById(id);
+        if (!input) {
+            return;
+        }
+        input.addEventListener('input', function () {
+            scheduleFilterGroupsFromInput(this);
+        });
+    });
+
     // Configurar event listeners para toggles de permissão
     const permissionToggles = document.querySelectorAll('.permission-toggle');
     permissionToggles.forEach(toggle => {
@@ -711,13 +780,13 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(`✅ ${permissionToggles.length} toggles de permissão configurados (estado inicial salvo)`);
     
     // Verificar se há grupos e configurar inicialização
-    const allGroups = document.querySelectorAll('[data-group]');
+    const allGroups = document.querySelectorAll('tr.group-header[data-group]');
     console.log(`📊 ${allGroups.length} grupos desktop encontrados na página`);
     
     // Garantir que todos os grupos desktop iniciem colapsados e atualizar contadores
     allGroups.forEach(group => {
         const groupId = group.dataset.group;
-        const contentRows = document.querySelectorAll(`[data-group-content="${groupId}"]`);
+        const contentRows = document.querySelectorAll(`[data-group-content="${groupId.replace(/\\/g, '\\\\').replace(/"/g, '\\"')}"]`);
         const toggleIcon = group.querySelector('.toggle-icon');
         
         // Garantir que grupos iniciem colapsados
@@ -739,6 +808,7 @@ document.addEventListener('DOMContentLoaded', function() {
     console.log(`📊 ${allGroupCards.length} grupos mobile encontrados na página`);
     
     // Garantir que todos os grupos mobile iniciem colapsados
+    // (resto do bloco permanece abaixo)
     allGroupCards.forEach(card => {
         const groupId = card.dataset.group;
         const contentMobile = card.querySelector('.group-content-mobile');

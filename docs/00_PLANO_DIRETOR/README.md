@@ -46,6 +46,8 @@ Uma funcionalidade relevante somente entra no roadmap quando possuir:
 - problema, valor para o negócio e usuários beneficiados;
 - fonte de verdade;
 - ações, papéis e escopos de autorização;
+- **grupo ACL** (`adms_groups_pages`): página cabe em grupo existente operacional
+  ou exige **novo grupo** (ver secção *ACL de páginas novas*);
 - eventos, auditoria e notificações;
 - classificação LGPD e controles de segurança;
 - integrações e consumidores;
@@ -101,6 +103,34 @@ Para determinar a direção desejada:
 
 Em conflito entre documentos, prevalece o código em produção até que a
 documentação seja corrigida — salvo decisão explícita em ADR.
+
+## ACL de páginas novas
+
+Canónico: [Modelo de autorização](../05_AUTORIZACAO/MODELO_AUTORIZACAO.md)
+(secções *Acesso total vs ACL*, *Nascimento de páginas* e *Grupos de páginas*).
+
+- **Super Administrador** (nível id 1) e **Super usuário** (flag no cadastro):
+  acesso full às páginas; não dependem da matriz ACL.
+- Demais níveis: páginas com `public_page = 0` e `default_page = 0` **nascem
+  sem permissão**; a liberação é feita no sistema, só nos níveis necessários.
+- Migrations/seeds registram a página; **não** concedem ACL em massa sem ADR.
+
+### Grupos de páginas (`adms_groups_pages`)
+
+Ao registrar **qualquer página nova**, analisar **antes** de escolher o grupo:
+
+1. A capacidade cabe num grupo existente cujo tamanho e tema ainda sejam
+   operacionais na matriz de permissões (meta prática: preferir **≤ ~50**
+   páginas por grupo; evitar voltar a “mega-grupos” > ~80)? A meta ~50 é
+   operacional (UX da matriz), **não** um limite rígido de schema.
+2. Se o tema for um módulo/capacidade distinta (ex.: Talentos vs Solicitações
+   vs SST), **criar novo grupo** alinhado ao menu e ao domínio — não empilhar
+   tudo em “Gestão de Pessoas” / “LGPD” / “Segurança e Medicina” por comodidade.
+3. “Autorizar grupo” na matriz deve permanecer uma ação **segura e previsível**:
+   o grupo deve reunir páginas que um administrador tipicamente libera juntas.
+
+Plano de fatiamento dos mega-grupos atuais:
+[Separação de grupos ACL — Opção A](../05_AUTORIZACAO/PLANO_SEPARACAO_GRUPOS_PAGINAS.md).
 
 ## Manual de ajuda e termos
 

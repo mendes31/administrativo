@@ -13,6 +13,10 @@ Exceções a estes princípios devem ser justificadas por ADR.
 5. **Pessoa não é conta:** identidade, autenticação, vínculo e lotação são
    conceitos diferentes.
 6. **Negar por padrão:** ausência de política autorizadora resulta em negação.
+   Páginas novas com `public_page = 0` e `default_page = 0` nascem sem
+   `permission = 1` nos níveis; só Super Administrador e Super usuário têm
+   acesso full sem passar pela ACL. Detalhe em
+   [Modelo de autorização](../05_AUTORIZACAO/MODELO_AUTORIZACAO.md).
 7. **Autorização por objeto:** ACL de página não concede acesso automático a
    qualquer registro.
 8. **Segurança e privacidade por padrão:** mínimo privilégio, arquivos privados,

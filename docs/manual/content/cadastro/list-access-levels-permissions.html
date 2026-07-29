@@ -1,28 +1,48 @@
 <h1>Liberar Permissões</h1>
 
 <h2>Função no sistema</h2>
-<p>Tela onde você define, para um <strong>nível de acesso</strong> específico, quais páginas do sistema ficam <em>autorizadas</em> ou <em>revogadas</em>. As páginas são exibidas agrupadas por módulo, com um interruptor por página e ações rápidas para autorizar ou revogar um grupo inteiro.</p>
+<p>Tela onde você define, para um <strong>nível de acesso</strong> específico, quais páginas do sistema ficam <em>autorizadas</em> ou <em>revogadas</em>. As páginas são exibidas agrupadas por <strong>grupo de páginas</strong> (ACL), com um interruptor por página e ações rápidas para autorizar ou revogar um grupo inteiro.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Níveis de acesso</em> (<code>cad-niveis-acesso</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Níveis de acesso</em> (<code>cad-niveis-acesso</code>) e <em>Permissões - visão geral</em> (<code>adm-permissoes</code>).</p>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>ListAccessLevelsPermissions</em>.</p>
 
-<p class="help-note"><strong>Grupo Canal de Denúncias:</strong> por sigilo e para não gerar dúvidas quanto ao anonimato do canal, as páginas do grupo <em>Canal de Denúncias</em> só aparecem nesta matriz para <strong>Super Administrador</strong> ou <strong>Super usuário</strong>. Demais usuários não visualizam esse grupo e não conseguem conceder/remover essas páginas — mesmo que enviem o formulário, as concessões atuais do canal são preservadas. O acesso ao módulo é dado pelos níveis <em>Canal de Denúncias — Operador/Administrador</em> (o Operador também é herdado automaticamente ao vincular a pessoa a um comitê).</p>
+<p class="help-note"><strong>Grupo Canal de Denúncias:</strong> por sigilo e para não gerar dúvidas quanto ao anonimato do canal, as páginas do grupo <em>Canal de Denúncias</em> só aparecem nesta matriz para <strong>Super Administrador</strong> ou <strong>Super usuário</strong>. Demais usuários não visualizam esse grupo e não conseguem conceder/remover essas páginas - mesmo que enviem o formulário, as concessões atuais do canal são preservadas. O acesso ao módulo é dado pelos níveis <em>Canal de Denúncias - Operador/Administrador</em> (o Operador também é herdado automaticamente ao vincular a pessoa a um comitê).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Grupo de páginas</dt>
+    <dd>Pasta da matriz ACL (<code>adms_groups_pages</code>). Organiza a tela de permissões; <strong>não</strong> é o menu lateral do sistema.</dd>
+    <dt>Autorizar / Revogar grupo</dt>
+    <dd>Liga ou desliga de uma vez todas as páginas daquele grupo para o nível em edição.</dd>
+</dl>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Acesse <strong>Cadastro &rarr; Níveis de Acesso</strong> e clique em <strong>Permissões</strong> no nível desejado.</li>
-    <li>Use a busca <em>Buscar por grupo</em> ou os botões <strong>Expandir Todos</strong> / <strong>Colapsar Todos</strong> para navegar entre os módulos.</li>
-    <li>Ative ou desative o interruptor de cada página, ou use <strong>Autorizar Grupo</strong> / <strong>Revogar Grupo</strong> para aplicar a todas as páginas do módulo de uma vez.</li>
+    <li>Confira o <strong>badge</strong> com o nome do nível no topo da tela.</li>
+    <li>Use a busca <em>Buscar por grupo</em> (ex.: digite <code>Gestão de Pessoas</code>, <code>SST -</code> ou <code>LGPD -</code>) ou <strong>Expandir Todos</strong> / <strong>Colapsar Todos</strong>.</li>
+    <li>Ative ou desative o interruptor de cada página, ou use <strong>Autorizar Grupo</strong> / <strong>Revogar Grupo</strong> no recorte desejado.</li>
     <li>Clique em <strong>Salvar</strong> para gravar as permissões do nível.</li>
     <li>Se necessário, use <strong>Exportar PDF</strong> para gerar o relatório de permissões do nível.</li>
+    <li>Peça ao usuário afetado para <strong>sair e entrar</strong> novamente (recarrega o menu).</li>
     <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
 </ol>
 
+<h2>Grupos fatiados (Gestão de Pessoas, SST, LGPD)</h2>
+<p>Os antigos mega-grupos foram cindidos. Na matriz você verá, por exemplo:</p>
+<ul>
+    <li><strong>Gestão de Pessoas -</strong> Talentos (ATS); Portal / Solicitações; Desempenho e Carreira; Organização / Políticas</li>
+    <li><strong>SST -</strong> Medicina / ASO / Exames; EPI; Equipamentos / Vistoria; Treinamentos / GHE / PPP; Cadastros e vínculos; Acidentes / Afastamentos; Dashboard / Relatórios</li>
+    <li><strong>LGPD -</strong> Taxonomia; Inventário / ROPA / Mapping; AIPD; TIA; RIPD; Consentimentos; Titulares; Dashboard / Termos / Legal</li>
+</ul>
+<p>Os grupos legados <em>Gestão de Pessoas</em>, <em>Segurança e Medicina</em> e <em>LGPD</em> (sem sufixo de subárea) podem aparecer vazios após a migration. O <strong>menu lateral</strong> não muda com essa cisão; permissões já concedidas por página são preservadas. O prefixo completo <em>Gestão de Pessoas</em> evita confusão com outros módulos (ex.: Gestão de Projetos).</p>
+
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada elemento afeta no sistema.</p>
+<div class="help-field"><strong>Badge do nível</strong> Identifica qual nível de acesso está sendo editado. A navegação de volta à listagem fica no breadcrumb <em>Níveis de Acesso</em>.</div>
 <div class="help-field"><strong>Interruptor da página (Autorizada/Revogada)</strong> Concede (1) ou remove (0) o acesso do nível àquela página. Páginas privadas exigem liberação manual; públicas já ficam acessíveis pela rota.</div>
-<div class="help-field"><strong>Autorizar Grupo / Revogar Grupo</strong> Marca ou desmarca de uma vez todas as páginas do módulo exibido.</div>
+<div class="help-field"><strong>Autorizar Grupo / Revogar Grupo</strong> Marca ou desmarca todas as páginas <em>daquele</em> grupo (ex.: só <em>Gestão de Pessoas - Talentos (ATS)</em>). Prefira o subgrupo certo em vez de liberar um domínio inteiro de uma vez.</div>
 <div class="help-field"><strong>Buscar por grupo</strong> Filtra os módulos exibidos; não altera dados, apenas a exibição.</div>
 <div class="help-field"><strong>Exportar PDF</strong> Gera um relatório com as páginas autorizadas do nível de acesso.</div>
 
@@ -30,6 +50,7 @@
 <ul>
     <li>O nível <strong>Super Administrador</strong> tem acesso total; a matriz dele é somente leitura e não pode ser gravada.</li>
     <li>O grupo <strong>Canal de Denúncias</strong> só é gerenciável por Super Administrador ou Super usuário (ver nota acima).</li>
+    <li>Páginas novas não públicas / não padrão nascem <strong>sem</strong> permissão; liberação é nesta matriz (exceto Super Administrador / Super usuário).</li>
 </ul>
 
 <h2>Problemas comuns</h2>
@@ -37,7 +58,11 @@
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>ListAccessLevelsPermissions</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
+    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no nível.</dd>
+    <dt>Não encontro “Gestão de Pessoas” / “Segurança e Medicina” / “LGPD” cheios</dt>
+    <dd>Após a cisão, busque pelos prefixos <em>Gestão de Pessoas -</em>, <em>SST -</em> ou <em>LGPD -</em>. Os nomes antigos sem prefixo ficam vazios ou residuais.</dd>
+    <dt>Autorizar Grupo não liberou o menu inteiro de SST/RH</dt>
+    <dd>É esperado: cada subgrupo cobre só um recorte. Autorize os subgrupos necessários (ex.: EPI e Equipamentos) ou página a página.</dd>
     <dt>Não encontro o grupo Canal de Denúncias na matriz</dt>
-    <dd>É intencional: esse grupo só aparece para Super Administrador ou Super usuário. Para dar acesso ao módulo, atribua os níveis <em>Canal de Denúncias — Operador/Administrador</em> ao usuário (ou vincule a pessoa a um comitê, que concede o Operador automaticamente).</dd>
+    <dd>É intencional: esse grupo só aparece para Super Administrador ou Super usuário. Para dar acesso ao módulo, atribua os níveis <em>Canal de Denúncias - Operador/Administrador</em> ao usuário (ou vincule a pessoa a um comitê, que concede o Operador automaticamente).</dd>
 </dl>

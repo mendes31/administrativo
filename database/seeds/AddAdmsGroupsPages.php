@@ -69,6 +69,26 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Comunicação Social', 'obs' => 'Timeline interna e eventos corporativos'], // Nº 39
             ['name' => 'SAC', 'obs' => 'Módulo de Atendimento ao Cliente (SmartSAC)'], // Nº 40
             ['name' => 'Segurança e Medicina', 'obs' => 'Módulo de Saúde e Segurança do Trabalho (SST)'], // Nº 41
+            // Cisão ACL Expand (2026-07-29) - nomes canónicos; IDs variam por ambiente
+            ['name' => 'Gestão de Pessoas - Talentos (ATS)', 'obs' => 'Recrutamento e seleção (vagas, candidatos, entrevistas).'],
+            ['name' => 'Gestão de Pessoas - Portal / Solicitações', 'obs' => 'Portal do colaborador, solicitações e aprovações.'],
+            ['name' => 'Gestão de Pessoas - Desempenho e Carreira', 'obs' => 'Desempenho, PDI, pulse, sucessão e carreira.'],
+            ['name' => 'Gestão de Pessoas - Organização / Políticas', 'obs' => 'Políticas, turnos, quadro e analytics RH.'],
+            ['name' => 'SST - Medicina / ASO / Exames', 'obs' => 'ASO, exames, médicos e CIDs.'],
+            ['name' => 'SST - Cadastros e vínculos', 'obs' => 'Cadastros e vínculos SST.'],
+            ['name' => 'SST - Treinamentos / GHE / PPP', 'obs' => 'Treinamentos SST, GHE e PPP.'],
+            ['name' => 'SST - EPI', 'obs' => 'EPIs, estoque e fichas.'],
+            ['name' => 'SST - Equipamentos / Vistoria', 'obs' => 'Equipamentos, vistorias e não conformidades.'],
+            ['name' => 'SST - Acidentes / Afastamentos', 'obs' => 'Acidentes, afastamentos e CAT.'],
+            ['name' => 'SST - Dashboard / Relatórios', 'obs' => 'Dashboard e relatórios SST.'],
+            ['name' => 'LGPD - Taxonomia', 'obs' => 'Finalidades, bases legais, tipos e classificações.'],
+            ['name' => 'LGPD - Inventário / ROPA / Mapping', 'obs' => 'Inventário, ROPA e data mapping.'],
+            ['name' => 'LGPD - AIPD', 'obs' => 'Avaliação de impacto (AIPD).'],
+            ['name' => 'LGPD - TIA', 'obs' => 'Transferência internacional (TIA).'],
+            ['name' => 'LGPD - Consentimentos', 'obs' => 'Consentimentos LGPD.'],
+            ['name' => 'LGPD - Dashboard / Termos / Legal', 'obs' => 'Dashboard, termos e páginas legais.'],
+            ['name' => 'LGPD - RIPD', 'obs' => 'Relatório de impacto (RIPD).'],
+            ['name' => 'LGPD - Titulares', 'obs' => 'Categorias e titulares.'],
         ];
 
         foreach ($grupos as $grupo) {

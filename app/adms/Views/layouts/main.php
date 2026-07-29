@@ -262,9 +262,9 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
 
-    <!-- CSS especÃ­fico para pÃ¡gina de permissÃµes -->
+    <!-- CSS específico para página de permissões (após menu-modern: sticky com !important) -->
     <?php if ($isPermissionPage): ?>
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/permission-list.css">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/permission-list.css?v=20260729d">
     <?php endif; ?>
 
     <!-- JQ por CDN -->
@@ -612,7 +612,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
 
     <!-- JavaScript específico para página de permissões -->
     <?php if ($isPermissionPage): ?>
-    <script defer src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=20260416"></script>
+    <script defer src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/permission-list.js?v=20260729d"></script>
     <?php endif; ?>
 
     <!-- Bootstrap Bundle com Popper.js -->

@@ -1376,6 +1376,18 @@ class AddAdmsPages extends BaseSeed
                 );
             }
         }
+
+        // Cisão ACL GP/SST/LGPD (idempotente; não altera permissões por page_id)
+        if ($this->hasTable('adms_groups_pages') && $this->hasTable('adms_pages')) {
+            require_once dirname(__DIR__) . '/helpers/AdmsPageGroupSplit.php';
+            $now = date('Y-m-d H:i:s');
+            AdmsPageGroupSplit::reassignPages(
+                fn (string $sql) => $this->fetchRow($sql),
+                fn (string $sql) => $this->fetchAll($sql),
+                fn (string $sql) => $this->execute($sql),
+                $now
+            );
+        }
     }
 
 }

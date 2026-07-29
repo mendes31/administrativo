@@ -12,6 +12,42 @@ ator + ação + recurso + relação + escopo + sensibilidade + contexto
 
 Ausência de regra autorizadora resulta em negação.
 
+## Acesso total vs ACL de página
+
+Dois atores têm **acesso full** às capacidades de página e **não dependem** da
+matriz ACL (`adms_access_levels_pages`) para entrar em telas privadas:
+
+| Ator | Como identifica | Efeito |
+|------|-----------------|--------|
+| **Super Administrador** | nível `adms_access_levels.id = 1` | bypass ACL de página |
+| **Super usuário** | flag no cadastro (`adms_users` / sessão) | mesmo efeito prático |
+
+Implementação: `UserAccessHelper::hasFullSystemAccess()`.
+
+Demais níveis **sempre** passam pela ACL. Mesmo com acesso full, autorização
+por objeto e segregações legais/médicas continuam aplicáveis (mínimo privilégio
+no domínio).
+
+## Nascimento de páginas (`adms_pages`)
+
+Regra operacional obrigatória (Plano Diretor + este modelo):
+
+1. **`public_page = 1`** — acessível sem autenticação/ACL de nível (ex.: portal
+   público). Não confundir com liberar a todos os níveis autenticados.
+2. **`default_page = 1`** — página padrão do sistema para níveis autenticados,
+   conforme o mecanismo já existente de páginas default.
+3. **Demais páginas** (`public_page = 0` e `default_page = 0`) — **nascem sem
+   `permission = 1`** em qualquer nível de acesso.
+
+Consequências:
+
+- migrations/seeds **registram** a página em `adms_pages`; **não** concedem ACL
+  em massa (`grantPageToLevels`, cópia a partir de outra página, etc.), salvo
+  ADR explícito;
+- liberação aos cargos necessários é feita **no sistema** (matriz de permissões
+  do nível), pelo administrador;
+- Super Administrador / Super usuário já acessam sem essa liberação.
+
 ## Camadas
 
 1. **Autenticação:** identifica ator e força necessária;
@@ -65,7 +101,23 @@ Papéis não bastam. Exemplos:
 - atores técnicos são identificáveis;
 - negações não revelam recurso sensível;
 - políticas possuem testes positivos e negativos;
-- superusuário não ignora automaticamente segregação legal ou médica.
+- Super Administrador e Super usuário não passam pela ACL de página, mas **não**
+  ignoram automaticamente segregação legal ou médica no domínio;
+- páginas novas não públicas e não default nascem sem permissão nos níveis;
+  concessão só via matriz no sistema (ou ADR);
+- ao criar página nova, analisar se o grupo ACL existente ainda é adequado ou se
+  deve nascer um grupo novo (ver Plano Diretor e
+  [PLANO_SEPARACAO_GRUPOS_PAGINAS.md](PLANO_SEPARACAO_GRUPOS_PAGINAS.md)).
+
+## Grupos de páginas
+
+`adms_groups_pages` organiza a matriz de permissões (não substitui o menu).
+
+- Preferir grupos por **capacidade/módulo** alinhados ao menu (ex.: Talentos,
+  Portal/Solicitações), não um único “catch-all” de domínio.
+- Meta operacional: ~20–50 páginas por grupo; acima de ~80 revisar cisão.
+- Novas páginas: **sempre** decidir grupo existente vs novo grupo antes do
+  insert em `adms_pages` (gate do Plano Diretor).
 
 ## Prioridades
 

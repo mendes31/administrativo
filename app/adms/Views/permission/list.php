@@ -1,11 +1,8 @@
 <?php
-// Não precisa definir $urlAdm, usar diretamente $_ENV['URL_ADM']
+$permMatrixLocked = !empty($this->data['super_admin_level_permissions_locked']);
+$accessLevelName = (string) ($this->data['accessLevel']['name'] ?? 'Nível de Acesso');
+$accessLevelId = (int) ($this->data['accessLevel']['id'] ?? 0);
 ?>
-
-<!-- CSS separado para permissões -->
-<link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>css/permission-list.css?v=20260416">
-
-<?php $permMatrixLocked = !empty($this->data['super_admin_level_permissions_locked']); ?>
 
 <div class="container-fluid px-4">
     
@@ -35,8 +32,8 @@
     <!-- Badge do nível de acesso -->
     <div class="mb-3">
         <span class="badge bg-primary fs-6">
-            <i class="fas fa-shield-alt"></i> 
-            <?php echo htmlspecialchars($this->data['accessLevel']['name'] ?? 'Nível de Acesso'); ?>
+            <i class="fas fa-shield-alt"></i>
+            <?php echo htmlspecialchars($accessLevelName); ?>
         </span>
     </div>
 
@@ -46,18 +43,12 @@
     </div>
     <?php endif; ?>
 
-    <!-- Barra de controles -->
-
-
-
-
-        <!-- PAINEL DE CONTROLE - DENTRO da área de conteúdo -->
+    <!-- Painel de controle -->
     <div class="control-panel mb-4">
         <div class="control-panel-content">
             <!-- Desktop Layout -->
             <div class="d-none d-md-block">
                 <div class="row g-3 align-items-center">
-                    <!-- Busca -->
                     <div class="col-md-4">
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0">
@@ -67,11 +58,10 @@
                                    class="form-control border-start-0"
                                    id="searchGroup"
                                    placeholder="Buscar por grupo..."
-                                   onkeyup="filterGroups(this.value)">
+                                   autocomplete="off"
+                                   spellcheck="false">
                         </div>
                     </div>
-
-                    <!-- Botões de controle -->
                     <div class="col-md-4 text-center">
                         <div class="d-flex gap-2 justify-content-center">
                             <button type="button" class="btn btn-success btn-sm btn-group-action" id="expandAllBtn" onclick="expandAllGroups()">
@@ -82,11 +72,9 @@
                             </button>
                         </div>
                     </div>
-
-                    <!-- Botões de ação -->
                     <div class="col-md-4 text-end">
                         <div class="d-flex gap-2 justify-content-end">
-                            <a target="_blank" href="<?php echo $_ENV['URL_ADM']; ?>export-access-level-permissions-pdf/<?php echo $this->data['accessLevel']['id'] ?? 0; ?>" class="btn btn-outline-success btn-sm">
+                            <a target="_blank" href="<?php echo $_ENV['URL_ADM']; ?>export-access-level-permissions-pdf/<?php echo $accessLevelId; ?>" class="btn btn-outline-success btn-sm">
                                 <i class="fas fa-file-pdf me-1"></i> Exportar PDF
                             </a>
                             <?php if (!$permMatrixLocked): ?>
@@ -102,7 +90,6 @@
             <!-- Mobile Layout -->
             <div class="d-block d-md-none">
                 <div class="row g-2">
-                    <!-- Busca Mobile -->
                     <div class="col-12 mb-2">
                         <div class="input-group">
                             <span class="input-group-text bg-light border-end-0">
@@ -112,11 +99,10 @@
                                    class="form-control border-start-0"
                                    id="searchGroupMobile"
                                    placeholder="Buscar por grupo..."
-                                   onkeyup="filterGroups(this.value)">
+                                   autocomplete="off"
+                                   spellcheck="false">
                         </div>
                     </div>
-
-                    <!-- Botões de controle Mobile -->
                     <div class="col-6">
                         <button type="button" class="btn btn-success btn-sm w-100 btn-group-action" id="expandAllBtnMobile" onclick="expandAllGroups()">
                             <i class="fas fa-expand-alt"></i> Expandir
@@ -127,10 +113,8 @@
                             <i class="fas fa-compress-alt"></i> Colapsar
                         </button>
                     </div>
-
-                    <!-- Botões de ação Mobile -->
                     <div class="col-6">
-                        <a target="_blank" href="<?php echo $_ENV['URL_ADM']; ?>export-access-level-permissions-pdf/<?php echo $this->data['accessLevel']['id'] ?? 0; ?>" class="btn btn-outline-success btn-sm w-100">
+                        <a target="_blank" href="<?php echo $_ENV['URL_ADM']; ?>export-access-level-permissions-pdf/<?php echo $accessLevelId; ?>" class="btn btn-outline-success btn-sm w-100">
                             <i class="fas fa-file-pdf me-1"></i> PDF
                         </a>
                     </div>

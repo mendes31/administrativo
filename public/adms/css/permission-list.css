@@ -121,8 +121,7 @@
         font-size: 0.75rem;
         padding: 0.25rem 0.5rem;
     }
-}
-    
+
     .group-header .d-flex.align-items-center.gap-2 {
         width: 100%;
         justify-content: space-between;
@@ -240,11 +239,35 @@
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
 }
 
-/* Campo de busca com fonte maior */
-#searchGroup {
+/* Campo de busca com fonte maior — sem glow/anel azul no foco */
+#searchGroup,
+#searchGroupMobile {
     font-size: 0.95rem;
     padding: 0.75rem 1rem;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+}
+
+.control-panel #searchGroup:focus,
+.control-panel #searchGroupMobile:focus,
+.control-panel .input-group > .form-control:focus {
+    box-shadow: none !important;
+    outline: none !important;
+    border-color: #ced4da !important;
+}
+
+.control-panel .input-group:focus-within {
+    box-shadow: none !important;
+}
+
+.control-panel .input-group > .form-control:focus {
+    z-index: 1;
+}
+
+/* Ocultação rápida no filtro de grupos (evita recalcular layout linha a linha) */
+.group-header.acl-filter-hidden,
+tr[data-group-content].acl-filter-hidden,
+.group-card.acl-filter-hidden {
+    display: none !important;
 }
 
 /* Texto de dica com fonte maior */
