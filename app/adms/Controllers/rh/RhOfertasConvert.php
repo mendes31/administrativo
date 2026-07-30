@@ -105,7 +105,20 @@ final class RhOfertasConvert
                 'observacoes' => '',
                 'enviar_boas_vindas_email' => '0',
             ],
+            'convert_flash' => null,
         ];
+
+        if (!empty($_SESSION['rh_oferta_convert_form']) && is_array($_SESSION['rh_oferta_convert_form'])) {
+            $this->data['form'] = array_merge(
+                $this->data['form'],
+                $_SESSION['rh_oferta_convert_form']
+            );
+            unset($_SESSION['rh_oferta_convert_form']);
+        }
+        if (!empty($_SESSION['rh_convert_flash']) && is_array($_SESSION['rh_convert_flash'])) {
+            $this->data['convert_flash'] = $_SESSION['rh_convert_flash'];
+            unset($_SESSION['rh_convert_flash'], $_SESSION['msg'], $_SESSION['msg_type']);
+        }
 
         $pageLayout = new PageLayoutService();
         $this->data = array_merge($this->data, $pageLayout->configurePageElements($this->data));
@@ -121,10 +134,12 @@ final class RhOfertasConvert
             exit;
         }
 
+        $postedForm = is_array($_POST['form'] ?? null) ? $_POST['form'] : [];
+
         try {
             $result = (new RhConversaoAdmissaoService())->converter(
                 $ofertaId,
-                $_POST['form'] ?? [],
+                $postedForm,
                 (int) ($_SESSION['user_id'] ?? 0)
             );
             $_SESSION['msg'] = 'Conversão concluída. Usuário #' . $result['adms_user_id'] . ' vinculado.';
@@ -132,8 +147,32 @@ final class RhOfertasConvert
             header('Location: ' . ($_ENV['URL_ADM'] ?? '') . 'rh-ofertas-view/' . $ofertaId);
             exit;
         } catch (Exception $e) {
-            $_SESSION['msg'] = $e->getMessage();
+            $message = $e->getMessage();
+            $_SESSION['rh_oferta_convert_form'] = $postedForm;
+            $_SESSION['msg'] = $message;
             $_SESSION['msg_type'] = 'danger';
+
+            if (preg_match('/Já existe usuário com este e-mail \(ID (\d+)\)/u', $message, $m) === 1) {
+                $existingId = (int) $m[1];
+                $_SESSION['rh_oferta_convert_form']['modo'] = RhConversoesAdmissaoRepository::MODO_VINCULAR;
+                $_SESSION['rh_oferta_convert_form']['adms_user_id'] = (string) $existingId;
+                $_SESSION['rh_convert_flash'] = [
+                    'code' => 'email_exists',
+                    'user_id' => $existingId,
+                    'title' => 'Este e-mail já possui conta no sistema',
+                    'message' => 'Encontramos o usuário #' . $existingId
+                        . ' com o mesmo e-mail. Selecionei o modo Vincular e preenchi o ID — confirme se é a conta correta e converta.',
+                ];
+                unset($_SESSION['msg'], $_SESSION['msg_type']);
+            } else {
+                $_SESSION['rh_convert_flash'] = [
+                    'code' => 'error',
+                    'title' => 'Não foi possível converter',
+                    'message' => $message,
+                ];
+                unset($_SESSION['msg'], $_SESSION['msg_type']);
+            }
+
             header('Location: ' . ($_ENV['URL_ADM'] ?? '') . 'rh-ofertas-convert/' . $ofertaId);
             exit;
         }

@@ -87,7 +87,7 @@ class RhCandidatosView
         $pageElements = [
             'title_head' => 'Visualizar Candidato',
             'menu'       => 'rh-candidatos',
-            'buttonPermission' => ['RhCandidatos', 'RhCandidatosEdit', 'RhCandidatosDelete', 'RhOfertasCreate', 'RhOfertasView'],
+            'buttonPermission' => ['RhCandidatos', 'RhCandidatosEdit', 'RhCandidatosDelete', 'RhOfertasCreate', 'RhOfertasView', 'ListLogAlteracoes'],
         ];
 
         $pageLayoutService = new PageLayoutService();
