@@ -188,6 +188,22 @@
                     </a>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($this->data['show_employee_portal_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>employee-portal" class="text-decoration-none flex-fill h-100">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: linear-gradient(135deg, #f0fdf4 0%, #fff 100%);">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-user-circle fa-3x text-success"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Portal do Colaborador</h5>
+                            <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
+                                Solicitações, chamados e vagas
+                            </div>
+                            <div class="text-success text-center small fw-semibold">Abrir portal</div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
                 <?php if (!empty($this->data['show_my_calendar_card'])): ?>
                 <?php
                     $mcMonth = date('Y-m');

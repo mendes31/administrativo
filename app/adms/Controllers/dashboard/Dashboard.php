@@ -250,6 +250,7 @@ class Dashboard
         $this->data['show_aniversariantes_card'] = in_array('DashboardCardAniversariantes', $menuPermission, true);
         $this->data['show_tempo_empresa_card'] = in_array('DashboardCardTempoEmpresa', $menuPermission, true);
         $this->data['show_payroll_documents_card'] = in_array('DashboardCardPayrollDocuments', $menuPermission, true);
+        $this->data['show_employee_portal_card'] = in_array('DashboardCardEmployeePortal', $menuPermission, true);
         $this->data['show_my_calendar_card'] = in_array('DashboardCardMyCalendar', $menuPermission, true);
         $this->data['show_gamification_quizzes_card'] = in_array('DashboardCardGamificationQuizzes', $menuPermission, true);
         $this->data['show_room_booking_card'] = in_array('DashboardCardRoomBooking', $menuPermission, true);

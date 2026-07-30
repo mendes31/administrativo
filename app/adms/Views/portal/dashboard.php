@@ -1,6 +1,18 @@
 <?php
 use App\adms\Helpers\FormatHelper;
+use App\adms\Helpers\ImageHelper;
 use App\adms\Helpers\PositionDisplayHelper;
+
+$info = $this->data['employee_info'] ?? [];
+$nome = (string) ($info['name'] ?? '');
+$dep = (string) ($info['dep_name'] ?? 'N/A');
+$cargo = PositionDisplayHelper::formatForDisplay((string) ($info['pos_name'] ?? '')) ?: 'N/A';
+$email = (string) ($info['email'] ?? '');
+$status = (string) ($info['status'] ?? 'N/A');
+$statusAtivo = $status === 'Ativo';
+$userId = (int) ($info['id'] ?? 0);
+$admissao = !empty($info['data_admissao']) ? date('d/m/Y', strtotime((string) $info['data_admissao'])) : null;
+$tenure = $this->data['total_tenure'] ?? null;
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
@@ -15,51 +27,118 @@ use App\adms\Helpers\PositionDisplayHelper;
 
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-    <!-- Informações do Colaborador -->
-    <?php if (!empty($this->data['employee_info'])): ?>
-        <div class="card mb-4 border-light shadow">
-            <div class="card-header">
-                <span><i class="fas fa-user me-2"></i>Minhas Informações</span>
-            </div>
-            <div class="card-body">
-                <div class="row">
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <dt class="col-sm-5">Nome:</dt>
-                            <dd class="col-sm-7"><strong><?= htmlspecialchars($this->data['employee_info']['name'] ?? '') ?></strong></dd>
-                            
-                            <dt class="col-sm-5">Departamento:</dt>
-                            <dd class="col-sm-7"><?= htmlspecialchars($this->data['employee_info']['dep_name'] ?? 'N/A') ?></dd>
-
-                            <dt class="col-sm-5">Cargo:</dt>
-                            <dd class="col-sm-7"><?= htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($this->data['employee_info']['pos_name'] ?? '')) ?: 'N/A') ?></dd>
-                            
-                            <?php if (!empty($this->data['employee_info']['data_admissao'])): ?>
-                                <dt class="col-sm-5">Data de Admissão:</dt>
-                                <dd class="col-sm-7"><?= date('d/m/Y', strtotime($this->data['employee_info']['data_admissao'])) ?></dd>
-                            <?php endif; ?>
-                        </dl>
+    <?php if ($info !== []): ?>
+        <div class="card mb-4 border-0 shadow-sm overflow-hidden">
+            <div class="card-body p-4"
+                 style="background: linear-gradient(135deg, #eff6ff 0%, #f0fdf4 50%, #f8fafc 100%);">
+                <div class="d-flex flex-wrap align-items-start gap-3 mb-4">
+                    <div class="flex-shrink-0">
+                        <?php
+                        if (ImageHelper::userImageExists($userId, $info['image'] ?? null)) {
+                            echo ImageHelper::displayImage(
+                                'users/' . $userId . '/' . (string) $info['image'],
+                                [
+                                    'alt' => 'Foto de ' . $nome,
+                                    'class' => 'rounded-circle shadow-sm border border-white border-3',
+                                    'style' => 'width:72px;height:72px;object-fit:cover;',
+                                ],
+                                'icon_user.png',
+                                'users'
+                            );
+                        } else {
+                            echo ImageHelper::renderInitialsAvatar($nome, 72, [
+                                'class' => 'shadow-sm border border-white border-3',
+                            ]);
+                        }
+                        ?>
                     </div>
-                    <div class="col-md-6">
-                        <dl class="row mb-0">
-                            <?php if (!empty($this->data['total_tenure'])): ?>
-                                <dt class="col-sm-5">Tempo de Casa:</dt>
-                                <dd class="col-sm-7">
-                                    <strong class="text-success"><?= htmlspecialchars($this->data['total_tenure']['formatted']) ?></strong>
-                                    <small class="text-muted d-block">(<?= $this->data['total_tenure']['total_periodos'] ?> período(s))</small>
-                                </dd>
+                    <div class="flex-grow-1 min-w-0">
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-1">
+                            <h5 class="mb-0 fw-semibold text-truncate"><?= htmlspecialchars($nome) ?></h5>
+                            <span class="badge rounded-pill <?= $statusAtivo ? 'bg-success-subtle text-success border border-success-subtle' : 'bg-secondary-subtle text-secondary border border-secondary-subtle' ?>">
+                                <?= htmlspecialchars($status) ?>
+                            </span>
+                        </div>
+                        <p class="mb-2 text-muted small">
+                            <?= htmlspecialchars($cargo) ?>
+                            <?php if ($dep !== '' && $dep !== 'N/A'): ?>
+                                <span class="mx-1">·</span><?= htmlspecialchars($dep) ?>
                             <?php endif; ?>
-                            
-                            <dt class="col-sm-5">Status:</dt>
-                            <dd class="col-sm-7">
-                                <span class="badge bg-<?= ($this->data['employee_info']['status'] ?? '') === 'Ativo' ? 'success' : 'secondary' ?>">
-                                    <?= htmlspecialchars($this->data['employee_info']['status'] ?? 'N/A') ?>
-                                </span>
-                            </dd>
-                            
-                            <dt class="col-sm-5">E-mail:</dt>
-                            <dd class="col-sm-7"><?= htmlspecialchars($this->data['employee_info']['email'] ?? '') ?></dd>
-                        </dl>
+                        </p>
+                        <?php if ($email !== ''): ?>
+                            <a href="mailto:<?= htmlspecialchars($email) ?>" class="small text-decoration-none">
+                                <i class="fas fa-envelope me-1"></i><?= htmlspecialchars($email) ?>
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <?php if (!empty($tenure['formatted'])): ?>
+                        <div class="col-6 col-lg-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2 text-success">
+                                        <span class="rounded-2 bg-success bg-opacity-10 d-inline-flex align-items-center justify-content-center"
+                                              style="width:2rem;height:2rem;">
+                                            <i class="fas fa-hourglass-half fa-sm"></i>
+                                        </span>
+                                        <span class="small text-muted text-uppercase fw-semibold" style="letter-spacing:.03em;">Tempo de casa</span>
+                                    </div>
+                                    <p class="mb-0 fw-semibold"><?= htmlspecialchars((string) $tenure['formatted']) ?></p>
+                                    <?php if (!empty($tenure['total_periodos'])): ?>
+                                        <small class="text-muted"><?= (int) $tenure['total_periodos'] ?> período(s)</small>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($admissao !== null): ?>
+                        <div class="col-6 col-lg-3">
+                            <div class="card h-100 border-0 shadow-sm">
+                                <div class="card-body py-3">
+                                    <div class="d-flex align-items-center gap-2 mb-2 text-primary">
+                                        <span class="rounded-2 bg-primary bg-opacity-10 d-inline-flex align-items-center justify-content-center"
+                                              style="width:2rem;height:2rem;">
+                                            <i class="fas fa-calendar-check fa-sm"></i>
+                                        </span>
+                                        <span class="small text-muted text-uppercase fw-semibold" style="letter-spacing:.03em;">Admissão</span>
+                                    </div>
+                                    <p class="mb-0 fw-semibold"><?= htmlspecialchars($admissao) ?></p>
+                                </div>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <div class="col-6 col-lg-3">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center gap-2 mb-2 text-info">
+                                    <span class="rounded-2 bg-info bg-opacity-10 d-inline-flex align-items-center justify-content-center"
+                                          style="width:2rem;height:2rem;">
+                                        <i class="fas fa-building fa-sm"></i>
+                                    </span>
+                                    <span class="small text-muted text-uppercase fw-semibold" style="letter-spacing:.03em;">Departamento</span>
+                                </div>
+                                <p class="mb-0 fw-semibold"><?= htmlspecialchars($dep) ?></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="col-6 col-lg-3">
+                        <div class="card h-100 border-0 shadow-sm">
+                            <div class="card-body py-3">
+                                <div class="d-flex align-items-center gap-2 mb-2 text-warning">
+                                    <span class="rounded-2 bg-warning bg-opacity-10 d-inline-flex align-items-center justify-content-center"
+                                          style="width:2rem;height:2rem;">
+                                        <i class="fas fa-user-tie fa-sm"></i>
+                                    </span>
+                                    <span class="small text-muted text-uppercase fw-semibold" style="letter-spacing:.03em;">Cargo</span>
+                                </div>
+                                <p class="mb-0 fw-semibold"><?= htmlspecialchars($cargo) ?></p>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

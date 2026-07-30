@@ -1,30 +1,41 @@
 <h1>Portal do Colaborador</h1>
 
 <h2>Função no sistema</h2>
-<p>Tela <strong>Portal do Colaborador</strong> do módulo Gestão de Pessoas. Use o fluxo e os campos descritos abaixo para operar o recurso.</p>
+<p>Página inicial do colaborador: resume dados pessoais, totais de solicitações/chamados/pendências (e vagas internas, se houver permissão) e atalhos para ações do dia a dia.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Portal do colaborador</em> (<code>gp-portal</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Relacionado:</strong> <em>Vagas internas</em> (<code>vagas-internas</code>), <em>Minhas Solicitações</em>, <em>Meus Chamados</em> e <em>Meus documentos (folha)</em>.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>EmployeePortal</em>.</p>
+<p><strong>Quem acessa:</strong> permissão <em>EmployeePortal</em>. As ações filhas (solicitações, chamados, vagas, documentos) exigem as respectivas páginas no nível de acesso — não é necessário conceder o pacote administrativo completo de Gestão de Pessoas.</p>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Tempo de casa</dt>
+    <dd>Soma dos períodos de vínculo registrados no histórico de emprego do usuário.</dd>
+    <dt>Pendentes</dt>
+    <dd>Solicitações do colaborador ainda em andamento (não finalizadas).</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <strong>Portal do Colaborador</strong> pelo menu Gestão de Pessoas.</li>
-    <li>Use os filtros e ações da tela conforme sua permissão.</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Abra <strong>Portal do Colaborador → Início</strong> no menu lateral (módulo próprio, fora de Gestão de Pessoas) ou pelo card no Dashboard.</li>
+    <li>Confira o bloco de perfil (foto/iniciais, cargo, departamento, status, e-mail) e os cards de tempo de casa, admissão, departamento e cargo.</li>
+    <li>Use os cards de resumo (Solicitações, Chamados, Pendentes e, se permitido, Vagas internas) ou as ações rápidas.</li>
+    <li>Pressione <kbd>F1</kbd> para reabrir esta ajuda.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<div class="help-field"><strong>Minhas informações</strong> Nome, foto (ou iniciais), status, e-mail, cargo, departamento, admissão e tempo de casa.</div>
+<div class="help-field"><strong>Solicitações / Chamados / Pendentes</strong> Contagens com atalho para a listagem correspondente.</div>
+<div class="help-field"><strong>Vagas internas</strong> Aparece só com permissão <em>VagasInternas</em>; a fila passa a ter 4 cards.</div>
+<div class="help-field"><strong>Card no Dashboard</strong> Com <em>DashboardCardEmployeePortal</em>, aparece atalho “Portal do Colaborador” na tela inicial.</div>
+<div class="help-field"><strong>Ações rápidas</strong> Atalhos condicionados às permissões de criar solicitação, chamado, documentos etc.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>EmployeePortal</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Falta a permissão <em>EmployeePortal</em> no nível de acesso.</dd>
+    <dt>Vejo Gestão de Pessoas só por causa do portal</dt>
+    <dd>O portal é menu de 1º nível (<strong>Portal do Colaborador</strong>). O card no Dashboard exige a página <em>DashboardCardEmployeePortal</em> (migration e cache de permissões).</dd>
+    <dt>Não vejo o card de vagas internas</dt>
+    <dd>Inclua <em>VagasInternas</em> no nível e atualize o cache de permissões.</dd>
 </dl>

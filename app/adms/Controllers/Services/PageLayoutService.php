@@ -233,6 +233,7 @@ class PageLayoutService
             'DashboardCardAniversariantes',
             'DashboardCardTempoEmpresa',
             'DashboardCardPayrollDocuments',
+            'DashboardCardEmployeePortal',
             'DashboardCardMyCalendar',
             'DashboardCardGamificationQuizzes',
             'DashboardCardRoomBooking',

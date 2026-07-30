@@ -25,6 +25,72 @@ $menus = [
         'permission' => 'Dashboard',
         'submenu' => []
     ],
+
+    [
+        'id' => 'portal_colaborador',
+        'icon' => 'fas fa-user-circle',
+        'label' => 'Portal do Colaborador',
+        'submenu' => [
+            [
+                'label' => 'Início',
+                'url' => $_ENV['URL_ADM'] . 'employee-portal',
+                'permission' => 'EmployeePortal',
+                'icon' => 'fas fa-house',
+                'related_routes' => ['employee-portal'],
+            ],
+            [
+                'label' => 'Vagas internas',
+                'url' => $_ENV['URL_ADM'] . 'vagas-internas',
+                'permission' => 'VagasInternas',
+                'icon' => 'fas fa-briefcase',
+                'related_routes' => ['vagas-internas'],
+            ],
+            [
+                'label' => 'Meus documentos (folha)',
+                'url' => $_ENV['URL_ADM'] . 'my-payroll-documents',
+                'permission' => 'MyPayrollDocuments',
+                'icon' => 'fas fa-file-invoice-dollar',
+                'related_routes' => [
+                    'my-payroll-documents', 'sign-payroll-document',
+                    'confirm-payroll-document-download',
+                ],
+            ],
+            [
+                'label' => 'Meus EPIs',
+                'url' => $_ENV['URL_ADM'] . 'my-epi-deliveries',
+                'permission' => 'MyEpiDeliveries',
+                'icon' => 'fas fa-hard-hat',
+                'related_routes' => ['my-epi-deliveries', 'sign-epi-ficha'],
+            ],
+            [
+                'label' => 'Meus treinamentos SST',
+                'url' => $_ENV['URL_ADM'] . 'my-sst-treinamentos',
+                'permission' => 'MySstTreinamentos',
+                'icon' => 'fas fa-graduation-cap',
+                'related_routes' => ['my-sst-treinamentos'],
+            ],
+            [
+                'label' => 'Minhas Solicitações',
+                'url' => $_ENV['URL_ADM'] . 'list-employee-requests',
+                'permission' => 'ListEmployeeRequests',
+                'icon' => 'fa-solid fa-file-alt',
+                'related_routes' => [
+                    'list-employee-requests', 'create-employee-request',
+                    'view-employee-request', 'update-employee-request',
+                ],
+            ],
+            [
+                'label' => 'Meus Chamados',
+                'url' => $_ENV['URL_ADM'] . 'list-employee-tickets',
+                'permission' => 'ListEmployeeTickets',
+                'icon' => 'fa-solid fa-ticket-alt',
+                'related_routes' => [
+                    'list-employee-tickets', 'create-employee-ticket',
+                    'view-employee-ticket', 'update-employee-ticket',
+                ],
+            ],
+        ],
+    ],
     
     [
         'id' => 'administracao',
@@ -1048,70 +1114,6 @@ $menus = [
                         'url' => $_ENV['URL_ADM'] . 'performance-dashboard',
                         'permission' => 'PerformanceDashboard',
                         'related_routes' => ['performance-dashboard'],
-                    ],
-                ],
-            ],
-            [
-                'label' => 'Portal do Colaborador',
-                'icon' => 'fas fa-user-circle',
-                'submenu' => [
-                    [
-                        'label' => 'Início',
-                        'url' => $_ENV['URL_ADM'] . 'employee-portal',
-                        'permission' => 'EmployeePortal',
-                        'icon' => 'fas fa-house',
-                        'related_routes' => ['employee-portal'],
-                    ],
-                    [
-                        'label' => 'Vagas internas',
-                        'url' => $_ENV['URL_ADM'] . 'vagas-internas',
-                        'permission' => 'VagasInternas',
-                        'icon' => 'fas fa-briefcase',
-                        'related_routes' => ['vagas-internas'],
-                    ],
-                    [
-                        'label' => 'Meus documentos (folha)',
-                        'url' => $_ENV['URL_ADM'] . 'my-payroll-documents',
-                        'permission' => 'MyPayrollDocuments',
-                        'icon' => 'fas fa-file-invoice-dollar',
-                        'related_routes' => [
-                            'my-payroll-documents', 'sign-payroll-document',
-                            'confirm-payroll-document-download',
-                        ],
-                    ],
-                    [
-                        'label' => 'Meus EPIs',
-                        'url' => $_ENV['URL_ADM'] . 'my-epi-deliveries',
-                        'permission' => 'MyEpiDeliveries',
-                        'icon' => 'fas fa-hard-hat',
-                        'related_routes' => ['my-epi-deliveries', 'sign-epi-ficha'],
-                    ],
-                    [
-                        'label' => 'Meus treinamentos SST',
-                        'url' => $_ENV['URL_ADM'] . 'my-sst-treinamentos',
-                        'permission' => 'MySstTreinamentos',
-                        'icon' => 'fas fa-graduation-cap',
-                        'related_routes' => ['my-sst-treinamentos'],
-                    ],
-                    [
-                        'label' => 'Minhas Solicitações',
-                        'url' => $_ENV['URL_ADM'] . 'list-employee-requests',
-                        'permission' => 'ListEmployeeRequests',
-                        'icon' => 'fa-solid fa-file-alt',
-                        'related_routes' => [
-                            'list-employee-requests', 'create-employee-request',
-                            'view-employee-request', 'update-employee-request',
-                        ],
-                    ],
-                    [
-                        'label' => 'Meus Chamados',
-                        'url' => $_ENV['URL_ADM'] . 'list-employee-tickets',
-                        'permission' => 'ListEmployeeTickets',
-                        'icon' => 'fa-solid fa-ticket-alt',
-                        'related_routes' => [
-                            'list-employee-tickets', 'create-employee-ticket',
-                            'view-employee-ticket', 'update-employee-ticket',
-                        ],
                     ],
                 ],
             ],
