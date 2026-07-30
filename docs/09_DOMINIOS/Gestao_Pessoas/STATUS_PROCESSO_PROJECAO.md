@@ -19,13 +19,16 @@ rh_candidatos.status_processo (projeção geral)
 Prioridade (maior → menor), apenas vínculos em vagas `aberta` ou `pausada`:
 
 1. `contratado` / `anonimizado` no candidato — **protegidos** (pipeline não sobrescreve)
-2. qualquer vínculo `aprovado` → `aprovado`
+2. qualquer vínculo `aprovado` → `aprovado` (caminho de oferta/contratação)
 3. senão qualquer `em_entrevista` → `em_entrevista`
 4. senão qualquer `candidatado` → `candidatado`
-5. senão só `reprovado`/`desistiu` → `reprovado`
-6. sem vínculos ativos → `candidatado`
+5. senão qualquer `banco_talentos` → `banco_talentos` (pool reutilizável entre vagas/áreas)
+6. senão só `reprovado`/`desistiu` → `reprovado`
+7. sem vínculos ativos → `candidatado`
 
-Legado normalizado: `recebido`→`candidatado`, `em_analise`→`em_entrevista`, `banco_talentos`→`aprovado`.
+Legado normalizado: `recebido`→`candidatado`, `em_analise`→`em_entrevista`.
+
+**Banco de talentos:** etapa do Kanban e status geral do candidato. Use quando o perfil é bom, mas não será contratado nesta vaga — permanece consultável ao vincular em novas vagas (inclusive de outras áreas). A retenção LGPD usa o contexto `banco_talentos`.
 
 ## UI
 

@@ -60,4 +60,34 @@ final class RhCandidatoStatusProcessoProjectorTest extends TestCase
             RhCandidatoStatusProcessoProjector::fromVinculos('recebido', ['em_analise'])
         );
     }
+
+    public function testBancoTalentosIsProjectedWhenNoActiveProcess(): void
+    {
+        self::assertSame(
+            'banco_talentos',
+            RhCandidatoStatusProcessoProjector::fromVinculos('candidatado', [
+                'banco_talentos',
+                'reprovado',
+            ])
+        );
+    }
+
+    public function testAprovadoStillBeatsBancoTalentos(): void
+    {
+        self::assertSame(
+            'aprovado',
+            RhCandidatoStatusProcessoProjector::fromVinculos('banco_talentos', [
+                'banco_talentos',
+                'aprovado',
+            ])
+        );
+    }
+
+    public function testNormalizarKeepsBancoTalentos(): void
+    {
+        self::assertSame(
+            'banco_talentos',
+            RhCandidatoStatusProcessoProjector::normalizar('banco_talentos')
+        );
+    }
 }

@@ -23,13 +23,13 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
     <div class="card mb-4 border-light shadow">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="fas fa-briefcase me-2"></i>Vaga #<?= (int)($this->data['vaga']['id'] ?? 0) ?></span>
-            <div class="btn-group">
+            <div class="d-flex flex-wrap gap-1">
                 <?php if (!empty($this->data['can_manage_pipeline'])): ?>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-candidatos/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-success btn-sm">
                         <i class="fas fa-user-plus me-1"></i>Vincular Candidatos
                     </a>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-pipeline/<?= (int)($this->data['vaga']['id'] ?? 0) ?>" class="btn btn-primary btn-sm">
-                        <i class="fas fa-project-diagram me-1"></i>Ver Pipeline (Kanban)
+                        <i class="fas fa-project-diagram me-1"></i>Pipeline
                     </a>
                 <?php endif; ?>
                 <?php if (!empty($this->data['buttonPermission']['RhVagasEdit'])): ?>
@@ -52,132 +52,116 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
 
             <?php $v = $this->data['vaga'] ?? []; ?>
 
-            <div class="row mb-3">
-                <div class="col-md-12 mb-3">
-                    <h4><?= htmlspecialchars($v['titulo'] ?? '') ?></h4>
-                    <div class="d-flex gap-2 mb-2">
-                        <?php
-                        $statusClass = match($v['status']) {
-                            'aberta'   => 'badge bg-success',
-                            'pausada'  => 'badge bg-warning text-dark',
-                            'fechada'  => 'badge bg-secondary',
-                            'cancelada'=> 'badge bg-danger',
-                            default    => 'badge bg-secondary',
-                        };
-                        ?>
-                        <span class="<?= $statusClass ?>">
-                            <?= htmlspecialchars(ucfirst($v['status'] ?? '')) ?>
-                        </span>
-                        <?php if (!empty($v['publicada'])): ?>
-                            <span class="badge bg-primary">Publicada (portal)</span>
-                        <?php else: ?>
-                            <span class="badge bg-light text-dark">Não publicada</span>
-                        <?php endif; ?>
-                        <?php
-                        $visBadge = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade($v['visibilidade'] ?? 'externa');
-                        $visBadgeClass = match ($visBadge) {
-                            'interna' => 'bg-warning text-dark',
-                            'ambas' => 'bg-info text-dark',
-                            default => 'bg-secondary',
-                        };
-                        ?>
-                        <span class="badge <?= $visBadgeClass ?>"><?= htmlspecialchars(\App\adms\Models\Services\RhVagaDivulgacaoService::labelVisibilidade($visBadge)) ?></span>
-                        <?php if (!empty($v['area_nome'])): ?>
-                            <span class="badge bg-info"><?= htmlspecialchars($v['area_nome']) ?></span>
-                        <?php endif; ?>
-                        <?php if (!empty($v['cargo_nome'])): ?>
-                            <span class="badge bg-primary"><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($v['cargo_nome'] ?? ''))) ?></span>
-                        <?php endif; ?>
-                    </div>
-                </div>
+            <div class="d-flex flex-wrap gap-1 gap-sm-2 mb-3">
+                <?php
+                $statusClass = match($v['status'] ?? '') {
+                    'aberta'   => 'badge bg-success',
+                    'pausada'  => 'badge bg-warning text-dark',
+                    'fechada'  => 'badge bg-secondary',
+                    'cancelada'=> 'badge bg-danger',
+                    default    => 'badge bg-secondary',
+                };
+                ?>
+                <span class="<?= $statusClass ?>"><?= htmlspecialchars(ucfirst($v['status'] ?? '')) ?></span>
+                <?php if (!empty($v['publicada'])): ?>
+                    <span class="badge bg-primary">Publicada (portal)</span>
+                <?php else: ?>
+                    <span class="badge bg-light text-dark border">Não publicada</span>
+                <?php endif; ?>
+                <?php
+                $visBadge = \App\adms\Models\Services\RhVagaDivulgacaoService::normalizeVisibilidade($v['visibilidade'] ?? 'externa');
+                $visBadgeClass = match ($visBadge) {
+                    'interna' => 'bg-warning text-dark',
+                    'ambas' => 'bg-info text-dark',
+                    default => 'bg-secondary',
+                };
+                ?>
+                <span class="badge <?= $visBadgeClass ?>"><?= htmlspecialchars(\App\adms\Models\Services\RhVagaDivulgacaoService::labelVisibilidade($visBadge)) ?></span>
+                <?php if (!empty($v['area_nome'])): ?>
+                    <span class="badge bg-info"><?= htmlspecialchars($v['area_nome']) ?></span>
+                <?php endif; ?>
             </div>
 
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <h5>Informações da Vaga</h5>
-                    <dl class="row mb-0">
-                        <dt class="col-sm-5">Área/Departamento</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars($v['area_nome'] ?? '-') ?></dd>
+            <h4 class="h5 mb-3"><?= htmlspecialchars($v['titulo'] ?? '') ?></h4>
 
-                        <dt class="col-sm-5">Cargo</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars(\App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($v['cargo_nome'] ?? '')) ?: '-') ?></dd>
+            <?php
+            $salMin = !empty($v['salario_min']) ? 'R$ ' . number_format((float) $v['salario_min'], 2, ',', '.') : '';
+            $salMax = !empty($v['salario_max']) ? 'R$ ' . number_format((float) $v['salario_max'], 2, ',', '.') : '';
+            $faixaSal = '-';
+            if ($salMin && $salMax) {
+                $faixaSal = $salMin . ' – ' . $salMax;
+            } elseif ($salMin) {
+                $faixaSal = 'A partir de ' . $salMin;
+            } elseif ($salMax) {
+                $faixaSal = 'Até ' . $salMax;
+            }
+            if ($faixaSal !== '-' && empty($v['mostrar_salario'])) {
+                $faixaSal .= ' (não divulgado)';
+            }
+            $infoCards = [
+                ['label' => 'Área', 'value' => (string) ($v['area_nome'] ?? '-')],
+                ['label' => 'Cargo', 'value' => \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string) ($v['cargo_nome'] ?? '')) ?: '-'],
+                ['label' => 'Contrato', 'value' => (string) ($v['tipo_contrato'] ?? '-')],
+                ['label' => 'Faixa salarial', 'value' => $faixaSal],
+                ['label' => 'Qtd. vagas', 'value' => (string) ((int) ($v['quantidade_vagas'] ?? 1))],
+                ['label' => 'Local', 'value' => (string) ($v['local_trabalho'] ?? '-')],
+                ['label' => 'Jornada', 'value' => (string) ($v['jornada_trabalho'] ?? '-')],
+                ['label' => 'Responsável', 'value' => (string) ($v['responsavel_nome'] ?? '-')],
+            ];
+            $dataCards = [
+                ['label' => 'Abertura', 'value' => FormatHelper::formatDateTime($v['data_abertura'] ?? null) ?: '—'],
+                ['label' => 'Limite inscrição', 'value' => FormatHelper::formatDateTime($v['data_limite_inscricao'] ?? null) ?: '—'],
+                ['label' => 'Fechamento', 'value' => FormatHelper::formatDateTime($v['data_fechamento'] ?? null) ?: '—'],
+                ['label' => 'Divulgação', 'value' => \App\adms\Models\Services\RhVagaDivulgacaoService::labelVisibilidade((string) ($v['visibilidade'] ?? 'externa'))],
+            ];
+            ?>
 
-                        <dt class="col-sm-5">Tipo de Contrato</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars($v['tipo_contrato'] ?? '-') ?></dd>
+            <h5 class="h6 text-muted text-uppercase small mb-2">Informações da vaga</h5>
+            <div class="row g-2 mb-3">
+                <?php foreach ($infoCards as $card): ?>
+                    <div class="col-6 col-lg-3">
+                        <div class="border rounded-3 bg-light px-2 py-2 h-100">
+                            <div class="small text-muted"><?= htmlspecialchars($card['label'], ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="fw-semibold small text-break"><?= htmlspecialchars($card['value'], ENT_QUOTES, 'UTF-8') ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+            </div>
 
-                        <?php if (!empty($v['salario_min']) || !empty($v['salario_max'])): ?>
-                            <dt class="col-sm-5">Faixa Salarial</dt>
-                            <dd class="col-sm-7">
-                                <?php
-                                $salMin = !empty($v['salario_min']) ? 'R$ ' . number_format((float)$v['salario_min'], 2, ',', '.') : '';
-                                $salMax = !empty($v['salario_max']) ? 'R$ ' . number_format((float)$v['salario_max'], 2, ',', '.') : '';
-                                if ($salMin && $salMax) {
-                                    echo $salMin . ' - ' . $salMax;
-                                } elseif ($salMin) {
-                                    echo 'A partir de ' . $salMin;
-                                } elseif ($salMax) {
-                                    echo 'Até ' . $salMax;
-                                }
-                                ?>
-                                <?php if (empty($v['mostrar_salario'])): ?>
-                                    <span class="text-muted">(não divulgado)</span>
-                                <?php endif; ?>
-                            </dd>
-                        <?php endif; ?>
-
-                        <dt class="col-sm-5">Quantidade de Vagas</dt>
-                        <dd class="col-sm-7"><?= (int)($v['quantidade_vagas'] ?? 1) ?></dd>
-
-                        <dt class="col-sm-5">Local de Trabalho</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars($v['local_trabalho'] ?? '-') ?></dd>
-
-                        <dt class="col-sm-5">Jornada de Trabalho</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars($v['jornada_trabalho'] ?? '-') ?></dd>
-
-                        <dt class="col-sm-5">Responsável</dt>
-                        <dd class="col-sm-7"><?= htmlspecialchars($v['responsavel_nome'] ?? '-') ?></dd>
-                    </dl>
-                </div>
-                <div class="col-md-6">
-                    <h5>Datas e Status</h5>
-                    <dl class="row mb-0">
-                        <dt class="col-sm-5">Data de Abertura</dt>
-                        <dd class="col-sm-7"><?= FormatHelper::formatDateTime($v['data_abertura'] ?? null) ?></dd>
-
-                        <dt class="col-sm-5">Data Limite de Inscrição</dt>
-                        <dd class="col-sm-7"><?= FormatHelper::formatDateTime($v['data_limite_inscricao'] ?? null) ?></dd>
-
-                        <dt class="col-sm-5">Data de Fechamento</dt>
-                        <dd class="col-sm-7"><?= FormatHelper::formatDateTime($v['data_fechamento'] ?? null) ?></dd>
-
-                        <dt class="col-sm-5">Divulgação</dt>
-                        <dd class="col-sm-7">
-                            <?= htmlspecialchars(\App\adms\Models\Services\RhVagaDivulgacaoService::labelVisibilidade((string) ($v['visibilidade'] ?? 'externa'))) ?>
-                        </dd>
-
-                        <dt class="col-sm-5">Publicação (portal)</dt>
-                        <dd class="col-sm-7">
+            <h5 class="h6 text-muted text-uppercase small mb-2">Datas e status</h5>
+            <div class="row g-2 mb-3">
+                <?php foreach ($dataCards as $card): ?>
+                    <div class="col-6 col-lg-3">
+                        <div class="border rounded-3 bg-light px-2 py-2 h-100">
+                            <div class="small text-muted"><?= htmlspecialchars($card['label'], ENT_QUOTES, 'UTF-8') ?></div>
+                            <div class="fw-semibold small text-break"><?= htmlspecialchars($card['value'], ENT_QUOTES, 'UTF-8') ?></div>
+                        </div>
+                    </div>
+                <?php endforeach; ?>
+                <div class="col-12 col-lg-6">
+                    <div class="border rounded-3 bg-light px-2 py-2 h-100">
+                        <div class="small text-muted">Publicação (portal)</div>
+                        <div class="fw-semibold small">
                             <?php if (!empty($v['publicada'])): ?>
                                 Sim
                                 <?php if (!empty($v['publicado_em'])): ?>
-                                    <small class="text-muted">(desde <?= FormatHelper::formatDateTime($v['publicado_em']) ?>)</small>
+                                    <span class="text-muted fw-normal">(desde <?= htmlspecialchars(FormatHelper::formatDateTime($v['publicado_em']), ENT_QUOTES, 'UTF-8') ?>)</span>
                                 <?php endif; ?>
-                                <br><small class="text-muted">Candidatura pública em <code>vagas-abertas/<?= (int) ($v['id'] ?? 0) ?></code>.</small>
+                                <div class="text-muted fw-normal mt-1">Candidatura pública em <code>vagas-abertas/<?= (int) ($v['id'] ?? 0) ?></code>.</div>
                             <?php else: ?>
                                 Não
                                 <?php if (\App\adms\Models\Services\RhVagaDivulgacaoService::permiteDivulgacaoInterna((string) ($v['visibilidade'] ?? ''))): ?>
-                                    <br><small class="text-muted">Para o público interno, use Informativos no app (bloco abaixo).</small>
+                                    <div class="text-muted fw-normal mt-1">Para o público interno, use Informativos no app.</div>
                                 <?php endif; ?>
                             <?php endif; ?>
-                        </dd>
-
-                        <dt class="col-sm-5">Status</dt>
-                        <dd class="col-sm-7">
-                            <span class="<?= $statusClass ?>">
-                                <?= htmlspecialchars(ucfirst($v['status'] ?? '')) ?>
-                            </span>
-                        </dd>
-                    </dl>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="border rounded-3 bg-light px-2 py-2 h-100">
+                        <div class="small text-muted">Status</div>
+                        <div><span class="<?= $statusClass ?>"><?= htmlspecialchars(ucfirst($v['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span></div>
+                    </div>
                 </div>
             </div>
 
@@ -193,47 +177,41 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
             $informativoUrl = \App\adms\Models\Services\RhVagaDivulgacaoService::createInformativoUrl($v);
             ?>
             <?php if ($showExternalLinks || $showInternalHint): ?>
-            <div class="card mb-4 border-light shadow">
+            <div class="card mb-4 border-light shadow overflow-hidden">
                 <div class="card-header"><i class="fas fa-share-alt me-2"></i>Divulgação</div>
                 <div class="card-body">
                     <?php if ($showExternalLinks): ?>
-                        <p class="small text-muted mb-2">
+                        <p class="small text-muted mb-3">
                             Copie o link adequado para cada canal. Os parâmetros <code>utm_source</code> são gravados na candidatura
                             (Canal / Origem), para saber se veio do LinkedIn, site, redes ou informativo.
                             O formulário público exige CSRF, honeypot, LGPD
                             <?= !empty($this->data['captcha_hint']) ? ' e CAPTCHA' : '' ?>
                             (configurável em Portal de Vagas).
                         </p>
-                        <div class="table-responsive mb-3">
-                            <table class="table table-sm align-middle mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Canal</th>
-                                        <th>URL</th>
-                                        <th></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <?php foreach ($linksExt as $linkRow): ?>
-                                        <tr>
-                                            <td><?= htmlspecialchars($linkRow['label']) ?></td>
-                                            <td>
-                                                <input type="text" class="form-control form-control-sm font-monospace"
-                                                       id="share-url-<?= htmlspecialchars($linkRow['canal']) ?>"
-                                                       value="<?= htmlspecialchars($linkRow['url']) ?>" readonly>
-                                            </td>
-                                            <td class="text-nowrap">
-                                                <button type="button" class="btn btn-sm btn-outline-secondary"
-                                                        data-copy-target="share-url-<?= htmlspecialchars($linkRow['canal']) ?>">
-                                                    Copiar
-                                                </button>
-                                                <a class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener"
-                                                   href="<?= htmlspecialchars($linkRow['url']) ?>">Abrir</a>
-                                            </td>
-                                        </tr>
-                                    <?php endforeach; ?>
-                                </tbody>
-                            </table>
+                        <div class="vstack gap-2 mb-3">
+                            <?php foreach ($linksExt as $linkRow):
+                                $canalId = htmlspecialchars((string) $linkRow['canal'], ENT_QUOTES, 'UTF-8');
+                                ?>
+                                <div class="border rounded-3 p-2 p-sm-3 bg-white overflow-hidden">
+                                    <div class="fw-semibold small mb-2"><?= htmlspecialchars((string) $linkRow['label'], ENT_QUOTES, 'UTF-8') ?></div>
+                                    <div class="d-flex flex-column flex-sm-row gap-2 align-items-stretch align-items-sm-center min-w-0">
+                                        <input type="text"
+                                               class="form-control form-control-sm font-monospace min-w-0 flex-grow-1"
+                                               id="share-url-<?= $canalId ?>"
+                                               value="<?= htmlspecialchars((string) $linkRow['url'], ENT_QUOTES, 'UTF-8') ?>"
+                                               readonly>
+                                        <div class="d-flex gap-1 flex-shrink-0">
+                                            <button type="button" class="btn btn-sm btn-outline-secondary flex-grow-1 flex-sm-grow-0"
+                                                    data-copy-target="share-url-<?= $canalId ?>">
+                                                Copiar
+                                            </button>
+                                            <a class="btn btn-sm btn-outline-primary flex-grow-1 flex-sm-grow-0"
+                                               target="_blank" rel="noopener"
+                                               href="<?= htmlspecialchars((string) $linkRow['url'], ENT_QUOTES, 'UTF-8') ?>">Abrir</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
                         </div>
                     <?php elseif ($visNow === 'interna'): ?>
                         <p class="small text-muted mb-2">
@@ -243,13 +221,13 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                     <?php endif; ?>
 
                     <?php if ($showInternalHint): ?>
-                        <div class="d-flex flex-wrap gap-2 align-items-center">
-                            <a href="<?= htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/vagas-internas/' . (int) ($v['id'] ?? 0)) ?>"
+                        <div class="d-flex flex-column flex-sm-row flex-wrap gap-2 align-items-stretch align-items-sm-center">
+                            <a href="<?= htmlspecialchars(rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/vagas-internas/' . (int) ($v['id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>"
                                class="btn btn-sm btn-outline-primary" target="_blank" rel="noopener">
                                 Abrir no portal interno
                             </a>
                             <?php if ($canCreateInformativo): ?>
-                                <a href="<?= htmlspecialchars($informativoUrl) ?>" class="btn btn-sm btn-success">
+                                <a href="<?= htmlspecialchars($informativoUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-success">
                                     <i class="fas fa-bullhorn me-1"></i>Criar informativo desta vaga
                                 </a>
                             <?php else: ?>
@@ -266,22 +244,29 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
             </div>
             <script>
             (function () {
+                function fallbackCopy(input) {
+                    input.focus();
+                    input.select();
+                    input.setSelectionRange(0, (input.value || '').length);
+                    try { return document.execCommand('copy'); } catch (e) { return false; }
+                }
                 document.querySelectorAll('[data-copy-target]').forEach(function (btn) {
                     btn.addEventListener('click', function () {
                         var id = btn.getAttribute('data-copy-target');
                         var input = id ? document.getElementById(id) : null;
                         if (!input) return;
                         var text = input.value || '';
-                        if (navigator.clipboard && navigator.clipboard.writeText) {
-                            navigator.clipboard.writeText(text).then(function () {
-                                btn.textContent = 'Copiado';
-                                setTimeout(function () { btn.textContent = 'Copiar'; }, 1500);
-                            });
-                        } else {
-                            input.select();
-                            document.execCommand('copy');
+                        var label = btn.textContent;
+                        function markCopied() {
                             btn.textContent = 'Copiado';
-                            setTimeout(function () { btn.textContent = 'Copiar'; }, 1500);
+                            setTimeout(function () { btn.textContent = label; }, 1500);
+                        }
+                        if (navigator.clipboard && window.isSecureContext) {
+                            navigator.clipboard.writeText(text).then(markCopied).catch(function () {
+                                if (fallbackCopy(input)) markCopied();
+                            });
+                        } else if (fallbackCopy(input)) {
+                            markCopied();
                         }
                     });
                 });
@@ -291,8 +276,8 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
 
             <?php if (!empty($v['descricao'])): ?>
                 <div class="mb-3">
-                    <h5>Descrição</h5>
-                    <div class="border rounded p-3 bg-light">
+                    <h5 class="h6">Descrição</h5>
+                    <div class="border rounded-3 p-3 bg-light small text-break">
                         <?= nl2br(htmlspecialchars($v['descricao'])) ?>
                     </div>
                 </div>
@@ -300,8 +285,8 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
 
             <?php if (!empty($v['requisitos'])): ?>
                 <div class="mb-3">
-                    <h5>Requisitos</h5>
-                    <div class="border rounded p-3 bg-light">
+                    <h5 class="h6">Requisitos</h5>
+                    <div class="border rounded-3 p-3 bg-light small text-break">
                         <?= nl2br(htmlspecialchars($v['requisitos'])) ?>
                     </div>
                 </div>
@@ -309,8 +294,8 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
 
             <?php if (!empty($v['beneficios'])): ?>
                 <div class="mb-3">
-                    <h5>Benefícios</h5>
-                    <div class="border rounded p-3 bg-light">
+                    <h5 class="h6">Benefícios</h5>
+                    <div class="border rounded-3 p-3 bg-light small text-break">
                         <?= nl2br(htmlspecialchars($v['beneficios'])) ?>
                     </div>
                 </div>
@@ -318,8 +303,8 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
 
             <?php if (!empty($v['observacoes'])): ?>
                 <div class="mb-3">
-                    <h5>Observações</h5>
-                    <div class="border rounded p-3 bg-light">
+                    <h5 class="h6">Observações</h5>
+                    <div class="border rounded-3 p-3 bg-light small text-break">
                         <?= nl2br(htmlspecialchars($v['observacoes'])) ?>
                     </div>
                 </div>
@@ -328,13 +313,69 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
             <!-- Candidatos vinculados -->
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h5>Candidatos Vinculados (<?= count($this->data['candidatos'] ?? []) ?>)</h5>
+                    <h5 class="h6 mb-0">Candidatos vinculados (<?= count($this->data['candidatos'] ?? []) ?>)</h5>
                 </div>
                 <?php if (empty($this->data['candidatos'])): ?>
-                    <p class="text-muted">Nenhum candidato vinculado a esta vaga.</p>
+                    <p class="text-muted mb-0">Nenhum candidato vinculado a esta vaga.</p>
                 <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-sm table-striped">
+                    <?php
+                    $stagesSelect = $this->data['pipeline_stages']
+                        ?? \App\adms\Models\Services\RhPipelineStageCatalog::all();
+                    $canPipeline = !empty($this->data['can_manage_pipeline']);
+                    $vagaIdView = (int) ($this->data['vaga']['id'] ?? 0);
+                    ?>
+
+                    <!-- Mobile: cards -->
+                    <div class="d-md-none vstack gap-2">
+                        <?php foreach ($this->data['candidatos'] as $cand):
+                            $statusAtualCand = ($cand['status'] ?? '') === 'em_analise'
+                                ? 'em_entrevista'
+                                : ($cand['status'] ?? 'candidatado');
+                            $candId = (int) ($cand['rh_candidato_id'] ?? 0);
+                            ?>
+                            <div class="border rounded-3 p-3 bg-white" id="card-candidato-<?= $candId ?>">
+                                <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                    <div class="min-w-0">
+                                        <div class="fw-semibold text-break"><?= htmlspecialchars((string) ($cand['candidato_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <div class="small text-break text-muted"><?= htmlspecialchars((string) ($cand['candidato_email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php if (!empty($cand['candidato_telefone'])): ?>
+                                            <div class="small text-muted"><?= htmlspecialchars((string) $cand['candidato_telefone'], ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </div>
+                                    <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-view/<?= $candId ?>"
+                                       class="btn btn-sm btn-outline-info flex-shrink-0" title="Ver candidato">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                                <div class="d-flex flex-wrap gap-2 align-items-center small mb-2">
+                                    <span class="badge bg-light text-dark border">
+                                        <?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($cand['canal_origem'] ?? '')), ENT_QUOTES, 'UTF-8') ?>
+                                    </span>
+                                    <span class="text-muted"><?= htmlspecialchars(FormatHelper::formatDateTime($cand['data_candidatura'] ?? null) ?: '—', ENT_QUOTES, 'UTF-8') ?></span>
+                                </div>
+                                <?php if ($canPipeline): ?>
+                                    <select class="form-select form-select-sm status-candidatura"
+                                            data-candidato-id="<?= $candId ?>"
+                                            data-vaga-id="<?= $vagaIdView ?>">
+                                        <?php foreach ($stagesSelect as $stage): ?>
+                                            <option value="<?= htmlspecialchars($stage['code']) ?>"
+                                                <?= $statusAtualCand === $stage['code'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($stage['label']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                <?php else: ?>
+                                    <span class="badge bg-secondary">
+                                        <?= htmlspecialchars(\App\adms\Models\Services\RhPipelineStageCatalog::label((string) ($cand['status'] ?? 'candidatado'))) ?>
+                                    </span>
+                                <?php endif; ?>
+                            </div>
+                        <?php endforeach; ?>
+                    </div>
+
+                    <!-- Desktop: tabela -->
+                    <div class="d-none d-md-block table-responsive">
+                        <table class="table table-sm table-striped align-middle mb-0">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Nome</th>
@@ -347,26 +388,24 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                 </tr>
                             </thead>
                             <tbody>
-                                <?php foreach ($this->data['candidatos'] as $cand): ?>
-                                    <tr id="row-candidato-<?= $cand['rh_candidato_id'] ?>">
-                                        <td><?= htmlspecialchars($cand['candidato_nome'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($cand['candidato_email'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars($cand['candidato_telefone'] ?? '') ?></td>
-                                        <td><?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($cand['canal_origem'] ?? ''))) ?></td>
+                                <?php foreach ($this->data['candidatos'] as $cand):
+                                    $statusAtualCand = ($cand['status'] ?? '') === 'em_analise'
+                                        ? 'em_entrevista'
+                                        : ($cand['status'] ?? 'candidatado');
+                                    $candId = (int) ($cand['rh_candidato_id'] ?? 0);
+                                    ?>
+                                    <tr id="row-candidato-<?= $candId ?>">
+                                        <td><?= htmlspecialchars((string) ($cand['candidato_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td class="text-break"><?= htmlspecialchars((string) ($cand['candidato_email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><?= htmlspecialchars((string) ($cand['candidato_telefone'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                        <td><?= htmlspecialchars(\App\adms\Helpers\RhCandidatoOrigemHelper::label((string) ($cand['canal_origem'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
                                         <td>
-                                            <?php if (!empty($this->data['can_manage_pipeline'])): ?>
-                                                <select class="form-select form-select-sm status-candidatura" 
-                                                        data-candidato-id="<?= $cand['rh_candidato_id'] ?>"
-                                                        data-vaga-id="<?= (int)($this->data['vaga']['id'] ?? 0) ?>"
+                                            <?php if ($canPipeline): ?>
+                                                <select class="form-select form-select-sm status-candidatura"
+                                                        data-candidato-id="<?= $candId ?>"
+                                                        data-vaga-id="<?= $vagaIdView ?>"
                                                         style="min-width: 140px;">
-                                                    <?php
-                                                    $statusAtualCand = ($cand['status'] ?? '') === 'em_analise'
-                                                        ? 'em_entrevista'
-                                                        : ($cand['status'] ?? 'candidatado');
-                                                    $stagesSelect = $this->data['pipeline_stages']
-                                                        ?? \App\adms\Models\Services\RhPipelineStageCatalog::all();
-                                                    foreach ($stagesSelect as $stage):
-                                                    ?>
+                                                    <?php foreach ($stagesSelect as $stage): ?>
                                                         <option value="<?= htmlspecialchars($stage['code']) ?>"
                                                             <?= $statusAtualCand === $stage['code'] ? 'selected' : '' ?>>
                                                             <?= htmlspecialchars($stage['label']) ?>
@@ -381,7 +420,7 @@ $csrfTokenVinculoAjax = CSRFHelper::generateCSRFToken('form_rh_vincular_candidat
                                         </td>
                                         <td><?= FormatHelper::formatDateTime($cand['data_candidatura'] ?? null) ?></td>
                                         <td>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-view/<?= $cand['rh_candidato_id'] ?>" 
+                                            <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-view/<?= $candId ?>"
                                                class="btn btn-sm btn-info" title="Ver candidato">
                                                 <i class="fas fa-eye"></i>
                                             </a>

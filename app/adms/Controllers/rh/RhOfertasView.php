@@ -57,11 +57,14 @@ final class RhOfertasView
         $this->data = [
             'title_head' => 'Oferta #' . $ofertaId,
             'menu' => 'rh-candidatos',
-            'buttonPermission' => ['RhOfertasView', 'RhOfertasConvert', 'RhOnboardingView', 'RhExperienciaView', 'RhCandidatos', 'RhVagas'],
+            'buttonPermission' => ['RhOfertasView', 'RhOfertasConvert', 'RhPreAdmissaoDownloadDoc', 'RhOnboardingView', 'RhExperienciaView', 'RhCandidatos', 'RhVagas'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_oferta_action'),
             'oferta' => $oferta,
             'documentos' => $repo->listDocumentos($ofertaId),
             'can_manage' => $canManage,
+            'docs_request_url' => !empty($oferta['docs_request_token'])
+                ? rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/pre-admissao-documentos?token=' . rawurlencode((string) $oferta['docs_request_token'])
+                : null,
             'conversao' => $conversao,
             'onboarding_plano' => $onboardingPlano,
             'experiencia' => $experiencia,
@@ -92,6 +95,23 @@ final class RhOfertasView
                 'aceitar' => $service->aceitar($ofertaId, $obs !== '' ? $obs : null),
                 'recusar' => $service->recusar($ofertaId, $obs !== '' ? $obs : null),
                 'cancelar' => $service->cancelar($ofertaId, $obs !== '' ? $obs : null),
+                'solicitar_documentos' => (function () use ($service, $ofertaId): void {
+                    $dias = (int) ($_POST['docs_valid_days'] ?? 14);
+                    $result = $service->solicitarDocumentos($ofertaId, $dias);
+                    $_SESSION['msg'] = 'Link gerado (válido por ' . (int) $result['valid_days']
+                        . ' dia(s), até ' . $result['expires_at'] . '). Envie ao candidato.';
+                    $_SESSION['msg_type'] = 'success';
+                })(),
+                'upload_documento' => $service->uploadDocumentoRh(
+                    $ofertaId,
+                    (int) ($_POST['documento_id'] ?? 0),
+                    is_array($_FILES['arquivo'] ?? null) ? $_FILES['arquivo'] : [],
+                    $userId
+                ),
+                'remover_documento' => $service->removerDocumentoArquivo(
+                    $ofertaId,
+                    (int) ($_POST['documento_id'] ?? 0)
+                ),
                 'documento' => $service->atualizarDocumento(
                     $ofertaId,
                     (int) ($_POST['documento_id'] ?? 0),
@@ -101,8 +121,10 @@ final class RhOfertasView
                 ),
                 default => throw new Exception('Ação inválida.'),
             };
-            $_SESSION['msg'] = 'Operação realizada com sucesso.';
-            $_SESSION['msg_type'] = 'success';
+            if ($action !== 'solicitar_documentos') {
+                $_SESSION['msg'] = 'Operação realizada com sucesso.';
+                $_SESSION['msg_type'] = 'success';
+            }
         } catch (Exception $e) {
             $_SESSION['msg'] = $e->getMessage();
             $_SESSION['msg_type'] = 'danger';

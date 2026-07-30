@@ -384,8 +384,8 @@ class RhCandidatosRepository extends DbConnection
     /**
      * Resolve o contexto de retenção baseado no status_processo.
      * - candidatado / reprovado / desistiu / recebido (legado) -> curriculo_nao_aproveitado
-     * - aprovado / banco_talentos (legado) -> banco_talentos
-     * - em_entrevista / em_analise (legado) / contratado -> null (tratados fora da retenção de currículo)
+     * - banco_talentos -> banco_talentos (prazo LGPD de pool)
+     * - aprovado / em_entrevista / contratado -> null (processo ativo ou final)
      */
     private function resolveContextoRetencao(string $statusProcesso): ?string
     {
@@ -396,13 +396,13 @@ class RhCandidatosRepository extends DbConnection
             return 'curriculo_nao_aproveitado';
         }
 
-        // Status de banco de talentos (aprovado mas não contratado)
-        if (in_array($statusProcesso, ['aprovado', 'banco_talentos'], true)) {
+        // Pool reutilizável (outras vagas/áreas)
+        if ($statusProcesso === 'banco_talentos') {
             return 'banco_talentos';
         }
 
-        // Status em processo ou finais (não aplicam retenção automática)
-        // em_entrevista, em_analise (legado), contratado, anonimizado
+        // Status em processo ou finais (não aplicam retenção automática de currículo “não aproveitado”)
+        // aprovado, em_entrevista, em_analise (legado), contratado, anonimizado
         return null;
     }
 

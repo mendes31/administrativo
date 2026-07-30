@@ -1,46 +1,49 @@
 <h1>Ofertas e pré-admissão</h1>
 
 <h2>Função no sistema</h2>
-<p>Registra oferta formal para candidatura aprovada, aceite/recusa pelo RH e checklist de documentos — sem criar vínculo empregatício automaticamente.</p>
-
-
+<p>Registra oferta formal para candidatura aprovada, acompanha aceite/recusa pelo RH e a checklist de documentos de pré-admissão — sem criar vínculo empregatício automaticamente. Os arquivos podem ser enviados pelo candidato (link) ou anexados manualmente pelo recrutador.</p>
 
 <p class="help-note"><strong>Relacionado:</strong> <em>Visualizar Candidato</em> (<code>rh-candidatos-view</code>) e pipeline da vaga.</p>
 
-<p><strong>Quem acessa:</strong> usuários com <em>RhOfertasCreate</em> / <em>RhOfertasView</em> (espelhadas dos níveis com <em>RhVagas</em>) e permissão de gerenciar o pipeline da vaga.</p>
+<p><strong>Quem acessa:</strong> usuários com <em>RhOfertasCreate</em> / <em>RhOfertasView</em> / <em>RhOfertasConvert</em> (espelhadas dos níveis com <em>RhVagas</em>) e permissão de gerenciar o pipeline da vaga. Download de anexos: <em>RhPreAdmissaoDownloadDoc</em>. Formulário do candidato: página pública <em>RhPreAdmissaoDocsPublic</em> (sem login).</p>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>No pipeline, mova a candidatura para <em>Aprovado</em>.</li>
-    <li>Abra o candidato e, na linha da vaga, clique em <strong>Criar oferta</strong> (ícone de aperto de mão).</li>
+    <li>Abra o candidato e, na linha da vaga, clique em <strong>Criar oferta</strong>.</li>
     <li>Preencha salário, contrato, datas e salve o rascunho.</li>
-    <li>Marque como <em>enviada</em> quando apresentar a oferta ao candidato.</li>
+    <li>Marque como <em>enviada</em> quando apresentar a oferta ao candidato (controle interno do RH).</li>
     <li>Registre <em>aceite</em> ou <em>recusa</em>. No aceite, o sistema gera a checklist de pré-admissão.</li>
-    <li>Atualize o status de cada documento (pendente, recebido, aprovado, recusado).</li>
-    <li>Com os obrigatórios <em>aprovados</em>, clique em <strong>Converter em colaborador</strong> para criar ou vincular um usuário do Portal.</li>
-    <li>Após a conversão, abra o <strong>onboarding</strong> gerado automaticamente e conclua o checklist.</li>
+    <li>Clique em <strong>Gerar link</strong> / <strong>Renovar link</strong>, informando quantos <em>dias</em> o link fica válido (1 a 90; o sistema sugere até o início previsto, se houver). Envie o link por e-mail, WhatsApp ou outro canal.</li>
+    <li>O candidato abre o link (sem login) e anexa os arquivos pendentes.</li>
+    <li>Alternativa: na própria oferta, use <strong>Anexar</strong> / <strong>Substituir</strong> em cada item da checklist para enviar o arquivo manualmente.</li>
+    <li>Atualize o status de cada documento (pendente, recebido, aprovado, recusado) e baixe o anexo quando necessário.</li>
+    <li>Com os obrigatórios <em>aprovados</em>, clique em <strong>Converter em colaborador</strong>.</li>
+    <li>Após a conversão, conclua o <strong>onboarding</strong> gerado automaticamente.</li>
 </ol>
 
-<h2>Regras importantes</h2>
-<ul>
-    <li>Aceite <strong>não</strong> marca o candidato como contratado nem cria Pessoa/Vínculo físicos.</li>
-    <li>A conversão cria/vincula <code>adms_users</code> (fachada atual), marca o candidato como <em>contratado</em> e grava auditoria em <code>rh_conversoes_admissao</code>.</li>
-    <li>Só uma oferta ativa (rascunho/enviada/aceita) por candidatura.</li>
-    <li>Upload de arquivos dos documentos ainda não está disponível.</li>
-</ul>
-
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Link de documentos</dt>
+    <dd>URL com token secreto; abre uma página no mesmo visual do portal <em>Trabalhe conosco</em>, sem login. A validade (1–90 dias) é escolhida pelo RH ao gerar/renovar o link.</dd>
+    <dt>Anexar / Substituir / Excluir</dt>
+    <dd>Com arquivo, o status passa a <em>Recebido</em> e o bloco fica destacado. O seletor livre some: use <strong>Aprovar</strong>/<strong>Recusar</strong>, ou <strong>Excluir</strong>/<strong>Substituir</strong> o arquivo para voltar ao fluxo. Substituir reinicia a revisão (<em>Recebido</em>).</dd>
+</dl>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Filtros ou formulário</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
-<div class="help-field"><strong>Resultado / painel</strong> Área onde o sistema mostra listagens, totais ou detalhe do registro.</div>
-<div class="help-field"><strong>Ações</strong> Botões e links disponíveis conforme sua permissão.</div>
+<div class="help-field"><strong>Status da oferta</strong> Rascunho, enviada, aceita ou recusada — atualizado pelo RH.</div>
+<div class="help-field"><strong>Checklist</strong> Tipos de documento (RG, CPF, CTPS, etc.), obrigatoriedade, status e arquivo anexado.</div>
+<div class="help-field"><strong>Link gerado</strong> Exibido após solicitar documentos; pode ser regenerado (invalida o anterior). A validade em dias é definida pelo RH ao gerar/renovar (padrão sugerido: até o início previsto ou 14 dias).</div>
+<div class="help-field"><strong>Arquivo</strong> PDF, JPG, PNG ou DOC/DOCX, até 10&nbsp;MB.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não aparece o botão de criar oferta</dt>
     <dd>O vínculo precisa estar <em>Aprovado</em> e você precisa da permissão <em>RhOfertasCreate</em>.</dd>
+    <dt>Não consigo solicitar documentos</dt>
+    <dd>A oferta precisa estar <em>aceita</em>. Execute a migration <code>20260730150000_rh_pre_admissao_docs_upload_and_request_token</code>.</dd>
+    <dt>Candidato diz que o link expirou</dt>
+    <dd>Gere um novo link em <strong>Solicitar documentos</strong> (ou <strong>Gerar novo link</strong>).</dd>
     <dt>Não consigo converter</dt>
-    <dd>A oferta precisa estar <em>aceita</em>, com documentos obrigatórios <em>aprovados</em>, e permissão <em>RhOfertasConvert</em>. Se o e-mail já existir no Portal, use o modo <em>Vincular usuário existente</em>.</dd>
-    <dt>Erro ao salvar / página não encontrada</dt>
-    <dd>Execute as migrations <code>20260719238000_create_rh_ofertas_pre_admissao</code> e <code>20260719239000_create_rh_conversoes_admissao</code>.</dd>
+    <dd>Oferta <em>aceita</em>, documentos obrigatórios <em>aprovados</em>, e permissão <em>RhOfertasConvert</em>.</dd>
 </dl>

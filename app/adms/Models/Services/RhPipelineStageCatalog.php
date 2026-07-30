@@ -41,6 +41,12 @@ final class RhPipelineStageCatalog
                 'column_class' => 'bg-success-subtle',
             ],
             [
+                'code' => 'banco_talentos',
+                'label' => 'Banco de Talentos',
+                'display_order' => 35,
+                'column_class' => 'bg-primary-subtle',
+            ],
+            [
                 'code' => 'reprovado',
                 'label' => 'Reprovado',
                 'display_order' => 40,

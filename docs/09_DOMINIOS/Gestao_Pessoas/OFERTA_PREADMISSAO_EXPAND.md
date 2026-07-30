@@ -48,12 +48,15 @@ Checklist gerado no aceite (catálogo PHP default). Status por item:
 `tipo_evento = oferta`, `origem = oferta`, com `status_novo` descritivo
 (`oferta_enviada`, `oferta_aceita`, `oferta_recusada`, `oferta_cancelada`).
 
-## Fora deste incremento
+## Fora deste incremento (histórico)
 
-- e-mail/outbox de envio da oferta;
-- aceite pelo candidato (token/portal);
-- upload de arquivos dos documentos;
-- tabelas físicas Pessoa/Vínculo (conversão usa fachada `adms_users` — ver [CONVERSAO_ADMISSAO_EXPAND.md](CONVERSAO_ADMISSAO_EXPAND.md));
+Itens abaixo foram parcialmente cobertos no incremento de 2026-07-30:
+
+- ~~upload de arquivos dos documentos~~ — disponível (candidato via link + RH manual)
+- ~~link/token para o candidato anexar~~ — `pre-admissao-documentos?token=…`
+- e-mail/outbox automático de envio da oferta ou do link (ainda manual: RH copia o link);
+- aceite da oferta pelo candidato (permanece registro pelo RH);
+- tabelas físicas Pessoa/Vínculo;
 - reverter conversão.
 
 ## Migration

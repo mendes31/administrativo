@@ -10,16 +10,20 @@ use PHPUnit\Framework\TestCase;
 #[CoversNothing]
 final class PipelineStagesCatalogContractTest extends TestCase
 {
-    public function testMigrationSeedsFiveStableCodes(): void
+    public function testMigrationSeedsStableCodesIncludingBancoTalentos(): void
     {
-        $source = $this->readProjectFile(
+        $base = $this->readProjectFile(
             'database/migrations/20260719150000_create_rh_pipeline_stages.php'
         );
+        $banco = $this->readProjectFile(
+            'database/migrations/20260730160000_add_rh_pipeline_stage_banco_talentos.php'
+        );
 
-        self::assertStringContainsString('rh_pipeline_stages', $source);
+        self::assertStringContainsString('rh_pipeline_stages', $base);
         foreach (['candidatado', 'em_entrevista', 'aprovado', 'reprovado', 'desistiu'] as $code) {
-            self::assertStringContainsString("'{$code}'", $source);
+            self::assertStringContainsString("'{$code}'", $base);
         }
+        self::assertStringContainsString("'banco_talentos'", $banco);
     }
 
     public function testPipelineAndVagaConsumeCatalog(): void

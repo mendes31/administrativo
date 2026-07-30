@@ -39,6 +39,26 @@ final class OfertaPreAdmissaoContractTest extends TestCase
         self::assertStringContainsString('dados_bancarios', $catalog);
     }
 
+    public function testUploadAndRequestTokenMigrationExists(): void
+    {
+        $migration = $this->readProjectFile(
+            'database/migrations/20260730150000_rh_pre_admissao_docs_upload_and_request_token.php'
+        );
+        self::assertStringContainsString('docs_request_token', $migration);
+        self::assertStringContainsString('arquivo_caminho', $migration);
+        self::assertStringContainsString('RhPreAdmissaoDocsPublic', $migration);
+        self::assertStringContainsString('RhPreAdmissaoDownloadDoc', $migration);
+    }
+
+    public function testServiceSupportsCandidateAndRhUpload(): void
+    {
+        $service = $this->readProjectFile('app/adms/Models/Services/RhOfertaService.php');
+        self::assertStringContainsString('solicitarDocumentos', $service);
+        self::assertStringContainsString('uploadDocumentoRh', $service);
+        self::assertStringContainsString('uploadDocumentoPublico', $service);
+        self::assertStringContainsString('pre-admissao-documentos?token=', $service);
+    }
+
     private function readProjectFile(string $relativePath): string
     {
         $source = file_get_contents(PROJECT_ROOT . '/' . $relativePath);

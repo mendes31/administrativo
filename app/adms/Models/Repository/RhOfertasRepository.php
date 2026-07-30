@@ -329,4 +329,179 @@ class RhOfertasRepository extends DbConnection
             return false;
         }
     }
+
+    public function getDocumentoById(int $documentoId, int $ofertaId): ?array
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'SELECT * FROM rh_pre_admissao_documentos
+                 WHERE id = :id AND rh_oferta_id = :oferta_id
+                 LIMIT 1'
+            );
+            $stmt->bindValue(':id', $documentoId, PDO::PARAM_INT);
+            $stmt->bindValue(':oferta_id', $ofertaId, PDO::PARAM_INT);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return is_array($row) ? $row : null;
+        } catch (PDOException $e) {
+            return null;
+        }
+    }
+
+    public function findByDocsRequestToken(string $token): ?array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return null;
+        }
+        try {
+            $stmt = $this->getConnection()->prepare(
+                "SELECT o.*,
+                        c.nome AS candidato_nome,
+                        c.email AS candidato_email,
+                        v.titulo AS vaga_titulo
+                 FROM rh_ofertas o
+                 INNER JOIN rh_candidatos c ON c.id = o.rh_candidato_id
+                 INNER JOIN rh_vagas v ON v.id = o.rh_vaga_id
+                 WHERE o.docs_request_token = :token
+                 LIMIT 1"
+            );
+            $stmt->bindValue(':token', $token, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return is_array($row) ? $row : null;
+        } catch (PDOException $e) {
+            GenerateLog::generateLog('error', 'Erro ao buscar oferta por token de documentos.', [
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
+
+    public function saveDocsRequestToken(int $ofertaId, string $token, string $expiresAt): bool
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'UPDATE rh_ofertas
+                 SET docs_request_token = :token,
+                     docs_requested_at = NOW(),
+                     docs_request_expires_at = :expires_at,
+                     updated_at = NOW()
+                 WHERE id = :id'
+            );
+            $stmt->bindValue(':token', $token, PDO::PARAM_STR);
+            $stmt->bindValue(':expires_at', $expiresAt, PDO::PARAM_STR);
+            $stmt->bindValue(':id', $ofertaId, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            GenerateLog::generateLog('error', 'Erro ao gravar token de solicitação de documentos.', [
+                'oferta_id' => $ofertaId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * @param array{
+     *   caminho: string,
+     *   nome_original: string,
+     *   mime: string,
+     *   tamanho: int,
+     *   uploaded_by: string,
+     *   uploaded_by_user_id: ?int
+     * } $fileMeta
+     */
+    public function attachDocumentoArquivo(int $documentoId, int $ofertaId, array $fileMeta): bool
+    {
+        try {
+            $stmt = $this->getConnection()->prepare(
+                "UPDATE rh_pre_admissao_documentos
+                 SET arquivo_caminho = :caminho,
+                     arquivo_nome_original = :nome,
+                     arquivo_mime = :mime,
+                     arquivo_tamanho = :tamanho,
+                     uploaded_by = :uploaded_by,
+                     uploaded_at = NOW(),
+                     uploaded_by_user_id = :uploaded_by_user_id,
+                     status = 'recebido',
+                     received_at = NOW(),
+                     reviewed_at = NULL,
+                     reviewed_by_user_id = NULL,
+                     updated_at = NOW()
+                 WHERE id = :id AND rh_oferta_id = :oferta_id"
+            );
+            $stmt->bindValue(':caminho', $fileMeta['caminho'], PDO::PARAM_STR);
+            $stmt->bindValue(':nome', $fileMeta['nome_original'], PDO::PARAM_STR);
+            $stmt->bindValue(':mime', $fileMeta['mime'], PDO::PARAM_STR);
+            $stmt->bindValue(':tamanho', $fileMeta['tamanho'], PDO::PARAM_INT);
+            $stmt->bindValue(':uploaded_by', $fileMeta['uploaded_by'], PDO::PARAM_STR);
+            $stmt->bindValue(
+                ':uploaded_by_user_id',
+                $fileMeta['uploaded_by_user_id'],
+                $fileMeta['uploaded_by_user_id'] !== null ? PDO::PARAM_INT : PDO::PARAM_NULL
+            );
+            $stmt->bindValue(':id', $documentoId, PDO::PARAM_INT);
+            $stmt->bindValue(':oferta_id', $ofertaId, PDO::PARAM_INT);
+
+            return $stmt->execute();
+        } catch (PDOException $e) {
+            GenerateLog::generateLog('error', 'Erro ao anexar arquivo de pré-admissão.', [
+                'documento_id' => $documentoId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return false;
+        }
+    }
+
+    /**
+     * Remove o arquivo anexado e volta o item para pendente.
+     */
+    public function clearDocumentoArquivo(int $documentoId, int $ofertaId): ?string
+    {
+        try {
+            $doc = $this->getDocumentoById($documentoId, $ofertaId);
+            if ($doc === null) {
+                return null;
+            }
+            $caminhoAnterior = (string) ($doc['arquivo_caminho'] ?? '');
+
+            $stmt = $this->getConnection()->prepare(
+                "UPDATE rh_pre_admissao_documentos
+                 SET arquivo_caminho = NULL,
+                     arquivo_nome_original = NULL,
+                     arquivo_mime = NULL,
+                     arquivo_tamanho = NULL,
+                     uploaded_by = NULL,
+                     uploaded_at = NULL,
+                     uploaded_by_user_id = NULL,
+                     status = 'pendente',
+                     received_at = NULL,
+                     reviewed_at = NULL,
+                     reviewed_by_user_id = NULL,
+                     updated_at = NOW()
+                 WHERE id = :id AND rh_oferta_id = :oferta_id"
+            );
+            $stmt->bindValue(':id', $documentoId, PDO::PARAM_INT);
+            $stmt->bindValue(':oferta_id', $ofertaId, PDO::PARAM_INT);
+            if (!$stmt->execute()) {
+                return null;
+            }
+
+            return $caminhoAnterior !== '' ? $caminhoAnterior : '';
+        } catch (PDOException $e) {
+            GenerateLog::generateLog('error', 'Erro ao remover arquivo de pré-admissão.', [
+                'documento_id' => $documentoId,
+                'error' => $e->getMessage(),
+            ]);
+
+            return null;
+        }
+    }
 }

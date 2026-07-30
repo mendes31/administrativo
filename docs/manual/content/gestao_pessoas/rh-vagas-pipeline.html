@@ -16,13 +16,20 @@
     <li>No modal, selecione o <strong>motivo</strong> da movimentação.</li>
     <li>Se escolher <em>Outro</em>, preencha a observação.</li>
     <li>Confirme. O status da candidatura é atualizado e o evento entra na linha do tempo do candidato.</li>
+    <li>Se o candidato foi finalista mas <strong>não será contratado nesta vaga</strong>, mova para <em>Banco de Talentos</em> — ele permanece pesquisável para outras vagas/áreas.</li>
 </ol>
 
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Banco de Talentos</dt>
+    <dd>Pool de candidatos com perfil aproveitável, sem contratação nesta vaga. Diferente de <em>Reprovado</em> (não segue) e de <em>Aprovado</em> (caminho de oferta).</dd>
+</dl>
+
 <h2>Motivos</h2>
-<p>Os motivos são códigos estáveis (ex.: <code>TRIAGEM_OK</code>, <code>PERFIL_ADEQUADO</code>). A lista muda conforme o status de destino. Movimentações vindas do resultado de entrevista usam motivos automáticos (<code>APROVADO_ENTREVISTA</code> / <code>REPROVADO_ENTREVISTA</code>).</p>
+<p>Os motivos são códigos estáveis (ex.: <code>TRIAGEM_OK</code>, <code>PERFIL_ADEQUADO</code>, <code>RESERVA_FINALISTA</code>). A lista muda conforme o status de destino. Movimentações vindas do resultado de entrevista usam motivos automáticos (<code>APROVADO_ENTREVISTA</code> / <code>REPROVADO_ENTREVISTA</code>).</p>
 
 <h2>Etapas (rótulos)</h2>
-<p>As colunas do Kanban vêm do catálogo <code>rh_pipeline_stages</code> (mesmos códigos: candidatado, em_entrevista, aprovado, reprovado, desistiu). Rótulo, ordem e aparência podem ser ajustados no banco; códigos e regras de negócio permanecem estáveis.</p>
+<p>As colunas do Kanban vêm do catálogo <code>rh_pipeline_stages</code> (códigos: candidatado, em_entrevista, aprovado, <strong>banco_talentos</strong>, reprovado, desistiu). Rótulo, ordem e aparência podem ser ajustados no banco; códigos e regras de negócio permanecem estáveis.</p>
 
 
 <h2>Campos e parâmetros</h2>

@@ -52,9 +52,9 @@ foreach ($candidatos as $cand) {
                 <strong>Vaga #<?= (int)($vaga['id'] ?? 0) ?></strong> -
                 <?= htmlspecialchars($vaga['titulo'] ?? '') ?>
             </div>
-            <div class="btn-group">
+            <div class="d-flex flex-wrap gap-1">
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-view/<?= (int)($vaga['id'] ?? 0) ?>" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-arrow-left me-1"></i>Voltar para detalhes
+                    <i class="fas fa-arrow-left me-1"></i>Voltar
                 </a>
             </div>
         </div>

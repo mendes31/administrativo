@@ -33,6 +33,12 @@ final class RhCandidaturaMotivoCatalog
                 'APROVADO_ENTREVISTA' => 'Aprovado na entrevista',
                 self::OUTRO => 'Outro',
             ],
+            'banco_talentos' => [
+                'RESERVA_FINALISTA' => 'Finalista reserva (não contratado nesta vaga)',
+                'PERFIL_FUTURO' => 'Perfil interessante para outras vagas/áreas',
+                'OFERTA_RECUSADA_BANCO' => 'Oferta recusada — manter no banco',
+                self::OUTRO => 'Outro',
+            ],
             'reprovado' => [
                 'PERFIL_INADEQUADO' => 'Perfil inadequado',
                 'REPROVADO_ENTREVISTA' => 'Reprovado na entrevista',

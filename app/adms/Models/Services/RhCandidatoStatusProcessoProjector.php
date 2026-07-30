@@ -45,6 +45,9 @@ final class RhCandidatoStatusProcessoProjector
         if (in_array('candidatado', $statusVinculos, true)) {
             return 'candidatado';
         }
+        if (in_array('banco_talentos', $statusVinculos, true)) {
+            return 'banco_talentos';
+        }
         if (in_array('reprovado', $statusVinculos, true) || in_array('desistiu', $statusVinculos, true)) {
             return 'reprovado';
         }
@@ -80,7 +83,6 @@ final class RhCandidatoStatusProcessoProjector
         $legado = [
             'recebido' => 'candidatado',
             'em_analise' => 'em_entrevista',
-            'banco_talentos' => 'aprovado',
         ];
 
         return $legado[$status] ?? $status;

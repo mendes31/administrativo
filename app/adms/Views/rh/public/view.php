@@ -46,38 +46,58 @@ $captchaProvider = (string) ($captcha_provider ?? 'hcaptcha');
         <?php endif; ?>
     </p>
 
-    <dl class="row mb-3">
+    <div class="row g-2 mb-3">
         <?php if (!empty($v['local_trabalho'])): ?>
-            <dt class="col-sm-4">Local</dt>
-            <dd class="col-sm-8"><?= htmlspecialchars((string) $v['local_trabalho'], ENT_QUOTES, 'UTF-8') ?></dd>
+            <div class="col-6 col-md-4">
+                <div class="border rounded-3 p-2 bg-light h-100">
+                    <div class="small text-muted">Local</div>
+                    <div class="fw-semibold small text-break"><?= htmlspecialchars((string) $v['local_trabalho'], ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+            </div>
         <?php endif; ?>
         <?php if (!empty($v['jornada_trabalho'])): ?>
-            <dt class="col-sm-4">Jornada</dt>
-            <dd class="col-sm-8"><?= htmlspecialchars((string) $v['jornada_trabalho'], ENT_QUOTES, 'UTF-8') ?></dd>
+            <div class="col-6 col-md-4">
+                <div class="border rounded-3 p-2 bg-light h-100">
+                    <div class="small text-muted">Jornada</div>
+                    <div class="fw-semibold small text-break"><?= htmlspecialchars((string) $v['jornada_trabalho'], ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+            </div>
         <?php endif; ?>
-        <dt class="col-sm-4">Quantidade</dt>
-        <dd class="col-sm-8"><?= (int) ($v['quantidade_vagas'] ?? 1) ?></dd>
+        <div class="col-6 col-md-4">
+            <div class="border rounded-3 p-2 bg-light h-100">
+                <div class="small text-muted">Quantidade</div>
+                <div class="fw-semibold small"><?= (int) ($v['quantidade_vagas'] ?? 1) ?></div>
+            </div>
+        </div>
         <?php if ($mostrarSalario && (!empty($v['salario_min']) || !empty($v['salario_max']))): ?>
-            <dt class="col-sm-4">Faixa salarial</dt>
-            <dd class="col-sm-8">
-                <?php
-                $salMin = !empty($v['salario_min']) ? 'R$ ' . number_format((float) $v['salario_min'], 2, ',', '.') : '';
-                $salMax = !empty($v['salario_max']) ? 'R$ ' . number_format((float) $v['salario_max'], 2, ',', '.') : '';
-                if ($salMin !== '' && $salMax !== '') {
-                    echo htmlspecialchars($salMin . ' — ' . $salMax, ENT_QUOTES, 'UTF-8');
-                } elseif ($salMin !== '') {
-                    echo 'A partir de ' . htmlspecialchars($salMin, ENT_QUOTES, 'UTF-8');
-                } else {
-                    echo 'Até ' . htmlspecialchars($salMax, ENT_QUOTES, 'UTF-8');
-                }
-                ?>
-            </dd>
+            <div class="col-6 col-md-4">
+                <div class="border rounded-3 p-2 bg-light h-100">
+                    <div class="small text-muted">Faixa salarial</div>
+                    <div class="fw-semibold small">
+                        <?php
+                        $salMin = !empty($v['salario_min']) ? 'R$ ' . number_format((float) $v['salario_min'], 2, ',', '.') : '';
+                        $salMax = !empty($v['salario_max']) ? 'R$ ' . number_format((float) $v['salario_max'], 2, ',', '.') : '';
+                        if ($salMin !== '' && $salMax !== '') {
+                            echo htmlspecialchars($salMin . ' — ' . $salMax, ENT_QUOTES, 'UTF-8');
+                        } elseif ($salMin !== '') {
+                            echo 'A partir de ' . htmlspecialchars($salMin, ENT_QUOTES, 'UTF-8');
+                        } else {
+                            echo 'Até ' . htmlspecialchars($salMax, ENT_QUOTES, 'UTF-8');
+                        }
+                        ?>
+                    </div>
+                </div>
+            </div>
         <?php endif; ?>
         <?php if (!empty($v['data_limite_inscricao'])): ?>
-            <dt class="col-sm-4">Inscrições até</dt>
-            <dd class="col-sm-8"><?= htmlspecialchars(FormatHelper::formatDateTime($v['data_limite_inscricao']), ENT_QUOTES, 'UTF-8') ?></dd>
+            <div class="col-6 col-md-4">
+                <div class="border rounded-3 p-2 bg-light h-100">
+                    <div class="small text-muted">Inscrições até</div>
+                    <div class="fw-semibold small"><?= htmlspecialchars(FormatHelper::formatDateTime($v['data_limite_inscricao']), ENT_QUOTES, 'UTF-8') ?></div>
+                </div>
+            </div>
         <?php endif; ?>
-    </dl>
+    </div>
 
     <?php if (!empty($v['descricao'])): ?>
         <h3 class="h6 text-uppercase text-muted">Descrição</h3>

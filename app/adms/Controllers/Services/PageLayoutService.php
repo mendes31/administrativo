@@ -566,6 +566,8 @@ class PageLayoutService
             'RhVagasPublicasConfig',
             'RhOfertasCreate',
             'RhOfertasView',
+            'RhPreAdmissaoDownloadDoc',
+            'RhPreAdmissaoDocsPublic',
             'RhOfertasConvert',
             'RhOnboardingView',
             'RhExperienciaView',

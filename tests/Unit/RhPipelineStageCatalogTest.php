@@ -14,11 +14,11 @@ final class RhPipelineStageCatalogTest extends TestCase
         RhPipelineStageCatalog::clearCache();
     }
 
-    public function testDefaultsContainFiveStableCodes(): void
+    public function testDefaultsContainStableCodesIncludingBancoTalentos(): void
     {
         $codes = array_column(RhPipelineStageCatalog::defaults(), 'code');
         self::assertSame(
-            ['candidatado', 'em_entrevista', 'aprovado', 'reprovado', 'desistiu'],
+            ['candidatado', 'em_entrevista', 'aprovado', 'banco_talentos', 'reprovado', 'desistiu'],
             $codes
         );
     }

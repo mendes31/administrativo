@@ -16,7 +16,7 @@ $e = $this->data['entrevista'] ?? [];
     <div class="card mb-4 border-light shadow">
         <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
             <span><i class="fas fa-calendar-alt me-2"></i>Entrevista #<?= (int)($e['id'] ?? 0) ?></span>
-            <div class="btn-group">
+            <div class="btn-group flex-wrap">
                 <?php if (!empty($this->data['buttonPermission']['RhEntrevistasEdit'])
                     && !empty($this->data['can_manage_entrevista'])): ?>
                 <a href="<?php echo $_ENV['URL_ADM']; ?>rh-entrevistas-edit/<?= (int)$e['id'] ?>" class="btn btn-secondary btn-sm">
@@ -36,19 +36,19 @@ $e = $this->data['entrevista'] ?? [];
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <dl class="row mb-0">
-                <dt class="col-sm-3">Candidato</dt>
-                <dd class="col-sm-9">
+            <dl class="row mb-0 gy-2">
+                <dt class="col-12 col-sm-3 text-muted small text-uppercase">Candidato</dt>
+                <dd class="col-12 col-sm-9">
                     <a href="<?php echo $_ENV['URL_ADM']; ?>rh-candidatos-view/<?= (int)($e['rh_candidato_id'] ?? 0) ?>">
                         <?= htmlspecialchars($e['candidato_nome'] ?? '-') ?>
                     </a>
                     <?php if (!empty($e['candidato_email'])): ?>
-                        <br><small class="text-muted"><?= htmlspecialchars($e['candidato_email']) ?></small>
+                        <br><small class="text-muted text-break"><?= htmlspecialchars($e['candidato_email']) ?></small>
                     <?php endif; ?>
                 </dd>
 
-                <dt class="col-sm-3">Vaga</dt>
-                <dd class="col-sm-9">
+                <dt class="col-12 col-sm-3 text-muted small text-uppercase">Vaga</dt>
+                <dd class="col-12 col-sm-9">
                     <?php if (!empty($e['rh_vaga_id'])): ?>
                         <a href="<?php echo $_ENV['URL_ADM']; ?>rh-vagas-view/<?= (int)$e['rh_vaga_id'] ?>">
                             <?= htmlspecialchars($e['vaga_titulo'] ?? '-') ?>
@@ -58,20 +58,20 @@ $e = $this->data['entrevista'] ?? [];
                     <?php endif; ?>
                 </dd>
 
-                <dt class="col-sm-3">Tipo</dt>
-                <dd class="col-sm-9"><?= htmlspecialchars(ucfirst($e['tipo'] ?? '-')) ?></dd>
+                <dt class="col-6 col-sm-3 text-muted small text-uppercase">Tipo</dt>
+                <dd class="col-6 col-sm-9"><?= htmlspecialchars(ucfirst($e['tipo'] ?? '-')) ?></dd>
 
-                <dt class="col-sm-3">Data e Hora</dt>
-                <dd class="col-sm-9"><?= FormatHelper::formatDateTime($e['data_hora'] ?? '') ?></dd>
+                <dt class="col-6 col-sm-3 text-muted small text-uppercase">Data e Hora</dt>
+                <dd class="col-6 col-sm-9"><?= FormatHelper::formatDateTime($e['data_hora'] ?? '') ?></dd>
 
-                <dt class="col-sm-3">Entrevistador</dt>
-                <dd class="col-sm-9"><?= htmlspecialchars($e['entrevistador_nome'] ?? '-') ?></dd>
+                <dt class="col-6 col-sm-3 text-muted small text-uppercase">Entrevistador</dt>
+                <dd class="col-6 col-sm-9 text-break"><?= htmlspecialchars($e['entrevistador_nome'] ?? '-') ?></dd>
 
-                <dt class="col-sm-3">Local</dt>
-                <dd class="col-sm-9"><?= htmlspecialchars($e['local'] ?? '-') ?></dd>
+                <dt class="col-6 col-sm-3 text-muted small text-uppercase">Local</dt>
+                <dd class="col-6 col-sm-9 text-break"><?= htmlspecialchars($e['local'] ?? '-') ?></dd>
 
-                <dt class="col-sm-3">Resultado</dt>
-                <dd class="col-sm-9">
+                <dt class="col-6 col-sm-3 text-muted small text-uppercase">Resultado</dt>
+                <dd class="col-6 col-sm-9">
                     <?php
                     $res = $e['resultado'] ?? '';
                     $resClass = match($res) {
@@ -86,13 +86,13 @@ $e = $this->data['entrevista'] ?? [];
                 </dd>
 
                 <?php if (!empty($e['observacoes'])): ?>
-                <dt class="col-sm-3">Observações</dt>
-                <dd class="col-sm-9"><?= nl2br(htmlspecialchars($e['observacoes'])) ?></dd>
+                <dt class="col-12 col-sm-3 text-muted small text-uppercase">Observações</dt>
+                <dd class="col-12 col-sm-9 text-break"><?= nl2br(htmlspecialchars($e['observacoes'])) ?></dd>
                 <?php endif; ?>
 
                 <?php if (!empty($e['feedback'])): ?>
-                <dt class="col-sm-3">Feedback</dt>
-                <dd class="col-sm-9"><?= nl2br(htmlspecialchars($e['feedback'])) ?></dd>
+                <dt class="col-12 col-sm-3 text-muted small text-uppercase">Feedback</dt>
+                <dd class="col-12 col-sm-9 text-break"><?= nl2br(htmlspecialchars($e['feedback'])) ?></dd>
                 <?php endif; ?>
             </dl>
         </div>
