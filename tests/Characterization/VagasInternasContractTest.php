@@ -30,13 +30,15 @@ final class VagasInternasContractTest extends TestCase
         $service = $this->readProjectFile(
             'app/adms/Models/Services/RhCandidaturaInternaService.php'
         );
-        self::assertStringContainsString('portal_interno', $service);
+        self::assertStringContainsString('PORTAL_INTERNO', $service);
         self::assertStringContainsString('vincularUsuarioConversao', $service);
         self::assertStringContainsString('findActiveByAdmsUserId', $service);
 
         $controller = $this->readProjectFile('app/adms/Controllers/portal/VagasInternas.php');
         self::assertStringContainsString('RhCandidaturaInternaService', $controller);
         self::assertStringContainsString('form_vagas_internas_candidatar', $controller);
+        self::assertStringContainsString('resolveCandidatouMap', $controller);
+        self::assertStringContainsString('ja_candidatou', $controller);
     }
 
     public function testPortalUiSurfacesEntryPoints(): void
@@ -46,8 +48,19 @@ final class VagasInternasContractTest extends TestCase
         $dash = $this->readProjectFile('app/adms/Views/portal/dashboard.php');
 
         self::assertStringContainsString('Vagas internas', $list);
+        self::assertStringContainsString('Candidate-se', $list);
+        self::assertStringContainsString('Candidatura enviada', $list);
+        self::assertStringContainsString('Ver detalhes', $list);
+        self::assertStringContainsString('ja_candidatou', $list);
         self::assertStringContainsString('lgpd_consent', $view);
+        self::assertStringContainsString('id="candidatar"', $view);
         self::assertStringContainsString('vagas-internas', $dash);
+        self::assertStringContainsString('total_vagas_internas', $dash);
+        self::assertStringContainsString('col-md-3', $dash);
+
+        $menu = $this->readProjectFile('app/adms/Views/partials/menu.php');
+        self::assertStringContainsString("'url' => \$_ENV['URL_ADM'] . 'vagas-internas'", $menu);
+        self::assertStringContainsString("'permission' => 'VagasInternas'", $menu);
     }
 
     private function readProjectFile(string $relativePath): string

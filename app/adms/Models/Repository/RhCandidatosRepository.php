@@ -627,6 +627,32 @@ class RhCandidatosRepository extends DbConnection
         return (bool) $stmt->fetchColumn();
     }
 
+    /**
+     * IDs de vagas às quais o candidato já está vinculado (para badges na listagem).
+     *
+     * @return array<int, true> mapa vaga_id => true
+     */
+    public function getVagaIdsVinculadosMap(int $candidatoId): array
+    {
+        if ($candidatoId <= 0) {
+            return [];
+        }
+        $stmt = $this->getConnection()->prepare(
+            'SELECT rh_vaga_id FROM rh_candidatos_vagas WHERE rh_candidato_id = :candidato_id'
+        );
+        $stmt->bindValue(':candidato_id', $candidatoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $map = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) ?: [] as $vagaId) {
+            $id = (int) $vagaId;
+            if ($id > 0) {
+                $map[$id] = true;
+            }
+        }
+
+        return $map;
+    }
+
     public function touchLgpdConsent(int $candidatoId, int $termoId, int $consentId): void
     {
         if ($candidatoId <= 0 || $consentId <= 0) {

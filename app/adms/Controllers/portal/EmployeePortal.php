@@ -45,6 +45,15 @@ class EmployeePortal
         $this->data['employment_history'] = $historyRepo->getByUserId($employeeId);
         $this->data['total_tenure'] = $historyRepo->calculateTotalTenure($employeeId);
 
+        $this->data['total_vagas_internas'] = 0;
+        try {
+            $internas = (new \App\adms\Models\Repository\RhVagasRepository())->listInternas([], 1, 1);
+            $this->data['total_vagas_internas'] = (int) ($internas['total'] ?? 0);
+        } catch (\Throwable $e) {
+            // Migration/visibilidade pode não existir ainda em alguns ambientes
+            $this->data['total_vagas_internas'] = 0;
+        }
+
         $pageElements = [
             'title_head' => 'Portal do Colaborador',
             'menu' => 'employee-portal',

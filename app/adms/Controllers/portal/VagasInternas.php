@@ -47,6 +47,7 @@ class VagasInternas
 
     private function list(): void
     {
+        $userId = (int) ($_SESSION['user_id'] ?? 0);
         $page = max(1, (int) ($_GET['page'] ?? 1));
         $q = trim((string) ($_GET['q'] ?? ''));
         $result = (new RhVagasRepository())->listInternas(
@@ -55,8 +56,17 @@ class VagasInternas
             12
         );
 
+        $candidatouMap = $this->resolveCandidatouMap($userId);
+        $vagas = [];
+        foreach ($result['data'] as $row) {
+            $vagaId = (int) ($row['id'] ?? 0);
+            $row['ja_candidatou'] = $vagaId > 0 && isset($candidatouMap[$vagaId]);
+            $row['status_label'] = 'Aberta';
+            $vagas[] = $row;
+        }
+
         $this->data = [
-            'vagas' => $result['data'],
+            'vagas' => $vagas,
             'total' => $result['total'],
             'page' => $page,
             'per_page' => 12,
@@ -64,6 +74,33 @@ class VagasInternas
         ];
 
         $this->render('list', 'Vagas internas');
+    }
+
+    /**
+     * @return array<int, true>
+     */
+    private function resolveCandidatouMap(int $userId): array
+    {
+        if ($userId <= 0) {
+            return [];
+        }
+        $candRepo = new RhCandidatosRepository();
+        $existing = $candRepo->findActiveByAdmsUserId($userId);
+        if ($existing === null) {
+            $userEmail = strtolower(trim((string) (($_SESSION['user_email'] ?? '') ?: '')));
+            if ($userEmail === '') {
+                $user = (new \App\adms\Models\Repository\UsersRepository())->getUser($userId);
+                $userEmail = is_array($user) ? strtolower(trim((string) ($user['email'] ?? ''))) : '';
+            }
+            if ($userEmail !== '') {
+                $existing = $candRepo->findActiveByEmail($userEmail);
+            }
+        }
+        if ($existing === null) {
+            return [];
+        }
+
+        return $candRepo->getVagaIdsVinculadosMap((int) $existing['id']);
     }
 
     private function show(int $id, int $userId, array $form = []): void

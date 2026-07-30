@@ -66,10 +66,14 @@ use App\adms\Helpers\PositionDisplayHelper;
         </div>
     <?php endif; ?>
 
+    <?php
+    $canVagasInternas = in_array('VagasInternas', $this->data['buttonPermission'] ?? [], true);
+    $resumoCol = $canVagasInternas ? 'col-md-3' : 'col-md-4';
+    ?>
     <div class="row g-4">
         <!-- Cards de Resumo -->
-        <div class="col-md-4">
-            <div class="card border-primary shadow">
+        <div class="<?= $resumoCol ?>">
+            <div class="card border-primary shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
                     <h3 class="mb-0"><?= $this->data['total_requests'] ?? 0 ?></h3>
@@ -81,8 +85,8 @@ use App\adms\Helpers\PositionDisplayHelper;
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-warning shadow">
+        <div class="<?= $resumoCol ?>">
+            <div class="card border-warning shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-ticket-alt fa-3x text-warning mb-3"></i>
                     <h3 class="mb-0"><?= $this->data['total_tickets'] ?? 0 ?></h3>
@@ -94,8 +98,8 @@ use App\adms\Helpers\PositionDisplayHelper;
             </div>
         </div>
 
-        <div class="col-md-4">
-            <div class="card border-info shadow">
+        <div class="<?= $resumoCol ?>">
+            <div class="card border-info shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-clock fa-3x text-info mb-3"></i>
                     <h3 class="mb-0"><?= count($this->data['pending_requests'] ?? []) ?></h3>
@@ -106,28 +110,24 @@ use App\adms\Helpers\PositionDisplayHelper;
                 </div>
             </div>
         </div>
-    </div>
 
-    <div class="row g-4 mt-2">
-        <?php if (in_array('VagasInternas', $this->data['buttonPermission'] ?? [], true)): ?>
-        <div class="col-12">
-            <div class="card mb-4 border-light shadow">
-                <div class="card-header hstack gap-2">
-                    <span><i class="fas fa-briefcase me-2"></i>Vagas internas</span>
-                    <span class="ms-auto">
-                        <a href="<?php echo $_ENV['URL_ADM']; ?>vagas-internas" class="btn btn-sm btn-primary">
-                            Ver oportunidades
-                        </a>
-                    </span>
-                </div>
-                <div class="card-body">
-                    <p class="mb-0 text-muted small">
-                        Consulte vagas abertas para colaboradores e candidate-se com o seu usuário logado.
-                    </p>
+        <?php if ($canVagasInternas): ?>
+        <div class="<?= $resumoCol ?>">
+            <div class="card border-success shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-briefcase fa-3x text-success mb-3"></i>
+                    <h3 class="mb-0"><?= (int) ($this->data['total_vagas_internas'] ?? 0) ?></h3>
+                    <p class="text-muted mb-0">Vagas internas</p>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>vagas-internas" class="btn btn-success btn-sm mt-2">
+                        Ver oportunidades
+                    </a>
                 </div>
             </div>
         </div>
         <?php endif; ?>
+    </div>
+
+    <div class="row g-4 mt-2">
         <!-- Solicitações Pendentes -->
         <div class="col-md-6">
             <div class="card mb-4 border-light shadow">

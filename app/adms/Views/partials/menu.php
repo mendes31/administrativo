@@ -1063,6 +1063,13 @@ $menus = [
                         'related_routes' => ['employee-portal'],
                     ],
                     [
+                        'label' => 'Vagas internas',
+                        'url' => $_ENV['URL_ADM'] . 'vagas-internas',
+                        'permission' => 'VagasInternas',
+                        'icon' => 'fas fa-briefcase',
+                        'related_routes' => ['vagas-internas'],
+                    ],
+                    [
                         'label' => 'Meus documentos (folha)',
                         'url' => $_ENV['URL_ADM'] . 'my-payroll-documents',
                         'permission' => 'MyPayrollDocuments',

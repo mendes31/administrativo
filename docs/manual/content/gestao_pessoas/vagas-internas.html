@@ -1,7 +1,7 @@
 <h1>Vagas internas</h1>
 
 <h2>Função no sistema</h2>
-<p>Lista oportunidades com divulgação interna (ou ambas) e permite ao colaborador autenticado candidatar-se sem usar o portal público.</p>
+<p>Lista oportunidades com divulgação interna (ou ambas) no portal do colaborador e permite candidatar-se com o usuário logado, sem portal público.</p>
 
 <p class="help-note"><strong>Relacionado:</strong> <em>Listar Vagas</em> (<code>rh-vagas</code>), <em>Vagas abertas</em> (<code>vagas-abertas</code>) e <em>Portal do Colaborador</em> (<code>employee-portal</code>).</p>
 
@@ -11,20 +11,25 @@
 <dl>
     <dt>Divulgação interna</dt>
     <dd>Canal da vaga no ATS: aparece em <code>vagas-internas</code> para colaboradores; não exige publicação no portal público.</dd>
+    <dt>Candidatura enviada</dt>
+    <dd>Indica que o colaborador logado já se candidatou àquela vaga; o botão de candidatura fica desabilitado.</dd>
     <dt>LGPD</dt>
     <dd>Consentimento obrigatório no envio da candidatura (mesmo termo usado no portal público de vagas).</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>No Portal do Colaborador, abra <strong>Vagas internas</strong> (ou a URL <code>vagas-internas</code>).</li>
-    <li>Escolha uma vaga aberta e dentro do prazo.</li>
-    <li>Leia a descrição, aceite o termo LGPD e envie (mensagem opcional).</li>
+    <li>No menu <strong>Gestão de Pessoas → Portal do Colaborador → Vagas internas</strong> (ou pelo card <strong>Ver oportunidades</strong> no Portal), abra a listagem.</li>
+    <li>Na listagem em cards, veja o status <em>Aberta</em>, use <strong>Ver detalhes</strong> ou <strong>Candidate-se</strong> (ou o badge <em>Candidatura enviada</em> se já tiver enviado).</li>
+    <li>No detalhe, leia a descrição, aceite o termo LGPD e envie (mensagem opcional).</li>
     <li>O sistema cria/reutiliza o cadastro de candidato ligado ao seu usuário e vincula à vaga.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Busca</strong> Filtra pelo título da vaga.</div>
+<div class="help-field"><strong>Status</strong> Na listagem, badge <em>Aberta</em> (só entram vagas abertas e no prazo).</div>
+<div class="help-field"><strong>Ver detalhes</strong> Abre a ficha moderna com cards de área/cargo/contrato/local, descrição, requisitos, benefícios e formulário de candidatura.</div>
+<div class="help-field"><strong>Candidate-se / Candidatura enviada</strong> Atalho para o formulário ou indicação de que já candidatou.</div>
 <div class="help-field"><strong>Mensagem</strong> Texto opcional anexado à candidatura.</div>
 <div class="help-field"><strong>Consentimento LGPD</strong> Obrigatório para enviar.</div>
 
@@ -33,9 +38,13 @@
     <dt>Não vejo nenhuma vaga</dt>
     <dd>Só entram vagas com divulgação <em>interna</em> ou <em>ambas</em>, status <em>Aberta</em> e prazo válido. Peça ao RH para conferir o cadastro da vaga.</dd>
     <dt>Você já se candidatou</dt>
-    <dd>O mesmo usuário/e-mail não pode se candidatar duas vezes à mesma vaga.</dd>
+    <dd>O mesmo usuário/e-mail não pode se candidatar duas vezes à mesma vaga. A listagem mostra <em>Candidatura enviada</em>.</dd>
     <dt>Termo LGPD indisponível</dt>
     <dd>Falta termo ativo do tipo <code>curriculo_candidato</code>. Contate o RH/LGPD.</dd>
+    <dt>Onde encontro Vagas internas?</dt>
+    <dd>No <strong>Portal do Colaborador</strong>: card verde na fila de resumo (ao lado de Solicitações/Chamados/Pendentes) e no menu <strong>Portal do Colaborador → Vagas internas</strong>. Com a permissão, a fila passa a ter 4 cards.</dd>
+    <dt>Não vejo o item no menu</dt>
+    <dd>Confirme a permissão <em>VagasInternas</em>. O item fica em <strong>Portal do Colaborador → Vagas internas</strong> (não no Dashboard “Bem-vindo”).</dd>
     <dt>Não vejo o card no portal</dt>
     <dd>Falta a permissão <em>VagasInternas</em> no nível de acesso. Rode a migration <code>20260727180000</code> e atualize o cache de permissões.</dd>
 </dl>
