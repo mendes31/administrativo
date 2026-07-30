@@ -60,9 +60,12 @@ analytics 11, workShifts 5, pdi 4, users 1.
 | Novo grupo (proposta) | Conteúdo | ~N |
 |------------------------|----------|---|
 | Gestão de Pessoas - Talentos / ATS | `Rh*`, requisições de pessoal | ~50 |
-| Gestão de Pessoas - Portal e Solicitações | portal, tipos, aprovações, delegações | ~40 |
+| **Portal do Colaborador** | self-service: início, minhas solicitações/chamados, vagas internas, meus docs folha | ~15 |
+| **Gestão de Pessoas - Solicitações (RH)** | aprovações, tipos, delegações, admin de folha | ~20 |
 | Gestão de Pessoas - Desempenho e Carreira | performance, PDI, pulse, career, succession… | ~55 |
 | Gestão de Pessoas - Organização e Políticas | policies, work shifts, headcount / analytics RH | ~30 |
+
+> Cisão adicional (2026-07-30): o antigo “Portal / Solicitações” foi dividido para permitir **Autorizar grupo** só no pacote do colaborador, sem liberar aprovações RH.
 
 Manter **Treinamentos (24)** e **Avaliações (25)** como estão.
 

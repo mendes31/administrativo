@@ -14,7 +14,8 @@ final class AdmsPageGroupSplit
     {
         return [
             'Gestão de Pessoas - Talentos (ATS)',
-            'Gestão de Pessoas - Portal / Solicitações',
+            'Portal do Colaborador',
+            'Gestão de Pessoas - Solicitações (RH)',
             'Gestão de Pessoas - Desempenho e Carreira',
             'Gestão de Pessoas - Organização / Políticas',
             'SST - Medicina / ASO / Exames',
@@ -188,6 +189,8 @@ final class AdmsPageGroupSplit
             'Gestão de Pessoas',
             'Gestão de Pessoas - Talentos (ATS)',
             'Gestão de Pessoas - Portal / Solicitações',
+            'Gestão de Pessoas - Solicitações (RH)',
+            'Portal do Colaborador',
             'Gestão de Pessoas - Desempenho e Carreira',
             'Gestão de Pessoas - Organização / Políticas',
             'GP - Talentos (ATS)',
@@ -274,14 +277,20 @@ final class AdmsPageGroupSplit
         if ($directory === 'rh' || str_starts_with($controller, 'Rh') || str_contains($lc, 'personnel')) {
             return 'Gestão de Pessoas - Talentos (ATS)';
         }
+
+        if (self::isPortalColaboradorController($controller)) {
+            return 'Portal do Colaborador';
+        }
+
         if (
             $directory === 'portal'
             || str_contains($lc, 'employee')
             || str_contains($lc, 'approval')
             || str_contains($lc, 'requesttype')
             || str_contains($lc, 'delegation')
+            || str_contains($lc, 'payroll')
         ) {
-            return 'Gestão de Pessoas - Portal / Solicitações';
+            return 'Gestão de Pessoas - Solicitações (RH)';
         }
         if (
             in_array($directory, ['performance', 'pdi'], true)
@@ -291,6 +300,29 @@ final class AdmsPageGroupSplit
         }
         // Políticas, turnos, headcount, analytics RH, histórico emprego
         return 'Gestão de Pessoas - Organização / Políticas';
+    }
+
+    /** Self-service do colaborador (menu Portal do Colaborador). */
+    public static function isPortalColaboradorController(string $controller): bool
+    {
+        return in_array($controller, [
+            'EmployeePortal',
+            'VagasInternas',
+            'ListEmployeeRequests',
+            'CreateEmployeeRequest',
+            'ViewEmployeeRequest',
+            'UpdateEmployeeRequest',
+            'ListEmployeeTickets',
+            'CreateEmployeeTicket',
+            'ViewEmployeeTicket',
+            'UpdateEmployeeTicket',
+            'MyPayrollDocuments',
+            'ViewPayrollDocument',
+            'SignPayrollDocument',
+            'ConfirmPayrollDocumentDownload',
+            'PayrollSignatureReceipt',
+            'ViewPayrollSignedBundle',
+        ], true);
     }
 
     public static function classifySst(string $controller): string

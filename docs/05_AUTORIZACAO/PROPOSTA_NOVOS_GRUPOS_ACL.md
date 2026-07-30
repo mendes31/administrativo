@@ -24,7 +24,8 @@ Sim - o padrão é exatamente esse:
 
 ```text
 Gestão de Pessoas - Talentos (ATS)
-Gestão de Pessoas - Portal / Solicitações
+Portal do Colaborador
+Gestão de Pessoas - Solicitações (RH)
 Gestão de Pessoas - Desempenho e Carreira
 Gestão de Pessoas - Organização / Políticas
 …
@@ -44,7 +45,8 @@ Meta operacional (~20–50 páginas/grupo): orientação de UX, **não** limite 
 | Novo grupo | ~Páginas | O que entra |
 |------------|--------:|-------------|
 | **Gestão de Pessoas - Talentos (ATS)** | 51 | Vagas, candidatos, entrevistas, ofertas, onboarding ATS, requisições de pessoal (`Rh*`) |
-| **Gestão de Pessoas - Portal / Solicitações** | 40 | Portal do colaborador, minhas solicitações, aprovações, tipos, delegações |
+| **Portal do Colaborador** | ~15 | Self-service: portal, minhas solicitações/chamados, vagas internas, meus documentos de folha |
+| **Gestão de Pessoas - Solicitações (RH)** | ~20 | Aprovações, tipos de solicitação, delegações, importação/admin de documentos de folha |
 | **Gestão de Pessoas - Desempenho e Carreira** | 60 | Avaliações de desempenho, metas, feedbacks, ciclos, PDI, 9BOX, pulse/eNPS, sucessão, trilhas |
 | **Gestão de Pessoas - Organização / Políticas** | 24+ | Políticas internas, categorias, turnos, quadro/headcount, analytics RH |
 
@@ -131,7 +133,8 @@ Informativos permanece no grupo próprio (não misturar).
 **Depois:** o admin vê, por exemplo:
 
 - Gestão de Pessoas - Talentos (ATS) - Autorizar grupo  
-- Gestão de Pessoas - Portal / Solicitações - Autorizar grupo  
+- Portal do Colaborador - Autorizar grupo  
+- Gestão de Pessoas - Solicitações (RH) - Autorizar grupo  
 - …
 
 Mesma lógica para SST e LGPD.
