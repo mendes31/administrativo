@@ -399,6 +399,28 @@
     opacity: 1 !important;
 }
 
+/* Pai de topo com filho ativo: só indica a seção aberta (não compete com o item folha). */
+.sb-sidenav-five .sb-sidenav-menu .nav > .nav-link.active[data-bs-toggle="collapse"] {
+    background: rgba(240, 239, 239, 0.22) !important;
+    color: #ffffff !important;
+    font-weight: 600;
+    box-shadow: none;
+    border-left: 3px solid #f0efef;
+    opacity: 1 !important;
+}
+.sb-sidenav-five .sb-sidenav-menu .nav > .nav-link.active[data-bs-toggle="collapse"]:hover {
+    background: rgba(240, 239, 239, 0.32) !important;
+    color: #ffffff !important;
+    box-shadow: none;
+}
+.sb-sidenav-five .sb-sidenav-menu .nav > .nav-link.active[data-bs-toggle="collapse"] .sb-nav-link-icon,
+.sb-sidenav-five .sb-sidenav-menu .nav > .nav-link.active[data-bs-toggle="collapse"]:hover .sb-nav-link-icon {
+    color: #ffffff !important;
+}
+.sb-sidenav-five .sb-sidenav-menu .nav > .nav-link.active[data-bs-toggle="collapse"] .sb-sidenav-collapse-arrow {
+    color: #f0efef !important;
+}
+
 /* Estado ativo - outros temas */
 .sb-sidenav:not(.sb-sidenav-five) .nav-link.active {
     background: var(--menu-active-bg) !important;

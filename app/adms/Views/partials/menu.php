@@ -1422,8 +1422,6 @@ $menus = [
                     'ti-sistemas-create',
                     'ti-sistemas-update',
                     'ti-sistemas-view',
-                    'ti-acessos-create',
-                    'ti-acessos-revoke',
                 ],
             ],
             [

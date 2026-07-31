@@ -50,7 +50,7 @@ final class TiAcessosCreate
 
         $pageElements = [
             'title_head' => 'Liberar Acesso (TI)',
-            'menu' => 'ti-sistemas',
+            'menu' => 'ti-acessos-create',
             'buttonPermission' => ['TiSistemas', 'TiSistemasView'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

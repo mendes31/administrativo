@@ -257,7 +257,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/custom_adms.css?v=20260731f">
     
     <!-- Menu Modernizado -->
-    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=20260617">
+    <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM'] ?>public/adms/css/menu-modern.css?v=20260731g">
     
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes -->
     <link rel="stylesheet" href="<?php echo $_ENV['URL_ADM']; ?>public/adms/css/responsive-screens.css">
