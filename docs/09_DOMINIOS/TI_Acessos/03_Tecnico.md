@@ -21,8 +21,14 @@ dado.
 
 ### `ti_sistemas`
 
-Fonte de verdade do catálogo. Campos: `codigo`, `nome`, `descricao`, `tipo`,
-`localizacao`, `observacoes`, `status`, `created_by_user_id`, timestamps.
+Fonte de verdade do catálogo. Campos: `codigo` (sequencial automático, 5 dígitos),
+`nome`, `descricao`, `tipo`,
+`localizacao`, `equipamento_tag`, `fabricante`, `modelo`, `numero_serie`,
+`adms_branch_id` (FK opcional para `adms_branches`), `observacoes`, `status`,
+`created_by_user_id`, timestamps.
+
+Para `tipo=embarcado`, `equipamento_tag` é obrigatória e única (uma instalação
+por máquina). Não há FK para Patrimônio/SST — `numero_serie` é texto livre.
 
 ### `ti_acessos`
 

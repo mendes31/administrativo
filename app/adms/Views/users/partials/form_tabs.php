@@ -662,11 +662,17 @@ $form = $this->data['form'] ?? [];
                                         <a href="<?= htmlspecialchars($urlAdm . 'ti-sistemas-view/' . (int) ($a['ti_sistema_id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
                                             <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                         </a>
+                                        <?php if (!empty($a['sistema_equipamento_tag'])): ?>
+                                            <div class="small text-muted"><?= htmlspecialchars((string) $a['sistema_equipamento_tag'], ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
                                     </td>
                                     <td class="small">
                                         <?= htmlspecialchars((string) ($a['sistema_tipo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                         <?php if (!empty($a['sistema_localizacao'])): ?>
                                             · <?= htmlspecialchars((string) $a['sistema_localizacao'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                        <?php if (!empty($a['sistema_filial_nome'])): ?>
+                                            <div class="text-muted"><?= htmlspecialchars((string) $a['sistema_filial_nome'], ENT_QUOTES, 'UTF-8') ?></div>
                                         <?php endif; ?>
                                     </td>
                                     <td><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
@@ -695,6 +701,9 @@ $form = $this->data['form'] ?? [];
                             <div class="d-flex justify-content-between align-items-start gap-2">
                                 <a class="user-view-list-card-title mb-0" href="<?= htmlspecialchars($urlAdm . 'ti-sistemas-view/' . (int) ($a['ti_sistema_id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
                                     <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    <?php if (!empty($a['sistema_equipamento_tag'])): ?>
+                                        <span class="fw-normal text-muted"> · <?= htmlspecialchars((string) $a['sistema_equipamento_tag'], ENT_QUOTES, 'UTF-8') ?></span>
+                                    <?php endif; ?>
                                 </a>
                                 <span class="badge flex-shrink-0 <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
                                     <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
@@ -702,7 +711,7 @@ $form = $this->data['form'] ?? [];
                             </div>
                             <dl class="user-view-list-card-dl mb-0">
                                 <div><dt>Tipo / local</dt><dd class="text-break">
-                                    <?= htmlspecialchars((string) ($a['sistema_tipo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?><?php if (!empty($a['sistema_localizacao'])): ?> · <?= htmlspecialchars((string) $a['sistema_localizacao'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+                                    <?= htmlspecialchars((string) ($a['sistema_tipo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?><?php if (!empty($a['sistema_localizacao'])): ?> · <?= htmlspecialchars((string) $a['sistema_localizacao'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?><?php if (!empty($a['sistema_filial_nome'])): ?> · <?= htmlspecialchars((string) $a['sistema_filial_nome'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
                                 </dd></div>
                                 <div><dt>Login</dt><dd class="text-break"><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
                                 <div><dt>Liberação</dt><dd><?= htmlspecialchars((string) ($a['data_liberacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>

@@ -5,6 +5,8 @@ use App\adms\Helpers\CSRFHelper;
 $url = (string) ($_ENV['URL_ADM'] ?? '');
 $form = $this->data['form'] ?? [];
 $tipos = $this->data['tipos'] ?? [];
+$filiais = $this->data['filiais'] ?? [];
+$codigoPreview = (string) ($this->data['codigoPreview'] ?? '');
 $csrf = CSRFHelper::generateCSRFToken('form_ti_sistema');
 ?>
 <div class="container-fluid px-4">

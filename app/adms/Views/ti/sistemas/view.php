@@ -40,7 +40,12 @@ $perms = $this->data['buttonPermission'] ?? [];
                         <?= htmlspecialchars((string) ($s['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                     </span>
                 </div>
+                <div class="col-md-3"><strong>Filial</strong><br><?= htmlspecialchars((string) ($s['filial_nome'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
                 <div class="col-md-3"><strong>Localização</strong><br><?= htmlspecialchars((string) ($s['localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="col-md-3"><strong>Tag do equipamento</strong><br><?= htmlspecialchars((string) ($s['equipamento_tag'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="col-md-3"><strong>Fabricante</strong><br><?= htmlspecialchars((string) ($s['fabricante'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="col-md-3"><strong>Modelo</strong><br><?= htmlspecialchars((string) ($s['modelo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
+                <div class="col-md-3"><strong>Nº série / patrimônio</strong><br><?= htmlspecialchars((string) ($s['numero_serie'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></div>
                 <div class="col-12"><strong>Descrição</strong><br><?= nl2br(htmlspecialchars((string) ($s['descricao'] ?? '—'), ENT_QUOTES, 'UTF-8')) ?></div>
                 <?php if (!empty($s['observacoes'])): ?>
                     <div class="col-12"><strong>Observações</strong><br><?= nl2br(htmlspecialchars((string) $s['observacoes'], ENT_QUOTES, 'UTF-8')) ?></div>

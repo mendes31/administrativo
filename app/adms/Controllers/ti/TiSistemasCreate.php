@@ -6,6 +6,7 @@ namespace App\adms\Controllers\ti;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\BranchesRepository;
 use App\adms\Models\Repository\TiSistemaRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -31,6 +32,8 @@ final class TiSistemasCreate
     private function viewForm(): void
     {
         $this->data['tipos'] = TiSistemaRepository::TIPOS;
+        $this->data['filiais'] = (new BranchesRepository())->getAllBranchesSelect();
+        $this->data['codigoPreview'] = (new TiSistemaRepository())->peekNextCodigo();
         $pageElements = [
             'title_head' => 'Cadastrar Sistema (TI)',
             'menu' => 'ti-sistemas',
@@ -42,20 +45,8 @@ final class TiSistemasCreate
 
     private function save(): void
     {
-        $form = $this->data['form'];
-        $errors = [];
-        $nome = trim((string) ($form['nome'] ?? ''));
-        if ($nome === '') {
-            $errors[] = 'Informe o nome do sistema.';
-        }
-        $tipo = (string) ($form['tipo'] ?? 'outro');
-        if (!in_array($tipo, TiSistemaRepository::TIPOS, true)) {
-            $errors[] = 'Tipo inválido.';
-        }
-        $status = (string) ($form['status'] ?? TiSistemaRepository::STATUS_ATIVO);
-        if (!in_array($status, [TiSistemaRepository::STATUS_ATIVO, TiSistemaRepository::STATUS_INATIVO], true)) {
-            $errors[] = 'Status inválido.';
-        }
+        $repo = new TiSistemaRepository();
+        [$errors, $payload] = $repo->validateAndNormalize($this->data['form'] ?? []);
 
         if ($errors !== []) {
             $this->data['errors'] = $errors;
@@ -63,15 +54,7 @@ final class TiSistemasCreate
             return;
         }
 
-        $id = (new TiSistemaRepository())->create([
-            'codigo' => $form['codigo'] ?? null,
-            'nome' => $nome,
-            'descricao' => $form['descricao'] ?? null,
-            'tipo' => $tipo,
-            'localizacao' => $form['localizacao'] ?? null,
-            'observacoes' => $form['observacoes'] ?? null,
-            'status' => $status,
-        ], (int) ($_SESSION['user_id'] ?? 0));
+        $id = $repo->create($payload, (int) ($_SESSION['user_id'] ?? 0));
 
         if ($id) {
             $_SESSION['msg'] = 'Sistema cadastrado com sucesso.';
@@ -80,7 +63,7 @@ final class TiSistemasCreate
             return;
         }
 
-        $this->data['errors'] = ['Não foi possível cadastrar o sistema. Verifique se o código já existe.'];
+        $this->data['errors'] = ['Não foi possível cadastrar o sistema. Tente novamente.'];
         $this->viewForm();
     }
 }

@@ -116,8 +116,18 @@ $emAndamento = $status === RhOffboardingRepository::STATUS_EM_ANDAMENTO;
                         <tbody>
                             <?php foreach ($tiAcessos as $a): ?>
                                 <tr>
-                                    <td><?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <td><?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if (!empty($a['sistema_equipamento_tag'])): ?>
+                                            <div class="small text-muted"><?= htmlspecialchars((string) $a['sistema_equipamento_tag'], ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td>
+                                        <?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if (!empty($a['sistema_filial_nome'])): ?>
+                                            <div class="small text-muted"><?= htmlspecialchars((string) $a['sistema_filial_nome'], ENT_QUOTES, 'UTF-8') ?></div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td>
                                         <span class="badge <?= ($a['status'] ?? '') === 'ativo' ? 'bg-warning text-dark' : 'bg-secondary' ?>">

@@ -6,6 +6,7 @@ namespace App\adms\Controllers\ti;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Repository\BranchesRepository;
 use App\adms\Models\Repository\TiSistemaRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -43,6 +44,7 @@ final class TiSistemasUpdate
     private function viewForm(int $sistemaId): void
     {
         $this->data['tipos'] = TiSistemaRepository::TIPOS;
+        $this->data['filiais'] = (new BranchesRepository())->getAllBranchesSelect();
         $this->data['sistema_id'] = $sistemaId;
         $pageElements = [
             'title_head' => 'Editar Sistema (TI)',
@@ -55,20 +57,8 @@ final class TiSistemasUpdate
 
     private function save(int $sistemaId): void
     {
-        $form = $this->data['form'];
-        $errors = [];
-        $nome = trim((string) ($form['nome'] ?? ''));
-        if ($nome === '') {
-            $errors[] = 'Informe o nome do sistema.';
-        }
-        $tipo = (string) ($form['tipo'] ?? 'outro');
-        if (!in_array($tipo, TiSistemaRepository::TIPOS, true)) {
-            $errors[] = 'Tipo inválido.';
-        }
-        $status = (string) ($form['status'] ?? TiSistemaRepository::STATUS_ATIVO);
-        if (!in_array($status, [TiSistemaRepository::STATUS_ATIVO, TiSistemaRepository::STATUS_INATIVO], true)) {
-            $errors[] = 'Status inválido.';
-        }
+        $repo = new TiSistemaRepository();
+        [$errors, $payload] = $repo->validateAndNormalize($this->data['form'] ?? [], $sistemaId);
 
         if ($errors !== []) {
             $this->data['errors'] = $errors;
@@ -76,15 +66,7 @@ final class TiSistemasUpdate
             return;
         }
 
-        $ok = (new TiSistemaRepository())->update($sistemaId, [
-            'codigo' => $form['codigo'] ?? null,
-            'nome' => $nome,
-            'descricao' => $form['descricao'] ?? null,
-            'tipo' => $tipo,
-            'localizacao' => $form['localizacao'] ?? null,
-            'observacoes' => $form['observacoes'] ?? null,
-            'status' => $status,
-        ], (int) ($_SESSION['user_id'] ?? 0));
+        $ok = $repo->update($sistemaId, $payload, (int) ($_SESSION['user_id'] ?? 0));
 
         if ($ok) {
             $_SESSION['msg'] = 'Sistema atualizado com sucesso.';
@@ -93,7 +75,7 @@ final class TiSistemasUpdate
             return;
         }
 
-        $this->data['errors'] = ['Não foi possível atualizar. Verifique se o código já existe.'];
+        $this->data['errors'] = ['Não foi possível atualizar. Verifique se a tag do equipamento já existe.'];
         $this->viewForm($sistemaId);
     }
 }

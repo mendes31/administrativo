@@ -28,14 +28,17 @@ class TiAcessoRepository extends DbConnection
                        s.nome AS sistema_nome,
                        s.tipo AS sistema_tipo,
                        s.localizacao AS sistema_localizacao,
-                       s.status AS sistema_status
+                       s.equipamento_tag AS sistema_equipamento_tag,
+                       s.status AS sistema_status,
+                       COALESCE(NULLIF(b.nome_fantasia, \'\'), b.name) AS sistema_filial_nome
                 FROM ti_acessos a
                 INNER JOIN ti_sistemas s ON s.id = a.ti_sistema_id
+                LEFT JOIN adms_branches b ON b.id = s.adms_branch_id
                 WHERE a.adms_user_id = :uid';
         if ($status !== null) {
             $sql .= ' AND a.status = :status';
         }
-        $sql .= ' ORDER BY a.status ASC, s.nome ASC';
+        $sql .= ' ORDER BY a.status ASC, s.nome ASC, s.equipamento_tag ASC';
 
         try {
             $stmt = $this->getConnection()->prepare($sql);

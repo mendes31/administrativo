@@ -1,12 +1,14 @@
 <h1>Sistemas (TI / Acessos)</h1>
 
 <h2>Função no sistema</h2>
-<p>Catálogo de sistemas e equipamentos que possuem controle de usuário próprio (incluindo embarcados fora da rede). Serve de base para o mapa colaborador ↔ acesso usado no desligamento.</p>
+<p>Catálogo de sistemas e equipamentos que possuem controle de usuário próprio (incluindo embarcados fora da rede). Serve de base para o mapa colaborador ↔ acesso usado no desligamento. Cada instalação física de um sistema embarcado deve ser um registro separado, identificado pela tag do equipamento e, quando possível, pela filial.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Sistema embarcado</dt>
     <dd>Aplicação ou painel instalado em equipamento de chão de fábrica (CLP, IHM etc.), muitas vezes sem rede corporativa permanente.</dd>
+    <dt>Tag do equipamento</dt>
+    <dd>Identificador da máquina física (ex.: <em>EXT-03</em>, <em>IHM-L1</em>). Permite distinguir o mesmo software em equipamentos diferentes.</dd>
     <dt>Mapa de acessos</dt>
     <dd>Registro de quais colaboradores têm conta/login em cada sistema do catálogo — não é a ACL de páginas deste Portal.</dd>
 </dl>
@@ -16,16 +18,21 @@
 <h2>Fluxo principal</h2>
 <ol>
     <li>Acesse <em>TI / Acessos → Sistemas</em>.</li>
-    <li>Clique em <strong>Cadastrar</strong> e informe nome, tipo (ex.: embarcado), localização e status.</li>
+    <li>Clique em <strong>Cadastrar</strong>. Informe o nome do software, o tipo e a filial.</li>
+    <li>Se o tipo for <strong>embarcado</strong>, preencha obrigatoriamente a <strong>tag do equipamento</strong> (e, se útil, fabricante, modelo e nº de série).</li>
+    <li>Cadastre uma linha por instalação física (mesmo software em duas máquinas = dois registros).</li>
     <li>Abra o sistema e use <strong>Liberar acesso</strong> para vincular colaboradores.</li>
     <li>Na ficha do sistema, acompanhe quem ainda está ativo e marque <strong>Inativar</strong> após desligar a conta no equipamento.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Código</strong> Identificador opcional e único.</div>
-<div class="help-field"><strong>Nome</strong> Nome do sistema ou equipamento (obrigatório).</div>
+<div class="help-field"><strong>Código interno</strong> Gerado automaticamente ao cadastrar (sequencial numérico com 5 dígitos, ex.: 00001). Na edição fica somente leitura.</div>
+<div class="help-field"><strong>Nome</strong> Nome do sistema ou software (obrigatório). Ex.: IHM Siemens.</div>
 <div class="help-field"><strong>Tipo</strong> embarcado, local, rede, saas ou outro.</div>
-<div class="help-field"><strong>Localização</strong> Área ou máquina onde o acesso deve ser inativado.</div>
+<div class="help-field"><strong>Filial</strong> Unidade (cadastro de Filiais) onde o sistema/equipamento está instalado.</div>
+<div class="help-field"><strong>Localização</strong> Área ou linha dentro da filial (ex.: Linha 1, Portaria).</div>
+<div class="help-field"><strong>Tag do equipamento</strong> Identificação da máquina. Obrigatória para tipo embarcado; única no catálogo.</div>
+<div class="help-field"><strong>Fabricante / Modelo / Nº série</strong> Detalhes opcionais do equipamento (exibidos quando o tipo é embarcado). O nº de série é texto livre — sem vínculo automático com Patrimônio.</div>
 <div class="help-field"><strong>Status</strong> Ativo (pode receber novos acessos) ou inativo.</div>
 <div class="help-field"><strong>Acessos ativos</strong> Contagem de vínculos ainda não revogados.</div>
 
@@ -33,8 +40,12 @@
 <dl>
     <dt>Menu TI / Acessos não aparece</dt>
     <dd>Libere as páginas do grupo <em>TI - Sistemas e Acessos</em> no nível de acesso (páginas nascem sem permissão automática).</dd>
+    <dt>Erro ao salvar embarcado sem tag</dt>
+    <dd>Para tipo <em>embarcado</em> a tag do equipamento é obrigatória. Use uma tag distinta por máquina.</dd>
+    <dt>Tag já cadastrada</dt>
+    <dd>A tag precisa ser única. Se o mesmo software existe em outra máquina, cadastre outro registro com outra tag.</dd>
     <dt>Não consigo liberar acesso</dt>
     <dd>O sistema precisa estar com status ativo. Confira também a permissão <em>TiAcessosCreate</em>.</dd>
-    <dt>Página não encontrada</dt>
-    <dd>Execute a migration <code>20260730170000_create_ti_sistemas_acessos</code>.</dd>
+    <dt>Página não encontrada / campos novos ausentes</dt>
+    <dd>Execute as migrations <code>20260730170000_create_ti_sistemas_acessos</code> e <code>20260731140000_enrich_ti_sistemas_equipamento</code>.</dd>
 </dl>

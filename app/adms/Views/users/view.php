@@ -492,14 +492,24 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                                 <tbody>
                                     <?php foreach ($tiAcessosView as $a): ?>
                                         <tr>
-                                            <td><?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td>
+                                                <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                <?php if (!empty($a['sistema_equipamento_tag'])): ?>
+                                                    <div class="small text-muted"><?= htmlspecialchars((string) $a['sistema_equipamento_tag'], ENT_QUOTES, 'UTF-8') ?></div>
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
                                             <td>
                                                 <span class="badge <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
                                                     <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                                 </span>
                                             </td>
-                                            <td><?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td>
+                                                <?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?>
+                                                <?php if (!empty($a['sistema_filial_nome'])): ?>
+                                                    <div class="small text-muted"><?= htmlspecialchars((string) $a['sistema_filial_nome'], ENT_QUOTES, 'UTF-8') ?></div>
+                                                <?php endif; ?>
+                                            </td>
                                             <?php if ($canRevokeView): ?>
                                                 <td>
                                                     <?php if (($a['status'] ?? '') === 'ativo'): ?>
@@ -521,7 +531,12 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                             <?php foreach ($tiAcessosView as $a): ?>
                                 <article class="user-view-list-card">
                                     <div class="d-flex justify-content-between align-items-start gap-2">
-                                        <div class="user-view-list-card-title mb-0"><?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <div class="user-view-list-card-title mb-0">
+                                            <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                            <?php if (!empty($a['sistema_equipamento_tag'])): ?>
+                                                <span class="fw-normal text-muted"> · <?= htmlspecialchars((string) $a['sistema_equipamento_tag'], ENT_QUOTES, 'UTF-8') ?></span>
+                                            <?php endif; ?>
+                                        </div>
                                         <span class="badge flex-shrink-0 <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
                                             <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
                                         </span>

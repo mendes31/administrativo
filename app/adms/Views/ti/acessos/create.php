@@ -54,7 +54,7 @@ $csrf = CSRFHelper::generateCSRFToken('form_ti_acesso');
                         <option value="">Selecione…</option>
                         <?php foreach ($sistemas as $s): ?>
                             <option value="<?= (int) ($s['id'] ?? 0) ?>" <?= (int) ($form['ti_sistema_id'] ?? 0) === (int) ($s['id'] ?? 0) ? 'selected' : '' ?>>
-                                <?= htmlspecialchars((string) ($s['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                <?= htmlspecialchars(\App\adms\Models\Repository\TiSistemaRepository::formatLabel($s), ENT_QUOTES, 'UTF-8') ?>
                             </option>
                         <?php endforeach; ?>
                     </select>

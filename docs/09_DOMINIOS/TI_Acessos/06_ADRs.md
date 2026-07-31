@@ -16,4 +16,5 @@
 ## Decisões pendentes
 
 - Evolução do sujeito para `rh_pessoa_id` quando Contract de identidade for exigido.
-- Ownership futuro de ativos de hardware (Patrimônio) vs. sistemas lógicos (TI).
+- Ownership futuro de ativos de hardware (Patrimônio) vs. sistemas lógicos (TI);
+  hoje a tag/`numero_serie` são textuais, sem FK.

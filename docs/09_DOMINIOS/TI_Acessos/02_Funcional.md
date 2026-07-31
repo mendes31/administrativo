@@ -29,7 +29,10 @@
 ### Cadastrar sistema
 
 - Objetivo: registrar nome e contexto do sistema/equipamento.
-- Entrada: nome, tipo (`embarcado|local|rede|saas|outro`), localização, status.
+- Entrada: nome, tipo (`embarcado|local|rede|saas|outro`), filial, localização,
+  tag do equipamento (obrigatória se embarcado), fabricante/modelo/série (opc.),
+  status. Código interno é sequencial automático (ex.: 00001).
+- Regra: cada instalação física de sistema embarcado = um registro; tag única.
 - Saída: registro em `ti_sistemas`.
 - Evidência: log de alteração.
 
