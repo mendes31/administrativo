@@ -1192,10 +1192,12 @@ select.input-search:focus{
     }
 }
 .user-view-tabs-scroll {
+    position: relative;
     overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     scrollbar-width: thin;
+    overscroll-behavior-x: contain;
 }
 .user-view-tabs-scroll::-webkit-scrollbar {
     height: 4px;
@@ -1226,6 +1228,38 @@ select.input-search:focus{
 #userFormTabs .nav-link i {
     font-size: 0.875rem !important;
 }
+
+/* Edição: faixa de abas fixa ao rolar o formulário; evita “perder” a seção ativa. */
+.user-edit-page .card-body {
+    max-width: 100%;
+    overflow-x: clip;
+}
+.user-edit-page .user-form-tabs-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 25;
+    background: #fff;
+    padding-top: 0.15rem;
+    padding-bottom: 0.35rem;
+    margin-bottom: 0.75rem !important;
+    box-shadow: 0 1px 0 rgba(16, 24, 40, 0.06);
+}
+.user-edit-page .user-view-tabs-scroll {
+    margin-bottom: 0;
+}
+.user-edit-page .form-label {
+    font-size: 0.875rem;
+    margin-bottom: 0.35rem;
+}
+.user-edit-page .tab-content {
+    max-width: 100%;
+}
+@media (max-width: 767.98px) {
+    .user-edit-page .user-form-tabs-sticky {
+        top: -1px;
+    }
+}
+
 .user-view-page > .card {
     overflow: visible;
 }

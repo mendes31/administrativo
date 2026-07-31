@@ -11,7 +11,8 @@ $form = $this->data['form'] ?? [];
 ?>
 <input type="hidden" name="user_form_active_tab" id="user_form_active_tab" value="<?php echo htmlspecialchars($activeTab, ENT_QUOTES, 'UTF-8'); ?>">
 
-<div class="col-12 mb-3 user-view-tabs-scroll">
+<div class="col-12 mb-3 user-form-tabs-sticky">
+<div class="user-view-tabs-scroll">
 <ul class="nav nav-tabs flex-nowrap mb-0" id="userFormTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link <?php echo $activeTab === 'usuario' ? 'active' : ''; ?>" id="tab-usuario-btn" data-bs-toggle="tab" data-bs-target="#tab-usuario" type="button" role="tab" data-tab-key="usuario">
@@ -53,6 +54,7 @@ $form = $this->data['form'] ?? [];
     <?php endif; ?>
     <?php endif; ?>
 </ul>
+</div>
 </div>
 
 <div class="col-12 tab-content" id="userFormTabsContent">

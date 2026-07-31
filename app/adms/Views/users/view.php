@@ -714,4 +714,4 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
     </div>
 </div>
 
-<script src="<?= htmlspecialchars($urlAdm, ENT_QUOTES, 'UTF-8') ?>public/adms/js/user-form-tabs.js?v=20260731c"></script>
+<script src="<?= htmlspecialchars($urlAdm, ENT_QUOTES, 'UTF-8') ?>public/adms/js/user-form-tabs.js?v=20260731f"></script>

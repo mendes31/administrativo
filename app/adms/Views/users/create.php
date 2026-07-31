@@ -4,12 +4,12 @@ use App\adms\Helpers\CSRFHelper;
 
 ?>
 
-<div class="container-fluid px-4">
+<div class="container-fluid px-2 px-md-4 user-edit-page">
 
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Usuários</h2>
+    <div class="mb-1 d-flex flex-column flex-sm-row gap-1 gap-sm-2">
+        <h2 class="mt-2 mt-sm-3 mb-1 h3">Usuários</h2>
 
-        <ol class="breadcrumb  mb-3 ms-auto">
+        <ol class="breadcrumb mb-2 mb-sm-3 mt-0 mt-sm-3 ms-sm-auto small">
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-users" class="text-decoration-none">Usuários</a></li>
             <li class="breadcrumb-item">Cadastrar</li>
@@ -17,15 +17,17 @@ use App\adms\Helpers\CSRFHelper;
     </div>
 
     <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2">
-            <span>Cadastrar</span>
-            <span class="ms-auto d-sm-flex flex-row">
-            <?php
-                if (in_array('ListUsers', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}list-users' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list-ul'></i> Listar</a> ";
-                }
-            ?>
-            </span>
+        <div class="card-header">
+            <div class="d-flex flex-wrap align-items-center gap-2 justify-content-between">
+                <span class="fw-semibold">Cadastrar</span>
+                <div class="d-flex flex-wrap gap-1 justify-content-end">
+                <?php
+                    if (in_array('ListUsers', $this->data['buttonPermission'] ?? [], true)) {
+                        echo "<a href='{$_ENV['URL_ADM']}list-users' class='btn btn-info btn-sm' title='Listar'><i class='fa-solid fa-list-ul'></i><span class='d-none d-md-inline'> Listar</span></a> ";
+                    }
+                ?>
+                </div>
+            </div>
         </div>
 
         <div class="card-body">
@@ -76,5 +78,5 @@ document.getElementById('cep')?.addEventListener('input', function(e) {
 });
 
 </script>
-<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260731c"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260731f"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>

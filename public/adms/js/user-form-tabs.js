@@ -1,11 +1,14 @@
 /**
  * Persistência da aba ativa no formulário de usuário (create/update).
- * Mantém ?tab=, #hash e sessionStorage para sobreviver a refresh e pós-salvar.
+ * Mantém ?tab= e sessionStorage para sobreviver a refresh e pós-salvar.
+ * Não usa hash (#tab-*) porque coincide com o id dos painéis e o navegador
+ * rola a página para o topo do conteúdo ao trocar de aba.
  */
 (function () {
     'use strict';
 
     var ALLOWED = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes', 'acessos', 'permissoes'];
+    var savedScrollY = window.scrollY || window.pageYOffset || 0;
 
     function storageKey() {
         var idEl = document.getElementById('id');
@@ -36,8 +39,8 @@
         try {
             var url = new URL(window.location.href);
             url.searchParams.set('tab', key);
-            url.hash = 'tab-' + key;
-            window.history.replaceState(null, '', url.pathname + url.search + url.hash);
+            // Sem hash: #tab-usuario aponta para o painel e força scroll vertical.
+            window.history.replaceState(null, '', url.pathname + url.search);
         } catch (e) {
             /* ignore */
         }
@@ -69,6 +72,10 @@
         updateSaveButtons(key);
     }
 
+    function restorePageScroll() {
+        window.scrollTo(0, savedScrollY);
+    }
+
     function activateTab(key, useBootstrap) {
         key = normalize(key) || 'usuario';
         persistTab(key);
@@ -98,34 +105,88 @@
         }
     }
 
+    /**
+     * Mantém a aba ativa visível na faixa horizontal, sem alterar o scroll vertical da página.
+     * Usa getBoundingClientRect porque offsetLeft é relativo ao offsetParent posicionado
+     * (card-body), e não ao contêiner de rolagem das abas.
+     */
     function revealActiveTab() {
         document.querySelectorAll('.user-view-tabs-scroll').forEach(function (wrap) {
             var active = wrap.querySelector('.nav-link.active');
-            if (!active || wrap.scrollWidth <= wrap.clientWidth) {
+            if (!active || wrap.scrollWidth <= wrap.clientWidth + 1) {
                 return;
             }
-            wrap.scrollLeft = active.offsetLeft - (wrap.clientWidth - active.offsetWidth) / 2;
+
+            var wrapRect = wrap.getBoundingClientRect();
+            var tabRect = active.getBoundingClientRect();
+            var pad = 16;
+            var delta = 0;
+
+            if (tabRect.left < wrapRect.left + pad) {
+                delta = tabRect.left - wrapRect.left - pad;
+            } else if (tabRect.right > wrapRect.right - pad) {
+                delta = tabRect.right - wrapRect.right + pad;
+            }
+
+            if (delta !== 0) {
+                wrap.scrollLeft += delta;
+            }
         });
     }
 
     function init() {
+        // Remove hash legado (#tab-*) que fazia o navegador rolar até o painel.
+        if (window.location.hash && /^#tab-/.test(window.location.hash)) {
+            try {
+                var clean = new URL(window.location.href);
+                window.history.replaceState(null, '', clean.pathname + clean.search);
+            } catch (e) {
+                /* ignore */
+            }
+        }
+
         revealActiveTab();
         window.addEventListener('resize', revealActiveTab);
+        // Ícones/fontes podem alterar a largura das abas depois do DOMContentLoaded.
+        window.addEventListener('load', revealActiveTab);
+        requestAnimationFrame(revealActiveTab);
 
         if (!document.getElementById('userFormTabs')) {
             return;
         }
 
         activateTab(resolveInitialTab(), true);
+        // Após ativar a aba inicial, centraliza-a na faixa sem puxar a página.
+        requestAnimationFrame(function () {
+            revealActiveTab();
+            restorePageScroll();
+        });
 
         document.querySelectorAll('#userFormTabs [data-tab-key]').forEach(function (btn) {
+            btn.addEventListener('show.bs.tab', function () {
+                savedScrollY = window.scrollY || window.pageYOffset || 0;
+            });
+
             btn.addEventListener('shown.bs.tab', function () {
                 var key = btn.getAttribute('data-tab-key');
                 if (!key) {
                     return;
                 }
                 persistTab(key);
-                revealActiveTab();
+                // Bootstrap foca o botão e o navegador faz scrollIntoView na página;
+                // restaura a posição e só ajusta a rolagem horizontal das abas.
+                restorePageScroll();
+                requestAnimationFrame(function () {
+                    restorePageScroll();
+                    revealActiveTab();
+                    if (document.activeElement === btn && typeof btn.blur === 'function') {
+                        btn.blur();
+                    }
+                });
+            });
+
+            btn.addEventListener('click', function () {
+                savedScrollY = window.scrollY || window.pageYOffset || 0;
             });
         });
     }
