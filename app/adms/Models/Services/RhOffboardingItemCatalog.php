@@ -16,7 +16,7 @@ final class RhOffboardingItemCatalog
     {
         return [
             ['codigo' => 'devolucao_equipamentos', 'titulo' => 'Devolução de equipamentos / crachá', 'obrigatorio' => true],
-            ['codigo' => 'revogar_acessos', 'titulo' => 'Revogar acessos de sistemas (checklist operacional)', 'obrigatorio' => true],
+            ['codigo' => 'revogar_acessos', 'titulo' => 'Revogar acessos de sistemas (mapa TI / Acessos)', 'obrigatorio' => true],
             ['codigo' => 'email_corporativo', 'titulo' => 'Desativar / redirecionar e-mail corporativo', 'obrigatorio' => true],
             ['codigo' => 'documentos_dp', 'titulo' => 'Encaminhar documentação ao DP', 'obrigatorio' => true],
             ['codigo' => 'entrevista_desligamento', 'titulo' => 'Entrevista de desligamento', 'obrigatorio' => false],

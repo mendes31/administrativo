@@ -11,7 +11,8 @@ $form = $this->data['form'] ?? [];
 ?>
 <input type="hidden" name="user_form_active_tab" id="user_form_active_tab" value="<?php echo htmlspecialchars($activeTab, ENT_QUOTES, 'UTF-8'); ?>">
 
-<ul class="nav nav-tabs flex-column flex-sm-row mb-3" id="userFormTabs" role="tablist">
+<div class="col-12 mb-3 user-view-tabs-scroll">
+<ul class="nav nav-tabs flex-nowrap mb-0" id="userFormTabs" role="tablist">
     <li class="nav-item" role="presentation">
         <button class="nav-link <?php echo $activeTab === 'usuario' ? 'active' : ''; ?>" id="tab-usuario-btn" data-bs-toggle="tab" data-bs-target="#tab-usuario" type="button" role="tab" data-tab-key="usuario">
             <i class="fas fa-user me-1"></i>Usuário
@@ -37,9 +38,24 @@ $form = $this->data['form'] ?? [];
             <i class="fas fa-graduation-cap me-1"></i>Formações
         </button>
     </li>
+    <?php if ($isUpdate): ?>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link <?php echo $activeTab === 'acessos' ? 'active' : ''; ?>" id="tab-acessos-btn" data-bs-toggle="tab" data-bs-target="#tab-acessos" type="button" role="tab" data-tab-key="acessos">
+            <i class="fas fa-network-wired me-1"></i>Acessos
+        </button>
+    </li>
+    <?php if (in_array('UpdateUserAccessLevels', $this->data['buttonPermission'] ?? [], true)): ?>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link <?php echo $activeTab === 'permissoes' ? 'active' : ''; ?>" id="tab-permissoes-btn" data-bs-toggle="tab" data-bs-target="#tab-permissoes" type="button" role="tab" data-tab-key="permissoes">
+            <i class="fas fa-shield-halved me-1"></i>Permissões
+        </button>
+    </li>
+    <?php endif; ?>
+    <?php endif; ?>
 </ul>
+</div>
 
-<div class="tab-content" id="userFormTabsContent">
+<div class="col-12 tab-content" id="userFormTabsContent">
     <div class="tab-pane fade <?php echo $activeTab === 'usuario' ? 'show active' : ''; ?>" id="tab-usuario" role="tabpanel">
         <div class="row g-3">
             <div class="col-md-4">
@@ -65,13 +81,13 @@ $form = $this->data['form'] ?? [];
             <div class="col-md-6">
                 <label for="user_department_id" class="form-label">Departamento</label>
                 <select name="user_department_id" class="form-select" id="user_department_id">
-                    <option value="" selected>Selecione</option>
+                    <option value="" <?= empty($form['user_department_id']) ? 'selected' : '' ?>>Selecione</option>
                     <?php if ($this->data['listDepartments'] ?? false): ?>
                         <?php foreach ($this->data['listDepartments'] as $listDepartment): ?>
                             <?php
                             $depId = (int)($listDepartment['id'] ?? 0);
                             $depName = (string)($listDepartment['name'] ?? '');
-                            $selected = isset($form['user_department_id']) && (int)$form['user_department_id'] === $depId ? 'selected' : '';
+                            $selected = !empty($form['user_department_id']) && (int)$form['user_department_id'] === $depId ? 'selected' : '';
                             ?>
                             <option value="<?php echo $depId; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars($depName, ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php endforeach; ?>
@@ -81,13 +97,13 @@ $form = $this->data['form'] ?? [];
             <div class="col-md-6">
                 <label for="user_position_id" class="form-label">Cargo</label>
                 <select name="user_position_id" class="form-select" id="user_position_id">
-                    <option value="" selected>Selecione</option>
+                    <option value="" <?= empty($form['user_position_id']) ? 'selected' : '' ?>>Selecione</option>
                     <?php if ($this->data['listPositions'] ?? false): ?>
                         <?php foreach ($this->data['listPositions'] as $listPosition): ?>
                             <?php
                             $posId = (int)($listPosition['id'] ?? 0);
                             $posName = (string)($listPosition['name'] ?? '');
-                            $selected = isset($form['user_position_id']) && (int)$form['user_position_id'] === $posId ? 'selected' : '';
+                            $selected = !empty($form['user_position_id']) && (int)$form['user_position_id'] === $posId ? 'selected' : '';
                             ?>
                             <option value="<?php echo $posId; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars($posName, ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php endforeach; ?>
@@ -600,6 +616,185 @@ $form = $this->data['form'] ?? [];
                 Nenhuma formação cadastrada. Clique em “Adicionar formação”.
             </div>
         </div>
+
+        <?php if ($isUpdate):
+            $tiAcessos = is_array($this->data['ti_acessos'] ?? null) ? $this->data['ti_acessos'] : [];
+            $urlAdm = (string) ($_ENV['URL_ADM'] ?? '');
+            $userIdForm = (int) ($form['id'] ?? 0);
+            $canCreateAcesso = in_array('TiAcessosCreate', $this->data['buttonPermission'] ?? [], true);
+            $canRevokeAcesso = in_array('TiAcessosRevoke', $this->data['buttonPermission'] ?? [], true);
+        ?>
+        <div class="tab-pane fade <?php echo $activeTab === 'acessos' ? 'show active' : ''; ?>" id="tab-acessos" role="tabpanel">
+            <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+                <div>
+                    <h5 class="mb-1">Acessos a sistemas</h5>
+                    <p class="text-muted small mb-0">Mapa de contas em sistemas/equipamentos (incluindo embarcados). Não é a ACL de páginas deste Portal.</p>
+                </div>
+                <?php if ($canCreateAcesso && $userIdForm > 0): ?>
+                    <a class="btn btn-outline-success btn-sm"
+                       href="<?= htmlspecialchars($urlAdm . 'ti-acessos-create?user_id=' . $userIdForm . '&return=' . rawurlencode($urlAdm . 'update-user/' . $userIdForm . '?tab=acessos'), ENT_QUOTES, 'UTF-8') ?>">
+                        <i class="fas fa-plus me-1"></i>Liberar acesso
+                    </a>
+                <?php endif; ?>
+            </div>
+            <?php if ($tiAcessos === []): ?>
+                <div class="alert alert-light border text-muted mb-0">Nenhum acesso registrado para este colaborador.</div>
+            <?php else: ?>
+                <div class="d-none d-lg-block table-responsive">
+                    <table class="table table-sm align-middle">
+                        <thead>
+                            <tr>
+                                <th>Sistema</th>
+                                <th>Tipo / local</th>
+                                <th>Login</th>
+                                <th>Situação</th>
+                                <th>Liberação</th>
+                                <th>Revogação</th>
+                                <?php if ($canRevokeAcesso): ?><th></th><?php endif; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tiAcessos as $a): ?>
+                                <tr>
+                                    <td>
+                                        <a href="<?= htmlspecialchars($urlAdm . 'ti-sistemas-view/' . (int) ($a['ti_sistema_id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
+                                            <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        </a>
+                                    </td>
+                                    <td class="small">
+                                        <?= htmlspecialchars((string) ($a['sistema_tipo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        <?php if (!empty($a['sistema_localizacao'])): ?>
+                                            · <?= htmlspecialchars((string) $a['sistema_localizacao'], ENT_QUOTES, 'UTF-8') ?>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <span class="badge <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
+                                            <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                    </td>
+                                    <td><?= htmlspecialchars((string) ($a['data_liberacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars((string) ($a['data_revogacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <?php if ($canRevokeAcesso): ?>
+                                        <td>
+                                            <?php if (($a['status'] ?? '') === 'ativo'): ?>
+                                                <button type="submit" form="formTiAcessoRevoke<?= (int) $a['id'] ?>" class="btn btn-outline-danger btn-sm">Inativar</button>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endif; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="d-lg-none user-view-stack">
+                    <?php foreach ($tiAcessos as $a): ?>
+                        <article class="user-view-list-card">
+                            <div class="d-flex justify-content-between align-items-start gap-2">
+                                <a class="user-view-list-card-title mb-0" href="<?= htmlspecialchars($urlAdm . 'ti-sistemas-view/' . (int) ($a['ti_sistema_id'] ?? 0), ENT_QUOTES, 'UTF-8') ?>">
+                                    <?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                </a>
+                                <span class="badge flex-shrink-0 <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
+                                    <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                </span>
+                            </div>
+                            <dl class="user-view-list-card-dl mb-0">
+                                <div><dt>Tipo / local</dt><dd class="text-break">
+                                    <?= htmlspecialchars((string) ($a['sistema_tipo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?><?php if (!empty($a['sistema_localizacao'])): ?> · <?= htmlspecialchars((string) $a['sistema_localizacao'], ENT_QUOTES, 'UTF-8') ?><?php endif; ?>
+                                </dd></div>
+                                <div><dt>Login</dt><dd class="text-break"><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                <div><dt>Liberação</dt><dd><?= htmlspecialchars((string) ($a['data_liberacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                <div><dt>Revogação</dt><dd><?= htmlspecialchars((string) ($a['data_revogacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
+                            </dl>
+                            <?php if ($canRevokeAcesso && ($a['status'] ?? '') === 'ativo'): ?>
+                                <button type="submit" form="formTiAcessoRevoke<?= (int) $a['id'] ?>" class="btn btn-outline-danger btn-sm w-100">Inativar</button>
+                            <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+
+        <?php
+        $canPermsEdit = in_array('UpdateUserAccessLevels', $this->data['buttonPermission'] ?? [], true);
+        if ($canPermsEdit && $userIdForm > 0):
+            $allLevelsEdit = is_array($this->data['userAllAccessLevelsArray'] ?? null)
+                ? array_values($this->data['userAllAccessLevelsArray'])
+                : [];
+            $userAccessLevelsEdit = is_array($this->data['userAccessLevelsArray'] ?? null)
+                ? array_map('intval', $this->data['userAccessLevelsArray'])
+                : [];
+            usort($allLevelsEdit, static function (array $a, array $b) use ($userAccessLevelsEdit): int {
+                $aAssigned = in_array((int) ($a['id'] ?? 0), $userAccessLevelsEdit, true) ? 0 : 1;
+                $bAssigned = in_array((int) ($b['id'] ?? 0), $userAccessLevelsEdit, true) ? 0 : 1;
+                if ($aAssigned !== $bAssigned) {
+                    return $aAssigned <=> $bAssigned;
+                }
+                return strcasecmp((string) ($a['name'] ?? ''), (string) ($b['name'] ?? ''));
+            });
+            $canManageWhistleblowingLevelsEdit = !empty($this->data['can_manage_whistleblowing_levels']);
+            $whistleblowingLevelIdsEdit = array_map('intval', $this->data['whistleblowing_access_level_ids'] ?? []);
+            $targetIsSuperEdit = (int) ($form['super_usuario'] ?? 0) === 1;
+        ?>
+        <div class="tab-pane fade <?php echo $activeTab === 'permissoes' ? 'show active' : ''; ?>" id="tab-permissoes" role="tabpanel">
+            <div class="mb-3">
+                <h5 class="mb-1">Níveis de acesso (ACL do Portal)</h5>
+                <p class="text-muted small mb-0">Define quais pacotes de páginas este usuário pode abrir neste Portal. Distinto do mapa TI em <strong>Acessos</strong>.</p>
+            </div>
+            <?php if ($targetIsSuperEdit): ?>
+                <div class="alert alert-info mb-0" role="alert">
+                    <strong>Super usuário:</strong> acesso total ao sistema. Os níveis de acesso não são editáveis aqui.
+                    Remova o flag <em>Super usuário</em> na aba Usuário antes de ajustar os perfis.
+                </div>
+            <?php elseif ($allLevelsEdit === []): ?>
+                <div class="alert alert-danger mb-0" role="alert">Nenhum nível de acesso cadastrado no sistema.</div>
+            <?php else: ?>
+                <?php if (!$canManageWhistleblowingLevelsEdit): ?>
+                    <div class="alert alert-secondary small py-2" role="alert">
+                        Os níveis <strong>Canal de Denúncias — Operador</strong> e
+                        <strong>Canal de Denúncias — Administrador</strong> só podem ser atribuídos ou removidos por
+                        <em>Super Administrador</em> ou <em>Super usuário</em>.
+                    </div>
+                <?php endif; ?>
+                <div class="row g-2 user-edit-permissions-list mb-3">
+                    <?php foreach ($allLevelsEdit as $levelRow):
+                        $levelId = (int) ($levelRow['id'] ?? 0);
+                        $levelName = (string) ($levelRow['name'] ?? '');
+                        $isAssigned = in_array($levelId, $userAccessLevelsEdit, true);
+                        $isWhistleblowingLevel = in_array($levelId, $whistleblowingLevelIdsEdit, true);
+                        $locked = $isWhistleblowingLevel && !$canManageWhistleblowingLevelsEdit;
+                    ?>
+                        <div class="col-12 col-md-6 col-xl-4">
+                            <div class="form-check form-switch mb-1 py-2 px-2 rounded user-edit-permission-item<?= $isAssigned ? ' user-edit-permission-item--assigned' : '' ?>">
+                                <?php if ($locked && $isAssigned): ?>
+                                    <input type="hidden" form="formUserAccessLevels" name="userAccessLevelsArray[<?= $levelId ?>]" value="<?= $levelId ?>">
+                                <?php endif; ?>
+                                <input type="checkbox"
+                                       form="formUserAccessLevels"
+                                       name="userAccessLevelsArray[<?= $levelId ?>]"
+                                       class="form-check-input"
+                                       role="switch"
+                                       id="editUserAccessLevel<?= $levelId ?>"
+                                       value="<?= $levelId ?>"
+                                       <?= $isAssigned ? 'checked' : '' ?><?= $locked ? ' disabled' : '' ?>>
+                                <label class="form-check-label" for="editUserAccessLevel<?= $levelId ?>">
+                                    <?= htmlspecialchars($levelName, ENT_QUOTES, 'UTF-8') ?>
+                                    <?php if ($isAssigned): ?>
+                                        <span class="badge bg-success ms-1">Atribuído</span>
+                                    <?php endif; ?>
+                                    <?php if ($locked): ?>
+                                        <span class="badge text-bg-secondary ms-1">Somente Super Admin</span>
+                                    <?php endif; ?>
+                                </label>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+                <button type="submit" form="formUserAccessLevels" class="btn btn-warning btn-sm<?= $activeTab === 'permissoes' ? '' : ' d-none' ?>" id="btnSaveUserPermissions">Salvar permissões</button>
+            <?php endif; ?>
+        </div>
+        <?php endif; ?>
+        <?php endif; ?>
 
         <template id="user-education-template">
             <div class="card border mb-3 user-education-row" data-new="1">

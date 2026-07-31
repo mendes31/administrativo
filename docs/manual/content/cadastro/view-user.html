@@ -1,7 +1,7 @@
 <h1>Visualizar Usuário</h1>
 
 <h2>Função no sistema</h2>
-<p>Centraliza a conferência do colaborador: dados pessoais, endereço, vínculo, status, permissões, histórico de admissões e formações acadêmicas. A tela é somente leitura; alterações são feitas pelos atalhos autorizados.</p>
+<p>Centraliza a conferência do colaborador em abas alinhadas à edição: conta, dados pessoais, endereço, vínculo, formações, acessos TI, histórico e permissões do Portal. A tela é predominantemente somente leitura; alterações usam os atalhos autorizados.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Cadastro de usuários</em> (<code>cad-usuarios</code>) para o fluxo completo da área.</p>
 
@@ -10,27 +10,30 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, clique em <strong>Visualizar</strong> no registro desejado.</li>
-    <li>Revise os dados cadastrais e a seção <strong>Formações acadêmicas e cursos</strong>.</li>
-    <li>Quando houver comprovante, clique em <strong>Baixar</strong>. O arquivo é entregue por rota autenticada e não por endereço público.</li>
-    <li>Use os botões do cabeçalho para ir à listagem, editar ou consultar log de alterações.</li>
+    <li>Use o resumo no topo (foto, status, departamento, cargo) para conferência rápida.</li>
+    <li>Navegue pelas abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong>, <strong>Dados Contratuais</strong>, <strong>Formações</strong>, <strong>Acessos</strong>, <strong>Histórico</strong> e <strong>Permissões</strong>. No celular as abas são as mesmas do desktop, em uma faixa que rola na horizontal quando não cabem na tela (arraste a faixa para o lado; a aba atual já entra visível); listas (formações, acessos TI, histórico) aparecem em cartões empilhados. Em Permissões só aparecem os níveis já atribuídos (somente leitura).</li>
+    <li>Em Formações, baixe comprovantes quando houver anexo.</li>
+    <li>Use <strong>Editar</strong> para abrir a mesma aba na edição; no celular, <strong>Mais</strong> abre um painel logo abaixo dos botões com senha, imagem, SST, log e apagar.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Dados cadastrais</strong> Mostra contatos, CPF, nascimento, escolaridade geral, endereço, departamento, cargo, turno, vínculo e condições de acesso.</div>
-<div class="help-field"><strong>Histórico de vínculos</strong> Apresenta admissões, desligamentos, duração e classificação de impacto mantidos pelo RH.</div>
-<div class="help-field"><strong>Formações acadêmicas e cursos</strong> Lista tipo, nome, instituição, situação, período, carga horária e existência de comprovante. Várias formações podem pertencer ao mesmo usuário.</div>
-<div class="help-field"><strong>Permissões / níveis de acesso</strong> Disponível com <em>UpdateUserAccessLevels</em>. Os níveis <em>Canal de Denúncias — Operador</em> e <em>Canal de Denúncias — Administrador</em> só podem ser marcados ou desmarcados por <em>Super Administrador</em> ou <em>Super usuário</em>; demais administradores veem esses switches bloqueados. Membros de comitê recebem Operador automaticamente ao serem vinculados ao comitê.</div>
-<div class="help-field"><strong>Gerenciar</strong> Disponível para quem possui <em>UpdateUser</em>; abre diretamente a aba Formações da edição.</div>
+<p class="text-muted small">O que cada área mostra.</p>
+<div class="help-field"><strong>Resumo</strong> Identidade, status, bloqueio, super usuário, e-mail, departamento, cargo, empresa e tempo de casa.</div>
+<div class="help-field"><strong>Aba Usuário</strong> Conta no Portal, departamento, cargo, supervisor, turno e flags de senha/login.</div>
+<div class="help-field"><strong>Dados Pessoais / Endereço / Contratuais</strong> Mesma organização da edição, em modo leitura.</div>
+<div class="help-field"><strong>Formações</strong> Lista tipo, curso, instituição, situação, período, carga horária e comprovante (tabela no desktop; cartões no celular).</div>
+<div class="help-field"><strong>Acessos</strong> Mapa TI de sistemas/equipamentos (<em>TiAcessosCreate</em> / <em>TiAcessosRevoke</em>). No celular, cada liberação vira um cartão com login, situação e local. Não confundir com ACL de páginas.</div>
+<div class="help-field"><strong>Histórico</strong> Admissões, desligamentos, duração e classificação de impacto (cartões no celular).</div>
+<div class="help-field"><strong>Permissões</strong> Lista somente leitura dos níveis ACL atribuídos ao colaborador. Para alterar, use <em>Editar</em> → aba Permissões (<em>UpdateUserAccessLevels</em>). Super usuário indica acesso total sem pacotes.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>ViewUser</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Não consigo marcar níveis do Canal de Denúncias</dt>
-    <dd>Somente Super Administrador ou Super usuário pode atribuir esses níveis. Solicite a um administrador com acesso total ou inclua a pessoa no comitê correspondente (Operador é concedido automaticamente).</dd>
-    <dt>Comprovante não abre</dt>
-    <dd>O arquivo pode ter sido removido do armazenamento ou você não possui mais acesso à tela <em>ViewUser</em>. Solicite ao RH a conferência do cadastro.</dd>
+    <dd>Você tem a listagem, mas não a permissão da ação (editar, excluir, permissões). Inclua a página filha no pacote.</dd>
+    <dt>Não vejo a aba Permissões</dt>
+    <dd>A aba aparece na visualização para quem tem <em>ViewUser</em>. Para editar os níveis, é necessária <em>UpdateUserAccessLevels</em> na tela de edição.</dd>
+    <dt>Comprovante não baixa</dt>
+    <dd>Confirme se o arquivo foi anexado e se você está autenticado com acesso à visualização do cadastro.</dd>
 </dl>

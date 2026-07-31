@@ -107,6 +107,8 @@ class ViewUser
         $this->data['totalTenure'] = $historyRepo->calculateTotalTenure((int) $id);
         $this->data['educations'] = (new UserEducationsRepository())->getByUserId((int) $id);
 
+        $this->data['ti_acessos'] = (new \App\adms\Models\Repository\TiAcessoRepository())->listByUser((int) $id);
+
         $uid = (int) $id;
         $returnUrl = $_ENV['URL_ADM'] . 'view-user/' . $uid;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_users', $uid, $returnUrl);
@@ -117,7 +119,7 @@ class ViewUser
         $pageElements = [
             'title_head' => 'Visualizar Usuário',
             'menu' => 'list-users',
-            'buttonPermission' => ['ListUsers', 'UpdateUser', 'UpdateUserImage', 'UpdatePasswordUser', 'DeleteUser', 'UpdateUserAccessLevels', 'SstEmployeeProfile'],
+            'buttonPermission' => ['ListUsers', 'UpdateUser', 'UpdateUserImage', 'UpdatePasswordUser', 'DeleteUser', 'UpdateUserAccessLevels', 'SstEmployeeProfile', 'TiAcessosCreate', 'TiAcessosRevoke', 'TiSistemasView'],
         ];
         
         $pageLayoutService = new PageLayoutService();

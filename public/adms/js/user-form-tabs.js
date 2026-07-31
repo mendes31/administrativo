@@ -5,7 +5,7 @@
 (function () {
     'use strict';
 
-    var ALLOWED = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes'];
+    var ALLOWED = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes', 'acessos', 'permissoes'];
 
     function storageKey() {
         var idEl = document.getElementById('id');
@@ -43,8 +43,19 @@
         }
     }
 
-    function activateTab(key, useBootstrap) {
-        key = normalize(key) || 'usuario';
+    function updateSaveButtons(key) {
+        var mainSave = document.getElementById('btnSaveUserForm');
+        var permsSave = document.getElementById('btnSaveUserPermissions');
+        var isPerms = key === 'permissoes';
+        if (mainSave) {
+            mainSave.classList.toggle('d-none', isPerms);
+        }
+        if (permsSave) {
+            permsSave.classList.toggle('d-none', !isPerms);
+        }
+    }
+
+    function persistTab(key) {
         var hidden = document.getElementById('user_form_active_tab');
         if (hidden) {
             hidden.value = key;
@@ -55,6 +66,12 @@
             /* ignore */
         }
         syncUrl(key);
+        updateSaveButtons(key);
+    }
+
+    function activateTab(key, useBootstrap) {
+        key = normalize(key) || 'usuario';
+        persistTab(key);
 
         var btn = document.querySelector('#userFormTabs [data-tab-key="' + key + '"]');
         if (!btn) {
@@ -81,7 +98,20 @@
         }
     }
 
+    function revealActiveTab() {
+        document.querySelectorAll('.user-view-tabs-scroll').forEach(function (wrap) {
+            var active = wrap.querySelector('.nav-link.active');
+            if (!active || wrap.scrollWidth <= wrap.clientWidth) {
+                return;
+            }
+            wrap.scrollLeft = active.offsetLeft - (wrap.clientWidth - active.offsetWidth) / 2;
+        });
+    }
+
     function init() {
+        revealActiveTab();
+        window.addEventListener('resize', revealActiveTab);
+
         if (!document.getElementById('userFormTabs')) {
             return;
         }
@@ -94,16 +124,8 @@
                 if (!key) {
                     return;
                 }
-                var hidden = document.getElementById('user_form_active_tab');
-                if (hidden) {
-                    hidden.value = key;
-                }
-                try {
-                    sessionStorage.setItem(storageKey(), key);
-                } catch (e) {
-                    /* ignore */
-                }
-                syncUrl(key);
+                persistTab(key);
+                revealActiveTab();
             });
         });
     }

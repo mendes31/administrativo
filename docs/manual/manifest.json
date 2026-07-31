@@ -2370,6 +2370,22 @@
                     "file": "whistleblowing/whistleblowing-governance.html"
                 }
             ]
+        },
+        {
+            "id": "ti_acessos",
+            "title": "TI / Acessos",
+            "topics": [
+                {
+                    "id": "ti-sistemas",
+                    "title": "Sistemas (TI / Acessos)",
+                    "file": "ti/ti-sistemas.html"
+                },
+                {
+                    "id": "ti-acessos",
+                    "title": "Liberar e revogar acessos (TI)",
+                    "file": "ti/ti-acessos.html"
+                }
+            ]
         }
     ]
 }

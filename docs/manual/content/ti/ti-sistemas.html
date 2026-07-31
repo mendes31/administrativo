@@ -1,0 +1,40 @@
+<h1>Sistemas (TI / Acessos)</h1>
+
+<h2>Função no sistema</h2>
+<p>Catálogo de sistemas e equipamentos que possuem controle de usuário próprio (incluindo embarcados fora da rede). Serve de base para o mapa colaborador ↔ acesso usado no desligamento.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Sistema embarcado</dt>
+    <dd>Aplicação ou painel instalado em equipamento de chão de fábrica (CLP, IHM etc.), muitas vezes sem rede corporativa permanente.</dd>
+    <dt>Mapa de acessos</dt>
+    <dd>Registro de quais colaboradores têm conta/login em cada sistema do catálogo — não é a ACL de páginas deste Portal.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> permissões <em>TiSistemas</em>, <em>TiSistemasCreate</em>, <em>TiSistemasUpdate</em> e <em>TiSistemasView</em> (grupo ACL <em>TI - Sistemas e Acessos</em>).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <em>TI / Acessos → Sistemas</em>.</li>
+    <li>Clique em <strong>Cadastrar</strong> e informe nome, tipo (ex.: embarcado), localização e status.</li>
+    <li>Abra o sistema e use <strong>Liberar acesso</strong> para vincular colaboradores.</li>
+    <li>Na ficha do sistema, acompanhe quem ainda está ativo e marque <strong>Inativar</strong> após desligar a conta no equipamento.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Código</strong> Identificador opcional e único.</div>
+<div class="help-field"><strong>Nome</strong> Nome do sistema ou equipamento (obrigatório).</div>
+<div class="help-field"><strong>Tipo</strong> embarcado, local, rede, saas ou outro.</div>
+<div class="help-field"><strong>Localização</strong> Área ou máquina onde o acesso deve ser inativado.</div>
+<div class="help-field"><strong>Status</strong> Ativo (pode receber novos acessos) ou inativo.</div>
+<div class="help-field"><strong>Acessos ativos</strong> Contagem de vínculos ainda não revogados.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu TI / Acessos não aparece</dt>
+    <dd>Libere as páginas do grupo <em>TI - Sistemas e Acessos</em> no nível de acesso (páginas nascem sem permissão automática).</dd>
+    <dt>Não consigo liberar acesso</dt>
+    <dd>O sistema precisa estar com status ativo. Confira também a permissão <em>TiAcessosCreate</em>.</dd>
+    <dt>Página não encontrada</dt>
+    <dd>Execute a migration <code>20260730170000_create_ti_sistemas_acessos</code>.</dd>
+</dl>

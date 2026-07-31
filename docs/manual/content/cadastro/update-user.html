@@ -10,17 +10,21 @@
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
     <li>Na listagem, localize o registro e clique em <strong>Editar</strong>.</li>
-    <li>Use as abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong>, <strong>Dados Contratuais</strong> e <strong>Formações</strong> para alterar só o necessário.</li>
+    <li>Use as abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong>, <strong>Dados Contratuais</strong>, <strong>Formações</strong>, <strong>Acessos</strong> e <strong>Permissões</strong> (se autorizado) para alterar só o necessário. No celular as abas ficam em uma faixa que rola na horizontal quando não cabem na tela (arraste a faixa para o lado); a aba atual já entra visível.</li>
     <li>Em <strong>Formações</strong>, clique em <em>Adicionar formação</em>, informe tipo, curso e situação; instituição, datas, carga horária, observações e comprovante são opcionais.</li>
+    <li>Em <strong>Acessos</strong>, veja o mapa TI (sistemas/equipamentos com conta própria). Liberar ou inativar exige permissões <em>TiAcessosCreate</em> / <em>TiAcessosRevoke</em> — isso não altera a ACL de páginas do Portal. No desktop a lista é uma tabela; no celular e tablet, cartões empilhados com o botão <strong>Inativar</strong> em cada acesso.</li>
+    <li>Em <strong>Permissões</strong>, marque os níveis de acesso (ACL) atribuídos ao colaborador. Os já atribuídos aparecem destacados com o selo <em>Atribuído</em>. Nesta aba use apenas <strong>Salvar permissões</strong> (o botão <strong>Salvar</strong> das demais abas fica oculto). Exige <em>UpdateUserAccessLevels</em>.</li>
     <li>Salve as alterações e confira a mensagem de retorno.</li>
     <li>Teste com um usuário do perfil impactado (logout/login) se mudou permissões ou status.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso), Dados Pessoais, Endereço, Dados Contratuais (<strong>empresa contratante obrigatória</strong>, alinhada às Filiais/nome fantasia; matrícula, vínculo e desligamento) e Formações. Após salvar ou atualizar a página (F5), a tela permanece na mesma aba em que você estava.</div>
+<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso ao Portal), Dados Pessoais, Endereço, Dados Contratuais (<strong>empresa contratante obrigatória</strong>, alinhada às Filiais/nome fantasia; matrícula, vínculo e desligamento), Formações, Acessos (mapa TI) e Permissões (níveis ACL, com <em>UpdateUserAccessLevels</em>). Após salvar ou atualizar a página (F5), a tela permanece na mesma aba em que você estava.</div>
 <div class="help-field"><strong>Aba ativa</strong> A URL acompanha a aba selecionada. Ao atualizar o navegador, a edição permanece na mesma aba.</div>
 <div class="help-field"><strong>Formações</strong> Aceita vários cursos, graduações, pós-graduações, MBAs, mestrados e doutorados para o mesmo usuário. O campo geral <em>Escolaridade</em> continua representando o maior grau de instrução.</div>
+<div class="help-field"><strong>Acessos (TI)</strong> Lista vínculos do colaborador com sistemas do catálogo <em>TI / Acessos</em> (incluindo embarcados). Não confundir com níveis de acesso/páginas deste Portal.</div>
+<div class="help-field"><strong>Permissões</strong> Seleção dos níveis ACL do Portal. Itens atribuídos ficam destacados. Níveis do Canal de Denúncias só por Super Administrador / Super usuário. Botão específico <em>Salvar permissões</em> (não confundir com <em>Salvar</em> das outras abas nem com a aba Acessos/mapa TI).</div>
 <div class="help-field"><strong>Comprovante</strong> Opcional por formação. Formatos: PDF, JPG, PNG, WEBP, DOC ou DOCX, até 10 MB. O arquivo é privado e baixado somente por usuário autenticado com acesso à visualização do cadastro.</div>
 <div class="help-field"><strong>Excluir ou substituir</strong> Marque <em>Excluir</em> para remover toda a formação. Para trocar o comprovante, selecione outro arquivo; para retirar apenas o arquivo, marque <em>Remover comprovante</em>.</div>
 <div class="help-field"><strong>E-mail pessoal e endereço</strong> Opcionais. Endereço: priorize busca por CEP (ViaCEP), como no CRM; e-mail pessoal é distinto do e-mail corporativo de login.</div>
@@ -38,4 +42,6 @@
     <dd>Confira o formato e o limite de 10 MB. Renomear um arquivo para outra extensão não altera o tipo real e será rejeitado.</dd>
     <dt>Não encontro a aba Formações</dt>
     <dd>A aba está disponível no cadastro (permissão <em>CreateUser</em>) e na edição (permissão <em>UpdateUser</em>) do usuário.</dd>
+    <dt>Não vejo a aba Permissões</dt>
+    <dd>É necessária a permissão <em>UpdateUserAccessLevels</em>. A aba <em>Acessos</em> é só o mapa TI, não a ACL de páginas.</dd>
 </dl>

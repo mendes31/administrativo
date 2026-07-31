@@ -81,6 +81,70 @@ $emAndamento = $status === RhOffboardingRepository::STATUS_EM_ANDAMENTO;
         </div>
     </div>
 
+    <?php
+    $tiAcessos = $this->data['ti_acessos'] ?? [];
+    $tiAtivos = (int) ($this->data['ti_acessos_ativos'] ?? 0);
+    $csrfTi = (string) ($this->data['csrf_ti_revoke'] ?? '');
+    $canRevokeTi = in_array('TiAcessosRevoke', $this->data['buttonPermission'] ?? [], true);
+    $urlAdm = (string) ($_ENV['URL_ADM'] ?? '');
+    ?>
+    <div class="card border-light shadow mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <span><i class="fas fa-network-wired me-2"></i>Acessos a sistemas (TI)</span>
+            <?php if ($tiAtivos > 0): ?>
+                <span class="badge bg-warning text-dark"><?= $tiAtivos ?> ativo(s)</span>
+            <?php else: ?>
+                <span class="badge bg-success">Nenhum ativo</span>
+            <?php endif; ?>
+        </div>
+        <div class="card-body">
+            <p class="small text-muted">Marque como inativado após desligar a conta no equipamento/sistema de destino. O item <em>Revogar acessos</em> só pode ser concluído com zero acessos ativos.</p>
+            <?php if ($tiAcessos === []): ?>
+                <p class="text-muted mb-0">Nenhum acesso no mapa TI para este colaborador.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Sistema</th>
+                                <th>Local</th>
+                                <th>Login</th>
+                                <th>Situação</th>
+                                <?php if ($emAndamento && $canRevokeTi): ?><th></th><?php endif; ?>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php foreach ($tiAcessos as $a): ?>
+                                <tr>
+                                    <td><?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                    <td>
+                                        <span class="badge <?= ($a['status'] ?? '') === 'ativo' ? 'bg-warning text-dark' : 'bg-secondary' ?>">
+                                            <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                    </td>
+                                    <?php if ($emAndamento && $canRevokeTi): ?>
+                                        <td>
+                                            <?php if (($a['status'] ?? '') === 'ativo'): ?>
+                                                <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                                      onsubmit="return confirm('Confirmar inativação neste sistema/equipamento?');">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTi, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <input type="hidden" name="return_to" value="<?= htmlspecialchars($urlAdm . 'rh-offboardings-view/' . $planoId, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm">Marcar inativado</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </td>
+                                    <?php endif; ?>
+                                </tr>
+                            <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+
     <div class="card border-light shadow mb-4">
         <div class="card-header"><i class="fas fa-tasks me-2"></i>Checklist</div>
         <div class="card-body">

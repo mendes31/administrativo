@@ -122,6 +122,21 @@ class UpdateUser
             ? $postedEducations
             : (new UserEducationsRepository())->getByUserId((int) ($this->data['form']['id'] ?? 0));
 
+        $userIdForAcessos = (int) ($this->data['form']['id'] ?? 0);
+        $this->data['ti_acessos'] = $userIdForAcessos > 0
+            ? (new \App\adms\Models\Repository\TiAcessoRepository())->listByUser($userIdForAcessos)
+            : [];
+
+        $accessLevelsRepo = new \App\adms\Models\Repository\UsersAccessLevelsRepository();
+        $userLevels = $userIdForAcessos > 0
+            ? $accessLevelsRepo->getUserAccessLevelArray($userIdForAcessos)
+            : [];
+        $this->data['userAccessLevelsArray'] = is_array($userLevels) ? $userLevels : [];
+        $allLevels = $accessLevelsRepo->getAllAccessLevels();
+        $this->data['userAllAccessLevelsArray'] = is_array($allLevels) ? $allLevels : [];
+        $this->data['whistleblowing_access_level_ids'] = \App\adms\Models\Services\WhistleblowingPermissionService::protectedAccessLevelIds();
+        $this->data['can_manage_whistleblowing_levels'] = \App\adms\Models\Services\WhistleblowingPermissionService::canManageAccessLevelsAssignment();
+
         // Contar quantos subordinados este usuário tem
         $hierarchyService = new \App\adms\Models\Services\HierarchyManagementService();
         $subordinatesInfo = $hierarchyService::checkSubordinates((int)$this->data['form']['id']);
@@ -133,7 +148,7 @@ class UpdateUser
         $pageElements = [
             'title_head' => 'Editar Usuário',
             'menu' => 'list-users',
-            'buttonPermission' => ['ListUsers', 'ViewUser'],
+            'buttonPermission' => ['ListUsers', 'ViewUser', 'UpdateUserAccessLevels', 'TiAcessosCreate', 'TiAcessosRevoke', 'TiSistemasView'],
         ];
         
         $pageLayoutService = new PageLayoutService();

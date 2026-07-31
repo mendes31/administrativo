@@ -35,8 +35,7 @@ class UpdateUserAccessLevels
         GenerateLog::generateLog("error", "Nível de acesso do usuário não editado.", ['id' => (int) $this->data['form']['adms_user_id']]);
 
         $_SESSION['error'] = "Nível de acesso do usuário não editado!";
-        header("Location: {$_ENV['URL_ADM']}view-user/{$this->data['form']['adms_user_id']}");
-        return;
+        $this->redirectAfterAccessLevelUpdate((int) $this->data['form']['adms_user_id']);
     }
 
     private function editUserAccessLevel(): void
@@ -53,11 +52,15 @@ class UpdateUserAccessLevels
         $targetUser = (new UsersRepository())->getUser($targetId);
         if ($targetUser && (int) ($targetUser['super_usuario'] ?? 0) === 1) {
             $_SESSION['error'] = 'Usuários com super usuário têm acesso total. Remova o flag Super usuário no cadastro antes de alterar os níveis de acesso.';
-            header("Location: {$_ENV['URL_ADM']}view-user/{$targetId}");
+            $this->redirectAfterAccessLevelUpdate($targetId);
             return;
         }
 
         $userAccessLevelsUpdate = new UsersAccessLevelsRepository();
+
+        if (!isset($this->data['form']['userAccessLevelsArray']) || !is_array($this->data['form']['userAccessLevelsArray'])) {
+            $this->data['form']['userAccessLevelsArray'] = [];
+        }
 
         if (!$this->assertWhistleblowingLevelsAllowed($userAccessLevelsUpdate, $targetId)) {
             return;
@@ -78,11 +81,28 @@ class UpdateUserAccessLevels
             }
 
             $_SESSION['success'] = "Nível de acesso do usuário editado com sucesso!";
-            header("Location: {$_ENV['URL_ADM']}view-user/{$this->data['form']['adms_user_id']}");
+            $this->redirectAfterAccessLevelUpdate((int) $this->data['form']['adms_user_id']);
         } else {
             $this->data['errors'][] = "Nível de acesso do usuário não editado!";
             $this->viewUserAccessLevel();
         }
+    }
+
+    private function redirectAfterAccessLevelUpdate(int $userId): void
+    {
+        $returnTo = trim((string) ($this->data['form']['return_to'] ?? ''));
+        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+        if (
+            $returnTo !== ''
+            && $base !== ''
+            && str_starts_with($returnTo, $base)
+            && !preg_match('/[\r\n]/', $returnTo)
+        ) {
+            header('Location: ' . $returnTo);
+            return;
+        }
+
+        header("Location: {$_ENV['URL_ADM']}view-user/{$userId}?tab=permissoes");
     }
 
     /**
@@ -120,7 +140,7 @@ class UpdateUserAccessLevels
 
         $_SESSION['error'] = 'Somente Super Administrador ou Super usuário pode atribuir ou remover os níveis '
             . 'Canal de Denúncias — Operador e Canal de Denúncias — Administrador.';
-        header("Location: {$_ENV['URL_ADM']}view-user/{$targetId}");
+        $this->redirectAfterAccessLevelUpdate($targetId);
 
         return false;
     }

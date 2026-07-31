@@ -44,10 +44,38 @@ use App\adms\Helpers\CSRFHelper;
                 include __DIR__ . '/partials/form_tabs.php';
                 ?>
 
-                <div class="col-12 mt-3">
-                    <button type="submit" class="btn btn-warning btn-sm">Salvar</button>
+                <div class="col-12 mt-3" id="btnSaveUserFormWrap">
+                    <button type="submit" class="btn btn-warning btn-sm<?= (($this->data['form']['user_form_active_tab'] ?? ($_GET['tab'] ?? 'usuario')) === 'permissoes') ? ' d-none' : '' ?>" id="btnSaveUserForm">Salvar</button>
                 </div>
             </form>
+
+            <?php
+            // Formulários de revogação ficam fora do formulário principal (HTML não permite form aninhado).
+            $tiAcessosRevoke = is_array($this->data['ti_acessos'] ?? null) ? $this->data['ti_acessos'] : [];
+            $userIdRevoke = (int) ($this->data['form']['id'] ?? 0);
+            if ($tiAcessosRevoke !== [] && $userIdRevoke > 0 && in_array('TiAcessosRevoke', $this->data['buttonPermission'] ?? [], true)):
+                $csrfTiRevoke = CSRFHelper::generateCSRFToken('form_ti_acesso_revoke');
+                $urlAdmRevoke = (string) ($_ENV['URL_ADM'] ?? '');
+                foreach ($tiAcessosRevoke as $acessoRevoke):
+                    if (($acessoRevoke['status'] ?? '') !== 'ativo') {
+                        continue;
+                    }
+            ?>
+                <form id="formTiAcessoRevoke<?php echo (int) $acessoRevoke['id']; ?>" method="POST" class="d-none"
+                      action="<?php echo htmlspecialchars($urlAdmRevoke . 'ti-acessos-revoke/' . (int) $acessoRevoke['id'], ENT_QUOTES, 'UTF-8'); ?>"
+                      onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
+                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfTiRevoke, ENT_QUOTES, 'UTF-8'); ?>">
+                    <input type="hidden" name="return_to" value="<?php echo htmlspecialchars($urlAdmRevoke . 'update-user/' . $userIdRevoke . '?tab=acessos', ENT_QUOTES, 'UTF-8'); ?>">
+                </form>
+            <?php endforeach; endif; ?>
+
+            <?php if (in_array('UpdateUserAccessLevels', $this->data['buttonPermission'] ?? [], true) && (int) ($this->data['form']['id'] ?? 0) > 0): ?>
+                <form id="formUserAccessLevels" action="<?php echo htmlspecialchars((string) ($_ENV['URL_ADM'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>update-user-access-levels" method="POST" class="d-none">
+                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_access_level'); ?>">
+                    <input type="hidden" name="adms_user_id" value="<?php echo (int) $this->data['form']['id']; ?>">
+                    <input type="hidden" name="return_to" value="<?php echo htmlspecialchars((string) (($_ENV['URL_ADM'] ?? '') . 'update-user/' . (int) $this->data['form']['id'] . '?tab=permissoes'), ENT_QUOTES, 'UTF-8'); ?>">
+                </form>
+            <?php endif; ?>
         </div>
     </div>
 </div>
@@ -137,5 +165,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260720"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260731c"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>

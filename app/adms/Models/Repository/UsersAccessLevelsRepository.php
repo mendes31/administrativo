@@ -183,7 +183,7 @@ class UsersAccessLevelsRepository extends DbConnection
             $userAccessLevelsArrayDB = $userAccessLevelsArrayDB ? $userAccessLevelsArrayDB : [];
 
             // Perceorrer o array com os valores de acesso e liberar acesso
-            foreach ($data['userAccessLevelsArray'] as $userAccessLevel) {
+            foreach (($data['userAccessLevelsArray'] ?? []) as $userAccessLevel) {
 
                 // var_dump($userAccessLevelsArrayDB);
                 // exit;

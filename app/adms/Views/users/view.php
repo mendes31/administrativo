@@ -3,649 +3,715 @@
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\ImageHelper;
 use App\adms\Helpers\PositionDisplayHelper;
+use App\adms\Helpers\UserEducationHelper;
+use App\adms\Helpers\UserFormHelper;
 
-// Gera o token CSRF para proteger o formulário de deleção
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_user');
-$csrf_token_update_access_level = CSRFHelper::generateCSRFToken('form_update_access_level');
-// Gera o token CSRF para proteger o formulário de deleção de imagem
 $csrf_token_delete_image = CSRFHelper::generateCSRFToken('form_delete_user_image');
 
+$urlAdm = (string) ($_ENV['URL_ADM'] ?? '');
+$userRow = is_array($this->data['user'] ?? null) ? $this->data['user'] : null;
+$userId = (int) ($userRow['id'] ?? 0);
+$perms = $this->data['buttonPermission'] ?? [];
+$canUpdate = in_array('UpdateUser', $perms, true);
+$canPerms = in_array('UpdateUserAccessLevels', $perms, true);
+
+$activeTab = strtolower(trim((string) ($_GET['tab'] ?? 'usuario')));
+$allowedTabs = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes', 'acessos', 'historico', 'permissoes'];
+if (!in_array($activeTab, $allowedTabs, true)) {
+    $activeTab = 'usuario';
+}
+
+$emptyHtml = static function (mixed $value, string $empty = 'Não informado'): string {
+    if ($value === null || $value === '' || $value === false) {
+        return '<span class="text-muted">' . htmlspecialchars($empty, ENT_QUOTES, 'UTF-8') . '</span>';
+    }
+    return htmlspecialchars((string) $value, ENT_QUOTES, 'UTF-8');
+};
+
+$row = static function (string $label, string $html): void {
+    echo '<div class="user-view-row">';
+    echo '<div class="user-view-row-label">' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . '</div>';
+    echo '<div class="user-view-row-value">' . $html . '</div>';
+    echo '</div>';
+};
+
+$openPanel = static function (string $title, string $icon = 'fa-circle-info'): void {
+    echo '<div class="user-view-panel mb-3">';
+    echo '<div class="user-view-panel-head"><i class="fas ' . htmlspecialchars($icon, ENT_QUOTES, 'UTF-8') . ' me-2"></i>'
+        . htmlspecialchars($title, ENT_QUOTES, 'UTF-8') . '</div>';
+    echo '<div class="user-view-panel-body">';
+};
+
+$closePanel = static function (): void {
+    echo '</div></div>';
+};
+
+$tabUrl = static function (string $tab) use ($urlAdm, $userId): string {
+    return htmlspecialchars($urlAdm . 'view-user/' . $userId . '?tab=' . rawurlencode($tab), ENT_QUOTES, 'UTF-8');
+};
+
+$viewTabs = [
+    'usuario' => ['label' => 'Usuário', 'icon' => 'fa-user'],
+    'pessoais' => ['label' => 'Dados Pessoais', 'icon' => 'fa-id-card'],
+    'endereco' => ['label' => 'Endereço', 'icon' => 'fa-map-marker-alt'],
+    'contratuais' => ['label' => 'Dados Contratuais', 'icon' => 'fa-briefcase'],
+    'formacoes' => ['label' => 'Formações', 'icon' => 'fa-graduation-cap'],
+    'acessos' => ['label' => 'Acessos', 'icon' => 'fa-network-wired'],
+    'historico' => ['label' => 'Histórico', 'icon' => 'fa-history'],
+    'permissoes' => ['label' => 'Permissões', 'icon' => 'fa-shield-halved'],
+];
+
+$editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
 ?>
 
-<div class="container-fluid px-4">
-    <div class="mb-1 d-flex flex-column flex-sm-row gap-2">
-        <h2 class="mt-3">Usuários</h2>
-
-        <ol class="breadcrumb  mb-3 mt-0 mt-sm-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard" class="text-decoration-none">Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-users" class="text-decoration-none">Usuários</a></li>
+<div class="container-fluid px-2 px-md-4 user-view-page">
+    <div class="mb-1 d-flex flex-column flex-sm-row gap-1 gap-sm-2">
+        <h2 class="mt-2 mt-sm-3 mb-1 h3">Usuários</h2>
+        <ol class="breadcrumb mb-2 mb-sm-3 mt-0 mt-sm-3 ms-sm-auto small">
+            <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm . 'dashboard', ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none">Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="<?= htmlspecialchars($urlAdm . 'list-users', ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none">Usuários</a></li>
             <li class="breadcrumb-item">Visualizar</li>
         </ol>
     </div>
 
     <div class="card mb-4 border-light shadow">
-        <div class="card-header d-flex flex-column flex-sm-row gap-2">
-            <span>
-                Visulaizar
-            </span>
+        <div class="card-header">
+            <div class="d-flex flex-wrap align-items-center gap-2 justify-content-between">
+                <span class="fw-semibold">Visualizar</span>
+                <div class="d-flex flex-wrap gap-1 justify-content-end">
+                    <?php if (in_array('ListUsers', $perms, true)): ?>
+                        <a href="<?= htmlspecialchars($urlAdm . 'list-users', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-info btn-sm" title="Listar"><i class="fa-solid fa-list-ul"></i><span class="d-none d-md-inline"> Listar</span></a>
+                    <?php endif; ?>
+                    <?php if ($canUpdate && $userId > 0): ?>
+                        <a href="<?= htmlspecialchars($urlAdm . 'update-user/' . $userId . '?tab=' . rawurlencode($editTab), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-warning btn-sm" title="Editar"><i class="fa-regular fa-pen-to-square"></i><span class="d-none d-md-inline"> Editar</span></a>
+                    <?php endif; ?>
 
-            <span class="ms-sm-auto d-sm-flex flex-row">
+                    <button class="btn btn-outline-secondary btn-sm d-md-none" type="button" data-bs-toggle="collapse" data-bs-target="#userViewMoreBanner" aria-expanded="false" aria-controls="userViewMoreBanner">
+                        Mais <i class="fas fa-chevron-down ms-1 small"></i>
+                    </button>
 
-                <?php
-                if (in_array('ListUsers', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}list-users' class='btn btn-info btn-sm me-1 mb-1'><i class='fa-solid fa-list-ul'></i> Listar</a> ";
-                }
-
-                $id = ($this->data['user']['id'] ?? '');
-                if (in_array('UpdateUser', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}update-user/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-regular fa-pen-to-square'></i> Editar</a> ";
-                }
-
-                if (in_array('UpdatePasswordUser', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}update-password-user/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-key'></i> Editar Senha</a> ";
-                }
-
-                if (in_array('UpdateUserImage', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}update-user-image/$id' class='btn btn-warning btn-sm me-1 mb-1'><i class='fa-solid fa-camera'></i> Editar Imagem</a> ";
-                }
-                if (in_array('SstEmployeeProfile', $this->data['buttonPermission'])) {
-                    echo "<a href='{$_ENV['URL_ADM']}sst-employee-profile/$id' class='btn btn-outline-primary btn-sm me-1 mb-1'><i class='fa-solid fa-heart-pulse'></i> SST</a> ";
-                }
-
-                $log_resumo = $this->data['log_resumo'] ?? [];
-                $log_btn_class = 'btn btn-outline-info btn-sm me-1 mb-1';
-                include __DIR__ . '/../partials/button_log_alteracoes.php';
-
-                if (in_array('DeleteUser', $this->data['buttonPermission'])) {
-                ?>
-                    <!-- Formulário para deletar usuário -->
-                    <form id="formDelete<?php echo ($this->data['user']['id'] ?? ''); ?>" action="<?php echo $_ENV['URL_ADM']; ?>delete-user" method="POST">
-
-                        <!-- Campo oculto para o token CSRF -->
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-
-                        <!-- Campo oculto para o ID do usuário -->
-                        <input type="hidden" name="id" id="id" value="<?php echo ($this->data['user']['id'] ?? ''); ?>">
-
-                        <!-- Botão para submeter o formulário -->
-                        <button type="submit" class="btn btn-danger btn-sm me-1 mb-1" onclick="confirmDeletion(event, <?php echo ($this->data['user']['id'] ?? ''); ?>)"><i class="fa-regular fa-trash-can"></i> Apagar</button>
-
-                    </form>
-                <?php } ?>
-                </form>
-
-            </span>
-        </div>
-
-
-        <div class="card-body">
-            <?php
-            // Inclui o arquivo que exibe mensagens de sucesso e erro
-            include './app/adms/Views/partials/alerts.php';
-
-            // Verifica se há usuários no array
-            if ($this->data['user'] ?? false) {
-
-                // Extrai variáveis do array $this->data['user'] para fácil acesso
-                extract($this->data['user']);
-            ?>
-
-                <dl class="row">
-                    <dt class="col-sm-3">ID: </dt>
-                    <dd class="col-sm-9"><?php echo $id; ?></dd>
-
-                    <dt class="col-sm-3">Nome: </dt>
-                    <dd class="col-sm-9"><?php echo $name; ?></dd>
-
-                    <dt class="col-sm-3">Email: </dt>
-                    <dd class="col-sm-9"><?php echo $email; ?></dd>
-
-                    <dt class="col-sm-3">E-mail pessoal: </dt>
-                    <dd class="col-sm-9"><?php echo !empty($this->data['user']['email_pessoal']) ? htmlspecialchars((string)$this->data['user']['email_pessoal'], ENT_QUOTES, 'UTF-8') : '<span class="text-muted">Não informado</span>'; ?></dd>
-
-                    <dt class="col-sm-3">Usuário: </dt>
-                    <dd class="col-sm-9"><?php echo $username; ?></dd>
-
-                    <dt class="col-sm-3">CPF: </dt>
-                    <dd class="col-sm-9"><?php echo !empty($cpf) ? $cpf : '<span class="text-muted">Não informado</span>'; ?></dd>
-
-                    <dt class="col-sm-3">Celular: </dt>
-                    <dd class="col-sm-9"><?php echo !empty($celular) ? $celular : '<span class="text-muted">Não informado</span>'; ?></dd>
-
-                    <dt class="col-sm-3">Imagem: </dt>
-                    <dd class="col-sm-9">
-                        <?php
-                        // Monta caminho completo somente se houver imagem personalizada
-                        $userImagePath = null;
-                        if (ImageHelper::userImageExists((int)($id ?? 0), (string)($image ?? ''))) {
-                            $userImagePath = 'users/' . $id . '/' . $image;
-                        }
-
-                        if ($userImagePath !== null) {
-                            echo ImageHelper::displayImage($userImagePath, [
-                                'alt' => 'Imagem do usuário',
-                                'style' => 'max-width: 120px; max-height: 120px; border-radius: 8px; object-fit: cover;',
-                            ], 'icon_user.png', 'users');
-                        } else {
-                            echo ImageHelper::renderInitialsAvatar((string)($name ?? 'Usuário'), 120, [
-                                'style' => 'border-radius: 8px;',
-                            ]);
-                        }
-                        ?>
-                        
-                        <?php if (ImageHelper::userImageExists((int)($id ?? 0), (string)($image ?? ''))): ?>
-                            <!-- Botão para abrir o modal de confirmação (desktop) -->
-                            <button type="button" class="btn btn-outline-danger btn-sm d-none d-md-inline-block" data-bs-toggle="modal" data-bs-target="#modalDeleteImage<?php echo $id; ?>-desktop" style="margin-left: 10px;">
-                                Remover imagem
-                            </button>
-                            <!-- Modal de confirmação (desktop) -->
-                            <div class="modal fade" id="modalDeleteImage<?php echo $id; ?>-desktop" tabindex="-1" aria-labelledby="modalDeleteImageLabel<?php echo $id; ?>-desktop" aria-hidden="true">
-                              <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content">
-                                  <div class="modal-header">
-                                    <h5 class="modal-title" id="modalDeleteImageLabel<?php echo $id; ?>-desktop">
-                                      <i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirmar Remoção da Imagem
-                                    </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                    Tem certeza que deseja remover a imagem do usuário?<br>
-                                    <small class="text-muted">Você não poderá reverter esta ação.</small>
-                                  </div>
-                                  <div class="modal-footer">
-                                    <form action="<?php echo $_ENV['URL_ADM']; ?>delete-user-image/<?php echo $id; ?>" method="POST" class="d-inline">
-                                      <input type="hidden" name="csrf_token" value="<?php echo $csrf_token_delete_image; ?>">
-                                      <button type="submit" class="btn btn-danger">Sim, remover!</button>
-                                    </form>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
-                            <!-- Botão para abrir o modal de confirmação (mobile) -->
-                            <button type="button" class="btn btn-outline-danger btn-sm d-inline-block d-md-none mt-2" data-bs-toggle="modal" data-bs-target="#modalDeleteImage<?php echo $id; ?>-mobile">
-                                Remover imagem
-                            </button>
-                            <!-- Modal de confirmação (mobile) -->
-                            <div class="modal fade" id="modalDeleteImage<?php echo $id; ?>-mobile" tabindex="-1" aria-labelledby="modalDeleteImageLabel<?php echo $id; ?>-mobile" aria-hidden="true">
-                              <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content">
-                                  <div class="modal-header">
-                                    <h5 class="modal-title" id="modalDeleteImageLabel<?php echo $id; ?>-mobile">
-                                      <i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirmar Remoção da Imagem
-                                    </h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                                  </div>
-                                  <div class="modal-body">
-                                    Tem certeza que deseja remover a imagem do usuário?<br>
-                                    <small class="text-muted">Você não poderá reverter esta ação.</small>
-                                  </div>
-                                  <div class="modal-footer">
-                                    <form action="<?php echo $_ENV['URL_ADM']; ?>delete-user-image/<?php echo $id; ?>" method="POST" class="d-inline">
-                                      <input type="hidden" name="csrf_token" value="<?php echo $csrf_token_delete_image; ?>">
-                                      <button type="submit" class="btn btn-danger">Sim, remover!</button>
-                                    </form>
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
+                    <div class="d-none d-md-flex flex-wrap gap-1">
+                        <?php if (in_array('UpdatePasswordUser', $perms, true) && $userId > 0): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'update-password-user/' . $userId, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-key"></i> Editar Senha</a>
                         <?php endif; ?>
-                    </dd>
-                    <dt class="col-sm-3">Data de Nascimento: </dt>
-                    <dd class="col-sm-9">
-                        <?php 
-                        $dataNasc = isset($data_nascimento) ? $data_nascimento : ($this->data['user']['data_nascimento'] ?? null);
-                        echo !empty($dataNasc) ? date('d/m/Y', strtotime($dataNasc)) : '<span class="text-muted">Não informado</span>'; 
-                        ?>
-                    </dd>
-                    <dt class="col-sm-3">Escolaridade: </dt>
-                    <dd class="col-sm-9">
+                        <?php if (in_array('UpdateUserImage', $perms, true) && $userId > 0): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'update-user-image/' . $userId, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-warning btn-sm"><i class="fa-solid fa-camera"></i> Editar Imagem</a>
+                        <?php endif; ?>
+                        <?php if (in_array('SstEmployeeProfile', $perms, true) && $userId > 0): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'sst-employee-profile/' . $userId, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-heart-pulse"></i> SST</a>
+                        <?php endif; ?>
                         <?php
-                        $escolaridadeRaw = $this->data['user']['escolaridade'] ?? null;
-                        $escolaridadeLabel = \App\adms\Helpers\UserFormHelper::escolaridadeLabel(
-                            is_string($escolaridadeRaw) ? $escolaridadeRaw : null
-                        );
-                        echo $escolaridadeRaw !== null && $escolaridadeRaw !== ''
-                            ? htmlspecialchars($escolaridadeLabel, ENT_QUOTES, 'UTF-8')
-                            : '<span class="text-muted">Não informado</span>';
+                        $log_resumo = $this->data['log_resumo'] ?? [];
+                        $log_btn_class = 'btn btn-outline-info btn-sm';
+                        include __DIR__ . '/../partials/button_log_alteracoes.php';
                         ?>
-                    </dd>
-                    <dt class="col-sm-3">Sexo: </dt>
-                    <dd class="col-sm-9">
-                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::sexoLabel($this->data['user']['sexo'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
-                    </dd>
-                    <dt class="col-sm-3">Filho(s): </dt>
-                    <dd class="col-sm-9">
-                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::filhosLabel($this->data['user']['filhos'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
-                    </dd>
-                    <dt class="col-sm-3">Estado civil: </dt>
-                    <dd class="col-sm-9">
-                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::estadoCivilLabel($this->data['user']['estado_civil'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
-                    </dd>
-                    <dt class="col-sm-3">Raça/cor: </dt>
-                    <dd class="col-sm-9">
-                        <?php
-                        $racaRaw = $this->data['user']['raca'] ?? null;
-                        echo $racaRaw !== null && $racaRaw !== ''
-                            ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::racaLabel(is_string($racaRaw) ? $racaRaw : null), ENT_QUOTES, 'UTF-8')
-                            : '<span class="text-muted">Não informado</span>';
-                        ?>
-                    </dd>
-                    <dt class="col-sm-3">País de residência: </dt>
-                    <dd class="col-sm-9">
-                        <?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::paisResidenciaLabel($this->data['user']['pais_residencia_iso'] ?? null), ENT_QUOTES, 'UTF-8'); ?>
-                    </dd>
-                    <dt class="col-sm-3">Endereço: </dt>
-                    <dd class="col-sm-9">
-                        <?php
-                        $endParts = array_filter([
-                            trim((string)($this->data['user']['endereco'] ?? '')),
-                            trim((string)($this->data['user']['numero_endereco'] ?? '')),
-                            trim((string)($this->data['user']['complemento_endereco'] ?? '')),
-                            trim((string)($this->data['user']['bairro'] ?? '')),
-                        ], static fn ($v) => $v !== '');
-                        $cepMunUf = array_filter([
-                            trim((string)($this->data['user']['cep'] ?? '')),
-                            trim((string)($this->data['user']['municipio'] ?? '')),
-                            trim((string)($this->data['user']['uf'] ?? '')),
-                        ], static fn ($v) => $v !== '');
-                        if ($endParts || $cepMunUf) {
-                            $line1 = implode(', ', $endParts);
-                            $line2 = implode(' - ', $cepMunUf);
-                            echo htmlspecialchars(trim($line1 . ($line1 && $line2 ? ' | ' : '') . $line2), ENT_QUOTES, 'UTF-8');
-                        } else {
-                            echo '<span class="text-muted">Não informado</span>';
-                        }
-                        ?>
-                    </dd>
-
-                    <dt class="col-sm-3">Departamento: </dt>
-                    <dd class="col-sm-9"><?php echo $dep_name; ?></dd>
-
-                    <dt class="col-sm-3">Empresa contratante: </dt>
-                    <dd class="col-sm-9">
-                        <?php
-                        $empSlug = \App\adms\Helpers\UserFormHelper::resolveEmpresaSlugFromUser($this->data['user'] ?? []);
-                        echo $empSlug !== null
-                            ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::empresaContratanteLabel($empSlug), ENT_QUOTES, 'UTF-8')
-                            : '<span class="text-muted">Não informado</span>';
-                        ?>
-                    </dd>
-
-                    <dt class="col-sm-3">Matrícula: </dt>
-                    <dd class="col-sm-9"><?php echo !empty($this->data['user']['matricula']) ? htmlspecialchars((string)$this->data['user']['matricula'], ENT_QUOTES, 'UTF-8') : '<span class="text-muted">Não informado</span>'; ?></dd>
-
-                    <dt class="col-sm-3">Cargo|Função: </dt>
-                    <dd class="col-sm-9"><?php echo htmlspecialchars(PositionDisplayHelper::formatForDisplay((string)($pos_name ?? ''))); ?></dd>
-
-                    <dt class="col-sm-3">Turno de trabalho: </dt>
-                    <dd class="col-sm-9"><?php
-                        $wsLabel = $work_shift_description ?? ($this->data['user']['work_shift_description'] ?? '');
-                        echo $wsLabel !== '' && $wsLabel !== null
-                            ? htmlspecialchars((string) $wsLabel, ENT_QUOTES, 'UTF-8')
-                            : '<span class="text-muted">Não definido</span>';
-                    ?></dd>
-
-                    <dt class="col-sm-3">Cadastrado: </dt>
-                    <dd class="col-sm-9"><?php echo ($created_at ? date('d/m/Y H:i:s', strtotime($created_at)) : ""); ?></dd>
-
-                    <dt class="col-sm-3">Aeditado: </dt>
-                    <dd class="col-sm-9"><?php echo ($updated_at ? date('d/m/Y H:i:s', strtotime($updated_at)) : ""); ?></dd>
-
-                    <dt class="col-sm-3">Status: </dt>
-                    <dd class="col-sm-9"><?php echo $status; ?></dd>
-
-                    <dt class="col-sm-3">Super usuário: </dt>
-                    <dd class="col-sm-9"><?php echo (int)($this->data['user']['super_usuario'] ?? 0) === 1 ? 'Sim' : 'Não'; ?></dd>
-
-                    <dt class="col-sm-3">Bloqueado: </dt>
-                    <dd class="col-sm-9"><?php echo $bloqueado; ?></dd>
-
-                    <dt class="col-sm-3">Tentativas de Login: </dt>
-                    <dd class="col-sm-9"><?php echo $tentativas_login; ?></dd>
-
-                    <dt class="col-sm-3">Senha Nunca Expira: </dt>
-                    <dd class="col-sm-9"><?php echo $senha_nunca_expira; ?></dd>
-
-                    <dt class="col-sm-3">Modificar Senha no Próximo Logon: </dt>
-                    <dd class="col-sm-9"><?php echo $modificar_senha_proximo_logon; ?></dd>
-
-                    <?php if (!empty($this->data['user']['data_admissao'])): ?>
-                        <dt class="col-sm-3">Data de Admissão: </dt>
-                        <dd class="col-sm-9"><?php echo date('d/m/Y', strtotime($this->data['user']['data_admissao'])); ?></dd>
-                    <?php endif; ?>
-
-                    <?php if (!empty($this->data['user']['data_desligamento'])): ?>
-                        <dt class="col-sm-3">Data de Desligamento: </dt>
-                        <dd class="col-sm-9"><?php echo date('d/m/Y', strtotime($this->data['user']['data_desligamento'])); ?></dd>
-                        <dt class="col-sm-3">Classificação do desligamento: </dt>
-                        <dd class="col-sm-9"><?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::tipoImpactoDesligamentoLabel($this->data['user']['tipo_impacto_desligamento'] ?? null)); ?></dd>
-                    <?php endif; ?>
-
-                    <?php if (!empty($this->data['totalTenure'])): ?>
-                        <dt class="col-sm-3">Tempo Total de Casa: </dt>
-                        <dd class="col-sm-9">
-                            <strong><?php echo htmlspecialchars($this->data['totalTenure']['formatted']); ?></strong>
-                            <small class="text-muted">(<?php echo $this->data['totalTenure']['total_periodos']; ?> período(s))</small>
-                        </dd>
-                    <?php endif; ?>
-                </dl>
-
-
-            <?php
-            } else {
-                // Acessa o ELSE quando o elemento não existir registros
-                echo "<div class='alert alert-danger' role='alert'>Usuário não encontrado.</div>";
-            }
-            ?>
-        </div>
-
-    </div>
-
-    <div class="card mb-4 border-light shadow">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <h5 class="mb-0"><i class="fas fa-graduation-cap me-1"></i> Formações acadêmicas e cursos</h5>
-            <?php if (in_array('UpdateUser', $this->data['buttonPermission'] ?? [], true)): ?>
-                <a href="<?php echo $_ENV['URL_ADM']; ?>update-user/<?php echo (int)($this->data['user']['id'] ?? 0); ?>#tab-formacoes" class="btn btn-sm btn-outline-warning">
-                    <i class="fas fa-edit me-1"></i>Gerenciar
-                </a>
-            <?php endif; ?>
-        </div>
-        <div class="card-body">
-            <?php if (!empty($this->data['educations'])): ?>
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Curso/Formação</th>
-                                <th>Instituição</th>
-                                <th>Situação</th>
-                                <th>Período</th>
-                                <th>Carga horária</th>
-                                <th>Comprovante</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($this->data['educations'] as $education): ?>
-                                <tr>
-                                    <td><?php echo htmlspecialchars(\App\adms\Helpers\UserEducationHelper::typeLabel((string)($education['tipo'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td>
-                                        <strong><?php echo htmlspecialchars((string)($education['curso'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></strong>
-                                        <?php if (!empty($education['observacoes'])): ?>
-                                            <div class="small text-muted"><?php echo nl2br(htmlspecialchars((string)$education['observacoes'], ENT_QUOTES, 'UTF-8')); ?></div>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td><?php echo !empty($education['instituicao']) ? htmlspecialchars((string)$education['instituicao'], ENT_QUOTES, 'UTF-8') : '—'; ?></td>
-                                    <td><?php echo htmlspecialchars(\App\adms\Helpers\UserEducationHelper::statusLabel((string)($education['situacao'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
-                                    <td>
-                                        <?php
-                                        $start = !empty($education['data_inicio']) ? date('m/Y', strtotime((string)$education['data_inicio'])) : '';
-                                        $end = !empty($education['data_conclusao']) ? date('m/Y', strtotime((string)$education['data_conclusao'])) : '';
-                                        echo htmlspecialchars(trim($start . ($start !== '' && $end !== '' ? ' a ' : '') . $end) ?: '—');
-                                        ?>
-                                    </td>
-                                    <td><?php echo !empty($education['carga_horaria']) ? (int)$education['carga_horaria'] . ' h' : '—'; ?></td>
-                                    <td>
-                                        <?php if (!empty($education['comprovante_path'])): ?>
-                                            <a class="btn btn-sm btn-outline-primary" href="<?php echo $_ENV['URL_ADM']; ?>view-user/download-formacao/<?php echo (int)$education['id']; ?>">
-                                                <i class="fas fa-download me-1"></i>Baixar
-                                            </a>
-                                        <?php else: ?>
-                                            <span class="text-muted">Não anexado</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            <?php else: ?>
-                <p class="text-muted mb-0">Nenhuma formação cadastrada.</p>
-            <?php endif; ?>
-        </div>
-    </div>
-
-    <?php if (!empty($this->data['employmentHistory'])): ?>
-        <div class="card mb-4 border-light shadow">
-            <div class="card-header">
-                <h5 class="mb-0"><i class="fas fa-history"></i> Histórico de Admissões e Desligamentos</h5>
-            </div>
-            <div class="card-body">
-                <div class="table-responsive">
-                    <table class="table table-striped table-hover">
-                        <thead>
-                            <tr>
-                                <th>Tipo</th>
-                                <th>Data de Admissão</th>
-                                <th>Data de Desligamento</th>
-                                <th>Motivo do Desligamento</th>
-                                <th>Impacto (RH)</th>
-                                <th>Duração</th>
-                                <th>Observações</th>
-                                <th class="text-center">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($this->data['employmentHistory'] as $period): ?>
-                                <tr class="<?php echo empty($period['data_desligamento']) ? 'table-success' : ''; ?>">
-                                    <td>
-                                        <span class="badge bg-<?php echo $period['tipo_periodo'] === 'Recontratação' ? 'info' : 'primary'; ?>">
-                                            <?php echo htmlspecialchars($period['tipo_periodo']); ?>
-                                        </span>
-                                    </td>
-                                    <td><?php echo date('d/m/Y', strtotime($period['data_admissao'])); ?></td>
-                                    <td>
-                                        <?php 
-                                        if (!empty($period['data_desligamento'])) {
-                                            echo date('d/m/Y', strtotime($period['data_desligamento']));
-                                        } else {
-                                            echo '<span class="badge bg-success">Ativo</span>';
-                                        }
-                                        ?>
-                                    </td>
-                                    <td><?php echo !empty($period['motivo_desligamento']) ? htmlspecialchars($period['motivo_desligamento']) : '-'; ?></td>
-                                    <td>
-                                        <?php
-                                        $ti = $period['tipo_impacto_desligamento'] ?? null;
-                                        echo $ti ? htmlspecialchars(\App\adms\Helpers\UserFormHelper::tipoImpactoDesligamentoLabel((string) $ti)) : '-';
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <?php
-                                        $admissao = new \DateTime($period['data_admissao']);
-                                        $desligamento = !empty($period['data_desligamento']) 
-                                            ? new \DateTime($period['data_desligamento']) 
-                                            : new \DateTime();
-                                        $diff = $admissao->diff($desligamento);
-                                        echo $diff->y > 0 
-                                            ? "{$diff->y} ano(s), {$diff->m} mês(es)"
-                                            : "{$diff->m} mês(es), {$diff->d} dia(s)";
-                                        ?>
-                                    </td>
-                                    <td>
-                                        <small class="text-muted">
-                                            <?php echo !empty($period['observacoes']) ? htmlspecialchars($period['observacoes']) : '-'; ?>
-                                        </small>
-                                    </td>
-                                    <td class="text-center">
-                                        <?php if (in_array('UpdateUser', $this->data['buttonPermission'] ?? [])) { ?>
-                                            <a href="<?php echo $_ENV['URL_ADM']; ?>update-employment-history/<?= $period['id'] ?>" 
-                                               class="btn btn-sm btn-warning" title="Editar">
-                                                <i class="fas fa-edit"></i>
-                                            </a>
-                                        <?php } ?>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
-    <?php endif; ?>
-
-    <!-- <div class="card mb-4 border-light shadow">
-        <div class="card-header d-flex flex-column flex-sm-row gap-2">
-            <span>Departamento</span>
-
-            <span class="ms-sm-auto d-sm-flex flex-row">
-
-
-            </span>
-        </div>
-
-
-        <div class="card-body">
-            <?php
-
-            // Verifica se há niveis de acesso para o usuários no array
-            if ($this->data['userDepartments'] ?? false) {
-
-                echo "<dl class='row'>";
-                echo "<dt class='col-sm-3'>Departamento: </dt>";
-                echo "<dd class='col-sm-9'>";
-
-                //Perceorre o array de usuários
-                foreach ($this->data['userDepartments'] as $userDepartment) {
-                    // Extrai variáveis do array de usuário
-                    extract($userDepartment);
-                    echo $name;
-                }
-                echo '</dd>';
-                echo '</dl>';
-            } else {
-                // Acessa o ELSE quando o elemento não existir registros
-                echo "<div class='alert alert-danger' role='alert'>Usuário não possui departamento vinculado.</div>";
-            }        ?>
-        </div>
-
-    </div> -->
-
-    <?php
-    if (in_array('UpdateUserAccessLevels', $this->data['buttonPermission'])) { ?>
-
-
-        <div class="card mb-4 border-light shadow">
-            <div class="card-header d-flex flex-column flex-sm-row gap-2">
-                <span>Permissões</span>
-
-                <span class="ms-sm-auto d-sm-flex flex-row">
-
-
-                </span>
-            </div>
-
-
-            <div class="card-body">
-                <?php
-                $viewUserIsSuper = (int)($this->data['user']['super_usuario'] ?? 0) === 1;
-                if ($viewUserIsSuper) { ?>
-                    <div class="alert alert-info mb-0" role="alert">
-                        <strong>Super usuário:</strong> acesso total ao sistema (equivalente ao nível Super Administrador).
-                        Os níveis de acesso não são editáveis aqui. Para ajustar perfis por nível, remova primeiro o flag
-                        <em>Super usuário</em> no cadastro do utilizador.
+                        <?php if (in_array('DeleteUser', $perms, true) && $userId > 0): ?>
+                            <button type="button" class="btn btn-danger btn-sm" onclick="confirmDeletion(event, <?= $userId ?>)"><i class="fa-regular fa-trash-can"></i> Apagar</button>
+                        <?php endif; ?>
                     </div>
-                <?php } ?>
+                    <?php if (in_array('DeleteUser', $perms, true) && $userId > 0): ?>
+                        <form id="formDelete<?= $userId ?>" action="<?= htmlspecialchars($urlAdm . 'delete-user', ENT_QUOTES, 'UTF-8') ?>" method="POST" class="d-none">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="id" value="<?= $userId ?>">
+                        </form>
+                    <?php endif; ?>
+                </div>
+            </div>
 
-                <?php
+            <div class="collapse d-md-none" id="userViewMoreBanner">
+                <div class="user-view-more-banner mt-2">
+                    <?php if (in_array('UpdatePasswordUser', $perms, true) && $userId > 0): ?>
+                        <a class="user-view-more-banner-item" href="<?= htmlspecialchars($urlAdm . 'update-password-user/' . $userId, ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-key"></i><span>Editar senha</span></a>
+                    <?php endif; ?>
+                    <?php if (in_array('UpdateUserImage', $perms, true) && $userId > 0): ?>
+                        <a class="user-view-more-banner-item" href="<?= htmlspecialchars($urlAdm . 'update-user-image/' . $userId, ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-camera"></i><span>Editar imagem</span></a>
+                    <?php endif; ?>
+                    <?php if (in_array('SstEmployeeProfile', $perms, true) && $userId > 0): ?>
+                        <a class="user-view-more-banner-item" href="<?= htmlspecialchars($urlAdm . 'sst-employee-profile/' . $userId, ENT_QUOTES, 'UTF-8') ?>"><i class="fa-solid fa-heart-pulse"></i><span>SST</span></a>
+                    <?php endif; ?>
+                    <?php
+                    $logResumoMobile = $this->data['log_resumo'] ?? [];
+                    if (!empty($logResumoMobile['list_url']) && (int) ($logResumoMobile['count'] ?? 0) > 0):
+                    ?>
+                        <a class="user-view-more-banner-item" href="<?= htmlspecialchars((string) $logResumoMobile['list_url'], ENT_QUOTES, 'UTF-8') ?>"><i class="fas fa-history"></i><span>Log de alterações (<?= (int) $logResumoMobile['count'] ?>)</span></a>
+                    <?php endif; ?>
+                    <?php if (in_array('DeleteUser', $perms, true) && $userId > 0): ?>
+                        <button type="button" class="user-view-more-banner-item user-view-more-banner-item--danger" onclick="confirmDeletion(event, <?= $userId ?>)"><i class="fa-regular fa-trash-can"></i><span>Apagar</span></button>
+                    <?php endif; ?>
+                </div>
+            </div>
+        </div>
 
-                // // Verifica se há niveis de acesso para o usuários no array
-                // if ($this->data['userAccessLevels'] ?? false) {
+        <div class="card-body px-2 px-sm-3">
+            <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-                //     echo "<dl class='row'>";
-                //     echo "<dt class='col-sm-3'>Niveis de Acesso: </dt>";
-                //     echo "<dd class='col-sm-9'>";
+            <?php if ($userRow === null): ?>
+                <div class="alert alert-danger" role="alert">Usuário não encontrado.</div>
+            <?php else:
+                $name = (string) ($userRow['name'] ?? '');
+                $image = (string) ($userRow['image'] ?? '');
+                $status = (string) ($userRow['status'] ?? '');
+                $bloqueado = (string) ($userRow['bloqueado'] ?? '');
+                $isSuper = (int) ($userRow['super_usuario'] ?? 0) === 1;
+                $statusBadge = strcasecmp($status, 'Ativo') === 0 ? 'bg-success' : 'bg-secondary';
+                $blockedBadge = (strcasecmp($bloqueado, 'Sim') === 0 || $bloqueado === '1') ? 'bg-danger' : 'bg-success';
+                $blockedLabel = (strcasecmp($bloqueado, 'Sim') === 0 || $bloqueado === '1') ? 'Bloqueado' : 'Não bloqueado';
+            ?>
 
-                //     //Perceorre o array de usuários
-                //     foreach ($this->data['userAccessLevels'] as $userAccessLevel) {
-                //         // Extrai variáveis do array de usuário
-                //         extract($userAccessLevel);
-                //         echo $name; 
-                //     }
-                //     echo '</dd>';
-                //     echo '</dl>';
-                // } else {
-                //     // Acessa o ELSE quando o elemento não existir registros
-                //     echo "<div class='alert alert-danger' role='alert'>Usuário não possui nivel de acesso.</div>";
-                // }
+            <div class="d-flex flex-row gap-2 gap-md-3 align-items-center mb-3 pb-3 border-bottom">
+                <div class="flex-shrink-0 user-view-avatar">
+                    <?php
+                    if (ImageHelper::userImageExists($userId, $image)) {
+                        echo ImageHelper::displayImage('users/' . $userId . '/' . $image, [
+                            'alt' => 'Imagem do usuário',
+                            'class' => 'user-view-avatar-img',
+                            'style' => '',
+                        ], 'icon_user.png', 'users');
+                    } else {
+                        echo '<span class="d-md-none">' . ImageHelper::renderInitialsAvatar($name !== '' ? $name : 'U', 56, [
+                            'style' => 'border-radius: 50%;',
+                        ]) . '</span>';
+                        echo '<span class="d-none d-md-inline">' . ImageHelper::renderInitialsAvatar($name !== '' ? $name : 'U', 80, [
+                            'style' => 'border-radius: 50%;',
+                        ]) . '</span>';
+                    }
+                    ?>
+                </div>
+                <div class="flex-grow-1 min-w-0">
+                    <div class="d-flex flex-wrap align-items-center gap-1 gap-sm-2 mb-1">
+                        <h3 class="h5 mb-0 text-break"><?= htmlspecialchars($name, ENT_QUOTES, 'UTF-8') ?></h3>
+                        <span class="badge <?= $statusBadge ?>"><?= htmlspecialchars($status !== '' ? $status : '—', ENT_QUOTES, 'UTF-8') ?></span>
+                        <span class="badge <?= $blockedBadge ?>"><?= htmlspecialchars($blockedLabel, ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php if ($isSuper): ?>
+                            <span class="badge bg-primary">Super usuário</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="text-muted small text-break mb-1">
+                        #<?= $userId ?>
+                        · <?= htmlspecialchars((string) ($userRow['username'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                        <span class="d-none d-sm-inline"> · <?= htmlspecialchars((string) ($userRow['email'] ?? ''), ENT_QUOTES, 'UTF-8') ?></span>
+                    </div>
+                    <div class="small text-break">
+                        <span class="me-2"><strong>Depto:</strong> <?= $emptyHtml($userRow['dep_name'] ?? null) ?></span>
+                        <span class="me-2"><strong>Cargo:</strong> <?= $emptyHtml(PositionDisplayHelper::formatForDisplay((string) ($userRow['pos_name'] ?? ''))) ?></span>
+                        <span class="d-none d-sm-inline me-2"><strong>Empresa:</strong>
+                            <?php
+                            $empSlug = UserFormHelper::resolveEmpresaSlugFromUser($userRow);
+                            echo $empSlug !== null
+                                ? htmlspecialchars(UserFormHelper::empresaContratanteLabel($empSlug), ENT_QUOTES, 'UTF-8')
+                                : '<span class="text-muted">Não informado</span>';
+                            ?>
+                        </span>
+                        <?php if (!empty($this->data['totalTenure']['formatted'])): ?>
+                            <span class="d-none d-md-inline"><strong>Tempo de casa:</strong> <?= htmlspecialchars((string) $this->data['totalTenure']['formatted'], ENT_QUOTES, 'UTF-8') ?></span>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
 
+            <div class="mb-3 user-view-tabs-scroll">
+                <ul class="nav nav-tabs flex-nowrap mb-0" id="userViewTabs" role="tablist">
+                    <?php foreach ($viewTabs as $tabKey => $tabMeta): ?>
+                        <li class="nav-item" role="presentation">
+                            <a class="nav-link text-nowrap <?= $activeTab === $tabKey ? 'active' : '' ?>" href="<?= $tabUrl($tabKey) ?>">
+                                <i class="fas <?= htmlspecialchars($tabMeta['icon'], ENT_QUOTES, 'UTF-8') ?> me-1"></i><?= htmlspecialchars($tabMeta['label'], ENT_QUOTES, 'UTF-8') ?>
+                            </a>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            </div>
 
-                // Verifica se há niveis de acesso para o usuários no array
+            <div class="tab-content">
+                <?php if ($activeTab === 'usuario'): ?>
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <?php
+                            $openPanel('Conta', 'fa-user');
+                            $row('ID', (string) $userId);
+                            $row('Nome', $emptyHtml($userRow['name'] ?? null));
+                            $row('E-mail corporativo', $emptyHtml($userRow['email'] ?? null));
+                            $row('Usuário', $emptyHtml($userRow['username'] ?? null));
+                            $row('CPF', $emptyHtml($userRow['cpf'] ?? null));
+                            $row('Celular', $emptyHtml($userRow['celular'] ?? null));
+                            $closePanel();
+                            ?>
+                        </div>
+                        <div class="col-lg-6">
+                            <?php
+                            $openPanel('Organização', 'fa-sitemap');
+                            $row('Departamento', $emptyHtml($userRow['dep_name'] ?? null));
+                            $row('Cargo / função', $emptyHtml(PositionDisplayHelper::formatForDisplay((string) ($userRow['pos_name'] ?? ''))));
+                            $row('Supervisor imediato', $emptyHtml($userRow['supervisor_name'] ?? null, 'Não definido'));
+                            $wsLabel = $userRow['work_shift_description'] ?? '';
+                            $row('Turno de trabalho', $emptyHtml($wsLabel !== '' ? $wsLabel : null, 'Não definido'));
+                            $closePanel();
+                            ?>
+                        </div>
+                        <div class="col-lg-6">
+                            <?php
+                            $openPanel('Segurança da conta', 'fa-shield-halved');
+                            $row('Status', '<span class="badge ' . $statusBadge . '">' . htmlspecialchars($status !== '' ? $status : '—', ENT_QUOTES, 'UTF-8') . '</span>');
+                            $row('Bloqueado', '<span class="badge ' . $blockedBadge . '">' . htmlspecialchars($blockedLabel, ENT_QUOTES, 'UTF-8') . '</span>');
+                            $row('Super usuário', $isSuper ? '<span class="badge bg-primary">Sim</span>' : $emptyHtml('Não'));
+                            $row('Tentativas de login', $emptyHtml($userRow['tentativas_login'] ?? '0'));
+                            $row('Senha nunca expira', $emptyHtml($userRow['senha_nunca_expira'] ?? null));
+                            $row('Modificar senha no próximo logon', $emptyHtml($userRow['modificar_senha_proximo_logon'] ?? null));
+                            $closePanel();
+                            ?>
+                        </div>
+                        <div class="col-lg-6">
+                            <?php
+                            $openPanel('Auditoria', 'fa-clock');
+                            $row('Cadastrado', !empty($userRow['created_at']) ? htmlspecialchars(date('d/m/Y H:i:s', strtotime((string) $userRow['created_at'])), ENT_QUOTES, 'UTF-8') : $emptyHtml(null));
+                            $row('Editado', !empty($userRow['updated_at']) ? htmlspecialchars(date('d/m/Y H:i:s', strtotime((string) $userRow['updated_at'])), ENT_QUOTES, 'UTF-8') : $emptyHtml(null));
+                            $imgAction = ImageHelper::userImageExists($userId, $image)
+                                ? '<button type="button" class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#modalDeleteImageView">Remover imagem</button>'
+                                : '<span class="text-muted">Sem imagem personalizada</span>';
+                            $row('Imagem', $imgAction);
+                            $closePanel();
+                            ?>
+                            <?php if (ImageHelper::userImageExists($userId, $image)): ?>
+                                <div class="modal fade" id="modalDeleteImageView" tabindex="-1" aria-hidden="true">
+                                    <div class="modal-dialog modal-dialog-centered">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h5 class="modal-title"><i class="fas fa-exclamation-triangle text-danger me-2"></i>Confirmar remoção</h5>
+                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+                                            </div>
+                                            <div class="modal-body">Tem certeza que deseja remover a imagem do usuário?</div>
+                                            <div class="modal-footer">
+                                                <form action="<?= htmlspecialchars($urlAdm . 'delete-user-image/' . $userId, ENT_QUOTES, 'UTF-8') ?>" method="POST">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token_delete_image, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <button type="submit" class="btn btn-danger">Sim, remover</button>
+                                                </form>
+                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            <?php endif; ?>
+                        </div>
+                    </div>
 
-                if ($viewUserIsSuper) {
-                    // formulário de níveis oculto para super usuário (alterações bloqueadas no controller)
-                } elseif ($this->data['userAllAccessLevelsArray'] ?? false) {
-                    $canManageWhistleblowingLevels = !empty($this->data['can_manage_whistleblowing_levels']);
-                    $whistleblowingLevelIds = array_map('intval', $this->data['whistleblowing_access_level_ids'] ?? []);
+                <?php elseif ($activeTab === 'pessoais'): ?>
+                    <?php
+                    $openPanel('Dados pessoais', 'fa-id-card');
+                    $dataNasc = $userRow['data_nascimento'] ?? null;
+                    $row('Data de nascimento', !empty($dataNasc) ? htmlspecialchars(date('d/m/Y', strtotime((string) $dataNasc)), ENT_QUOTES, 'UTF-8') : $emptyHtml(null));
+                    $escRaw = $userRow['escolaridade'] ?? null;
+                    $row('Escolaridade', ($escRaw !== null && $escRaw !== '')
+                        ? htmlspecialchars(UserFormHelper::escolaridadeLabel(is_string($escRaw) ? $escRaw : null), ENT_QUOTES, 'UTF-8')
+                        : $emptyHtml(null));
+                    $row('Sexo', htmlspecialchars(UserFormHelper::sexoLabel($userRow['sexo'] ?? null), ENT_QUOTES, 'UTF-8'));
+                    $row('Filho(s)', htmlspecialchars(UserFormHelper::filhosLabel($userRow['filhos'] ?? null), ENT_QUOTES, 'UTF-8'));
+                    $row('Estado civil', htmlspecialchars(UserFormHelper::estadoCivilLabel($userRow['estado_civil'] ?? null), ENT_QUOTES, 'UTF-8'));
+                    $racaRaw = $userRow['raca'] ?? null;
+                    $row('Raça/cor', ($racaRaw !== null && $racaRaw !== '')
+                        ? htmlspecialchars(UserFormHelper::racaLabel(is_string($racaRaw) ? $racaRaw : null), ENT_QUOTES, 'UTF-8')
+                        : $emptyHtml(null));
+                    $row('E-mail pessoal', $emptyHtml($userRow['email_pessoal'] ?? null));
+                    $row('País de residência', htmlspecialchars(UserFormHelper::paisResidenciaLabel($userRow['pais_residencia_iso'] ?? null), ENT_QUOTES, 'UTF-8'));
+                    $closePanel();
                     ?>
 
-                    <dl class='row'>
-                        <dt class='col-sm-3'>Niveis de Acesso: </dt>
-                        <dd class='col-sm-9'></dd>
-                    </dl>
+                <?php elseif ($activeTab === 'endereco'): ?>
+                    <?php
+                    $openPanel('Endereço', 'fa-map-marker-alt');
+                    $row('Logradouro', $emptyHtml($userRow['endereco'] ?? null));
+                    $row('Número', $emptyHtml($userRow['numero_endereco'] ?? null));
+                    $row('Complemento', $emptyHtml($userRow['complemento_endereco'] ?? null));
+                    $row('Bairro', $emptyHtml($userRow['bairro'] ?? null));
+                    $row('CEP', $emptyHtml($userRow['cep'] ?? null));
+                    $row('Município', $emptyHtml($userRow['municipio'] ?? null));
+                    $row('UF', $emptyHtml($userRow['uf'] ?? null));
+                    $closePanel();
+                    ?>
 
-                    <?php if (!$canManageWhistleblowingLevels): ?>
-                        <div class="alert alert-secondary small py-2" role="alert">
-                            Os níveis <strong>Canal de Denúncias — Operador</strong> e
-                            <strong>Canal de Denúncias — Administrador</strong> só podem ser atribuídos ou removidos por
-                            <em>Super Administrador</em> ou <em>Super usuário</em>. Membros de comitê recebem Operador automaticamente ao serem vinculados ao comitê.
+                <?php elseif ($activeTab === 'contratuais'): ?>
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <?php
+                            $openPanel('Vínculo', 'fa-briefcase');
+                            $empSlug = UserFormHelper::resolveEmpresaSlugFromUser($userRow);
+                            $row('Empresa contratante', $empSlug !== null
+                                ? htmlspecialchars(UserFormHelper::empresaContratanteLabel($empSlug), ENT_QUOTES, 'UTF-8')
+                                : $emptyHtml(null));
+                            $row('Matrícula', $emptyHtml($userRow['matricula'] ?? null));
+                            $row('Data de admissão', !empty($userRow['data_admissao'])
+                                ? htmlspecialchars(date('d/m/Y', strtotime((string) $userRow['data_admissao'])), ENT_QUOTES, 'UTF-8')
+                                : $emptyHtml(null));
+                            if (!empty($this->data['totalTenure']['formatted'])) {
+                                $tenureHtml = '<strong>' . htmlspecialchars((string) $this->data['totalTenure']['formatted'], ENT_QUOTES, 'UTF-8') . '</strong>'
+                                    . ' <span class="text-muted small">(' . (int) ($this->data['totalTenure']['total_periodos'] ?? 0) . ' período(s))</span>';
+                                $row('Tempo total de casa', $tenureHtml);
+                            }
+                            $closePanel();
+                            ?>
+                        </div>
+                        <div class="col-lg-6">
+                            <?php
+                            $openPanel('Desligamento', 'fa-user-slash');
+                            $row('Data de desligamento', !empty($userRow['data_desligamento'])
+                                ? htmlspecialchars(date('d/m/Y', strtotime((string) $userRow['data_desligamento'])), ENT_QUOTES, 'UTF-8')
+                                : $emptyHtml(null, 'Colaborador ativo'));
+                            if (!empty($userRow['data_desligamento'])) {
+                                $row('Classificação', htmlspecialchars(
+                                    UserFormHelper::tipoImpactoDesligamentoLabel($userRow['tipo_impacto_desligamento'] ?? null),
+                                    ENT_QUOTES,
+                                    'UTF-8'
+                                ));
+                                $row('Motivo', $emptyHtml($userRow['motivo_desligamento'] ?? null));
+                            } else {
+                                $row('Situação', '<span class="badge bg-success">Ativo</span>');
+                            }
+                            $closePanel();
+                            ?>
+                        </div>
+                    </div>
+
+                <?php elseif ($activeTab === 'formacoes'): ?>
+                    <div class="user-view-section-head mb-3">
+                        <p class="text-muted small mb-0">Formações acadêmicas e cursos cadastrados.</p>
+                        <?php if ($canUpdate): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'update-user/' . $userId . '?tab=formacoes', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-warning flex-shrink-0"><i class="fas fa-edit me-1"></i>Gerenciar</a>
+                        <?php endif; ?>
+                    </div>
+                    <?php if (!empty($this->data['educations'])): ?>
+                        <div class="d-none d-md-block table-responsive">
+                            <table class="table table-striped table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Curso/Formação</th>
+                                        <th>Instituição</th>
+                                        <th>Situação</th>
+                                        <th>Período</th>
+                                        <th>Carga horária</th>
+                                        <th>Comprovante</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($this->data['educations'] as $education): ?>
+                                        <?php
+                                        $eduStart = !empty($education['data_inicio']) ? date('m/Y', strtotime((string) $education['data_inicio'])) : '';
+                                        $eduEnd = !empty($education['data_conclusao']) ? date('m/Y', strtotime((string) $education['data_conclusao'])) : '';
+                                        $eduPeriod = trim($eduStart . ($eduStart !== '' && $eduEnd !== '' ? ' a ' : '') . $eduEnd) ?: '—';
+                                        ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars(UserEducationHelper::typeLabel((string) ($education['tipo'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td>
+                                                <strong><?= htmlspecialchars((string) ($education['curso'] ?? ''), ENT_QUOTES, 'UTF-8') ?></strong>
+                                                <?php if (!empty($education['observacoes'])): ?>
+                                                    <div class="small text-muted"><?= nl2br(htmlspecialchars((string) $education['observacoes'], ENT_QUOTES, 'UTF-8')) ?></div>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?= !empty($education['instituicao']) ? htmlspecialchars((string) $education['instituicao'], ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                                            <td><?= htmlspecialchars(UserEducationHelper::statusLabel((string) ($education['situacao'] ?? '')), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= htmlspecialchars($eduPeriod, ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= !empty($education['carga_horaria']) ? (int) $education['carga_horaria'] . ' h' : '—' ?></td>
+                                            <td>
+                                                <?php if (!empty($education['comprovante_path'])): ?>
+                                                    <a class="btn btn-sm btn-outline-primary" href="<?= htmlspecialchars($urlAdm . 'view-user/download-formacao/' . (int) $education['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                                        <i class="fas fa-download me-1"></i>Baixar
+                                                    </a>
+                                                <?php else: ?>
+                                                    <span class="text-muted">Não anexado</span>
+                                                <?php endif; ?>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-md-none user-view-stack">
+                            <?php foreach ($this->data['educations'] as $education): ?>
+                                <?php
+                                $eduStart = !empty($education['data_inicio']) ? date('m/Y', strtotime((string) $education['data_inicio'])) : '';
+                                $eduEnd = !empty($education['data_conclusao']) ? date('m/Y', strtotime((string) $education['data_conclusao'])) : '';
+                                $eduPeriod = trim($eduStart . ($eduStart !== '' && $eduEnd !== '' ? ' a ' : '') . $eduEnd) ?: '—';
+                                ?>
+                                <article class="user-view-list-card">
+                                    <div class="user-view-list-card-title">
+                                        <?= htmlspecialchars((string) ($education['curso'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                    </div>
+                                    <div class="user-view-list-card-meta">
+                                        <span class="badge bg-light text-dark border"><?= htmlspecialchars(UserEducationHelper::typeLabel((string) ($education['tipo'] ?? '')), ENT_QUOTES, 'UTF-8') ?></span>
+                                        <span class="badge bg-secondary"><?= htmlspecialchars(UserEducationHelper::statusLabel((string) ($education['situacao'] ?? '')), ENT_QUOTES, 'UTF-8') ?></span>
+                                    </div>
+                                    <dl class="user-view-list-card-dl mb-0">
+                                        <div><dt>Instituição</dt><dd><?= !empty($education['instituicao']) ? htmlspecialchars((string) $education['instituicao'], ENT_QUOTES, 'UTF-8') : '—' ?></dd></div>
+                                        <div><dt>Período</dt><dd><?= htmlspecialchars($eduPeriod, ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                        <div><dt>Carga horária</dt><dd><?= !empty($education['carga_horaria']) ? (int) $education['carga_horaria'] . ' h' : '—' ?></dd></div>
+                                    </dl>
+                                    <?php if (!empty($education['observacoes'])): ?>
+                                        <p class="small text-muted mb-2"><?= nl2br(htmlspecialchars((string) $education['observacoes'], ENT_QUOTES, 'UTF-8')) ?></p>
+                                    <?php endif; ?>
+                                    <?php if (!empty($education['comprovante_path'])): ?>
+                                        <a class="btn btn-sm btn-outline-primary w-100" href="<?= htmlspecialchars($urlAdm . 'view-user/download-formacao/' . (int) $education['id'], ENT_QUOTES, 'UTF-8') ?>">
+                                            <i class="fas fa-download me-1"></i>Baixar comprovante
+                                        </a>
+                                    <?php else: ?>
+                                        <span class="small text-muted">Comprovante não anexado</span>
+                                    <?php endif; ?>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">Nenhuma formação cadastrada.</p>
+                    <?php endif; ?>
+
+                <?php elseif ($activeTab === 'acessos'): ?>
+                    <?php
+                    $tiAcessosView = is_array($this->data['ti_acessos'] ?? null) ? $this->data['ti_acessos'] : [];
+                    $csrfTiRevokeView = CSRFHelper::generateCSRFToken('form_ti_acesso_revoke');
+                    $canRevokeView = in_array('TiAcessosRevoke', $perms, true);
+                    ?>
+                    <div class="user-view-section-head mb-3">
+                        <p class="text-muted small mb-0">Mapa TI de sistemas/equipamentos (não é a ACL de páginas deste Portal).</p>
+                        <?php if (in_array('TiAcessosCreate', $perms, true)): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'ti-acessos-create?user_id=' . $userId . '&return=' . rawurlencode($urlAdm . 'view-user/' . $userId . '?tab=acessos'), ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-success flex-shrink-0"><i class="fas fa-plus me-1"></i>Liberar acesso</a>
+                        <?php elseif ($canUpdate): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'update-user/' . $userId . '?tab=acessos', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-warning flex-shrink-0"><i class="fa-regular fa-pen-to-square me-1"></i>Gerenciar na edição</a>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($tiAcessosView === []): ?>
+                        <p class="text-muted mb-0">Nenhum acesso registrado neste mapa.</p>
+                    <?php else: ?>
+                        <div class="d-none d-md-block table-responsive">
+                            <table class="table table-sm align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Sistema</th>
+                                        <th>Login</th>
+                                        <th>Situação</th>
+                                        <th>Local</th>
+                                        <?php if ($canRevokeView): ?><th></th><?php endif; ?>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($tiAcessosView as $a): ?>
+                                        <tr>
+                                            <td><?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <td>
+                                                <span class="badge <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
+                                                    <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                            </td>
+                                            <td><?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
+                                            <?php if ($canRevokeView): ?>
+                                                <td>
+                                                    <?php if (($a['status'] ?? '') === 'ativo'): ?>
+                                                        <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                                              onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
+                                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTiRevokeView, ENT_QUOTES, 'UTF-8') ?>">
+                                                            <input type="hidden" name="return_to" value="<?= htmlspecialchars($urlAdm . 'view-user/' . $userId . '?tab=acessos', ENT_QUOTES, 'UTF-8') ?>">
+                                                            <button type="submit" class="btn btn-outline-danger btn-sm">Inativar</button>
+                                                        </form>
+                                                    <?php endif; ?>
+                                                </td>
+                                            <?php endif; ?>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="d-md-none user-view-stack">
+                            <?php foreach ($tiAcessosView as $a): ?>
+                                <article class="user-view-list-card">
+                                    <div class="d-flex justify-content-between align-items-start gap-2">
+                                        <div class="user-view-list-card-title mb-0"><?= htmlspecialchars((string) ($a['sistema_nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                        <span class="badge flex-shrink-0 <?= ($a['status'] ?? '') === 'ativo' ? 'bg-success' : 'bg-secondary' ?>">
+                                            <?= htmlspecialchars((string) ($a['status'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                    </div>
+                                    <dl class="user-view-list-card-dl mb-0">
+                                        <div><dt>Login</dt><dd class="text-break"><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                        <div><dt>Local</dt><dd class="text-break"><?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                    </dl>
+                                    <?php if ($canRevokeView && ($a['status'] ?? '') === 'ativo'): ?>
+                                        <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                              onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
+                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTiRevokeView, ENT_QUOTES, 'UTF-8') ?>">
+                                            <input type="hidden" name="return_to" value="<?= htmlspecialchars($urlAdm . 'view-user/' . $userId . '?tab=acessos', ENT_QUOTES, 'UTF-8') ?>">
+                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">Inativar</button>
+                                        </form>
+                                    <?php endif; ?>
+                                </article>
+                            <?php endforeach; ?>
                         </div>
                     <?php endif; ?>
 
-                    <form action="<?php echo $_ENV['URL_ADM']; ?>update-user-access-levels" method="POST">
-
-                        <input type="hidden" name="csrf_token" value="<?php echo $csrf_token_update_access_level; ?>">
-
-                        <input type="hidden" name="adms_user_id" value="<?php echo ($this->data['user']['id'] ?? ''); ?>">
-
-                        <?php
-                        //Perceorre o array de usuários
-                        foreach ($this->data['userAllAccessLevelsArray'] as $userAllAccessLevelsArray) {
-                            // Extrai variáveis do array de usuário
-                            extract($userAllAccessLevelsArray);
-
-                            // Verifica se o nível de acesso atual ($id) está no array de níveis de acesso do usuário
-                            $userAccessLevels = $this->data['userAccessLevelsArray'] ? $this->data['userAccessLevelsArray'] : [];
-                            $checked = in_array($id, $userAccessLevels) ? 'checked' : '';
-                            $isWhistleblowingLevel = in_array((int) $id, $whistleblowingLevelIds, true);
-                            $locked = $isWhistleblowingLevel && !$canManageWhistleblowingLevels;
-
-                            echo "<div class='form-check form-switch'>";
-
-                            if ($locked && $checked !== '') {
-                                // Checkbox desabilitado não é enviado no POST — preserva o nível atual
-                                echo "<input type='hidden' name='userAccessLevelsArray[$id]' value='$id'>";
-                            }
-
-                            $disabledAttr = $locked ? ' disabled' : '';
-                            echo "<input type='checkbox' name='userAccessLevelsArray[$id]' class='form-check-input' role='switch' id='userAccessLevelsArray$id' value='$id' $checked$disabledAttr>";
-
-                            echo "<label class='form-check-label' for='userAccessLevelsArray$id'>$name";
-                            if ($locked) {
-                                echo " <span class='badge text-bg-secondary'>Somente Super Administrador / Super usuário</span>";
-                            }
-                            echo "</label>";
-                            
-                            echo "</div>";
-                        } ?>
-
-                        <div class="col-12">
-                            <button type="submit" class="btn btn-warning btn-sm">Salvar</button>
+                <?php elseif ($activeTab === 'historico'): ?>
+                    <?php if (!empty($this->data['employmentHistory'])): ?>
+                        <div class="d-none d-md-block table-responsive">
+                            <table class="table table-striped table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Tipo</th>
+                                        <th>Admissão</th>
+                                        <th>Desligamento</th>
+                                        <th>Motivo</th>
+                                        <th>Impacto (RH)</th>
+                                        <th>Duração</th>
+                                        <th>Observações</th>
+                                        <?php if ($canUpdate): ?><th class="text-center">Ações</th><?php endif; ?>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php foreach ($this->data['employmentHistory'] as $period): ?>
+                                        <tr class="<?= empty($period['data_desligamento']) ? 'table-success' : '' ?>">
+                                            <td>
+                                                <span class="badge bg-<?= ($period['tipo_periodo'] ?? '') === 'Recontratação' ? 'info' : 'primary' ?>">
+                                                    <?= htmlspecialchars((string) ($period['tipo_periodo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                                </span>
+                                            </td>
+                                            <td><?= date('d/m/Y', strtotime((string) $period['data_admissao'])) ?></td>
+                                            <td>
+                                                <?php if (!empty($period['data_desligamento'])): ?>
+                                                    <?= date('d/m/Y', strtotime((string) $period['data_desligamento'])) ?>
+                                                <?php else: ?>
+                                                    <span class="badge bg-success">Ativo</span>
+                                                <?php endif; ?>
+                                            </td>
+                                            <td><?= !empty($period['motivo_desligamento']) ? htmlspecialchars((string) $period['motivo_desligamento'], ENT_QUOTES, 'UTF-8') : '—' ?></td>
+                                            <td>
+                                                <?php
+                                                $ti = $period['tipo_impacto_desligamento'] ?? null;
+                                                echo $ti ? htmlspecialchars(UserFormHelper::tipoImpactoDesligamentoLabel((string) $ti), ENT_QUOTES, 'UTF-8') : '—';
+                                                ?>
+                                            </td>
+                                            <td>
+                                                <?php
+                                                $admissao = new DateTime((string) $period['data_admissao']);
+                                                $desligamento = !empty($period['data_desligamento'])
+                                                    ? new DateTime((string) $period['data_desligamento'])
+                                                    : new DateTime();
+                                                $diff = $admissao->diff($desligamento);
+                                                echo $diff->y > 0
+                                                    ? "{$diff->y} ano(s), {$diff->m} mês(es)"
+                                                    : "{$diff->m} mês(es), {$diff->d} dia(s)";
+                                                ?>
+                                            </td>
+                                            <td><small class="text-muted"><?= !empty($period['observacoes']) ? htmlspecialchars((string) $period['observacoes'], ENT_QUOTES, 'UTF-8') : '—' ?></small></td>
+                                            <?php if ($canUpdate): ?>
+                                                <td class="text-center">
+                                                    <a href="<?= htmlspecialchars($urlAdm . 'update-employment-history/' . (int) $period['id'], ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                                                </td>
+                                            <?php endif; ?>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                </tbody>
+                            </table>
                         </div>
-                    </form>
+                        <div class="d-md-none user-view-stack">
+                            <?php foreach ($this->data['employmentHistory'] as $period): ?>
+                                <?php
+                                $admissao = new DateTime((string) $period['data_admissao']);
+                                $desligamento = !empty($period['data_desligamento'])
+                                    ? new DateTime((string) $period['data_desligamento'])
+                                    : new DateTime();
+                                $diff = $admissao->diff($desligamento);
+                                $duracao = $diff->y > 0
+                                    ? "{$diff->y} ano(s), {$diff->m} mês(es)"
+                                    : "{$diff->m} mês(es), {$diff->d} dia(s)";
+                                $ti = $period['tipo_impacto_desligamento'] ?? null;
+                                $isAtivoPeriodo = empty($period['data_desligamento']);
+                                ?>
+                                <article class="user-view-list-card<?= $isAtivoPeriodo ? ' user-view-list-card--active' : '' ?>">
+                                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                                        <span class="badge bg-<?= ($period['tipo_periodo'] ?? '') === 'Recontratação' ? 'info' : 'primary' ?>">
+                                            <?= htmlspecialchars((string) ($period['tipo_periodo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                                        </span>
+                                        <?php if ($isAtivoPeriodo): ?>
+                                            <span class="badge bg-success">Ativo</span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <dl class="user-view-list-card-dl mb-0">
+                                        <div><dt>Admissão</dt><dd><?= date('d/m/Y', strtotime((string) $period['data_admissao'])) ?></dd></div>
+                                        <div><dt>Desligamento</dt><dd><?= $isAtivoPeriodo ? '—' : date('d/m/Y', strtotime((string) $period['data_desligamento'])) ?></dd></div>
+                                        <div><dt>Duração</dt><dd><?= htmlspecialchars($duracao, ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                        <div><dt>Motivo</dt><dd class="text-break"><?= !empty($period['motivo_desligamento']) ? htmlspecialchars((string) $period['motivo_desligamento'], ENT_QUOTES, 'UTF-8') : '—' ?></dd></div>
+                                        <div><dt>Impacto (RH)</dt><dd><?= $ti ? htmlspecialchars(UserFormHelper::tipoImpactoDesligamentoLabel((string) $ti), ENT_QUOTES, 'UTF-8') : '—' ?></dd></div>
+                                        <?php if (!empty($period['observacoes'])): ?>
+                                            <div><dt>Observações</dt><dd class="text-break"><?= htmlspecialchars((string) $period['observacoes'], ENT_QUOTES, 'UTF-8') ?></dd></div>
+                                        <?php endif; ?>
+                                    </dl>
+                                    <?php if ($canUpdate): ?>
+                                        <a href="<?= htmlspecialchars($urlAdm . 'update-employment-history/' . (int) $period['id'], ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-warning w-100 mt-2"><i class="fas fa-edit me-1"></i>Editar período</a>
+                                    <?php endif; ?>
+                                </article>
+                            <?php endforeach; ?>
+                        </div>
+                    <?php else: ?>
+                        <p class="text-muted mb-0">Nenhum histórico de admissão/desligamento registrado.</p>
+                    <?php endif; ?>
 
-                <?php
-                    // var_dump($userAccessLevels);
-                } elseif (!$viewUserIsSuper) {
-                    // Acessa o ELSE quando o elemento não existir registros
-                    echo "<div class='alert alert-danger' role='alert'>Usuário não possui nivel de acesso.</div>";
-                }
-                ?>
+                <?php elseif ($activeTab === 'permissoes'): ?>
+                    <?php $viewUserIsSuper = (int) ($userRow['super_usuario'] ?? 0) === 1; ?>
+                    <div class="d-flex flex-wrap justify-content-between align-items-start gap-2 mb-3">
+                        <div>
+                            <h5 class="h6 mb-1">Níveis de acesso (ACL do Portal)</h5>
+                            <p class="text-muted small mb-0">Somente leitura. Para alterar, use <strong>Editar</strong> → aba Permissões.</p>
+                        </div>
+                        <?php if ($canPerms && $userId > 0 && !$viewUserIsSuper): ?>
+                            <a href="<?= htmlspecialchars($urlAdm . 'update-user/' . $userId . '?tab=permissoes', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-sm btn-outline-warning flex-shrink-0">
+                                <i class="fa-regular fa-pen-to-square me-1"></i>Editar permissões
+                            </a>
+                        <?php endif; ?>
+                    </div>
+                    <?php if ($viewUserIsSuper): ?>
+                        <div class="alert alert-info mb-0" role="alert">
+                            <strong>Super usuário:</strong> acesso total ao sistema (equivalente ao nível Super Administrador).
+                            Os níveis de acesso por pacote não se aplicam enquanto o flag estiver ativo.
+                        </div>
+                    <?php else:
+                        $assignedLevelNames = [];
+                        $userAccessLevelIds = array_map(
+                            'intval',
+                            is_array($this->data['userAccessLevelsArray'] ?? null) ? $this->data['userAccessLevelsArray'] : []
+                        );
+                        $allLevelsForNames = is_array($this->data['userAllAccessLevelsArray'] ?? null)
+                            ? $this->data['userAllAccessLevelsArray']
+                            : [];
+                        foreach ($allLevelsForNames as $levelRow) {
+                            $lid = (int) ($levelRow['id'] ?? 0);
+                            if ($lid > 0 && in_array($lid, $userAccessLevelIds, true)) {
+                                $assignedLevelNames[] = (string) ($levelRow['name'] ?? '');
+                            }
+                        }
+                        if ($assignedLevelNames === [] && is_array($this->data['userAccessLevels'] ?? null)) {
+                            foreach ($this->data['userAccessLevels'] as $levelRow) {
+                                $n = trim((string) ($levelRow['name'] ?? ''));
+                                if ($n !== '') {
+                                    $assignedLevelNames[] = $n;
+                                }
+                            }
+                        }
+                        sort($assignedLevelNames, SORT_STRING | SORT_FLAG_CASE);
+                    ?>
+                        <?php if ($assignedLevelNames === []): ?>
+                            <p class="text-muted mb-0">Nenhum nível de acesso atribuído a este usuário.</p>
+                        <?php else: ?>
+                            <div class="user-view-stack">
+                                <?php foreach ($assignedLevelNames as $levelName): ?>
+                                    <article class="user-view-list-card user-view-list-card--active">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <i class="fas fa-shield-halved text-success"></i>
+                                            <div class="user-view-list-card-title mb-0"><?= htmlspecialchars($levelName, ENT_QUOTES, 'UTF-8') ?></div>
+                                            <span class="badge bg-success ms-auto">Atribuído</span>
+                                        </div>
+                                    </article>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    <?php endif; ?>
+                <?php endif; ?>
             </div>
-
+            <?php endif; ?>
         </div>
-    <?php } ?>
-
+    </div>
 </div>
+
+<script src="<?= htmlspecialchars($urlAdm, ENT_QUOTES, 'UTF-8') ?>public/adms/js/user-form-tabs.js?v=20260731c"></script>

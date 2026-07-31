@@ -96,6 +96,18 @@ Pagar, receber, conciliar, classificar, orçar e reportar.
 
 Registrar, atribuir, movimentar, manter, inventariar e baixar ativos.
 
+### TI / Acessos
+
+| Capacidade | Classificação | Estado |
+|---|---|---|
+| Manter catálogo de sistemas | Essencial | Operacional (Fase 1) |
+| Mapear acessos colaborador ↔ sistema | Essencial | Operacional (Fase 1) |
+| Revogar acessos no offboarding | Essencial | Operacional (Fase 1) |
+| Matriz cargo × sistema | Recomendada | Planejada |
+| Alertas de revisão / órfãos | Recomendada | Planejada |
+| Discovery de rede | Avançada | Planejada |
+| Sync AD / SaaS | Avançada | Planejada |
+
 ### Comunicação
 
 Publicar, segmentar, notificar, confirmar leitura e medir alcance.

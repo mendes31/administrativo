@@ -774,11 +774,13 @@ class UsersRepository extends DbConnection
                     t0.super_usuario,
                     t1.name dep_name, 
                     t2.name pos_name,
-                    ws.description AS work_shift_description
+                    ws.description AS work_shift_description,
+                    sup.name AS supervisor_name
                 FROM adms_users t0
                 INNER JOIN adms_departments t1 ON t0.user_department_id = t1.id
                 INNER JOIN adms_positions t2 ON t0.user_position_id = t2.id
                 LEFT JOIN adms_work_shifts ws ON t0.adms_work_shift_id = ws.id
+                LEFT JOIN adms_users sup ON sup.id = t0.immediate_supervisor_id
                 WHERE t0.id = :id
                 ORDER BY t0.id DESC';
 

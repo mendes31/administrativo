@@ -41,6 +41,8 @@
 | Onboarding | Processo coordenado de integração inicial |
 | Movimentação | Alteração de lotação, cargo, gestor, salário ou situação |
 | Offboarding | Encerramento controlado de vínculo, ativos e acessos |
+| Mapa de acessos (TI) | Registro colaborador ↔ sistema/equipamento com conta própria, usado no desligamento |
+| Sistema embarcado | Sistema com usuários próprios em equipamento, muitas vezes fora da rede |
 
 ## Desenvolvimento
 

@@ -39,14 +39,21 @@ final class RhOffboardingsView
             exit;
         }
 
+        $userId = (int) ($plano['adms_user_id'] ?? 0);
+        $tiAcessos = (new \App\adms\Models\Repository\TiAcessoRepository())->listByUser($userId);
+        $tiAtivos = (new \App\adms\Models\Repository\TiAcessoRepository())->countAtivosByUser($userId);
+
         $this->data = [
             'title_head' => 'Offboarding #' . $planoId,
             'menu' => 'rh-offboardings',
-            'buttonPermission' => ['RhOffboardingsView', 'RhOffboardings'],
+            'buttonPermission' => ['RhOffboardingsView', 'RhOffboardings', 'TiAcessosRevoke', 'TiSistemasView'],
             'csrf_token' => CSRFHelper::generateCSRFToken('form_rh_offboarding'),
+            'csrf_ti_revoke' => CSRFHelper::generateCSRFToken('form_ti_acesso_revoke'),
             'plano' => $plano,
             'itens' => $repo->listItens($planoId),
             'obrigatorios_pendentes' => $repo->obrigatoriosPendentes($planoId),
+            'ti_acessos' => $tiAcessos,
+            'ti_acessos_ativos' => $tiAtivos,
         ];
 
         $pageLayout = new PageLayoutService();

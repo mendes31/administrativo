@@ -1408,6 +1408,34 @@ $menus = [
         ],
     ],
     [
+        'id' => 'ti_acessos',
+        'icon' => 'fa-solid fa-network-wired',
+        'label' => 'TI / Acessos',
+        'submenu' => [
+            [
+                'label' => 'Sistemas',
+                'url' => $_ENV['URL_ADM'] . 'ti-sistemas',
+                'permission' => 'TiSistemas',
+                'icon' => 'fas fa-server',
+                'related_routes' => [
+                    'ti-sistemas',
+                    'ti-sistemas-create',
+                    'ti-sistemas-update',
+                    'ti-sistemas-view',
+                    'ti-acessos-create',
+                    'ti-acessos-revoke',
+                ],
+            ],
+            [
+                'label' => 'Liberar acesso',
+                'url' => $_ENV['URL_ADM'] . 'ti-acessos-create',
+                'permission' => 'TiAcessosCreate',
+                'icon' => 'fas fa-user-lock',
+                'related_routes' => ['ti-acessos-create'],
+            ],
+        ],
+    ],
+    [
         'id' => 'sst',
         'icon' => 'fa-solid fa-heart-pulse',
         'label' => 'Segurança e Medicina',

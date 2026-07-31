@@ -1,35 +1,36 @@
 ﻿<h1>Offboarding</h1>
 
-<h2>FunÃ§Ã£o no sistema</h2>
-<p>Conduz o desligamento com checklist auditÃ¡vel e, ao concluir, inativa o colaborador em <code>adms_users</code> (status, bloqueio, data/motivo/classificaÃ§Ã£o).</p>
+<h2>Função no sistema</h2>
+<p>Conduz o desligamento com checklist auditável e, ao concluir, inativa o colaborador em <code>adms_users</code> (status, bloqueio, data/motivo/classificação). Inclui o card de acessos do mapa <em>TI / Acessos</em> para inativar contas em sistemas e equipamentos.</p>
 
+<p class="help-note"><strong>Relacionado:</strong> cadastro de usuários (<code>view-user</code>), <em>Sistemas (TI)</em> (<code>ti-sistemas</code>), movimentações.</p>
 
-
-<p class="help-note"><strong>Relacionado:</strong> cadastro de usuÃ¡rios (<code>view-user</code>), movimentaÃ§Ãµes.</p>
-
-<p><strong>Quem acessa:</strong> permissÃµes <em>RhOffboardings</em>, <em>RhOffboardingsCreate</em> e <em>RhOffboardingsView</em>.</p>
+<p><strong>Quem acessa:</strong> permissões <em>RhOffboardings</em>, <em>RhOffboardingsCreate</em> e <em>RhOffboardingsView</em>. Para marcar acessos TI como inativados é necessária <em>TiAcessosRevoke</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <em>GestÃ£o de Pessoas â†’ Recrutamento â†’ Offboarding</em>.</li>
-    <li>Clique em <strong>Iniciar offboarding</strong> e escolha colaborador, tipo, motivo e classificaÃ§Ã£o.</li>
-    <li>Atualize o checklist (itens obrigatÃ³rios devem ficar concluÃ­dos ou dispensados).</li>
+    <li>Acesse <em>Gestão de Pessoas → Jornada → Offboarding</em>.</li>
+    <li>Clique em <strong>Iniciar offboarding</strong> e escolha colaborador, tipo, motivo e classificação.</li>
+    <li>No card <strong>Acessos a sistemas (TI)</strong>, inative cada acesso ativo após desligar a conta no equipamento/sistema de destino.</li>
+    <li>Atualize o checklist (itens obrigatórios devem ficar concluídos ou dispensados). O item <em>Revogar acessos</em> só conclui com zero acessos TI ativos.</li>
     <li>Clique em <strong>Concluir desligamento</strong>: o sistema grava a data efetiva e inativa a conta.</li>
 </ol>
 
-
-<h2>Campos e parÃ¢metros</h2>
-<div class="help-field"><strong>Filtros ou formulÃ¡rio</strong> Controles principais para consultar ou alterar dados nesta tela.</div>
-<div class="help-field"><strong>Resultado / painel</strong> Ãrea onde o sistema mostra listagens, totais ou detalhe do registro.</div>
-<div class="help-field"><strong>AÃ§Ãµes</strong> BotÃµes e links disponÃ­veis conforme sua permissÃ£o.</div>
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Tipo / motivo / classificação</strong> Dados do plano de desligamento.</div>
+<div class="help-field"><strong>Acessos TI</strong> Lista do mapa colaborador ↔ sistema (ativos e revogados).</div>
+<div class="help-field"><strong>Checklist</strong> Itens operacionais; <code>revogar_acessos</code> depende do mapa TI.</div>
+<div class="help-field"><strong>Data efetiva</strong> Data aplicada em <code>adms_users</code> na conclusão.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>BotÃ£o de concluir desabilitado</dt>
-    <dd>Ainda hÃ¡ itens obrigatÃ³rios pendentes.</dd>
-    <dt>â€œJÃ¡ existe um offboarding em andamentoâ€</dt>
+    <dt>Botão de concluir desabilitado</dt>
+    <dd>Ainda há itens obrigatórios pendentes.</dd>
+    <dt>Não consigo concluir “Revogar acessos”</dt>
+    <dd>Há acessos TI ainda ativos. Use <strong>Marcar inativado</strong> no card ou dispense o item com observação.</dd>
+    <dt>“Já existe um offboarding em andamento”</dt>
     <dd>Finalize ou cancele o plano aberto antes de iniciar outro.</dd>
-    <dt>PÃ¡gina nÃ£o encontrada</dt>
+    <dt>Página não encontrada</dt>
     <dd>Execute a migration <code>20260719243000_create_rh_offboarding</code>.</dd>
     <dt>Treinamentos / LNT</dt>
     <dd>Ao concluir, o sistema registra desligamento no LNT e publica <code>jornada.ColaboradorDesligado</code> na outbox para DP/SST.</dd>

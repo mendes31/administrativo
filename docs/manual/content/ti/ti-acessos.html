@@ -1,0 +1,37 @@
+<h1>Liberar e revogar acessos (TI)</h1>
+
+<h2>Função no sistema</h2>
+<p>Registra no mapa que o colaborador possui (ou deixou de possuir) conta em um sistema do catálogo TI. A criação/exclusão da conta no equipamento continua manual; o Administrativo guarda o checklist auditável.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Login no sistema</dt>
+    <dd>Identificador usado naquele equipamento (não a senha; senhas não são armazenadas).</dd>
+    <dt>Revogar / inativar no mapa</dt>
+    <dd>Confirmação de que a conta já foi desligada no sistema de destino.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>TiAcessosCreate</em> (liberar) e <em>TiAcessosRevoke</em> (marcar inativado).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Em <em>TI / Acessos → Liberar acesso</em> (ou pela ficha do usuário/sistema), escolha colaborador e sistema.</li>
+    <li>Informe login externo e perfil/observação, se útil para quem for na máquina.</li>
+    <li>No desligamento ou quando a conta for removida, use <strong>Inativar</strong> / <strong>Marcar inativado</strong>.</li>
+    <li>Confira o card de acessos no <em>Offboarding</em> antes de concluir o item de revogação.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Colaborador</strong> Conta em <code>adms_users</code>.</div>
+<div class="help-field"><strong>Sistema</strong> Registro ativo do catálogo TI.</div>
+<div class="help-field"><strong>Login no sistema</strong> Opcional; ajuda a localizar a conta no equipamento.</div>
+<div class="help-field"><strong>Perfil / função</strong> Texto livre (operador, consulta etc.).</div>
+<div class="help-field"><strong>Data de liberação / revogação</strong> Vigência registrada no mapa.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>“Já existe um acesso ativo”</dt>
+    <dd>Revogue o vínculo atual antes de liberar de novo o mesmo colaborador no mesmo sistema.</dd>
+    <dt>Offboarding não deixa concluir “Revogar acessos”</dt>
+    <dd>Ainda há acessos TI ativos; marque-os como inativados ou dispense o item com observação.</dd>
+</dl>

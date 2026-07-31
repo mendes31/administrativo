@@ -56,6 +56,12 @@ Status por item: `pendente|em_andamento|concluido|dispensado`.
 - recontratação pelo fluxo de offboarding;
 - tabelas físicas Pessoa/Vínculo.
 
+## Integração TI / Acessos (ADR-0008)
+
+O item `revogar_acessos` consome o mapa `ti_acessos`: a tela lista acessos ativos
+e exige zero ativos para marcar o item como `concluido` (`dispensado` permanece
+permitido). A fonte de verdade dos vínculos é o domínio TI / Acessos.
+
 ## Migration
 
 `database/migrations/20260719243000_create_rh_offboarding.php`

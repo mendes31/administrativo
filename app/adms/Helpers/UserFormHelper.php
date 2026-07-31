@@ -392,12 +392,12 @@ final class UserFormHelper
         return self::empresaContratanteLabel($slug);
     }
 
-    /** @return 'usuario'|'pessoais'|'endereco'|'contratuais'|'formacoes' */
+    /** @return 'usuario'|'pessoais'|'endereco'|'contratuais'|'formacoes'|'acessos'|'permissoes' */
     public static function normalizeUserFormActiveTab(mixed $value): string
     {
         $v = strtolower(trim((string) $value));
         $v = preg_replace('/^#?tab-/', '', $v) ?? $v;
-        $allowed = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes'];
+        $allowed = ['usuario', 'pessoais', 'endereco', 'contratuais', 'formacoes', 'acessos', 'permissoes'];
 
         return in_array($v, $allowed, true) ? $v : 'usuario';
     }

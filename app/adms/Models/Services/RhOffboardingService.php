@@ -106,6 +106,32 @@ final class RhOffboardingService
             throw new Exception('Somente planos em andamento podem ser alterados.');
         }
 
+        $itens = $repo->listItens($planoId);
+        $item = null;
+        foreach ($itens as $row) {
+            if ((int) ($row['id'] ?? 0) === $itemId) {
+                $item = $row;
+                break;
+            }
+        }
+        if ($item === null) {
+            throw new Exception('Item de offboarding não encontrado.');
+        }
+
+        if (
+            ($item['codigo'] ?? '') === 'revogar_acessos'
+            && $status === RhOffboardingRepository::ITEM_CONCLUIDO
+        ) {
+            $ativos = (new \App\adms\Models\Repository\TiAcessoRepository())
+                ->countAtivosByUser((int) $plano['adms_user_id']);
+            if ($ativos > 0) {
+                throw new Exception(
+                    "Há {$ativos} acesso(s) TI ainda ativo(s). Revogue-os no mapa antes de concluir este item "
+                    . '(ou marque como dispensado com observação).'
+                );
+            }
+        }
+
         if (!$repo->updateItemStatus(
             $itemId,
             $planoId,

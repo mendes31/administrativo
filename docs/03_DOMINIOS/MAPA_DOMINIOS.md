@@ -15,6 +15,7 @@ Sistema Administrativo
 ├── Qualidade
 ├── Financeiro
 ├── Patrimônio
+├── TI / Acessos
 ├── Comunicação
 ├── Canal de Denúncias
 └── Analytics Corporativo
@@ -81,6 +82,13 @@ relatórios.
 Ativos, responsáveis, localização, movimentações, manutenção, inventário e
 baixa.
 
+### TI / Acessos
+
+Catálogo de sistemas e equipamentos com controle de usuário próprio (incluindo
+embarcados fora da rede) e mapa colaborador ↔ acesso, consumido no offboarding.
+Não substitui a ACL de páginas do Portal, o inventário LGPD de dados, o Estoque
+nem o cadastro patrimonial de hardware.
+
 ### Comunicação
 
 Informativos, comunicados, timeline, eventos e canais corporativos.
@@ -115,6 +123,7 @@ fontes operacionais.
 7. Comunicação;
 8. Canal de Denúncias;
 9. Patrimônio;
-10. Analytics Corporativo.
+10. TI / Acessos;
+11. Analytics Corporativo.
 
 Mudanças nessa ordem devem considerar risco e prioridade empresarial.

@@ -2261,6 +2261,22 @@
             ]
         },
         {
+            "id": "ti_acessos",
+            "title": "TI / Acessos",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "ti-sistemas",
+                    "title": "Sistemas (TI / Acessos)"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "ti-acessos",
+                    "title": "Liberar e revogar acessos"
+                }
+            ]
+        },
+        {
             "id": "sst",
             "title": "Segurança e Medicina",
             "children": [
