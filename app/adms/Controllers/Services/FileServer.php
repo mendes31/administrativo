@@ -36,7 +36,8 @@ class FileServer
         header(
             'Content-Disposition: '
             . ($inline ? 'inline' : 'attachment')
-            . '; filename="' . $dispositionFilename . '"'
+            . '; filename="' . str_replace(['"', "\r", "\n"], '', $dispositionFilename) . '"'
+            . "; filename*=UTF-8''" . rawurlencode($dispositionFilename)
         );
 
         $rangeHeader = (string) ($_SERVER['HTTP_RANGE'] ?? '');
@@ -164,7 +165,7 @@ class FileServer
             ];
             $mimeType = $mimeTypes[$extension] ?? 'application/octet-stream';
             $disposition = $extension === 'pdf' ? 'inline' : 'attachment';
-            $filename = basename($fullPath);
+            $filename = $this->resolveDispositionFilename($path, $fullPath, $extension);
             $fileSize = (int) filesize($fullPath);
 
             $anexoRow = (new \App\adms\Models\Repository\RhCandidatosRepository())
@@ -271,13 +272,14 @@ class FileServer
 
         $fileSize = filesize($fullPath);
         $lastmod = filemtime($fullPath);
+        $dispositionName = $this->resolveDispositionFilename($path, $fullPath, $extension);
 
         if (in_array($extension, ['mp4', 'webm', 'pdf'], true)) {
             $this->serveStreamableWithRange(
                 $fullPath,
                 $mimeType,
                 $fileSize,
-                basename($fullPath),
+                $dispositionName,
                 true
             );
 
@@ -327,6 +329,26 @@ class FileServer
         }
         
         exit;
+    }
+
+    /**
+     * Nome amigável para Content-Disposition (evita o browser rotular só como "serve-file").
+     */
+    private function resolveDispositionFilename(string $path, string $fullPath, string $extension): string
+    {
+        $requested = trim((string) ($_GET['name'] ?? $_GET['filename'] ?? ''));
+        if ($requested !== '') {
+            $requested = basename(str_replace(["\0", '\\', '/'], '', $requested));
+            if ($requested !== '') {
+                if ($extension !== '' && !str_ends_with(strtolower($requested), '.' . strtolower($extension))) {
+                    $requested .= '.' . $extension;
+                }
+                return $requested;
+            }
+        }
+
+        $base = basename($path !== '' ? $path : $fullPath);
+        return $base !== '' ? $base : ('arquivo.' . ($extension !== '' ? $extension : 'bin'));
     }
 
     /**

@@ -78,12 +78,29 @@
     }
 
     /**
-     * Sempre preferir modal interno para PDF.
-     * Em mobile/PWA, window.location no PDF remove a app e some o X do Chrome (display-mode: standalone).
+     * Cliente mobile (viewport estreito ou UA móvel).
+     * No Chrome/Android o PDF dentro de <iframe> vira a tela intermediária "Abrir".
+     */
+    if (typeof window.admsIsMobileClient !== 'function') {
+        window.admsIsMobileClient = function () {
+            try {
+                if (window.matchMedia && window.matchMedia('(max-width: 991.98px)').matches) {
+                    return true;
+                }
+            } catch (e) {
+                /* ignore */
+            }
+            return /Android|webOS|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent || '');
+        };
+    }
+
+    /**
+     * Modal com iframe só no desktop.
+     * Em mobile preferimos o visualizador nativo (abre o PDF direto, sem clicar em Abrir).
      */
     if (typeof window.admsPreferDocumentPreviewModal !== 'function') {
         window.admsPreferDocumentPreviewModal = function () {
-            return true;
+            return !window.admsIsMobileClient();
         };
     }
 
@@ -107,7 +124,8 @@
             window.showAdmsDocumentPreviewModal(url);
             return;
         }
-        window.location.href = url;
+        // Mobile / fallback: navega para o PDF (visualizador nativo do browser).
+        window.location.assign(url);
     };
 
     if (typeof window.showAdmsDocumentPreviewModal === 'function') {
