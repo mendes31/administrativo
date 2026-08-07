@@ -213,28 +213,57 @@ $form = $this->data['form'] ?? [];
             <div class="col-md-3">
                 <label class="form-label">Status</label><br>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="status" name="status" value="Ativo" <?php
+                    <input class="form-check-input js-user-bool-switch" type="checkbox" id="status" name="status" value="Ativo" data-label-on="Ativo" data-label-off="Inativo" <?php
                         if ($isUpdate) {
                             echo (isset($form['status']) && $form['status'] == 'Ativo') ? 'checked' : '';
                         } else {
                             echo 'checked';
                         }
                     ?>>
-                    <label class="form-check-label" for="status">Ativo</label>
+                    <label class="form-check-label" for="status" id="status_label"><?php
+                        $statusOn = $isUpdate
+                            ? (isset($form['status']) && $form['status'] == 'Ativo')
+                            : true;
+                        echo $statusOn ? 'Ativo' : 'Inativo';
+                    ?></label>
                 </div>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Bloqueado</label><br>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="bloqueado" name="bloqueado" value="Sim" <?php echo (isset($form['bloqueado']) && $form['bloqueado'] == 'Sim') ? 'checked' : ''; ?>>
-                    <label class="form-check-label" for="bloqueado">Sim</label>
+                    <?php $bloqueadoOn = isset($form['bloqueado']) && $form['bloqueado'] == 'Sim'; ?>
+                    <input class="form-check-input js-user-bool-switch" type="checkbox" id="bloqueado" name="bloqueado" value="Sim" data-label-on="Sim" data-label-off="Não" <?php echo $bloqueadoOn ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="bloqueado" id="bloqueado_label"><?php echo $bloqueadoOn ? 'Sim' : 'Não'; ?></label>
                 </div>
+                <?php
+                $dbBloqueado = (string) ($this->data['db_bloqueado'] ?? ($form['bloqueado'] ?? 'Não'));
+                $dbTentativas = (int) ($this->data['db_tentativas_login'] ?? ($form['tentativas_login'] ?? 0));
+                $showUnlock = $isUpdate && (strcasecmp($dbBloqueado, 'Sim') === 0 || $dbBloqueado === '1');
+                ?>
+                <?php if ($showUnlock): ?>
+                    <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small" role="alert">
+                        Conta bloqueada no sistema
+                        <?php if ($dbTentativas > 0): ?>
+                            (<?= $dbTentativas ?> tentativa(s) de login)
+                        <?php endif; ?>.
+                        Use <strong>Desbloquear</strong> para liberar o acesso sem precisar preencher o restante do cadastro
+                        (ex.: empresa contratante).
+                        <div class="mt-2">
+                            <button type="submit" name="acao_desbloquear" value="1" class="btn btn-warning btn-sm"
+                                    formnovalidate
+                                    onclick="return confirm('Desbloquear este usuário e zerar as tentativas de login?');">
+                                <i class="fa-solid fa-unlock me-1"></i>Desbloquear
+                            </button>
+                        </div>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="col-md-3">
                 <label class="form-label">Senha Nunca Expira</label><br>
                 <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="senha_nunca_expira" name="senha_nunca_expira" value="Sim" <?php echo (isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] == 'Sim') ? 'checked' : ''; ?>>
-                    <label class="form-check-label" for="senha_nunca_expira">Sim</label>
+                    <?php $senhaNuncaOn = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] == 'Sim'; ?>
+                    <input class="form-check-input js-user-bool-switch" type="checkbox" id="senha_nunca_expira" name="senha_nunca_expira" value="Sim" data-label-on="Sim" data-label-off="Não" <?php echo $senhaNuncaOn ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="senha_nunca_expira" id="senha_nunca_expira_label"><?php echo $senhaNuncaOn ? 'Sim' : 'Não'; ?></label>
                 </div>
             </div>
 

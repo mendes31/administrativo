@@ -28,6 +28,7 @@
 <div class="help-field"><strong>Comprovante</strong> Opcional por formação. Formatos: PDF, JPG, PNG, WEBP, DOC ou DOCX, até 10 MB. O arquivo é privado e baixado somente por usuário autenticado com acesso à visualização do cadastro.</div>
 <div class="help-field"><strong>Excluir ou substituir</strong> Marque <em>Excluir</em> para remover toda a formação. Para trocar o comprovante, selecione outro arquivo; para retirar apenas o arquivo, marque <em>Remover comprovante</em>.</div>
 <div class="help-field"><strong>E-mail pessoal e endereço</strong> Opcionais. Endereço: priorize busca por CEP (ViaCEP), como no CRM; e-mail pessoal é distinto do e-mail corporativo de login.</div>
+<div class="help-field"><strong>Bloqueado / Desbloquear</strong> O switch <em>Bloqueado</em> indica se a conta está impedida de entrar no Portal (após tentativas de senha ou bloqueio manual). O rótulo ao lado do switch mostra <em>Sim</em> ou <em>Não</em> conforme o estado. Se a conta estiver bloqueada no banco, aparece o botão <strong>Desbloquear</strong>: ele libera o acesso e zera as tentativas de login sem exigir o preenchimento de todos os campos obrigatórios do formulário (por exemplo, empresa contratante em cadastros antigos). Desmarcar o switch e usar só <em>Salvar</em> também desbloqueia, desde que a validação do formulário passe.</div>
 <div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
 
 <div class="help-field"><strong>Integração LNT</strong> Alterações de cargo ou desligamento (inativação ou data de desligamento) geram evento para a equipe de treinamentos. Gere o LNT do colaborador em <em>Eventos LNT (RH)</em> antes de arquivar documentação física.</div>
@@ -44,4 +45,6 @@
     <dd>A aba está disponível no cadastro (permissão <em>CreateUser</em>) e na edição (permissão <em>UpdateUser</em>) do usuário.</dd>
     <dt>Não vejo a aba Permissões</dt>
     <dd>É necessária a permissão <em>UpdateUserAccessLevels</em>. A aba <em>Acessos</em> é só o mapa TI, não a ACL de páginas.</dd>
+    <dt>Não consigo desbloquear o usuário com Salvar</dt>
+    <dd>O <em>Salvar</em> valida o formulário inteiro. Se faltar <em>empresa contratante</em> (obrigatória na aba Dados Contratuais) ou outro campo, a gravação falha e o bloqueio permanece. Use o botão <strong>Desbloquear</strong> ao lado do switch Bloqueado — ele só libera a conta e zera as tentativas, sem exigir o restante do cadastro. Depois, complete a empresa contratante quando for atualizar outros dados.</dd>
 </dl>

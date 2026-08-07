@@ -167,5 +167,20 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260731f"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260807a"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>
+<script>
+(function () {
+    function syncBoolLabel(input) {
+        var label = document.querySelector('label[for="' + input.id + '"]');
+        if (!label) return;
+        var on = input.getAttribute('data-label-on') || 'Sim';
+        var off = input.getAttribute('data-label-off') || 'Não';
+        label.textContent = input.checked ? on : off;
+    }
+    document.querySelectorAll('.js-user-bool-switch').forEach(function (el) {
+        syncBoolLabel(el);
+        el.addEventListener('change', function () { syncBoolLabel(el); });
+    });
+})();
+</script>

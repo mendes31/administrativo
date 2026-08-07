@@ -1377,6 +1377,10 @@ class UsersRepository extends DbConnection
                     error_log("DEBUG updateUser - Falha no upload da imagem");
                     return false;
                 }
+            } elseif (!empty($data['image']) && is_string($data['image'])) {
+                // Caminho/nome já resolvido (ex.: CreateUser após upload) — incluir no UPDATE
+                // para não bindar :image sem placeholder (SQLSTATE[HY093]).
+                $sql .= ', image = :image';
             } else {
                 error_log("DEBUG updateUser - Sem imagem para processar ou não é array");
             }
@@ -1445,7 +1449,8 @@ class UsersRepository extends DbConnection
             if (array_key_exists('adms_work_shift_id', $data)) {
                 $sql .= ', adms_work_shift_id = :adms_work_shift_id';
             }
-            if (isset($data['bloqueado']) && $data['bloqueado'] === 'Não' && isset($dadosAntes['bloqueado']) && $dadosAntes['bloqueado'] === 'Sim') {
+            // Ao gravar como não bloqueado, sempre zera contadores (evita rebloqueio imediato).
+            if (isset($data['bloqueado']) && $data['bloqueado'] === 'Não') {
                 $sql .= ', tentativas_login = 0, data_bloqueio_temporario = NULL';
             }
             $sql .= ' WHERE id = :id';
@@ -1609,9 +1614,7 @@ class UsersRepository extends DbConnection
                 );
             }
             $stmt->bindValue(':id', $data['id'], PDO::PARAM_INT);
-            if (!empty($data['password'])) {
-                $stmt->bindValue(':password', password_hash($data['password'], PASSWORD_DEFAULT));
-            }
+            // Senha é alterada em UpdatePasswordUser; não bindar :password aqui (evita HY093).
             $result = $stmt->execute();
             if (!$result) {
                 $err = $stmt->errorInfo();
@@ -1680,6 +1683,26 @@ class UsersRepository extends DbConnection
             return $result;
         } catch (Exception $e) {
             \App\adms\Helpers\GenerateLog::generateLog("error", "Usuário não editado, nenhum valor foi alterado.", ['id' => $data['id'], 'email' => $data['email'], 'username' => $data['username'], 'error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Desbloqueia usuário: bloqueado=Não, zera tentativas e limpa bloqueio temporário.
+     */
+    public function desbloquearUsuario(int $userId): bool
+    {
+        if ($userId <= 0) {
+            return false;
+        }
+        try {
+            $loginRepo = new LoginRepository();
+            return $loginRepo->resetarTentativasLoginCompleto($userId);
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'Falha ao desbloquear usuário.', [
+                'id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
             return false;
         }
     }

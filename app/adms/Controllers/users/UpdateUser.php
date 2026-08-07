@@ -61,8 +61,15 @@ class UpdateUser
         // Receber os dados do formulário
         $this->data['form'] = filter_input_array(INPUT_POST, FILTER_DEFAULT);
 
-        // Acessar o IF se existir o CSRF e for valido o CSRF
+            // Acessar o IF se existir o CSRF e for valido o CSRF
         if (isset($this->data['form']['csrf_token']) and CSRFHelper::validateCSRFToken('form_update_user', $this->data['form']['csrf_token'])) {
+
+            // Desbloqueio dedicado: não exige validação completa do formulário
+            // (ex.: empresa contratante vazia em cadastros legados impede o "Salvar").
+            if (!empty($this->data['form']['acao_desbloquear'])) {
+                $this->unlockUser((int) $id);
+                return;
+            }
 
             // Chamar o método editar
             $this->editUser();
@@ -91,6 +98,42 @@ class UpdateUser
             // Chamar método carregar a view
             $this->viewUser();
         }
+    }
+
+    /**
+     * Desbloqueia o usuário (flag + tentativas + bloqueio temporário), sem validar o formulário inteiro.
+     */
+    private function unlockUser(int $id): void
+    {
+        $postedId = (int) ($this->data['form']['id'] ?? 0);
+        if ($id <= 0 || $postedId !== $id) {
+            $_SESSION['error'] = 'Dados inválidos para desbloqueio.';
+            header("Location: {$_ENV['URL_ADM']}list-users");
+            return;
+        }
+
+        $usersRepo = new UsersRepository();
+        $user = $usersRepo->getUser($id);
+        if (!$user) {
+            GenerateLog::generateLog('error', 'Desbloqueio: usuário não encontrado.', ['id' => $id]);
+            $_SESSION['error'] = 'Usuário não encontrado.';
+            header("Location: {$_ENV['URL_ADM']}list-users");
+            return;
+        }
+
+        $ok = $usersRepo->desbloquearUsuario($id);
+        if ($ok) {
+            GenerateLog::generateLog('info', 'Usuário desbloqueado manualmente na edição.', [
+                'target_user_id' => $id,
+                'actor_user_id' => (int) ($_SESSION['user_id'] ?? 0),
+            ]);
+            $_SESSION['success'] = 'Usuário desbloqueado com sucesso. Tentativas de login zeradas.';
+        } else {
+            $_SESSION['error'] = 'Não foi possível desbloquear o usuário. Tente novamente.';
+        }
+
+        $tab = UserFormHelper::normalizeUserFormActiveTab($_POST['user_form_active_tab'] ?? 'usuario');
+        header("Location: {$_ENV['URL_ADM']}update-user/{$id}?tab={$tab}");
     }
 
     /**
@@ -126,6 +169,16 @@ class UpdateUser
         $this->data['ti_acessos'] = $userIdForAcessos > 0
             ? (new \App\adms\Models\Repository\TiAcessoRepository())->listByUser($userIdForAcessos)
             : [];
+
+        // Estado real de bloqueio no banco (para botão Desbloquear mesmo se o POST desmarcou o switch).
+        if ($userIdForAcessos > 0) {
+            $freshUser = $usersRepo->getUser($userIdForAcessos);
+            $this->data['db_bloqueado'] = (string) ($freshUser['bloqueado'] ?? 'Não');
+            $this->data['db_tentativas_login'] = (int) ($freshUser['tentativas_login'] ?? 0);
+        } else {
+            $this->data['db_bloqueado'] = 'Não';
+            $this->data['db_tentativas_login'] = 0;
+        }
 
         $accessLevelsRepo = new \App\adms\Models\Repository\UsersAccessLevelsRepository();
         $userLevels = $userIdForAcessos > 0
