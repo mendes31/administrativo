@@ -47,12 +47,10 @@
     }
 
     function updateSaveButtons(key) {
-        var mainSave = document.getElementById('btnSaveUserForm');
         var permsSave = document.getElementById('btnSaveUserPermissions');
         var isPerms = key === 'permissoes';
-        if (mainSave) {
-            mainSave.classList.toggle('d-none', isPerms);
-        }
+        // Salvar do cadastro permanece em todas as abas (mesmo comportamento).
+        // Em Permissões, o botão específico de ACL aparece além do Salvar.
         if (permsSave) {
             permsSave.classList.toggle('d-none', !isPerms);
         }

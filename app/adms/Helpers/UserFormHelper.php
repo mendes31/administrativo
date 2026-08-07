@@ -567,4 +567,174 @@ final class UserFormHelper
 
         return $text;
     }
+
+    /**
+     * Valores padrão de flags alinhados ao ENUM/default do banco (adms_users).
+     *
+     * @return array<string, mixed>
+     */
+    public static function defaultUserFormValues(): array
+    {
+        return [
+            'status' => 'Ativo',
+            'bloqueado' => 'Não',
+            'senha_nunca_expira' => 'Não',
+            'modificar_senha_proximo_logon' => 'Não',
+            'tentativas_login' => 0,
+            'super_usuario' => 0,
+            'pais_residencia_iso' => 'BR',
+        ];
+    }
+
+    /** Interpreta Sim/Não e legado 0/1 como no banco e na visualização. */
+    public static function isSimFlag(mixed $value): bool
+    {
+        if ($value === true || $value === 1 || $value === '1') {
+            return true;
+        }
+
+        return strcasecmp(trim((string) $value), 'Sim') === 0;
+    }
+
+    public static function isUserBlocked(mixed $bloqueado): bool
+    {
+        return self::isSimFlag($bloqueado);
+    }
+
+    /** Rótulo igual ao da visualização (badge). */
+    public static function bloqueadoDisplayLabel(mixed $bloqueado): string
+    {
+        return self::isUserBlocked($bloqueado) ? 'Bloqueado' : 'Não bloqueado';
+    }
+
+    public static function simNaoLabel(mixed $value): string
+    {
+        return self::isSimFlag($value) ? 'Sim' : 'Não';
+    }
+
+    /**
+     * Normaliza registro do banco para o formulário (create/update) com os mesmos
+     * significados usados na visualização — em todas as abas.
+     *
+     * @param array<string, mixed> $row
+     * @return array<string, mixed>
+     */
+    public static function hydrateUserFormFromRow(array $row): array
+    {
+        $status = trim((string) ($row['status'] ?? ''));
+        $row['status'] = strcasecmp($status, 'Ativo') === 0 ? 'Ativo' : 'Inativo';
+        $row['bloqueado'] = self::isUserBlocked($row['bloqueado'] ?? null) ? 'Sim' : 'Não';
+        $row['senha_nunca_expira'] = self::isSimFlag($row['senha_nunca_expira'] ?? null) ? 'Sim' : 'Não';
+        $row['modificar_senha_proximo_logon'] = self::isSimFlag($row['modificar_senha_proximo_logon'] ?? null) ? 'Sim' : 'Não';
+        $row['tentativas_login'] = (int) ($row['tentativas_login'] ?? 0);
+        $row['super_usuario'] = !empty($row['super_usuario']) ? 1 : 0;
+
+        $emp = self::resolveEmpresaSlugFromUser($row);
+        $row['empresa_contratante'] = $emp ?? '';
+
+        $row['sexo'] = self::normalizeSexo($row['sexo'] ?? '') ?? '';
+        $row['filhos'] = self::normalizeFilhos($row['filhos'] ?? '') ?? '';
+        $row['estado_civil'] = self::normalizeEstadoCivil($row['estado_civil'] ?? null) ?? '';
+        $row['escolaridade'] = self::normalizeEscolaridade($row['escolaridade'] ?? null) ?? '';
+        $row['raca'] = self::normalizeRaca($row['raca'] ?? null) ?? '';
+        $row['pais_residencia_iso'] = self::normalizePaisResidenciaIso($row['pais_residencia_iso'] ?? null) ?? 'BR';
+        $row['uf'] = self::normalizeUf($row['uf'] ?? null) ?? '';
+        $row['cep'] = self::normalizeCep($row['cep'] ?? null) ?? '';
+        $row['email_pessoal'] = self::normalizeEmailPessoal($row['email_pessoal'] ?? null) ?? '';
+        $row['matricula'] = self::normalizeOptionalText($row['matricula'] ?? null, 40) ?? '';
+        $row['endereco'] = self::normalizeOptionalText($row['endereco'] ?? null, 255) ?? '';
+        $row['numero_endereco'] = self::normalizeOptionalText($row['numero_endereco'] ?? null, 20) ?? '';
+        $row['complemento_endereco'] = self::normalizeOptionalText($row['complemento_endereco'] ?? null, 80) ?? '';
+        $row['bairro'] = self::normalizeOptionalText($row['bairro'] ?? null, 120) ?? '';
+        $row['municipio'] = self::normalizeOptionalText($row['municipio'] ?? null, 120) ?? '';
+
+        $row['data_nascimento'] = self::normalizeDateInput($row['data_nascimento'] ?? null);
+        $row['data_admissao'] = self::normalizeDateInput($row['data_admissao'] ?? null);
+        $row['data_desligamento'] = self::normalizeDateInput($row['data_desligamento'] ?? null);
+        $row['tipo_impacto_desligamento'] = self::normalizeTipoImpactoDesligamento($row['tipo_impacto_desligamento'] ?? null) ?? '';
+        $row['motivo_desligamento'] = self::normalizeOptionalText($row['motivo_desligamento'] ?? null, 255) ?? '';
+
+        return $row;
+    }
+
+    /** Data para input type=date (Y-m-d) a partir do valor do banco. */
+    public static function normalizeDateInput(mixed $value): string
+    {
+        if ($value === null || trim((string) $value) === '') {
+            return '';
+        }
+        $raw = trim((string) $value);
+        $ts = strtotime($raw);
+        if ($ts === false) {
+            return '';
+        }
+
+        return date('Y-m-d', $ts);
+    }
+
+    /**
+     * Após POST inválido: mantém o que o usuário enviou e completa com o banco
+     * (para todas as abas continuarem coerentes com o cadastro).
+     *
+     * @param array<string, mixed> $hydrated
+     * @param array<string, mixed> $posted
+     * @return array<string, mixed>
+     */
+    public static function overlayPostedUserFormOnHydrated(array $hydrated, array $posted): array
+    {
+        $out = array_merge($hydrated, $posted);
+
+        // Switches: ausência no POST = desligado (comportamento HTML de checkbox)
+        $out['status'] = (isset($posted['status']) && $posted['status'] === 'Ativo') ? 'Ativo' : 'Inativo';
+        $out['bloqueado'] = (isset($posted['bloqueado']) && $posted['bloqueado'] === 'Sim') ? 'Sim' : 'Não';
+        $out['senha_nunca_expira'] = (isset($posted['senha_nunca_expira']) && $posted['senha_nunca_expira'] === 'Sim') ? 'Sim' : 'Não';
+        $out['modificar_senha_proximo_logon'] = (isset($posted['modificar_senha_proximo_logon']) && $posted['modificar_senha_proximo_logon'] === 'Sim')
+            ? 'Sim'
+            : 'Não';
+
+        if (array_key_exists('tentativas_login', $posted) && $posted['tentativas_login'] !== null && $posted['tentativas_login'] !== '') {
+            $out['tentativas_login'] = (int) $posted['tentativas_login'];
+        } else {
+            $out['tentativas_login'] = (int) ($hydrated['tentativas_login'] ?? 0);
+        }
+
+        return $out;
+    }
+
+    /**
+     * Aba a abrir quando houver erros de validação (mesmo comportamento em create/update).
+     *
+     * @param array<string, mixed> $errors
+     */
+    public static function resolveTabForFormErrors(array $errors): string
+    {
+        if ($errors === []) {
+            return 'usuario';
+        }
+
+        foreach (array_keys($errors) as $key) {
+            $k = strtolower((string) $key);
+            if (str_contains($k, 'education') || str_contains($k, 'formacao') || str_contains($k, 'formação')) {
+                return 'formacoes';
+            }
+        }
+
+        $map = [
+            'contratuais' => ['empresa_contratante', 'matricula', 'data_admissao', 'data_desligamento', 'motivo_desligamento', 'tipo_impacto_desligamento'],
+            'pessoais' => ['data_nascimento', 'sexo', 'filhos', 'estado_civil', 'escolaridade', 'raca', 'email_pessoal'],
+            'endereco' => ['cep', 'endereco', 'numero_endereco', 'complemento_endereco', 'bairro', 'municipio', 'uf', 'pais_residencia_iso'],
+            'usuario' => ['name', 'email', 'username', 'cpf', 'celular', 'user_department_id', 'user_position_id', 'immediate_supervisor_id', 'adms_work_shift_id', 'password', 'confirm_password', 'image', 'status', 'bloqueado'],
+            'formacoes' => ['educations'],
+        ];
+
+        foreach ($map as $tab => $fields) {
+            foreach ($fields as $field) {
+                if (array_key_exists($field, $errors)) {
+                    return $tab;
+                }
+            }
+        }
+
+        return 'usuario';
+    }
 }

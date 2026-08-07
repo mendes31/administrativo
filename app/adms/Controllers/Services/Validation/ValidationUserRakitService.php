@@ -81,7 +81,9 @@ class ValidationUserRakitService
             $rules['email'] = 'email|uniqueInColumns:adms_users,email;username,' . $data['id'];
             $rules['cpf'] = 'required|regex:/^\d{3}\.\d{3}\.\d{3}-\d{2}$/|uniqueInColumns:adms_users,cpf,' . $data['id'];
             $rules['celular'] = 'required|regex:/^\(\d{2}\)\s\d{4,5}-\d{4}$/';
-            $rules['empresa_contratante'] = 'required|in:' . implode(',', UserFormHelper::EMPRESA_CONTRATANTE_SLUGS);
+            // Na edição não bloquear o Salvar por empresa vazia em cadastros legados
+            // (o HTML required numa aba oculta impedia qualquer gravação de flags).
+            $rules['empresa_contratante'] = 'nullable|in:' . implode(',', UserFormHelper::EMPRESA_CONTRATANTE_SLUGS);
             
             if (isset($_FILES['image']) && $_FILES['image']['error'] !== UPLOAD_ERR_NO_FILE) {
                 $rules['image'] = 'uploaded_file:0,2048K,png,jpg,jpeg,gif';

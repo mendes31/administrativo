@@ -37,7 +37,7 @@ use App\adms\Helpers\CSRFHelper;
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <form action="" method="POST" class="row g-3" enctype="multipart/form-data" id="formUpdateUser">
+            <form action="" method="POST" class="row g-3" enctype="multipart/form-data" id="formUpdateUser" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_update_user'); ?>">
                 <input type="hidden" name="id" id="id" value="<?php echo htmlspecialchars((string)($this->data['form']['id'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>">
 
@@ -47,7 +47,7 @@ use App\adms\Helpers\CSRFHelper;
                 ?>
 
                 <div class="col-12 mt-3" id="btnSaveUserFormWrap">
-                    <button type="submit" class="btn btn-warning btn-sm<?= (($this->data['form']['user_form_active_tab'] ?? ($_GET['tab'] ?? 'usuario')) === 'permissoes') ? ' d-none' : '' ?>" id="btnSaveUserForm">Salvar</button>
+                    <button type="submit" class="btn btn-warning btn-sm" id="btnSaveUserForm">Salvar</button>
                 </div>
             </form>
 
@@ -167,7 +167,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
-<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260807a"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260807b"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>
 <script>
 (function () {

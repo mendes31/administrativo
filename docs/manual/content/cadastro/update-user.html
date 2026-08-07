@@ -20,7 +20,7 @@
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso ao Portal), Dados Pessoais, Endereço, Dados Contratuais (<strong>empresa contratante obrigatória</strong>, alinhada às Filiais/nome fantasia; matrícula, vínculo e desligamento), Formações, Acessos (mapa TI) e Permissões (níveis ACL, com <em>UpdateUserAccessLevels</em>). Após salvar ou atualizar a página (F5), a tela permanece na mesma aba em que você estava.</div>
+<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso ao Portal), Dados Pessoais, Endereço, Dados Contratuais (empresa contratante alinhada às Filiais/nome fantasia; matrícula, vínculo e desligamento), Formações, Acessos (mapa TI) e Permissões (níveis ACL, com <em>UpdateUserAccessLevels</em>). O botão <strong>Salvar</strong> funciona em qualquer aba. Após salvar ou atualizar a página (F5), a tela permanece na mesma aba em que você estava.</div>
 <div class="help-field"><strong>Aba ativa</strong> A URL acompanha a aba selecionada com <em>?tab=</em>. Ao atualizar o navegador, a edição permanece na mesma aba. A faixa de abas fica fixa no topo do formulário enquanto você rola o conteúdo.</div>
 <div class="help-field"><strong>Formações</strong> Aceita vários cursos, graduações, pós-graduações, MBAs, mestrados e doutorados para o mesmo usuário. O campo geral <em>Escolaridade</em> continua representando o maior grau de instrução.</div>
 <div class="help-field"><strong>Acessos (TI)</strong> Lista vínculos do colaborador com sistemas do catálogo <em>TI / Acessos</em> (incluindo embarcados). Não confundir com níveis de acesso/páginas deste Portal.</div>
@@ -28,7 +28,8 @@
 <div class="help-field"><strong>Comprovante</strong> Opcional por formação. Formatos: PDF, JPG, PNG, WEBP, DOC ou DOCX, até 10 MB. O arquivo é privado e baixado somente por usuário autenticado com acesso à visualização do cadastro.</div>
 <div class="help-field"><strong>Excluir ou substituir</strong> Marque <em>Excluir</em> para remover toda a formação. Para trocar o comprovante, selecione outro arquivo; para retirar apenas o arquivo, marque <em>Remover comprovante</em>.</div>
 <div class="help-field"><strong>E-mail pessoal e endereço</strong> Opcionais. Endereço: priorize busca por CEP (ViaCEP), como no CRM; e-mail pessoal é distinto do e-mail corporativo de login.</div>
-<div class="help-field"><strong>Bloqueado / Desbloquear</strong> O switch <em>Bloqueado</em> indica se a conta está impedida de entrar no Portal (após tentativas de senha ou bloqueio manual). O rótulo ao lado do switch mostra <em>Sim</em> ou <em>Não</em> conforme o estado. Se a conta estiver bloqueada no banco, aparece o botão <strong>Desbloquear</strong>: ele libera o acesso e zera as tentativas de login sem exigir o preenchimento de todos os campos obrigatórios do formulário (por exemplo, empresa contratante em cadastros antigos). Desmarcar o switch e usar só <em>Salvar</em> também desbloqueia, desde que a validação do formulário passe.</div>
+<div class="help-field"><strong>Bloqueado</strong> O switch reflete o valor do banco e usa os mesmos rótulos da visualização (<em>Bloqueado</em> / <em>Não bloqueado</em>). Para liberar a conta: deixe em <em>Não bloqueado</em> e clique em <strong>Salvar</strong> — as tentativas de login são zeradas. O desbloqueio pelo flag ocorre mesmo se outros campos obrigatórios (ex.: empresa contratante) ainda estiverem incompletos.</div>
+<div class="help-field"><strong>Flags de segurança</strong> Status, Bloqueado, Senha nunca expira e Modificar senha no próximo logon são carregados do cadastro na edição (iguais à tela Visualizar) e iniciam com os defaults do banco no cadastro novo (Ativo, Não bloqueado, etc.).</div>
 <div class="help-field"><strong>Campos editáveis</strong> Somente campos exibidos podem ser alterados; IDs e auditoria são somente leitura.</div>
 
 <div class="help-field"><strong>Integração LNT</strong> Alterações de cargo ou desligamento (inativação ou data de desligamento) geram evento para a equipe de treinamentos. Gere o LNT do colaborador em <em>Eventos LNT (RH)</em> antes de arquivar documentação física.</div>
@@ -45,6 +46,6 @@
     <dd>A aba está disponível no cadastro (permissão <em>CreateUser</em>) e na edição (permissão <em>UpdateUser</em>) do usuário.</dd>
     <dt>Não vejo a aba Permissões</dt>
     <dd>É necessária a permissão <em>UpdateUserAccessLevels</em>. A aba <em>Acessos</em> é só o mapa TI, não a ACL de páginas.</dd>
-    <dt>Não consigo desbloquear o usuário com Salvar</dt>
-    <dd>O <em>Salvar</em> valida o formulário inteiro. Se faltar <em>empresa contratante</em> (obrigatória na aba Dados Contratuais) ou outro campo, a gravação falha e o bloqueio permanece. Use o botão <strong>Desbloquear</strong> ao lado do switch Bloqueado — ele só libera a conta e zera as tentativas, sem exigir o restante do cadastro. Depois, complete a empresa contratante quando for atualizar outros dados.</dd>
+    <dt>Desmarquei Bloqueado e salvei, mas ainda vejo erros de validação</dt>
+    <dd>Se aparecer erro de empresa contratante ou outro campo, o sistema abre a aba correspondente. Em cadastros antigos sem empresa, a edição de flags (status, bloqueado, senha) pode ser gravada mesmo assim; complete a empresa quando for atualizar o vínculo contratual.</dd>
 </dl>

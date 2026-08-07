@@ -33,7 +33,7 @@ use App\adms\Helpers\CSRFHelper;
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
-            <form action="" method="POST" class="row g-3" enctype="multipart/form-data" id="formCreateUser">
+            <form action="" method="POST" class="row g-3" enctype="multipart/form-data" id="formCreateUser" novalidate>
                 <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_create_user'); ?>">
 
                 <?php
@@ -78,7 +78,7 @@ document.getElementById('cep')?.addEventListener('input', function(e) {
 });
 
 </script>
-<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260807a"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/user-form-tabs.js?v=20260807b"></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/address-cep-lookup.js?v=20260714"></script>
 <script>
 (function () {

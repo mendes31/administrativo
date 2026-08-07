@@ -104,7 +104,7 @@ $form = $this->data['form'] ?? [];
                         <?php foreach ($this->data['listPositions'] as $listPosition): ?>
                             <?php
                             $posId = (int)($listPosition['id'] ?? 0);
-                            $posName = (string)($listPosition['name'] ?? '');
+                            $posName = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($listPosition['name'] ?? ''));
                             $selected = !empty($form['user_position_id']) && (int)$form['user_position_id'] === $posId ? 'selected' : '';
                             ?>
                             <option value="<?php echo $posId; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars($posName, ENT_QUOTES, 'UTF-8'); ?></option>
@@ -231,51 +231,30 @@ $form = $this->data['form'] ?? [];
             <div class="col-md-3">
                 <label class="form-label">Bloqueado</label><br>
                 <div class="form-check form-switch">
-                    <?php $bloqueadoOn = isset($form['bloqueado']) && $form['bloqueado'] == 'Sim'; ?>
-                    <input class="form-check-input js-user-bool-switch" type="checkbox" id="bloqueado" name="bloqueado" value="Sim" data-label-on="Sim" data-label-off="Não" <?php echo $bloqueadoOn ? 'checked' : ''; ?>>
-                    <label class="form-check-label" for="bloqueado" id="bloqueado_label"><?php echo $bloqueadoOn ? 'Sim' : 'Não'; ?></label>
+                    <?php
+                    $bloqueadoOn = \App\adms\Helpers\UserFormHelper::isUserBlocked($form['bloqueado'] ?? null);
+                    ?>
+                    <input class="form-check-input js-user-bool-switch" type="checkbox" id="bloqueado" name="bloqueado" value="Sim" data-label-on="Bloqueado" data-label-off="Não bloqueado" <?php echo $bloqueadoOn ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="bloqueado" id="bloqueado_label"><?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::bloqueadoDisplayLabel($form['bloqueado'] ?? null), ENT_QUOTES, 'UTF-8'); ?></label>
                 </div>
-                <?php
-                $dbBloqueado = (string) ($this->data['db_bloqueado'] ?? ($form['bloqueado'] ?? 'Não'));
-                $dbTentativas = (int) ($this->data['db_tentativas_login'] ?? ($form['tentativas_login'] ?? 0));
-                $showUnlock = $isUpdate && (strcasecmp($dbBloqueado, 'Sim') === 0 || $dbBloqueado === '1');
-                ?>
-                <?php if ($showUnlock): ?>
-                    <div class="alert alert-warning py-2 px-2 mt-2 mb-0 small" role="alert">
-                        Conta bloqueada no sistema
-                        <?php if ($dbTentativas > 0): ?>
-                            (<?= $dbTentativas ?> tentativa(s) de login)
-                        <?php endif; ?>.
-                        Use <strong>Desbloquear</strong> para liberar o acesso sem precisar preencher o restante do cadastro
-                        (ex.: empresa contratante).
-                        <div class="mt-2">
-                            <button type="submit" name="acao_desbloquear" value="1" class="btn btn-warning btn-sm"
-                                    formnovalidate
-                                    onclick="return confirm('Desbloquear este usuário e zerar as tentativas de login?');">
-                                <i class="fa-solid fa-unlock me-1"></i>Desbloquear
-                            </button>
-                        </div>
-                    </div>
-                <?php endif; ?>
             </div>
             <div class="col-md-3">
-                <label class="form-label">Senha Nunca Expira</label><br>
+                <label class="form-label">Senha nunca expira</label><br>
                 <div class="form-check form-switch">
-                    <?php $senhaNuncaOn = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] == 'Sim'; ?>
+                    <?php $senhaNuncaOn = \App\adms\Helpers\UserFormHelper::isSimFlag($form['senha_nunca_expira'] ?? null); ?>
                     <input class="form-check-input js-user-bool-switch" type="checkbox" id="senha_nunca_expira" name="senha_nunca_expira" value="Sim" data-label-on="Sim" data-label-off="Não" <?php echo $senhaNuncaOn ? 'checked' : ''; ?>>
-                    <label class="form-check-label" for="senha_nunca_expira" id="senha_nunca_expira_label"><?php echo $senhaNuncaOn ? 'Sim' : 'Não'; ?></label>
+                    <label class="form-check-label" for="senha_nunca_expira" id="senha_nunca_expira_label"><?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::simNaoLabel($form['senha_nunca_expira'] ?? null), ENT_QUOTES, 'UTF-8'); ?></label>
                 </div>
             </div>
 
-            <?php if (!$isUpdate): ?>
-                <div class="col-md-3">
-                    <label class="form-label">Modificar Senha no Próximo Logon</label><br>
-                    <div class="form-check form-switch">
-                        <input class="form-check-input" type="checkbox" id="modificar_senha_proximo_logon" name="modificar_senha_proximo_logon" value="Sim" <?php echo (isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] == 'Sim') ? 'checked' : ''; ?>>
-                        <label class="form-check-label" for="modificar_senha_proximo_logon">Sim</label>
-                    </div>
+            <div class="col-md-3">
+                <label class="form-label">Modificar senha no próximo logon</label><br>
+                <div class="form-check form-switch">
+                    <?php $modSenhaOn = \App\adms\Helpers\UserFormHelper::isSimFlag($form['modificar_senha_proximo_logon'] ?? null); ?>
+                    <input class="form-check-input js-user-bool-switch" type="checkbox" id="modificar_senha_proximo_logon" name="modificar_senha_proximo_logon" value="Sim" data-label-on="Sim" data-label-off="Não" <?php echo $modSenhaOn ? 'checked' : ''; ?>>
+                    <label class="form-check-label" for="modificar_senha_proximo_logon" id="modificar_senha_proximo_logon_label"><?php echo htmlspecialchars(\App\adms\Helpers\UserFormHelper::simNaoLabel($form['modificar_senha_proximo_logon'] ?? null), ENT_QUOTES, 'UTF-8'); ?></label>
                 </div>
-            <?php endif; ?>
+            </div>
 
             <div class="col-md-3">
                 <label class="form-label" for="super_usuario">Super usuário <i class="fas fa-user-shield text-warning"></i></label><br>
@@ -500,14 +479,14 @@ $form = $this->data['form'] ?? [];
         <div class="row g-3">
             <div class="col-md-4">
                 <label for="empresa_contratante" class="form-label">Empresa contratante <span class="text-danger">*</span></label>
-                <select name="empresa_contratante" id="empresa_contratante" class="form-select" required>
+                <select name="empresa_contratante" id="empresa_contratante" class="form-select">
                     <?php $empVal = (string)($form['empresa_contratante'] ?? ''); ?>
                     <option value="" <?php echo $empVal === '' ? 'selected' : ''; ?>>Selecione</option>
                     <?php foreach (\App\adms\Helpers\UserFormHelper::empresaContratanteOptions() as $slug => $empLabel): ?>
                         <option value="<?php echo htmlspecialchars($slug); ?>" <?php echo $empVal === $slug ? 'selected' : ''; ?>><?php echo htmlspecialchars($empLabel); ?></option>
                     <?php endforeach; ?>
                 </select>
-                <div class="form-text">Estabelecimento (CNPJ) do vínculo — nomes vêm do cadastro de Filiais. Obrigatório no cadastro e na edição.</div>
+                <div class="form-text">Estabelecimento (CNPJ) do vínculo — nomes vêm do cadastro de Filiais. Obrigatório em novos cadastros; na edição, preencha para gravar o restante do formulário quando ainda estiver vazio.</div>
             </div>
             <div class="col-md-4">
                 <label for="matricula" class="form-label">Matrícula</label>

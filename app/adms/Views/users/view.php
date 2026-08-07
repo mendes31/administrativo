@@ -155,8 +155,8 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                 $bloqueado = (string) ($userRow['bloqueado'] ?? '');
                 $isSuper = (int) ($userRow['super_usuario'] ?? 0) === 1;
                 $statusBadge = strcasecmp($status, 'Ativo') === 0 ? 'bg-success' : 'bg-secondary';
-                $blockedBadge = (strcasecmp($bloqueado, 'Sim') === 0 || $bloqueado === '1') ? 'bg-danger' : 'bg-success';
-                $blockedLabel = (strcasecmp($bloqueado, 'Sim') === 0 || $bloqueado === '1') ? 'Bloqueado' : 'Não bloqueado';
+                $blockedBadge = UserFormHelper::isUserBlocked($bloqueado) ? 'bg-danger' : 'bg-success';
+                $blockedLabel = UserFormHelper::bloqueadoDisplayLabel($bloqueado);
             ?>
 
             <div class="d-flex flex-row gap-2 gap-md-3 align-items-center mb-3 pb-3 border-bottom">
@@ -255,8 +255,8 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                             $row('Bloqueado', '<span class="badge ' . $blockedBadge . '">' . htmlspecialchars($blockedLabel, ENT_QUOTES, 'UTF-8') . '</span>');
                             $row('Super usuário', $isSuper ? '<span class="badge bg-primary">Sim</span>' : $emptyHtml('Não'));
                             $row('Tentativas de login', $emptyHtml($userRow['tentativas_login'] ?? '0'));
-                            $row('Senha nunca expira', $emptyHtml($userRow['senha_nunca_expira'] ?? null));
-                            $row('Modificar senha no próximo logon', $emptyHtml($userRow['modificar_senha_proximo_logon'] ?? null));
+                            $row('Senha nunca expira', $emptyHtml(UserFormHelper::simNaoLabel($userRow['senha_nunca_expira'] ?? null)));
+                            $row('Modificar senha no próximo logon', $emptyHtml(UserFormHelper::simNaoLabel($userRow['modificar_senha_proximo_logon'] ?? null)));
                             $closePanel();
                             ?>
                         </div>

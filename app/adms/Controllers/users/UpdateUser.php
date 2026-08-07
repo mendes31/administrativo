@@ -64,13 +64,6 @@ class UpdateUser
             // Acessar o IF se existir o CSRF e for valido o CSRF
         if (isset($this->data['form']['csrf_token']) and CSRFHelper::validateCSRFToken('form_update_user', $this->data['form']['csrf_token'])) {
 
-            // Desbloqueio dedicado: não exige validação completa do formulário
-            // (ex.: empresa contratante vazia em cadastros legados impede o "Salvar").
-            if (!empty($this->data['form']['acao_desbloquear'])) {
-                $this->unlockUser((int) $id);
-                return;
-            }
-
             // Chamar o método editar
             $this->editUser();
            
@@ -79,10 +72,10 @@ class UpdateUser
             
             // Instanciar o Repository para recuperar o registro do banco de dados
             $viewUser = new UsersRepository();
-            $this->data['form'] = $viewUser->getUser((int) $id);
+            $userRow = $viewUser->getUser((int) $id);
 
             // Verificar se existe o registro no banco de dados
-            if (!$this->data['form']) {
+            if (!$userRow) {
 
                 // Chamar o método para salvar o log
                 GenerateLog::generateLog("error", "Usuário não encontrado.", ['id' => (int) $id]);
@@ -95,45 +88,12 @@ class UpdateUser
                 return;
             }
 
+            // Montar o formulário com os mesmos valores/significados do banco (e da visualização)
+            $this->data['form'] = UserFormHelper::hydrateUserFormFromRow($userRow);
+
             // Chamar método carregar a view
             $this->viewUser();
         }
-    }
-
-    /**
-     * Desbloqueia o usuário (flag + tentativas + bloqueio temporário), sem validar o formulário inteiro.
-     */
-    private function unlockUser(int $id): void
-    {
-        $postedId = (int) ($this->data['form']['id'] ?? 0);
-        if ($id <= 0 || $postedId !== $id) {
-            $_SESSION['error'] = 'Dados inválidos para desbloqueio.';
-            header("Location: {$_ENV['URL_ADM']}list-users");
-            return;
-        }
-
-        $usersRepo = new UsersRepository();
-        $user = $usersRepo->getUser($id);
-        if (!$user) {
-            GenerateLog::generateLog('error', 'Desbloqueio: usuário não encontrado.', ['id' => $id]);
-            $_SESSION['error'] = 'Usuário não encontrado.';
-            header("Location: {$_ENV['URL_ADM']}list-users");
-            return;
-        }
-
-        $ok = $usersRepo->desbloquearUsuario($id);
-        if ($ok) {
-            GenerateLog::generateLog('info', 'Usuário desbloqueado manualmente na edição.', [
-                'target_user_id' => $id,
-                'actor_user_id' => (int) ($_SESSION['user_id'] ?? 0),
-            ]);
-            $_SESSION['success'] = 'Usuário desbloqueado com sucesso. Tentativas de login zeradas.';
-        } else {
-            $_SESSION['error'] = 'Não foi possível desbloquear o usuário. Tente novamente.';
-        }
-
-        $tab = UserFormHelper::normalizeUserFormActiveTab($_POST['user_form_active_tab'] ?? 'usuario');
-        header("Location: {$_ENV['URL_ADM']}update-user/{$id}?tab={$tab}");
     }
 
     /**
@@ -169,16 +129,6 @@ class UpdateUser
         $this->data['ti_acessos'] = $userIdForAcessos > 0
             ? (new \App\adms\Models\Repository\TiAcessoRepository())->listByUser($userIdForAcessos)
             : [];
-
-        // Estado real de bloqueio no banco (para botão Desbloquear mesmo se o POST desmarcou o switch).
-        if ($userIdForAcessos > 0) {
-            $freshUser = $usersRepo->getUser($userIdForAcessos);
-            $this->data['db_bloqueado'] = (string) ($freshUser['bloqueado'] ?? 'Não');
-            $this->data['db_tentativas_login'] = (int) ($freshUser['tentativas_login'] ?? 0);
-        } else {
-            $this->data['db_bloqueado'] = 'Não';
-            $this->data['db_tentativas_login'] = 0;
-        }
 
         $accessLevelsRepo = new \App\adms\Models\Repository\UsersAccessLevelsRepository();
         $userLevels = $userIdForAcessos > 0
@@ -234,6 +184,25 @@ class UpdateUser
             $this->data['form']['adms_work_shift_id'] = ($ws !== null && $ws !== '' && $ws !== false) ? $ws : null;
         }
 
+        // Desbloquear só pelo flag: se o switch Bloqueado veio desligado e a conta
+        // estava bloqueada, libera já (antes da validação). Assim o Salvar não fica
+        // impedido por campos obrigatórios em falta (ex.: empresa contratante).
+        $targetIdForUnlock = (int) ($this->data['form']['id'] ?? 0);
+        $wantsUnblocked = !isset($this->data['form']['bloqueado']) || $this->data['form']['bloqueado'] !== 'Sim';
+        if ($targetIdForUnlock > 0 && $wantsUnblocked) {
+            $usersRepoUnlock = new UsersRepository();
+            $currentForUnlock = $usersRepoUnlock->getUser($targetIdForUnlock);
+            $wasBlocked = $currentForUnlock && UserFormHelper::isUserBlocked($currentForUnlock['bloqueado'] ?? null);
+            if ($wasBlocked && $usersRepoUnlock->desbloquearUsuario($targetIdForUnlock)) {
+                $this->data['form']['bloqueado'] = 'Não';
+                $this->data['form']['tentativas_login'] = 0;
+                GenerateLog::generateLog('info', 'Usuário desbloqueado via flag Bloqueado na edição.', [
+                    'target_user_id' => $targetIdForUnlock,
+                    'actor_user_id' => (int) ($_SESSION['user_id'] ?? 0),
+                ]);
+            }
+        }
+
         // Instanciar a classe validar os dados do formulário
         $validationUser = new ValidationUserRakitService();
         $this->data['errors'] = $validationUser->validate($this->data['form']);
@@ -247,7 +216,19 @@ class UpdateUser
 
         // Acessa o IF quando existir campo com dados incorretos
         if (!empty($this->data['errors'])) {
-            // Chamar método carregar a view
+            $posted = is_array($this->data['form'] ?? null) ? $this->data['form'] : [];
+            $targetId = (int) ($posted['id'] ?? 0);
+            if ($targetId > 0) {
+                $dbRow = (new UsersRepository())->getUser($targetId);
+                if (is_array($dbRow)) {
+                    $this->data['form'] = UserFormHelper::overlayPostedUserFormOnHydrated(
+                        UserFormHelper::hydrateUserFormFromRow($dbRow),
+                        $posted
+                    );
+                }
+            }
+            // Mesmo comportamento em qualquer aba: abrir a aba do primeiro erro
+            $this->data['form']['user_form_active_tab'] = UserFormHelper::resolveTabForFormErrors($this->data['errors']);
             $this->viewUser();
             return;
         }
@@ -300,6 +281,7 @@ class UpdateUser
         }
         $form['bloqueado'] = isset($form['bloqueado']) && $form['bloqueado'] === 'Sim' ? 'Sim' : 'Não';
         $form['senha_nunca_expira'] = isset($form['senha_nunca_expira']) && $form['senha_nunca_expira'] === 'Sim' ? 'Sim' : 'Não';
+        $form['modificar_senha_proximo_logon'] = isset($form['modificar_senha_proximo_logon']) && $form['modificar_senha_proximo_logon'] === 'Sim' ? 'Sim' : 'Não';
 
         $postedWantsSuper = !empty($form['super_usuario']);
         if (!$canManageSuperForTarget) {

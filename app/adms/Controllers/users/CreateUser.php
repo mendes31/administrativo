@@ -65,6 +65,13 @@ class CreateUser
      */
     private function viewUser(): void
     {
+        // Defaults do banco quando abre o cadastro (ou POST vazio)
+        if (!is_array($this->data['form'] ?? null) || $this->data['form'] === []) {
+            $this->data['form'] = UserFormHelper::defaultUserFormValues();
+        } else {
+            $this->data['form'] = array_merge(UserFormHelper::defaultUserFormValues(), $this->data['form']);
+        }
+
         // Instanciar o repositório para recuperar os departamentos
         $listDepartments = new DepartmentsRepository();
         $this->data['listDepartments'] = $listDepartments->getAllDepartmentsSelect();
@@ -154,7 +161,10 @@ class CreateUser
 
         // Acessa o IF quando existir campo com dados incorretos
         if (!empty($this->data['errors'])) {
-            // Chamar método carregar a view
+            if (!is_array($this->data['form'] ?? null)) {
+                $this->data['form'] = [];
+            }
+            $this->data['form']['user_form_active_tab'] = UserFormHelper::resolveTabForFormErrors($this->data['errors']);
             $this->viewUser();
             return;
         }
