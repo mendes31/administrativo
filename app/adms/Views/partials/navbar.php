@@ -59,7 +59,7 @@ if (!empty($_SESSION['user_id'])) {
     <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4 align-items-center">
         <?php if ($mcpChatAvailable): ?>
         <?php $tjzAvatarUrl = rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'; ?>
-        <li class="nav-item me-2">
+        <li class="nav-item me-2 d-none d-md-block">
             <button class="btn tjz-nav-btn position-relative" type="button"
                     data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
                     title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
@@ -258,8 +258,13 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=15">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=16">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
+<button class="btn tjz-fab d-md-none" type="button"
+        data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
+        title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
+    <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="52" height="52">
+</button>
 <div class="offcanvas offcanvas-end tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="mcpChatOffcanvasLabel">

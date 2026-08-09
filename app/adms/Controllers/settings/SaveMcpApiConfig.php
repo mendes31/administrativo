@@ -2,8 +2,9 @@
 
 namespace App\adms\Controllers\settings;
 
-use App\adms\Models\Repository\AdmsMcpApiConfigRepository;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\NavbarLayoutCacheHelper;
+use App\adms\Models\Repository\AdmsMcpApiConfigRepository;
 
 class SaveMcpApiConfig
 {
@@ -41,6 +42,7 @@ class SaveMcpApiConfig
         ]);
 
         if ($saved) {
+            NavbarLayoutCacheHelper::clear();
             $_SESSION['msg'] = 'Configurações da API MCP salvas com sucesso!';
             $_SESSION['msg_type'] = 'success';
         } else {

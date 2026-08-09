@@ -240,6 +240,62 @@
   transform: translateY(-1px);
 }
 
+/* Mobile: balão flutuante (não disputa espaço com o nome na topnav) */
+.tjz-fab {
+  position: fixed;
+  right: max(0.85rem, env(safe-area-inset-right, 0px));
+  bottom: max(1rem, env(safe-area-inset-bottom, 0px));
+  z-index: 1035;
+  width: 3.5rem;
+  height: 3.5rem;
+  padding: 0;
+  border-radius: 50%;
+  border: 3px solid #fff;
+  background: var(--tjz-orange, #F26222);
+  overflow: hidden;
+  box-shadow: 0 6px 18px rgba(43, 33, 28, 0.28);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tjz-fab img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.tjz-fab:hover,
+.tjz-fab:focus-visible {
+  transform: translateY(-2px);
+  outline: none;
+  box-shadow: 0 8px 22px rgba(242, 98, 34, 0.4);
+}
+
+body:has(#mcpChatOffcanvas.show) .tjz-fab {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 767.98px) {
+  .sb-topnav.navbar .navbar-brand {
+    max-width: min(42vw, 8.5rem);
+    overflow: hidden;
+  }
+
+  .sb-topnav.navbar .navbar-brand span {
+    display: inline-block;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .sb-topnav .navbar-nav.me-3 {
+    margin-right: 0.35rem !important;
+  }
+}
+
 #mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-bot .btn-outline-primary {
   --bs-btn-color: var(--tjz-orange-deep);
   --bs-btn-border-color: var(--tjz-orange);
