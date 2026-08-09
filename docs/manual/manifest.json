@@ -83,6 +83,11 @@
                     "file": "administracao/mcp-api-config.html"
                 },
                 {
+                    "id": "list-mcp-chat-tools",
+                    "title": "Tools do Assistente MCP",
+                    "file": "administracao/list-mcp-chat-tools.html"
+                },
+                {
                     "id": "push-config",
                     "title": "Configuração Push (PWA)",
                     "file": "administracao/push-config.html"
@@ -433,6 +438,11 @@
                     "id": "timeline",
                     "title": "Feed Timeline",
                     "file": "comunicacao/timeline.html"
+                },
+                {
+                    "id": "timeline-members",
+                    "title": "Membros (Timeline)",
+                    "file": "comunicacao/timeline-members.html"
                 },
                 {
                     "id": "com-gamificacao",

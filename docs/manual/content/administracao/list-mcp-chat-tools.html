@@ -1,0 +1,44 @@
+<h1>Tools do Assistente MCP</h1>
+
+<h2>Função no sistema</h2>
+<p>Centraliza o <strong>catálogo de tools</strong> do Assistente MCP no modo <code>local:internal</code>: tools internas de RH (somente leitura) e relatórios dinâmicos que podem ser liberados para o chat, com nome da tool, descrição e exemplos de perguntas.</p>
+
+<p class="help-note"><strong>Visão geral:</strong> configure a URL em <em>Configuração API MCP</em> (<code>mcp-api-config</code>). Para IA de roteamento/análise use chaves no <code>.env</code> (<code>OPENAI_API_KEY</code> ou <code>ANTHROPIC_API_KEY</code>, ou Ollama) — sem n8n. Detalhes: <code>docs/CHAT_INTERNO_TESTE_LOCAL.md</code>.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ListMcpChatTools</em>. Salvar metadados exige <em>SaveMcpChatTool</em>. A edição do relatório também exige permissão de edição daquele relatório (criador ou acesso total).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Tool</dt>
+    <dd>Capacidade tipada que o chat pode executar (ex.: <code>rh.count_active</code>, <code>report.run</code>). Não é SQL livre.</dd>
+    <dt>Disponível no chat</dt>
+    <dd>Flag do relatório dinâmico que o inclui no catálogo do Assistente MCP.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <strong>Administração → Tools do Assistente MCP</strong>.</li>
+    <li>Consulte as tools internas de RH (sempre disponíveis no piloto local).</li>
+    <li>No acordeão de relatórios, marque <strong>Disponível no Assistente MCP</strong>, preencha tool / descrição / exemplos e salve.</li>
+    <li>No chat, use «quais relatórios no chat?» ou um dos exemplos cadastrados.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Disponível no Assistente MCP</strong> Liga ou desliga o relatório no catálogo do chat.</div>
+<div class="help-field"><strong>Nome da tool</strong> Identificador estável (ex.: <code>headcount_ti</code>). Se vazio ao ativar, gera a partir do nome do relatório.</div>
+<div class="help-field"><strong>Descrição para a IA</strong> Texto curto para ajudar o roteamento (Ollama/API).</div>
+<div class="help-field"><strong>Exemplos de perguntas</strong> Uma frase por linha; o chat usa esses textos para reconhecer o pedido.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>Permissão <em>ListMcpChatTools</em> ausente. A migração replica ACL de <em>McpApiConfig</em>; confira o nível de acesso.</dd>
+    <dt>Salvei mas o chat não encontra o relatório</dt>
+    <dd>Confirme modo <code>local:internal</code> ativo, flag «Disponível no chat» e se o utilizador do chat tem ACL para ver o relatório (público / partilha / criador).</dd>
+    <dt>Gráfico no chat usa a coluna id</dt>
+    <dd>Corrigido: o chat só monta gráfico com colunas de métrica (total, quantidade, valor…). Listas só com id+nome mostram tabela, sem gráfico enganoso.</dd>
+    <dt>«inativos em janeiro» virou departamento</dt>
+    <dd>Corrigido: meses são período (desligamentos por <code>data_desligamento</code>), não nome de departamento.</dd>
+    <dt>Erro 004 ao salvar</dt>
+    <dd>Inclua a página <em>SaveMcpChatTool</em> no pacote de permissões.</dd>
+</dl>

@@ -1145,6 +1145,52 @@
         modal.show();
     }, true);
 
+    function initialsFromName(name) {
+        var parts = String(name || '').trim().split(/\s+/).filter(Boolean);
+        var out = '';
+        for (var i = 0; i < parts.length && out.length < 2; i++) {
+            out += parts[i].charAt(0);
+        }
+        return (out || 'U').toUpperCase();
+    }
+
+    function openTimelineAvatarZoom(btn) {
+        var modalEl = document.getElementById('modalTimelineAvatarZoom');
+        var imgEl = document.getElementById('timelineAvatarZoomImg');
+        var initialsEl = document.getElementById('timelineAvatarZoomInitials');
+        var titleEl = document.getElementById('modalTimelineAvatarZoomLabel');
+        if (!modalEl || !imgEl || !initialsEl || typeof bootstrap === 'undefined') {
+            return;
+        }
+        var name = btn.getAttribute('data-avatar-name') || 'Usuário';
+        var src = btn.getAttribute('data-avatar-src') || '';
+        if (titleEl) {
+            titleEl.textContent = name;
+        }
+        if (src) {
+            imgEl.src = src;
+            imgEl.alt = name;
+            imgEl.classList.remove('d-none');
+            initialsEl.classList.add('d-none');
+            initialsEl.classList.remove('d-inline-flex');
+        } else {
+            imgEl.classList.add('d-none');
+            imgEl.removeAttribute('src');
+            initialsEl.textContent = initialsFromName(name);
+            initialsEl.classList.remove('d-none');
+            initialsEl.classList.add('d-inline-flex');
+        }
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+
+    document.addEventListener('click', function (ev) {
+        var btn = ev.target && ev.target.closest ? ev.target.closest('.timeline-avatar-zoom-btn') : null;
+        if (!btn) return;
+        ev.preventDefault();
+        ev.stopPropagation();
+        openTimelineAvatarZoom(btn);
+    }, true);
+
     // Bind botões prev/next sempre (re-busca elementos se necessário)
     document.addEventListener('click', function (e) {
         if (e.target && e.target.closest && e.target.closest('#timelineMediaViewerPrev')) {

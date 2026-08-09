@@ -20,6 +20,7 @@ function buildManualAggregateTopicMap(): array
 
     $add([
         'email-config', 'create-email-config', 'notification-settings', 'calendar-config', 'sap-api-config', 'mcp-api-config',
+        'list-mcp-chat-tools', 'save-mcp-chat-tool',
         'push-config', 'whats-app-config', 'password-policy', 'update-password-policy', 'list-branches',
         'create-branch', 'update-branch', 'view-branch',
     ], 'adm-configuracoes');

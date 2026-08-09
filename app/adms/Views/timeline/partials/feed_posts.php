@@ -68,19 +68,42 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                 <i class="fas fa-bell me-1"></i>Publicação da notificação
             </span>
             <div class="timeline-post-header mb-2">
-                <?php if ($avatarPath !== null): ?>
-                    <?php
-                    echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
-                        'class' => 'timeline-avatar',
-                        'alt' => '',
-                    ], 'icon_user.png', 'users');
-                    ?>
+                <?php
+                $authorUserId = (int)($postRow['user_id'] ?? 0);
+                $authorDisplayName = trim((string)($postRow['author_name'] ?? 'Usuário'));
+                if ($authorDisplayName === '') {
+                    $authorDisplayName = 'Usuário';
+                }
+                $authorAvatarUrl = $avatarPath !== null
+                    ? \App\adms\Helpers\ImageHelper::getImageUrl($avatarPath)
+                    : '';
+                ?>
+                <?php if ($avatarPath !== null && $authorAvatarUrl !== ''): ?>
+                    <button type="button"
+                            class="timeline-avatar-zoom-btn p-0 border-0 bg-transparent flex-shrink-0"
+                            data-avatar-src="<?php echo htmlspecialchars($authorAvatarUrl); ?>"
+                            data-avatar-name="<?php echo htmlspecialchars($authorDisplayName); ?>"
+                            title="Ampliar foto"
+                            aria-label="Ampliar foto de <?php echo htmlspecialchars($authorDisplayName); ?>">
+                        <?php
+                        echo \App\adms\Helpers\ImageHelper::displayImage($avatarPath, [
+                            'class' => 'timeline-avatar',
+                            'alt' => $authorDisplayName,
+                        ], 'icon_user.png', 'users');
+                        ?>
+                    </button>
                 <?php else: ?>
-                    <?php echo $renderInitialsAvatar((string)($postRow['author_name'] ?? 'Usuário'), 40, 'timeline-avatar'); ?>
+                    <button type="button"
+                            class="timeline-avatar-zoom-btn p-0 border-0 bg-transparent flex-shrink-0"
+                            data-avatar-initials="1"
+                            data-avatar-name="<?php echo htmlspecialchars($authorDisplayName); ?>"
+                            title="Ampliar avatar"
+                            aria-label="Ampliar avatar de <?php echo htmlspecialchars($authorDisplayName); ?>">
+                        <?php echo $renderInitialsAvatar($authorDisplayName, 40, 'timeline-avatar'); ?>
+                    </button>
                 <?php endif; ?>
                 <div class="flex-grow-1 min-w-0">
                     <?php
-                    $authorUserId = (int)($postRow['user_id'] ?? 0);
                     $authorLabel = htmlspecialchars($postRow['author_name'] ?? 'Usuário');
                     ?>
                     <div class="fw-bold text-truncate">

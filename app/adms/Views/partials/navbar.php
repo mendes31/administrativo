@@ -58,11 +58,12 @@ if (!empty($_SESSION['user_id'])) {
     </form>
     <ul class="navbar-nav ms-auto ms-md-0 me-3 me-lg-4 align-items-center">
         <?php if ($mcpChatAvailable): ?>
+        <?php $tjzAvatarUrl = rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'; ?>
         <li class="nav-item me-2">
-            <button class="btn btn-outline-light btn-sm position-relative" type="button"
+            <button class="btn tjz-nav-btn position-relative" type="button"
                     data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
-                    title="Assistente MCP" aria-label="Assistente MCP">
-                <i class="fas fa-robot"></i>
+                    title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
+                <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="32" height="32">
             </button>
         </li>
         <?php endif; ?>
@@ -256,23 +257,56 @@ if (!empty($_SESSION['user_id'])) {
 </nav>
 
 <?php if ($mcpChatAvailable): ?>
-<div class="offcanvas offcanvas-end" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
+<?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=3">
+<script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
+<div class="offcanvas offcanvas-end tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
     <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="mcpChatOffcanvasLabel"><i class="fas fa-robot me-2"></i>Assistente MCP</h5>
-        <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
+        <h5 class="offcanvas-title" id="mcpChatOffcanvasLabel">
+            <button type="button" class="tjz-avatar-zoom-btn p-0 border-0 bg-transparent" data-tjz-zoom="<?= htmlspecialchars($tjzAvatarUrl) ?>" title="Ampliar Tiarajuzinho" aria-label="Ampliar imagem do Tiarajuzinho">
+                <img class="tjz-header-avatar" src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="42" height="42">
+            </button>
+            <span class="tjz-header-copy">
+                <span>Tiarajuzinho</span>
+                <small>Assistente do Portal Tiaraju</small>
+            </span>
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
     </div>
     <div class="offcanvas-body d-flex flex-column">
-        <div id="mcpChatMessages" class="flex-grow-1 border rounded p-2 mb-2 overflow-auto" style="max-height: 60vh; background-color: #f8f9fa;">
-            <div class="text-muted small">Inicie uma conversa com o assistente digitando sua pergunta abaixo.</div>
+        <div id="mcpChatMessages" class="tjz-messages">
+            <div class="tjz-welcome">
+                <button type="button" class="tjz-avatar-zoom-btn p-0 border-0 bg-transparent" data-tjz-zoom="<?= htmlspecialchars($tjzAvatarUrl) ?>" title="Ampliar Tiarajuzinho" aria-label="Ampliar imagem do Tiarajuzinho">
+                    <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="48" height="48">
+                </button>
+                <div>
+                    <strong>Olá! Eu sou o Tiarajuzinho</strong>
+                    <p>Pergunte sobre colaboradores, bloqueios, relatórios do chat ou headcount. Estou aqui para ajudar.</p>
+                </div>
+            </div>
         </div>
-        <form id="mcpChatForm" class="mt-1">
+        <form id="mcpChatForm" class="tjz-composer">
             <div class="input-group">
-                <textarea class="form-control" id="mcpChatInput" rows="2" placeholder="Digite sua pergunta..." aria-label="Mensagem para o assistente"></textarea>
-                <button class="btn btn-primary" type="submit" id="mcpChatSendBtn">
+                <textarea class="form-control" id="mcpChatInput" rows="2" placeholder="Pergunte ao Tiarajuzinho..." aria-label="Mensagem para o Tiarajuzinho"></textarea>
+                <button class="btn" type="submit" id="mcpChatSendBtn" title="Enviar" aria-label="Enviar">
                     <i class="fas fa-paper-plane"></i>
                 </button>
             </div>
         </form>
+    </div>
+</div>
+
+<div class="modal fade" id="tjzAvatarZoomModal" tabindex="-1" aria-labelledby="tjzAvatarZoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content bg-transparent border-0 shadow-none">
+            <div class="modal-header border-0 pb-0 justify-content-end">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body text-center pt-0">
+                <img id="tjzAvatarZoomImg" src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" class="img-fluid rounded-circle tjz-zoom-preview">
+                <p id="tjzAvatarZoomModalLabel" class="text-white mt-3 mb-0 fw-semibold">Tiarajuzinho</p>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -284,42 +318,307 @@ if (!empty($_SESSION['user_id'])) {
     const sendBtn = document.getElementById('mcpChatSendBtn');
     if (!form || !input || !messagesEl || !sendBtn) return;
 
-    function appendMessage(text, from) {
+    <?php
+    $chatUserName = trim((string) ($userInfo['name'] ?? $_SESSION['user_name'] ?? 'Você'));
+    $chatUserAvatarUrl = '';
+    $chatUid = (int) ($userInfo['id'] ?? $_SESSION['user_id'] ?? 0);
+    $chatImg = (string) ($userInfo['image'] ?? $_SESSION['user_image'] ?? '');
+    if (\App\adms\Helpers\ImageHelper::userImageExists($chatUid, $chatImg)) {
+        $chatUserAvatarUrl = \App\adms\Helpers\ImageHelper::getImageUrl('users/' . $chatUid . '/' . $chatImg);
+    }
+    $chatInitials = '';
+    foreach (preg_split('/\s+/u', $chatUserName) ?: [] as $part) {
+        if ($part === '') {
+            continue;
+        }
+        $chatInitials .= mb_substr($part, 0, 1, 'UTF-8');
+        if (mb_strlen($chatInitials, 'UTF-8') >= 2) {
+            break;
+        }
+    }
+    if ($chatInitials === '') {
+        $chatInitials = 'U';
+    }
+    ?>
+    const chatUser = {
+        name: <?= json_encode($chatUserName, JSON_UNESCAPED_UNICODE) ?>,
+        avatarUrl: <?= json_encode($chatUserAvatarUrl, JSON_UNESCAPED_UNICODE) ?>,
+        initials: <?= json_encode(mb_strtoupper($chatInitials, 'UTF-8'), JSON_UNESCAPED_UNICODE) ?>
+    };
+    const tjzBotAvatarUrl = <?= json_encode($tjzAvatarUrl, JSON_UNESCAPED_UNICODE) ?>;
+
+    let chartSeq = 0;
+    const chartInstances = [];
+
+    function escapeHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    function removeThinking() {
+        const thinking = messagesEl.querySelector('.mcp-chat-thinking');
+        if (thinking) thinking.remove();
+    }
+
+    function createUserAvatarEl() {
+        if (chatUser.avatarUrl) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'tjz-avatar-zoom-btn p-0 border-0 bg-transparent flex-shrink-0';
+            btn.setAttribute('data-tjz-zoom', chatUser.avatarUrl);
+            btn.title = 'Ampliar foto';
+            btn.setAttribute('aria-label', 'Ampliar foto de ' + chatUser.name);
+            const img = document.createElement('img');
+            img.src = chatUser.avatarUrl;
+            img.alt = chatUser.name;
+            img.className = 'rounded-circle mcp-chat-avatar';
+            img.width = 32;
+            img.height = 32;
+            img.style.objectFit = 'cover';
+            img.loading = 'lazy';
+            btn.appendChild(img);
+            return btn;
+        }
+        const div = document.createElement('div');
+        div.className = 'rounded-circle flex-shrink-0 d-inline-flex align-items-center justify-content-center fw-bold text-secondary mcp-chat-avatar';
+        div.style.cssText = 'width:32px;height:32px;background:#ececec;font-size:12px;';
+        div.title = chatUser.name;
+        div.textContent = chatUser.initials;
+        return div;
+    }
+
+    function createBotAvatarEl() {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'tjz-avatar-zoom-btn p-0 border-0 bg-transparent flex-shrink-0';
+        btn.setAttribute('data-tjz-zoom', tjzBotAvatarUrl);
+        btn.title = 'Ampliar Tiarajuzinho';
+        btn.setAttribute('aria-label', 'Ampliar imagem do Tiarajuzinho');
+        const img = document.createElement('img');
+        img.src = tjzBotAvatarUrl;
+        img.alt = 'Tiarajuzinho';
+        img.className = 'rounded-circle mcp-chat-avatar';
+        img.width = 34;
+        img.height = 34;
+        img.style.objectFit = 'cover';
+        img.loading = 'lazy';
+        btn.appendChild(img);
+        return btn;
+    }
+
+    function openTjzAvatarZoom(src) {
+        const modalEl = document.getElementById('tjzAvatarZoomModal');
+        const imgEl = document.getElementById('tjzAvatarZoomImg');
+        if (!modalEl || !imgEl || typeof bootstrap === 'undefined') {
+            return;
+        }
+        imgEl.src = src || tjzBotAvatarUrl;
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+
+    document.addEventListener('click', function (e) {
+        const btn = e.target.closest('[data-tjz-zoom]');
+        if (!btn) return;
+        e.preventDefault();
+        e.stopPropagation();
+        openTjzAvatarZoom(btn.getAttribute('data-tjz-zoom') || tjzBotAvatarUrl);
+    });
+
+    function appendUserMessage(text) {
         const wrapper = document.createElement('div');
-        wrapper.className = 'mb-2 d-flex ' + (from === 'user' ? 'justify-content-end' : 'justify-content-start');
+        wrapper.className = 'mb-2 d-flex justify-content-end align-items-end gap-2';
         const bubble = document.createElement('div');
-        bubble.className = 'p-2 rounded ' + (from === 'user' ? 'bg-primary text-white' : 'bg-light border');
-        bubble.style.maxWidth = '80%';
-        bubble.innerText = text;
+        bubble.className = 'tjz-bubble-user';
+        bubble.style.maxWidth = '78%';
+        bubble.style.whiteSpace = 'pre-wrap';
+        bubble.textContent = text;
+        wrapper.appendChild(bubble);
+        wrapper.appendChild(createUserAvatarEl());
+        messagesEl.appendChild(wrapper);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function appendThinking() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-2 d-flex justify-content-start align-items-end gap-2 mcp-chat-thinking';
+        const bubble = document.createElement('div');
+        bubble.className = 'tjz-bubble-thinking px-3 py-2';
+        bubble.textContent = 'Pensando...';
+        wrapper.appendChild(createBotAvatarEl());
         wrapper.appendChild(bubble);
         messagesEl.appendChild(wrapper);
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
+    function appendAssistantText(text) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mb-2 d-flex justify-content-start align-items-start gap-2';
+        const bubble = document.createElement('div');
+        bubble.className = 'tjz-bubble-bot';
+        bubble.style.maxWidth = '85%';
+        bubble.style.whiteSpace = 'pre-wrap';
+        bubble.textContent = text;
+        wrapper.appendChild(createBotAvatarEl());
+        wrapper.appendChild(bubble);
+        messagesEl.appendChild(wrapper);
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+        return bubble;
+    }
+
+    function buildTableHtml(rows) {
+        if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
+            return '';
+        }
+        const cols = Object.keys(rows[0]);
+        let html = '<div class="table-responsive mt-2"><table class="table table-sm table-bordered mb-0 bg-white">';
+        html += '<thead><tr>' + cols.map(function (c) {
+            return '<th class="small">' + escapeHtml(c) + '</th>';
+        }).join('') + '</tr></thead><tbody>';
+        rows.slice(0, 15).forEach(function (row) {
+            html += '<tr>';
+            cols.forEach(function (c) {
+                let v = row[c];
+                if (v !== null && typeof v === 'object') {
+                    v = JSON.stringify(v);
+                }
+                html += '<td class="small">' + escapeHtml(v == null ? '' : v) + '</td>';
+            });
+            html += '</tr>';
+        });
+        html += '</tbody></table></div>';
+        return html;
+    }
+
+    function mapChartType(type) {
+        const t = String(type || 'bar').toLowerCase();
+        if (t === 'pie' || t === 'doughnut') return t === 'doughnut' ? 'doughnut' : 'pie';
+        if (t === 'line') return 'line';
+        return 'bar';
+    }
+
+    function renderChart(container, chart) {
+        if (!chart || !chart.labels || !chart.values || typeof Chart === 'undefined') {
+            return;
+        }
+        if (!chart.labels.length || chart.labels.length !== chart.values.length) {
+            return;
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'mt-2 p-2 bg-white border rounded';
+        wrap.style.height = '220px';
+        const canvas = document.createElement('canvas');
+        canvas.id = 'mcpChatChart_' + (++chartSeq);
+        wrap.appendChild(canvas);
+        container.appendChild(wrap);
+
+        const chartType = mapChartType(chart.type);
+        const colors = [
+            '#0d6efd', '#198754', '#fd7e14', '#6f42c1', '#20c997',
+            '#dc3545', '#0dcaf0', '#6610f2', '#ffc107', '#6c757d'
+        ];
+        const bg = chart.labels.map(function (_, i) { return colors[i % colors.length]; });
+
+        const instance = new Chart(canvas.getContext('2d'), {
+            type: chartType,
+            data: {
+                labels: chart.labels,
+                datasets: [{
+                    label: chart.title || 'Valores',
+                    data: chart.values,
+                    backgroundColor: chartType === 'line' ? 'rgba(13,110,253,0.25)' : bg,
+                    borderColor: chartType === 'line' ? '#0d6efd' : bg,
+                    borderWidth: 1,
+                    fill: chartType === 'line'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: chartType === 'pie' || chartType === 'doughnut' },
+                    title: { display: !!chart.title, text: chart.title || '' }
+                },
+                scales: (chartType === 'pie' || chartType === 'doughnut') ? {} : {
+                    x: { ticks: { maxRotation: 45, minRotation: 0, font: { size: 10 } } },
+                    y: { beginAtZero: true }
+                }
+            }
+        });
+        chartInstances.push(instance);
+    }
+
+    function resolvePayload(data) {
+        if (data && data.payload && typeof data.payload === 'object') {
+            return data.payload;
+        }
+        let reply = data ? data.reply : null;
+        if (typeof reply === 'string') {
+            try { return JSON.parse(reply); } catch (e) { return { resposta: reply }; }
+        }
+        if (reply && typeof reply === 'object') {
+            return reply;
+        }
+        return { resposta: String(reply ?? '') };
+    }
+
+    function appendAssistantPayload(payload) {
+        const text = (payload && payload.resposta) ? String(payload.resposta) : JSON.stringify(payload, null, 2);
+        const bubble = appendAssistantText(text);
+        const data = payload && payload.data ? payload.data : null;
+        if (!data || typeof data !== 'object') {
+            return;
+        }
+
+        if (Array.isArray(data.rows) && data.rows.length) {
+            bubble.insertAdjacentHTML('beforeend', buildTableHtml(data.rows));
+        }
+
+        if (data.report_url) {
+            const linkWrap = document.createElement('div');
+            linkWrap.className = 'mt-2';
+            const a = document.createElement('a');
+            a.href = String(data.report_url);
+            a.className = 'btn btn-sm btn-outline-primary';
+            a.target = '_blank';
+            a.rel = 'noopener';
+            a.textContent = 'Abrir relatório completo';
+            linkWrap.appendChild(a);
+            bubble.appendChild(linkWrap);
+        }
+
+        let chart = data.chart || null;
+        if (!chart && Array.isArray(data.by_department) && data.by_department.length) {
+            chart = {
+                type: 'bar',
+                title: 'Por departamento',
+                labels: data.by_department.map(function (r) { return r.departamento || ''; }),
+                values: data.by_department.map(function (r) { return Number(r.total || 0); })
+            };
+        }
+        if (chart) {
+            renderChart(bubble, chart);
+        }
+        messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
     async function sendMessage(message) {
-        appendMessage(message, 'user');
+        appendUserMessage(message);
         input.value = '';
         input.focus();
         sendBtn.disabled = true;
-        appendMessage('Pensando...', 'assistant');
+        appendThinking();
 
         try {
             const response = await fetch("<?= rtrim($_ENV['URL_ADM'], '/') ?>/mcp-chat-api.php", {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message })
             });
             const data = await response.json().catch(() => null);
-            // remover último "Pensando..."
-            const bubbles = messagesEl.querySelectorAll('div');
-            if (bubbles.length) {
-                const last = bubbles[bubbles.length - 1];
-                if (last.textContent === 'Pensando...') {
-                    last.remove();
-                }
-            }
+            removeThinking();
             if (!data || !data.success) {
                 let errorText = 'Não foi possível obter resposta do assistente.';
                 if (data && data.message) {
@@ -331,67 +630,13 @@ if (!empty($_SESSION['user_id'])) {
                 if (data && data.raw) {
                     errorText += '\nDetalhes: ' + (typeof data.raw === 'string' ? data.raw : JSON.stringify(data.raw));
                 }
-                appendMessage(errorText, 'assistant');
+                appendAssistantText(errorText);
                 return;
             }
-
-            // Tratamento amigável da resposta: tenta interpretar JSON para exibir somente o campo principal
-            let reply = data.reply;
-            let displayText = '';
-
-            function formatParsed(parsed) {
-                // Se vier no formato { resposta: "..." } prioriza esse campo
-                if (parsed && typeof parsed === 'object' && !Array.isArray(parsed) && parsed.resposta) {
-                    return String(parsed.resposta);
-                }
-                // Se for um array de registros, formata cada um em linhas legíveis
-                if (Array.isArray(parsed)) {
-                    return parsed.map(function (item, idx) {
-                        if (item && typeof item === 'object') {
-                            // Junta campos chave: valor em uma linha
-                            const parts = [];
-                            for (const k in item) {
-                                if (Object.prototype.hasOwnProperty.call(item, k)) {
-                                    parts.push(k + ': ' + String(item[k]));
-                                }
-                            }
-                            return (parsed.length > 1 ? ('[' + (idx + 1) + '] ') : '') + parts.join(' | ');
-                        }
-                        return String(item);
-                    }).join('\n');
-                }
-                // fallback: JSON formatado
-                return JSON.stringify(parsed, null, 2);
-            }
-
-            if (typeof reply === 'string') {
-                let parsed = null;
-                try {
-                    parsed = JSON.parse(reply);
-                } catch (e) {
-                    // não é JSON, usa texto puro
-                }
-                if (parsed !== null) {
-                    displayText = formatParsed(parsed);
-                } else {
-                    displayText = reply;
-                }
-            } else if (reply && typeof reply === 'object') {
-                displayText = formatParsed(reply);
-            } else {
-                displayText = String(reply ?? '');
-            }
-
-            appendMessage(displayText, 'assistant');
+            appendAssistantPayload(resolvePayload(data));
         } catch (e) {
-            const bubbles = messagesEl.querySelectorAll('div');
-            if (bubbles.length) {
-                const last = bubbles[bubbles.length - 1];
-                if (last.textContent === 'Pensando...') {
-                    last.remove();
-                }
-            }
-            appendMessage('Erro ao comunicar com o assistente MCP.', 'assistant');
+            removeThinking();
+            appendAssistantText('Erro ao comunicar com o assistente MCP.');
         } finally {
             sendBtn.disabled = false;
         }
@@ -402,6 +647,13 @@ if (!empty($_SESSION['user_id'])) {
         const text = input.value.trim();
         if (!text) return;
         sendMessage(text);
+    });
+
+    input.addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            form.dispatchEvent(new Event('submit', { cancelable: true }));
+        }
     });
 })();
 </script>

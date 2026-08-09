@@ -25,7 +25,7 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     ]);
 };
 ?>
-<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=42">
+<link rel="stylesheet" href="<?php echo htmlspecialchars($urlAdm); ?>public/adms/css/timeline-feed.css?v=43">
 
 <div class="container-fluid px-3 px-md-4">
     <?php include __DIR__ . '/../partials/alerts.php'; ?>
@@ -68,18 +68,44 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                     <div class="d-flex flex-column flex-sm-row gap-3 align-items-start">
                         <?php
                         $tpAvatar = null;
+                        $tpAvatarUrl = '';
+                        $tpDisplayName = trim((string)($timelineProfile['name'] ?? 'Usuário'));
+                        if ($tpDisplayName === '') {
+                            $tpDisplayName = 'Usuário';
+                        }
                         if (\App\adms\Helpers\ImageHelper::userImageExists($timelineProfileUid, (string)($timelineProfile['image'] ?? ''))) {
                             $tpAvatar = 'users/' . $timelineProfileUid . '/' . $timelineProfile['image'];
+                            $tpAvatarUrl = \App\adms\Helpers\ImageHelper::getImageUrl($tpAvatar);
                         }
-                        if ($tpAvatar !== null) {
-                            echo \App\adms\Helpers\ImageHelper::displayImage($tpAvatar, [
-                                'class' => 'rounded-circle flex-shrink-0 timeline-profile-header-avatar',
-                                'alt' => '',
-                                'width' => '96',
-                                'height' => '96',
-                            ], 'icon_user.png', 'users');
+                        if ($tpAvatar !== null && $tpAvatarUrl !== '') {
+                            ?>
+                            <button type="button"
+                                    class="timeline-avatar-zoom-btn p-0 border-0 bg-transparent flex-shrink-0"
+                                    data-avatar-src="<?php echo htmlspecialchars($tpAvatarUrl); ?>"
+                                    data-avatar-name="<?php echo htmlspecialchars($tpDisplayName); ?>"
+                                    title="Ampliar foto"
+                                    aria-label="Ampliar foto de <?php echo htmlspecialchars($tpDisplayName); ?>">
+                                <?php
+                                echo \App\adms\Helpers\ImageHelper::displayImage($tpAvatar, [
+                                    'class' => 'rounded-circle timeline-profile-header-avatar',
+                                    'alt' => $tpDisplayName,
+                                    'width' => '96',
+                                    'height' => '96',
+                                ], 'icon_user.png', 'users');
+                                ?>
+                            </button>
+                            <?php
                         } else {
-                            echo $renderInitialsAvatar((string)($timelineProfile['name'] ?? 'Usuário'), 96, 'flex-shrink-0 timeline-profile-header-avatar');
+                            ?>
+                            <button type="button"
+                                    class="timeline-avatar-zoom-btn p-0 border-0 bg-transparent flex-shrink-0"
+                                    data-avatar-initials="1"
+                                    data-avatar-name="<?php echo htmlspecialchars($tpDisplayName); ?>"
+                                    title="Ampliar avatar"
+                                    aria-label="Ampliar avatar de <?php echo htmlspecialchars($tpDisplayName); ?>">
+                                <?php echo $renderInitialsAvatar($tpDisplayName, 96, 'timeline-profile-header-avatar'); ?>
+                            </button>
+                            <?php
                         }
                         ?>
                         <div class="flex-grow-1 min-w-0">
@@ -153,15 +179,35 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
                         </div>
                         <div class="timeline-composer-row d-flex align-items-center gap-2">
                             <div class="timeline-composer-avatar flex-shrink-0">
-                                <?php if ($composerAvatarPath !== null): ?>
-                                    <?php echo \App\adms\Helpers\ImageHelper::displayImage($composerAvatarPath, [
-                                        'alt' => 'Sua foto',
-                                        'class' => 'timeline-composer-avatar-img',
-                                        'width' => '40',
-                                        'height' => '40',
-                                    ], 'icon_user.png', 'users'); ?>
+                                <?php
+                                $composerDisplayName = $composerName !== '' ? $composerName : 'Usuário';
+                                $composerAvatarUrl = $composerAvatarPath !== null
+                                    ? \App\adms\Helpers\ImageHelper::getImageUrl($composerAvatarPath)
+                                    : '';
+                                ?>
+                                <?php if ($composerAvatarPath !== null && $composerAvatarUrl !== ''): ?>
+                                    <button type="button"
+                                            class="timeline-avatar-zoom-btn p-0 border-0 bg-transparent"
+                                            data-avatar-src="<?php echo htmlspecialchars($composerAvatarUrl); ?>"
+                                            data-avatar-name="<?php echo htmlspecialchars($composerDisplayName); ?>"
+                                            title="Ampliar foto"
+                                            aria-label="Ampliar sua foto">
+                                        <?php echo \App\adms\Helpers\ImageHelper::displayImage($composerAvatarPath, [
+                                            'alt' => 'Sua foto',
+                                            'class' => 'timeline-composer-avatar-img',
+                                            'width' => '40',
+                                            'height' => '40',
+                                        ], 'icon_user.png', 'users'); ?>
+                                    </button>
                                 <?php else: ?>
-                                    <?php echo $renderInitialsAvatar($composerName !== '' ? $composerName : 'Usuário', 40, 'timeline-composer-avatar-img'); ?>
+                                    <button type="button"
+                                            class="timeline-avatar-zoom-btn p-0 border-0 bg-transparent"
+                                            data-avatar-initials="1"
+                                            data-avatar-name="<?php echo htmlspecialchars($composerDisplayName); ?>"
+                                            title="Ampliar avatar"
+                                            aria-label="Ampliar seu avatar">
+                                        <?php echo $renderInitialsAvatar($composerDisplayName, 40, 'timeline-composer-avatar-img'); ?>
+                                    </button>
                                 <?php endif; ?>
                             </div>
                             <div class="timeline-composer-input-wrap flex-grow-1 min-w-0">
@@ -544,6 +590,21 @@ $renderInitialsAvatar = static function (string $name, int $sizePx, string $clas
     </div>
 </div>
 
+<div class="modal fade" id="modalTimelineAvatarZoom" tabindex="-1" aria-labelledby="modalTimelineAvatarZoomLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content border-0 bg-dark bg-opacity-75">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white fs-6" id="modalTimelineAvatarZoomLabel">Foto</h5>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body d-flex flex-column align-items-center justify-content-center p-3">
+                <img id="timelineAvatarZoomImg" src="" alt="" class="img-fluid rounded-circle d-none timeline-avatar-zoom-preview">
+                <div id="timelineAvatarZoomInitials" class="rounded-circle d-none align-items-center justify-content-center fw-bold text-secondary timeline-avatar-zoom-initials"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php
 $__timelineFeedInit = [
     'base' => $urlAdm,
@@ -564,4 +625,4 @@ $__timelineFeedInit = [
 <script>
 window.__TimelineFeedInit = <?php echo json_encode($__timelineFeedInit, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES); ?>;
 </script>
-<script src="<?php echo htmlspecialchars($urlAdm); ?>public/adms/js/timeline-feed.js?v=5" defer></script>
+<script src="<?php echo htmlspecialchars($urlAdm); ?>public/adms/js/timeline-feed.js?v=6" defer></script>

@@ -40,14 +40,15 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_mc
 
                         <div class="mb-3">
                             <label class="form-label">URL da API MCP *</label>
-                            <input type="url"
+                            <input type="text"
                                    name="base_url"
                                    class="form-control"
                                    required
-                                   placeholder="https://seu-servidor-mcp.exemplo.com"
+                                   placeholder="local:internal  ou  https://seu-servidor-mcp.exemplo.com"
                                    value="<?= htmlspecialchars($config['base_url'] ?? '', ENT_QUOTES, 'UTF-8') ?>">
                             <div class="form-text">
-                                Informe a URL base do servidor MCP que expõe os endpoints de chat/consultas.
+                                Use <code>local:internal</code> para testar na homologação local com indicadores de RH do Portal (sem SAP e sem API paga).
+                                Ou informe a URL HTTPS do servidor MCP externo.
                             </div>
                         </div>
 
@@ -81,8 +82,12 @@ $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_mc
                 <div class="card-body small">
                     <ul class="mb-0">
                         <li>Esta URL será utilizada pelos endpoints internos do sistema para conversar com o servidor MCP.</li>
-                        <li>O chat lateral/ícone de assistente só será exibido para usuários com permissão e quando a integração estiver ativa.</li>
+                        <li>O <strong>Tiarajuzinho</strong> (ícone do robô) só aparece para usuários com permissão e quando a integração estiver ativa.</li>
+                        <li>Chaves de IA (OpenAI/Claude) ficam no <code>.env</code>; nesta tela só a URL e o ativar/desativar.</li>
                         <li>Recomenda-se que o servidor MCP esteja atrás de autenticação e/ou firewall apropriado.</li>
+                        <li>Para liberar relatórios no chat, use
+                            <a href="<?= $_ENV['URL_ADM'] ?>list-mcp-chat-tools">Tools do Assistente MCP</a>.
+                        </li>
                     </ul>
                 </div>
             </div>

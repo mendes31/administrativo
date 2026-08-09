@@ -100,6 +100,48 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                     </div>
                 </div>
 
+                <?php
+                $chatExamplesText = '';
+                if (!empty($report['chat_example_prompts']) && is_array($report['chat_example_prompts'])) {
+                    $chatExamplesText = implode("\n", $report['chat_example_prompts']);
+                }
+                ?>
+                <div class="card border mb-4">
+                    <div class="card-header py-2">
+                        <strong><i class="fas fa-robot"></i> Tiarajuzinho (chat)</strong>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-check mb-3">
+                            <input class="form-check-input" type="checkbox" name="chat_enabled" id="chatEnabled" value="1"
+                                   <?= !empty($report['chat_enabled']) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="chatEnabled">
+                                <strong>Disponível no chat</strong> — o Tiarajuzinho (modo <code>local:internal</code>) pode executar este relatório via tool <code>report.run</code>.
+                            </label>
+                        </div>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold" for="chatToolName">Nome da tool</label>
+                                <input type="text" name="chat_tool_name" id="chatToolName" class="form-control"
+                                       value="<?= htmlspecialchars((string) ($report['chat_tool_name'] ?? '')) ?>"
+                                       placeholder="Ex: headcount_por_depto" maxlength="100">
+                                <div class="form-text">Identificador estável. Se vazio e o chat estiver ativo, gera a partir do nome.</div>
+                            </div>
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold" for="chatDescription">Descrição para a IA</label>
+                                <input type="text" name="chat_description" id="chatDescription" class="form-control"
+                                       value="<?= htmlspecialchars((string) ($report['chat_description'] ?? '')) ?>"
+                                       placeholder="Ex: Lista colaboradores ativos agrupados por departamento">
+                            </div>
+                            <div class="col-12">
+                                <label class="form-label fw-bold" for="chatExamplePrompts">Exemplos de perguntas (um por linha)</label>
+                                <textarea name="chat_example_prompts" id="chatExamplePrompts" class="form-control" rows="3"
+                                          placeholder="quantos ativos por departamento&#10;headcount por depto"><?= htmlspecialchars($chatExamplesText) ?></textarea>
+                                <div class="form-text">O chat usa estes exemplos (e o nome) para reconhecer a pergunta. Continua a aplicar a ACL do relatório.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Conteúdo das Abas -->
                 <div class="tab-content">
                     <!-- ABA 1: MODO CONSTRUTOR -->

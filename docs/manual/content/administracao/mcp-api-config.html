@@ -1,30 +1,39 @@
 <h1>Configuração API MCP</h1>
 
 <h2>Função no sistema</h2>
-<p>Tela <strong>Configuração API MCP</strong> do módulo Administração. Use o fluxo e os campos descritos abaixo para operar o recurso.</p>
+<p>Define o endpoint usado pelo chat <strong>Tiarajuzinho</strong> do Portal (navbar). Pode apontar para um servidor MCP externo ou para o piloto local de indicadores de RH.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>). Detalhes do piloto: <code>docs/CHAT_INTERNO_TESTE_LOCAL.md</code>.</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>McpApiConfig</em>.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>McpApiConfig</em> (configurar). Uso do chat exige <em>McpChat</em>.</p>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-    <li>Acesse <strong>Configuração API MCP</strong> pelo menu Administração.</li>
-    <li>Use os filtros e ações da tela conforme sua permissão.</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Acesse <strong>Configuração API MCP</strong> em Administração.</li>
+    <li>Para teste na homologação local (sem SAP e sem API paga), informe <code>local:internal</code>, ative a integração e salve.</li>
+    <li>Com permissão <em>McpChat</em>, abra o chat no menu e pergunte, por exemplo: «quantos colaboradores ativos?», «quantos inativos?», «ativos na TI», «quais relatórios no chat?» ou «relatório [nome]».</li>
+    <li>Para gerir o catálogo de tools e liberar relatórios no chat, use <strong>Tools do Assistente MCP</strong>.</li>
+    <li>Para servidor MCP externo, informe a URL HTTPS do agente e mantenha a opção ativa.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<div class="help-field"><strong>URL da API MCP</strong> Endereço do servidor de agente, ou o valor especial <code>local:internal</code> para o piloto RH no MySQL do Portal.</div>
+<div class="help-field"><strong>Ativar integração</strong> Se desmarcado, o chat não aparece / não responde mesmo com URL preenchida.</div>
+<div class="help-field"><strong>LLM (API)</strong> Chaves (<code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>) ficam no <code>.env</code> do servidor — não na tela. URL <code>local:internal</code> e ativar/desativar podem ficar nesta janela. Ver <code>docs/CHAT_INTERNO_TESTE_LOCAL.md</code>.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>McpApiConfig</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dd>Permissão <em>McpApiConfig</em> ausente no seu nível de acesso.</dd>
+    <dt>Chat não aparece no navbar</dt>
+    <dd>Confira se a API está ativa, a URL preenchida e se o usuário tem <em>McpChat</em>.</dd>
     <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Você tem a listagem, mas não a permissão da ação. Inclua a página filha no pacote.</dd>
+    <dt>«ativos na TI» misturava outros departamentos</dt>
+    <dd>Corrigido no piloto: nomes curtos usam igualdade (não LIKE). Sinônimos como «tecnologia da informação» mapeiam para TI.</dd>
+    <dt>Pediu gráfico/dashboard e não veio</dt>
+    <dd>No modo <code>local:internal</code>, o chat mostra gráfico quando a resposta traz série tipada (ex.: «headcount por departamento») ou um relatório dinâmico com visualização de gráfico e colunas rótulo+número. Dashboards completos continuam na área de Relatórios / Dashboards.</dd>
+    <dt>Digitei só «financeiro» e a resposta não bateu com o que eu tinha pedido</dt>
+    <dd>O piloto guarda a última intenção (ativos/inativos) na sessão. Peça «ativos» ou «inativos» e em seguida o departamento. Frases completas («ativos no Financeiro») também funcionam.</dd>
 </dl>

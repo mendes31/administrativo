@@ -59,6 +59,11 @@
                         },
                         {
                             "type": "topic",
+                            "topic_id": "list-mcp-chat-tools",
+                            "title": "Tools do Assistente MCP"
+                        },
+                        {
+                            "type": "topic",
                             "topic_id": "email-config",
                             "title": "Configuração de E-mail"
                         },
@@ -527,6 +532,11 @@
                     "type": "topic",
                     "topic_id": "timeline",
                     "title": "Feed Timeline"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "timeline-members",
+                    "title": "Membros (Timeline)"
                 }
             ]
         },

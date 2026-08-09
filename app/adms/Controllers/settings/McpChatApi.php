@@ -55,7 +55,33 @@ class McpChatApi
             exit;
         }
 
-        $endpoint = rtrim((string)$config['base_url'], '/');
+        $endpoint = rtrim((string) $config['base_url'], '/');
+
+        // Piloto local (homologação): consultas RH no MySQL do Portal, sem servidor MCP externo.
+        if (strcasecmp($endpoint, 'local:internal') === 0 || strcasecmp($endpoint, 'local://internal') === 0) {
+            $agent = new \App\adms\Models\Services\InternalChat\LocalInternalChatAgent();
+            $authContext = [
+                'user_id' => (int) ($_SESSION['user_id'] ?? 0),
+                'allowed_tools' => [
+                    'rh.count_active',
+                    'rh.count_inactive',
+                    'rh.count_terminated_in_month',
+                    'rh.count_blocked',
+                    'rh.count_active_by_department',
+                    'report.list',
+                    'report.run',
+                ],
+            ];
+            $result = $agent->handle($message, $authContext);
+            echo json_encode([
+                'success' => true,
+                'reply' => json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                'payload' => $result,
+                'http_code' => 200,
+                'mode' => 'local:internal',
+            ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+            exit;
+        }
 
         // O servidor MCP espera exatamente: { "message": "texto" }
         $requestBody = json_encode([

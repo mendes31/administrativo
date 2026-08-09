@@ -45,7 +45,38 @@
     transition: box-shadow 0.15s ease, transform 0.15s ease;
 }
 
-.timeline-members-list a:hover .timeline-member-card {
+.timeline-members-list .timeline-member-card:hover {
     box-shadow: 0 0.35rem 1rem rgba(0, 0, 0, 0.1) !important;
     transform: translateY(-2px);
+}
+
+.timeline-avatar-zoom-btn {
+    cursor: zoom-in;
+    line-height: 0;
+    border-radius: 50%;
+}
+
+.timeline-avatar-zoom-btn:focus-visible {
+    outline: 2px solid var(--bs-primary, #0d6efd);
+    outline-offset: 2px;
+}
+
+.timeline-avatar-zoom-btn img,
+.timeline-avatar-zoom-btn > * {
+    pointer-events: none;
+}
+
+.timeline-member-zoom-img {
+    width: min(72vw, 420px);
+    height: min(72vw, 420px);
+    max-height: 80vh;
+    object-fit: cover;
+}
+
+.timeline-member-zoom-initials {
+    width: min(72vw, 280px);
+    height: min(72vw, 280px);
+    max-height: 70vh;
+    font-size: clamp(3rem, 12vw, 5.5rem);
+    background: #e9ecef;
 }

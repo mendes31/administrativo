@@ -132,6 +132,12 @@ $menus = [
                             'icon' => 'fas fa-robot'
                         ],
                         [
+                            'label' => 'Tools do Assistente MCP',
+                            'url' => $_ENV['URL_ADM'] . 'list-mcp-chat-tools',
+                            'permission' => 'ListMcpChatTools',
+                            'icon' => 'fas fa-toolbox'
+                        ],
+                        [
                             'label' => 'Configuração Push (PWA)',
                             'url' => $_ENV['URL_ADM'] . 'push-config',
                             'permission' => 'PushConfig',
@@ -1995,19 +2001,50 @@ $menus = [
                 'label' => 'Relatórios Locais',
                 'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports',
                 'permission' => 'ListDynamicReports',
-                'icon' => 'fa-solid fa-list'
+                'icon' => 'fa-solid fa-list',
+                'related_routes' => [
+                    'list-dynamic-reports',
+                    'dynamic-report-builder',
+                    'dynamic-report-builder-local',
+                    'view-dynamic-report',
+                    'save-dynamic-report',
+                    'execute-dynamic-report',
+                    'delete-dynamic-report',
+                    'export-dynamic-report-excel',
+                    'export-dynamic-report-pdf',
+                    'export-dynamic-report-csv',
+                ],
             ],
             [
                 'label' => 'Relatórios SAP (API)',
                 'url' => $_ENV['URL_ADM'] . 'list-dynamic-reports-sap',
                 'permission' => 'ListDynamicReportsSap',
-                'icon' => 'fa-solid fa-database'
+                'icon' => 'fa-solid fa-database',
+                'related_routes' => [
+                    'list-dynamic-reports-sap',
+                    'dynamic-report-builder-sap',
+                ],
             ],
             [
                 'label' => 'Dashboards',
                 'url' => $_ENV['URL_ADM'] . 'list-dashboards',
                 'permission' => 'ListDashboards',
-                'icon' => 'fa-solid fa-chart-pie'
+                'icon' => 'fa-solid fa-chart-pie',
+                'related_routes' => [
+                    'list-dashboards',
+                    'create-dashboard',
+                    'view-dashboard',
+                    'edit-dashboard',
+                    'delete-dashboard',
+                    'duplicate-dashboard',
+                    'execute-dashboard',
+                    'dashboard-data-sources',
+                    'list-kpi-dashboards',
+                    'view-kpi-dashboard',
+                    'create-kpi-dashboard',
+                    'update-kpi-dashboard',
+                    'delete-kpi-dashboard',
+                ],
             ],
         ]
     ],

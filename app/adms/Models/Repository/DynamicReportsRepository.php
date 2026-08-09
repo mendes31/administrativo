@@ -276,8 +276,129 @@ class DynamicReportsRepository extends DbConnection
             $report['groupby'] = json_decode($report['groupby'] ?? '[]', true);
             $report['orderby'] = json_decode($report['orderby'] ?? '[]', true);
             $report['chart_config'] = json_decode($report['chart_config'] ?? '{}', true);
+            $examples = json_decode($report['chat_example_prompts'] ?? '[]', true);
+            $report['chat_example_prompts'] = is_array($examples) ? $examples : [];
+            $report['chat_enabled'] = (int) ($report['chat_enabled'] ?? 0);
         }
         return $report ?: null;
+    }
+
+    /**
+     * Relatórios ativos para administração do catálogo do chat (inclui chat_enabled=0).
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getReportsForChatAdmin(): array
+    {
+        try {
+            $sql = "SELECT r.id, r.name, r.description, r.category, r.data_source, r.query_mode,
+                           r.visualization_type, r.is_public, r.is_active, r.chat_enabled,
+                           r.chat_tool_name, r.chat_description, r.chat_example_prompts,
+                           r.updated_at, u.name AS creator_name
+                    FROM adms_dynamic_reports r
+                    INNER JOIN adms_users u ON u.id = r.created_by
+                    WHERE r.is_active = 1
+                    ORDER BY r.chat_enabled DESC, r.name ASC";
+            $stmt = $this->getConnection()->query($sql);
+            $rows = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        } catch (\Throwable $e) {
+            error_log('getReportsForChatAdmin: ' . $e->getMessage());
+
+            return [];
+        }
+
+        foreach ($rows as &$report) {
+            $examples = json_decode($report['chat_example_prompts'] ?? '[]', true);
+            $report['chat_example_prompts'] = is_array($examples) ? $examples : [];
+            $report['chat_enabled'] = (int) ($report['chat_enabled'] ?? 0);
+        }
+        unset($report);
+
+        return $rows;
+    }
+
+    /**
+     * Atualiza apenas metadados do chat (tela Tools do assistente).
+     *
+     * @param array{chat_enabled?:int|bool, chat_tool_name?:?string, chat_description?:?string, chat_example_prompts?:list<string>} $data
+     */
+    public function updateChatMetadata(int $id, array $data): bool
+    {
+        if ($id < 1) {
+            return false;
+        }
+        $oldRow = $this->getRawReportRowById($id);
+        if ($oldRow === null) {
+            return false;
+        }
+
+        $sql = 'UPDATE adms_dynamic_reports SET
+                    chat_enabled = :chat_enabled,
+                    chat_tool_name = :chat_tool_name,
+                    chat_description = :chat_description,
+                    chat_example_prompts = :chat_example_prompts,
+                    updated_at = NOW()
+                WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $ok = $stmt->execute([
+            ':id' => $id,
+            ':chat_enabled' => !empty($data['chat_enabled']) ? 1 : 0,
+            ':chat_tool_name' => $data['chat_tool_name'] ?? null,
+            ':chat_description' => $data['chat_description'] ?? null,
+            ':chat_example_prompts' => json_encode($data['chat_example_prompts'] ?? [], JSON_UNESCAPED_UNICODE),
+        ]);
+        if ($ok) {
+            $newRow = $this->getRawReportRowById($id);
+            if (is_array($newRow)) {
+                $usuarioId = (int) ($_SESSION['user_id'] ?? 1);
+                LogAlteracaoService::registrarAlteracao(
+                    'adms_dynamic_reports',
+                    $id,
+                    $usuarioId,
+                    'UPDATE',
+                    $oldRow,
+                    $newRow
+                );
+            }
+        }
+
+        return $ok;
+    }
+
+    /**
+     * Relatórios ativos marcados para o Assistente MCP.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function getChatEnabledReports(): array
+    {
+        try {
+            $sql = "SELECT r.*, u.name as creator_name
+                    FROM adms_dynamic_reports r
+                    INNER JOIN adms_users u ON u.id = r.created_by
+                    WHERE r.is_active = 1 AND r.chat_enabled = 1
+                    ORDER BY r.name ASC";
+            $stmt = $this->getConnection()->query($sql);
+            $rows = $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        } catch (\Throwable $e) {
+            error_log('getChatEnabledReports: ' . $e->getMessage());
+
+            return [];
+        }
+
+        foreach ($rows as &$report) {
+            $report['fields'] = json_decode($report['fields'] ?? '[]', true);
+            $report['filters'] = json_decode($report['filters'] ?? '[]', true);
+            $report['groupby'] = json_decode($report['groupby'] ?? '[]', true);
+            $report['orderby'] = json_decode($report['orderby'] ?? '[]', true);
+            $report['chart_config'] = json_decode($report['chart_config'] ?? '{}', true);
+            $examples = json_decode($report['chat_example_prompts'] ?? '[]', true);
+            $report['chat_example_prompts'] = is_array($examples) ? $examples : [];
+            $report['chat_enabled'] = (int) ($report['chat_enabled'] ?? 0);
+        }
+        unset($report);
+
+        return $rows;
     }
 
     /**
@@ -297,8 +418,8 @@ class DynamicReportsRepository extends DbConnection
 
     public function create(array $data): int
     {
-        $sql = "INSERT INTO adms_dynamic_reports (name, description, created_by, is_public, data_source, custom_sql, query_mode, fields, filters, groupby, orderby, visualization_type, chart_config, refresh_interval, category, is_active)
-                VALUES (:name, :description, :created_by, :is_public, :data_source, :custom_sql, :query_mode, :fields, :filters, :groupby, :orderby, :visualization_type, :chart_config, :refresh_interval, :category, :is_active)";
+        $sql = "INSERT INTO adms_dynamic_reports (name, description, created_by, is_public, data_source, custom_sql, query_mode, fields, filters, groupby, orderby, visualization_type, chart_config, refresh_interval, category, is_active, chat_enabled, chat_tool_name, chat_description, chat_example_prompts)
+                VALUES (:name, :description, :created_by, :is_public, :data_source, :custom_sql, :query_mode, :fields, :filters, :groupby, :orderby, :visualization_type, :chart_config, :refresh_interval, :category, :is_active, :chat_enabled, :chat_tool_name, :chat_description, :chat_example_prompts)";
         
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute([
@@ -317,7 +438,11 @@ class DynamicReportsRepository extends DbConnection
             ':chart_config' => json_encode($data['chart_config'] ?? []),
             ':refresh_interval' => $data['refresh_interval'] ?? null,
             ':category' => $data['category'] ?? null,
-            ':is_active' => $data['is_active'] ?? 1
+            ':is_active' => $data['is_active'] ?? 1,
+            ':chat_enabled' => !empty($data['chat_enabled']) ? 1 : 0,
+            ':chat_tool_name' => $data['chat_tool_name'] ?? null,
+            ':chat_description' => $data['chat_description'] ?? null,
+            ':chat_example_prompts' => json_encode($data['chat_example_prompts'] ?? [], JSON_UNESCAPED_UNICODE),
         ]);
         $newId = (int) $this->getConnection()->lastInsertId();
         if ($newId > 0) {
@@ -344,7 +469,9 @@ class DynamicReportsRepository extends DbConnection
         $sql = "UPDATE adms_dynamic_reports SET name = :name, description = :description, is_public = :is_public, 
                 data_source = :data_source, custom_sql = :custom_sql, query_mode = :query_mode, fields = :fields, filters = :filters, groupby = :groupby, orderby = :orderby,
                 visualization_type = :visualization_type, chart_config = :chart_config, refresh_interval = :refresh_interval,
-                category = :category, updated_at = NOW() WHERE id = :id";
+                category = :category, chat_enabled = :chat_enabled, chat_tool_name = :chat_tool_name,
+                chat_description = :chat_description, chat_example_prompts = :chat_example_prompts,
+                updated_at = NOW() WHERE id = :id";
 
         $stmt = $this->getConnection()->prepare($sql);
         $ok = $stmt->execute([
@@ -355,7 +482,11 @@ class DynamicReportsRepository extends DbConnection
             ':groupby' => json_encode($data['groupby'] ?? []), ':orderby' => json_encode($data['orderby'] ?? []),
             ':visualization_type' => $data['visualization_type'] ?? 'table',
             ':chart_config' => json_encode($data['chart_config'] ?? []),
-            ':refresh_interval' => $data['refresh_interval'] ?? null, ':category' => $data['category'] ?? null
+            ':refresh_interval' => $data['refresh_interval'] ?? null, ':category' => $data['category'] ?? null,
+            ':chat_enabled' => !empty($data['chat_enabled']) ? 1 : 0,
+            ':chat_tool_name' => $data['chat_tool_name'] ?? null,
+            ':chat_description' => $data['chat_description'] ?? null,
+            ':chat_example_prompts' => json_encode($data['chat_example_prompts'] ?? [], JSON_UNESCAPED_UNICODE),
         ]);
         if ($ok && is_array($oldRow)) {
             $newRow = $this->getRawReportRowById($id);

@@ -116,6 +116,7 @@ th { text-align: match-parent; }
 
 .sb-sidenav-five .sb-sidenav-menu .nav-link {
   color: rgba(41, 41, 41, 0.9);
+  border-left: 3px solid transparent;
 }
 
 .sb-sidenav-five .sb-sidenav-menu .nav-link .sb-nav-link-icon {
@@ -128,17 +129,42 @@ th { text-align: match-parent; }
 
 .sb-sidenav-five .sb-sidenav-menu .nav-link:hover {
   color: #181818;
-  background-color: #f0efef;
+  background-color: rgba(255, 255, 255, 0.72);
+}
+
+/* Pai aberto (ex.: Relatórios) — destaque suave, sem competir com o item folha */
+.sb-sidenav-five .sb-sidenav-menu > .nav > .nav-link.active:not(.collapsed) {
+  color: #111;
+  background-color: rgba(0, 0, 0, 0.12);
+  border-left-color: #F26222;
+  font-weight: 600;
+}
+
+.sb-sidenav-five .sb-sidenav-menu > .nav > .nav-link.active:not(.collapsed) .sb-nav-link-icon {
+  color: #111;
+}
+
+/* Item da página atual (folha) — contraste mais forte */
+.sb-sidenav-five .sb-sidenav-menu .sb-sidenav-menu-nested .nav-link.active {
+  color: #111;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-left-color: #F26222;
+  font-weight: 600;
+}
+
+.sb-sidenav-five .sb-sidenav-menu .sb-sidenav-menu-nested .nav-link.active .sb-nav-link-icon {
+  color: #F26222;
 }
 
 .sb-sidenav-five .sb-sidenav-menu .nav-link.active {
-  color: #181818;
-  background-color: #f0efef;
+  color: #111;
+  background-color: rgba(255, 255, 255, 0.9);
+  border-left-color: #F26222;
+  font-weight: 600;
 }
 
 .sb-sidenav-five .sb-sidenav-menu .nav-link.active .sb-nav-link-icon {
-  color: #181818;
-  background-color: #f0efef;
+  color: #F26222;
 }
 
 .sb-sidenav-five .sb-sidenav-footer {

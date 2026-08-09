@@ -147,6 +147,8 @@ class LoadPageAdm
         "CreateEmailConfig", "ListEmailConfig", "TestEmailConfig",
         "McpApiConfig", 
         "SaveMcpApiConfig",
+        "ListMcpChatTools",
+        "SaveMcpChatTool",
         // Relatórios Dinâmicos
         "ListDynamicReports", "ListDynamicReportsSap",
         "DynamicReportBuilder", "DynamicReportBuilderLocal", "DynamicReportBuilderSap",

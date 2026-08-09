@@ -24,14 +24,15 @@ class SaveMcpApiConfig
         $baseUrl = trim($_POST['base_url'] ?? '');
         $isActive = isset($_POST['is_active']) ? 1 : 0;
 
-        if ($baseUrl === '' || !filter_var($baseUrl, FILTER_VALIDATE_URL)) {
-            $_SESSION['msg'] = 'Informe uma URL válida para a API MCP.';
+        $isLocalInternal = in_array(strtolower($baseUrl), ['local:internal', 'local://internal'], true);
+        if ($baseUrl === '' || (!$isLocalInternal && !filter_var($baseUrl, FILTER_VALIDATE_URL))) {
+            $_SESSION['msg'] = 'Informe uma URL válida (https://...) ou use local:internal para o piloto RH no Portal.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'mcp-api-config');
             exit;
         }
 
-        $normalizedBaseUrl = rtrim($baseUrl, '/');
+        $normalizedBaseUrl = $isLocalInternal ? 'local:internal' : rtrim($baseUrl, '/');
 
         $repo = new AdmsMcpApiConfigRepository();
         $saved = $repo->saveConfig([

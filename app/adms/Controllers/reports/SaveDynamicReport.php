@@ -64,6 +64,22 @@ class SaveDynamicReport
         $data['refresh_interval'] = $_POST['refresh_interval'] ?? null;
         $data['category'] = $_POST['category'] ?? null;
         $data['is_public'] = isset($_POST['is_public']) ? 1 : 0;
+        $data['chat_enabled'] = isset($_POST['chat_enabled']) ? 1 : 0;
+        $toolName = trim((string) ($_POST['chat_tool_name'] ?? ''));
+        if ($toolName === '' && !empty($data['chat_enabled'])) {
+            $toolName = $this->slugifyToolName((string) ($data['name'] ?? 'report'));
+        }
+        $data['chat_tool_name'] = $toolName !== '' ? mb_substr($toolName, 0, 100) : null;
+        $data['chat_description'] = trim((string) ($_POST['chat_description'] ?? '')) ?: null;
+        $examplesRaw = (string) ($_POST['chat_example_prompts'] ?? '');
+        $examples = [];
+        foreach (preg_split('/\r\n|\r|\n/', $examplesRaw) ?: [] as $line) {
+            $line = trim($line);
+            if ($line !== '') {
+                $examples[] = $line;
+            }
+        }
+        $data['chat_example_prompts'] = $examples;
         
         $repo = new DynamicReportsRepository();
         $viewerId = (int) ($_SESSION['user_id'] ?? 0);
@@ -112,6 +128,16 @@ class SaveDynamicReport
             header('Location: ' . $_ENV['URL_ADM'] . 'dynamic-report-builder');
         }
         exit;
+    }
+
+    private function slugifyToolName(string $name): string
+    {
+        $s = mb_strtolower(trim($name));
+        $s = iconv('UTF-8', 'ASCII//TRANSLIT//IGNORE', $s) ?: $s;
+        $s = preg_replace('/[^a-z0-9]+/', '_', $s) ?? $s;
+        $s = trim($s, '_');
+
+        return $s !== '' ? mb_substr($s, 0, 80) : 'report';
     }
 }
 

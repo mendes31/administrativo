@@ -1,0 +1,265 @@
+/* Tiarajuzinho — painel do chat (identidade laranja/branco) */
+:root {
+  --tjz-orange: #F26222;
+  --tjz-orange-deep: #d9541a;
+  --tjz-orange-soft: #fff4ee;
+  --tjz-ink: #2b211c;
+  --tjz-muted: #7a6a62;
+  --tjz-panel: #fffaf7;
+  --tjz-border: rgba(242, 98, 34, 0.22);
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat {
+  width: min(440px, 100vw) !important;
+  border-left: 1px solid var(--tjz-border);
+  box-shadow: -12px 0 32px rgba(43, 33, 28, 0.12);
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .offcanvas-header {
+  background: linear-gradient(135deg, #F26222 0%, #ff8a4c 55%, #F26222 100%);
+  color: #fff;
+  border-bottom: 0;
+  padding: 0.9rem 1rem;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .offcanvas-title {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-header-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #fff;
+  border: 2px solid rgba(255, 255, 255, 0.85);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-header-copy {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-header-copy small {
+  font-weight: 500;
+  opacity: 0.9;
+  font-size: 0.75rem;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .btn-close {
+  filter: invert(1) grayscale(1);
+  opacity: 0.9;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .offcanvas-body {
+  background: var(--tjz-panel);
+  padding: 0.85rem;
+  gap: 0.75rem;
+}
+
+#mcpChatMessages.tjz-messages {
+  flex-grow: 1;
+  border: 1px solid var(--tjz-border);
+  border-radius: 1rem;
+  padding: 0.85rem;
+  overflow: auto;
+  max-height: 70vh;
+  background:
+    radial-gradient(circle at top right, rgba(242, 98, 34, 0.08), transparent 40%),
+    linear-gradient(180deg, #fff 0%, #fff8f4 100%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+#mcpChatMessages.tjz-messages .tjz-welcome {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.75rem;
+  border-radius: 0.9rem;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid var(--tjz-border);
+  color: var(--tjz-ink);
+}
+
+#mcpChatMessages.tjz-messages .tjz-welcome img {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+  border: 2px solid #fff;
+  box-shadow: 0 2px 8px rgba(242, 98, 34, 0.25);
+}
+
+#mcpChatMessages.tjz-messages .tjz-welcome strong {
+  display: block;
+  color: var(--tjz-orange-deep);
+  margin-bottom: 0.15rem;
+}
+
+#mcpChatMessages.tjz-messages .tjz-welcome p {
+  margin: 0;
+  color: var(--tjz-muted);
+  font-size: 0.9rem;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .mcp-chat-avatar {
+  width: 34px !important;
+  height: 34px !important;
+  border: 2px solid #fff;
+  box-shadow: 0 1px 4px rgba(43, 33, 28, 0.12);
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-user {
+  background: linear-gradient(135deg, #F26222, #ff7a3d) !important;
+  color: #fff !important;
+  border: 0 !important;
+  border-radius: 1rem 1rem 0.35rem 1rem !important;
+  box-shadow: 0 4px 12px rgba(242, 98, 34, 0.28);
+  padding: 0.65rem 0.85rem !important;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-bot {
+  background: #fff !important;
+  color: var(--tjz-ink) !important;
+  border: 1px solid var(--tjz-border) !important;
+  border-radius: 1rem 1rem 1rem 0.35rem !important;
+  box-shadow: 0 2px 10px rgba(43, 33, 28, 0.06);
+  padding: 0.65rem 0.85rem !important;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-thinking {
+  background: var(--tjz-orange-soft) !important;
+  color: var(--tjz-muted) !important;
+  border: 1px dashed rgba(242, 98, 34, 0.35) !important;
+  border-radius: 1rem !important;
+  font-style: italic;
+}
+
+#mcpChatForm.tjz-composer {
+  background: #fff;
+  border: 1px solid var(--tjz-border);
+  border-radius: 1rem;
+  padding: 0.55rem;
+  box-shadow: 0 6px 18px rgba(43, 33, 28, 0.06);
+}
+
+#mcpChatForm.tjz-composer .input-group {
+  gap: 0.45rem;
+}
+
+#mcpChatForm.tjz-composer #mcpChatInput {
+  border: 0;
+  box-shadow: none;
+  border-radius: 0.75rem;
+  resize: none;
+  background: transparent;
+  color: var(--tjz-ink);
+  min-height: 44px;
+}
+
+#mcpChatForm.tjz-composer #mcpChatInput:focus {
+  box-shadow: none;
+  background: var(--tjz-orange-soft);
+}
+
+#mcpChatForm.tjz-composer #mcpChatSendBtn {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  border: 0;
+  background: linear-gradient(135deg, #F26222, #ff7a3d);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(242, 98, 34, 0.35);
+}
+
+#mcpChatForm.tjz-composer #mcpChatSendBtn:hover,
+#mcpChatForm.tjz-composer #mcpChatSendBtn:focus {
+  background: var(--tjz-orange-deep);
+  color: #fff;
+}
+
+#mcpChatForm.tjz-composer #mcpChatSendBtn:disabled {
+  opacity: 0.65;
+}
+
+.navbar .tjz-nav-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.75);
+  background: #fff;
+  overflow: hidden;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.navbar .tjz-nav-btn img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.navbar .tjz-nav-btn:hover,
+.navbar .tjz-nav-btn:focus {
+  border-color: #fff;
+  transform: translateY(-1px);
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-bot .btn-outline-primary {
+  --bs-btn-color: var(--tjz-orange-deep);
+  --bs-btn-border-color: var(--tjz-orange);
+  --bs-btn-hover-bg: var(--tjz-orange);
+  --bs-btn-hover-border-color: var(--tjz-orange);
+  --bs-btn-hover-color: #fff;
+}
+
+.tjz-avatar-zoom-btn {
+  cursor: zoom-in;
+  line-height: 0;
+  border-radius: 50%;
+}
+
+.tjz-avatar-zoom-btn:hover img,
+.tjz-avatar-zoom-btn:focus-visible img {
+  transform: scale(1.06);
+  transition: transform 0.15s ease;
+}
+
+.tjz-avatar-zoom-btn:focus-visible {
+  outline: 2px solid var(--tjz-orange);
+  outline-offset: 2px;
+}
+
+#tjzAvatarZoomModal .modal-content {
+  background: transparent;
+}
+
+#tjzAvatarZoomModal .modal-body {
+  background: rgba(0, 0, 0, 0.55);
+  border-radius: 1.25rem;
+  padding: 1.25rem;
+}
+
+#tjzAvatarZoomModal .tjz-zoom-preview {
+  width: min(72vw, 420px);
+  height: min(72vw, 420px);
+  max-width: 100%;
+  object-fit: cover;
+  border: 4px solid #fff;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  background: #F26222;
+}

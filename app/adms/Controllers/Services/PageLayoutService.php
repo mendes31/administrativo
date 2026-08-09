@@ -319,6 +319,8 @@ class PageLayoutService
             'TestSapApiConfig',
             'McpApiConfig',
             'SaveMcpApiConfig',
+            'ListMcpChatTools',
+            'SaveMcpChatTool',
             'PushConfig',
             'SavePushConfig',
             'GeneratePushVapidKeys',
