@@ -575,7 +575,7 @@ if (!empty($_SESSION['user_id'])) {
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
         };
-        // Evitar '<?xml' literal: com short_open_tag o PHP interpreta e gera Erro 004 no Dashboard.
+        // Cabeçalho XML montado em partes (short_open_tag no servidor).
         let xml = '<' + '?xml version="1.0" encoding="UTF-8"?>'
             + '<' + '?mso-application progid="Excel.Sheet"?>'
             + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"'
