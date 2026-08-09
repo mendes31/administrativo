@@ -1182,52 +1182,62 @@ if (!empty($_SESSION['user_id'])) {
         }
     });
 
-    // Mobile: botão voltar do sistema/navegador fecha o chat em vez de sair do Portal.
-    const offcanvasEl = document.getElementById('mcpChatOffcanvas');
-    let tjzChatHistoryOpen = false;
-    let tjzClosingFromPopstate = false;
+})();
+</script>
+<script>
+(function () {
+    /* Voltar do celular: fecha só o chat (sem history.back extra, que saía do app). */
+    var offcanvasEl = document.getElementById('mcpChatOffcanvas');
+    if (!offcanvasEl) {
+        return;
+    }
+    var chatMarker = false;
+    var closingFromPopstate = false;
 
     window.tjzTryCloseChat = function () {
-        if (!offcanvasEl || !offcanvasEl.classList.contains('show') || typeof bootstrap === 'undefined') {
+        if (!offcanvasEl.classList.contains('show') || typeof bootstrap === 'undefined') {
             return false;
         }
-        const inst = bootstrap.Offcanvas.getInstance(offcanvasEl) || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+        var inst = bootstrap.Offcanvas.getInstance(offcanvasEl)
+            || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
         inst.hide();
         return true;
     };
 
-    if (offcanvasEl && typeof bootstrap !== 'undefined') {
-        offcanvasEl.addEventListener('shown.bs.offcanvas', function () {
-            if (!tjzChatHistoryOpen) {
+    offcanvasEl.addEventListener('show.bs.offcanvas', function () {
+        if (!chatMarker) {
+            try {
                 history.pushState({ tjzChat: 1 }, '', location.href);
-                tjzChatHistoryOpen = true;
-            }
-        });
+            } catch (e) { /* ignore */ }
+            chatMarker = true;
+        }
+    });
 
-        offcanvasEl.addEventListener('hidden.bs.offcanvas', function () {
-            if (tjzClosingFromPopstate) {
-                tjzClosingFromPopstate = false;
-                tjzChatHistoryOpen = false;
-                return;
-            }
-            if (tjzChatHistoryOpen && history.state && history.state.tjzChat) {
-                tjzChatHistoryOpen = false;
-                history.back();
-            } else {
-                tjzChatHistoryOpen = false;
-            }
-        });
+    offcanvasEl.addEventListener('hidden.bs.offcanvas', function () {
+        if (closingFromPopstate) {
+            closingFromPopstate = false;
+            chatMarker = false;
+            return;
+        }
+        /* Fechou pelo X: limpa a marca sem navegar (evita fechar o Portal). */
+        if (chatMarker && history.state && history.state.tjzChat) {
+            try {
+                history.replaceState(null, '', location.href);
+            } catch (e) { /* ignore */ }
+        }
+        chatMarker = false;
+    });
 
-        window.addEventListener('popstate', function () {
-            if (!offcanvasEl.classList.contains('show')) {
-                return;
-            }
-            tjzClosingFromPopstate = true;
-            tjzChatHistoryOpen = false;
-            const inst = bootstrap.Offcanvas.getInstance(offcanvasEl) || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
-            inst.hide();
-        });
-    }
+    window.addEventListener('popstate', function () {
+        if (!offcanvasEl.classList.contains('show') || typeof bootstrap === 'undefined') {
+            return;
+        }
+        closingFromPopstate = true;
+        chatMarker = false;
+        var inst = bootstrap.Offcanvas.getInstance(offcanvasEl)
+            || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+        inst.hide();
+    });
 })();
 </script>
 <?php endif; ?>
