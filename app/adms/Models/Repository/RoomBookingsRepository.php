@@ -378,9 +378,11 @@ class RoomBookingsRepository extends DbConnection
     public function getBookingsByRoomAndPeriod(int $roomId, string $startDate, string $endDate): array
     {
         $sql = "SELECT rb.*, 
-                       u.name as user_name, u.email as user_email
+                       u.name as user_name,
+                       dep.name as user_department
                 FROM adms_room_bookings rb
                 INNER JOIN adms_users u ON rb.user_id = u.id
+                LEFT JOIN adms_departments dep ON dep.id = u.user_department_id
                 WHERE rb.room_id = :room_id
                 AND rb.status IN ('pending', 'confirmed', 'in_progress')
                 AND (

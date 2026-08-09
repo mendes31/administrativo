@@ -70,6 +70,11 @@ class McpChatApi
                     'rh.count_active_by_department',
                     'report.list',
                     'report.run',
+                    'rooms.list',
+                    'rooms.agenda',
+                    'rooms.my',
+                    'rooms.reserve',
+                    'rooms.cancel',
                 ],
             ];
             $result = $agent->handle($message, $authContext);

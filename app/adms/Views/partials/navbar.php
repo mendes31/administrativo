@@ -258,7 +258,7 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=6">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=15">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
 <div class="offcanvas offcanvas-end tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
     <div class="offcanvas-header">
@@ -281,7 +281,7 @@ if (!empty($_SESSION['user_id'])) {
                 </button>
                 <div>
                     <strong>Olá! Eu sou o Tiarajuzinho</strong>
-                    <p>Pergunte sobre colaboradores, bloqueios, relatórios do chat ou headcount. Estou aqui para ajudar.</p>
+                    <p>Pergunte sobre colaboradores, salas («agendar» / «salas»), relatórios do chat ou headcount. Estou aqui para ajudar.</p>
                 </div>
             </div>
         </div>
@@ -575,8 +575,9 @@ if (!empty($_SESSION['user_id'])) {
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
         };
-        let xml = '<?xml version="1.0" encoding="UTF-8"?>'
-            + '<?mso-application progid="Excel.Sheet"?>'
+        // Evitar '<?xml' literal: com short_open_tag o PHP interpreta e gera Erro 004 no Dashboard.
+        let xml = '<' + '?xml version="1.0" encoding="UTF-8"?>'
+            + '<' + '?mso-application progid="Excel.Sheet"?>'
             + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"'
             + ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
             + '<Worksheet ss:Name="' + xmlEscape((sheetTitle || 'Dados').slice(0, 31)) + '"><Table>';
@@ -885,6 +886,160 @@ if (!empty($_SESSION['user_id'])) {
         return { resposta: String(reply ?? '') };
     }
 
+    function renderRoomsWizardUi(bubble, ui) {
+        if (!ui || ui.type !== 'rooms_wizard') {
+            return;
+        }
+        const options = Array.isArray(ui.options) ? ui.options : [];
+        const nav = Array.isArray(ui.nav) ? ui.nav : [];
+        const room = ui.room && typeof ui.room === 'object' ? ui.room : null;
+        if (!options.length && !nav.length && !room) {
+            return;
+        }
+        const wrap = document.createElement('div');
+        wrap.className = 'tjz-wizard mt-2';
+        if (ui.step === 'pick_room') {
+            wrap.classList.add('tjz-wizard-rooms');
+        }
+        if (ui.layout === 'chips' || ui.step === 'pick_slots') {
+            wrap.classList.add('tjz-wizard-chips');
+        }
+        if (ui.layout === 'row' || ui.step === 'pick_date') {
+            wrap.classList.add('tjz-wizard-row');
+        }
+
+        if (room && (room.name || room.image_url)) {
+            const roomHeader = document.createElement('div');
+            roomHeader.className = 'tjz-wizard-room-selected';
+            if (room.image_url) {
+                const img = document.createElement('img');
+                img.src = String(room.image_url);
+                img.alt = String(room.name || 'Sala');
+                img.className = 'tjz-wizard-room-selected-img';
+                img.loading = 'lazy';
+                roomHeader.appendChild(img);
+            }
+            const nameEl = document.createElement('div');
+            nameEl.className = 'tjz-wizard-room-selected-name';
+            nameEl.textContent = String(room.name || 'Sala');
+            roomHeader.appendChild(nameEl);
+            wrap.appendChild(roomHeader);
+        }
+
+        if (options.length) {
+            const optsWrap = document.createElement('div');
+            optsWrap.className = (ui.layout === 'chips' || ui.step === 'pick_slots')
+                ? 'tjz-wizard-chips-grid'
+                : ((ui.layout === 'row' || ui.step === 'pick_date') ? 'tjz-wizard-row-grid' : 'tjz-wizard-list');
+            options.forEach(function (opt) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                const isChip = ui.layout === 'chips' || ui.step === 'pick_slots' || optsWrap.classList.contains('tjz-wizard-chips-grid');
+                const status = String(opt.status || '');
+                const disabled = !!opt.disabled || status === 'busy' || status === 'past';
+                btn.className = isChip
+                    ? 'tjz-wizard-chip'
+                    : ('tjz-wizard-option' + (opt.image_url ? ' tjz-wizard-option-room' : ''));
+                if (isChip && status === 'busy') {
+                    btn.classList.add('tjz-wizard-chip-busy');
+                }
+                if (isChip && status === 'past') {
+                    btn.classList.add('tjz-wizard-chip-past');
+                }
+                btn.title = String(opt.title || opt.sub || opt.label || opt.value || '');
+                if (disabled) {
+                    btn.disabled = true;
+                    btn.setAttribute('aria-disabled', 'true');
+                } else {
+                    btn.setAttribute('data-tjz-send', String(opt.value || ''));
+                }
+                if (!isChip && opt.image_url) {
+                    const img = document.createElement('img');
+                    img.src = String(opt.image_url);
+                    img.alt = String(opt.label || 'Sala');
+                    img.className = 'tjz-wizard-room-img';
+                    img.loading = 'lazy';
+                    btn.appendChild(img);
+                }
+                if (isChip) {
+                    const main = document.createElement('span');
+                    main.className = 'tjz-wizard-chip-main';
+                    if (status !== 'busy' && status !== 'past' && opt.index != null && opt.time) {
+                        const idx = document.createElement('span');
+                        idx.className = 'tjz-wizard-chip-index';
+                        idx.textContent = String(opt.index);
+                        const time = document.createElement('span');
+                        time.className = 'tjz-wizard-chip-time';
+                        time.textContent = String(opt.time);
+                        main.appendChild(idx);
+                        main.appendChild(time);
+                    } else if (status === 'busy' || status === 'past') {
+                        const time = document.createElement('span');
+                        time.className = 'tjz-wizard-chip-time';
+                        time.textContent = String(opt.time || opt.label || '');
+                        main.appendChild(time);
+                    } else {
+                        main.textContent = String(opt.label || opt.value || '');
+                    }
+                    btn.appendChild(main);
+                    if (status === 'busy') {
+                        const whoEl = document.createElement('span');
+                        whoEl.className = 'tjz-wizard-chip-who';
+                        whoEl.textContent = String(opt.reserved_by || 'Ocupado');
+                        btn.appendChild(whoEl);
+                        if (opt.department || opt.sub) {
+                            const deptEl = document.createElement('span');
+                            deptEl.className = 'tjz-wizard-chip-sub';
+                            deptEl.textContent = String(opt.department || opt.sub);
+                            btn.appendChild(deptEl);
+                        }
+                    } else if (opt.sub && status === 'past') {
+                        const sub = document.createElement('span');
+                        sub.className = 'tjz-wizard-chip-sub';
+                        sub.textContent = String(opt.sub);
+                        btn.appendChild(sub);
+                    }
+                } else {
+                    const copy = document.createElement('span');
+                    copy.className = 'tjz-wizard-option-copy';
+                    const title = document.createElement('strong');
+                    title.textContent = String(opt.label || opt.value || '');
+                    copy.appendChild(title);
+                    if (opt.sub) {
+                        const sub = document.createElement('small');
+                        sub.textContent = String(opt.sub);
+                        copy.appendChild(sub);
+                    }
+                    btn.appendChild(copy);
+                }
+                optsWrap.appendChild(btn);
+            });
+            wrap.appendChild(optsWrap);
+        }
+
+        if (nav.length) {
+            const navWrap = document.createElement('div');
+            navWrap.className = 'tjz-wizard-nav';
+            nav.forEach(function (item) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'tjz-wizard-nav-btn';
+                btn.setAttribute('data-tjz-send', String(item.value || ''));
+                btn.textContent = String(item.label || item.value || '');
+                navWrap.appendChild(btn);
+            });
+            wrap.appendChild(navWrap);
+        }
+
+        if (ui.multi) {
+            const hint = document.createElement('div');
+            hint.className = 'tjz-wizard-hint';
+            hint.textContent = 'Vários horários: digite 3,4,5 ou 3-5.';
+            wrap.appendChild(hint);
+        }
+        bubble.appendChild(wrap);
+    }
+
     function appendAssistantPayload(payload) {
         const text = (payload && payload.resposta) ? String(payload.resposta) : JSON.stringify(payload, null, 2);
         const bubble = appendAssistantText(text);
@@ -893,7 +1048,14 @@ if (!empty($_SESSION['user_id'])) {
             return;
         }
 
-        if (Array.isArray(data.rows) && data.rows.length) {
+        if (data.ui && data.ui.type === 'rooms_wizard') {
+            renderRoomsWizardUi(bubble, data.ui);
+        }
+
+        // Tabelas só para indicadores/relatórios — salas/reservas usam texto ou cards.
+        const skipTable = !!(data.ui && data.ui.type === 'rooms_wizard')
+            || (typeof payload.tool === 'string' && payload.tool.indexOf('rooms.') === 0);
+        if (!skipTable && Array.isArray(data.rows) && data.rows.length) {
             bubble.insertAdjacentHTML('beforeend', buildTableHtml(data.rows));
         }
 
@@ -932,14 +1094,16 @@ if (!empty($_SESSION['user_id'])) {
             chartInstance = renderChart(bubble, chart);
         }
 
-        const exportRows = normalizeExportRows(data, chart);
-        const title = (data.name || (chart && chart.title) || 'resultado_chat');
-        attachDownloadBar(bubble, {
-            rows: exportRows,
-            chartInstance: chartInstance,
-            reportId: data.report_id || 0,
-            title: title
-        });
+        if (!skipTable) {
+            const exportRows = normalizeExportRows(data, chart);
+            const title = (data.name || (chart && chart.title) || 'resultado_chat');
+            attachDownloadBar(bubble, {
+                rows: exportRows,
+                chartInstance: chartInstance,
+                reportId: data.report_id || 0,
+                title: title
+            });
+        }
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
@@ -986,6 +1150,15 @@ if (!empty($_SESSION['user_id'])) {
         const text = input.value.trim();
         if (!text) return;
         sendMessage(text);
+    });
+
+    messagesEl.addEventListener('click', function (e) {
+        const btn = e.target && e.target.closest ? e.target.closest('[data-tjz-send]') : null;
+        if (!btn || sendBtn.disabled) return;
+        const value = (btn.getAttribute('data-tjz-send') || '').trim();
+        if (!value) return;
+        e.preventDefault();
+        sendMessage(value);
     });
 
     input.addEventListener('keydown', function (e) {

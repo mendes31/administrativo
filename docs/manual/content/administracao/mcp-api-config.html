@@ -11,7 +11,7 @@
 <ol>
     <li>Acesse <strong>Configuração API MCP</strong> em Administração.</li>
     <li>Para teste na homologação local (sem SAP e sem API paga), informe <code>local:internal</code>, ative a integração e salve.</li>
-    <li>Com permissão <em>McpChat</em>, abra o chat no menu e pergunte, por exemplo: «quantos colaboradores ativos?», «quantos inativos?», «ativos na TI», «inativos» e depois «por mês», «quais relatórios no chat?» ou «relatório [nome]».</li>
+    <li>Com permissão <em>McpChat</em>, abra o chat no menu e pergunte, por exemplo: «quantos colaboradores ativos?», «quantos inativos?», «ativos na TI», «inativos» e depois «por mês», «salas», «agenda da sala X hoje», «reservar sala X amanhã 14:00 às 15:00 reunião Alinhamento», «cancelar reserva #12», «quais relatórios no chat?» ou «relatório [nome]».</li>
     <li>Para gerir o catálogo de tools e liberar relatórios no chat, use <strong>Tools do Assistente MCP</strong>.</li>
     <li>Para servidor MCP externo, informe a URL HTTPS do agente e mantenha a opção ativa.</li>
 </ol>
@@ -38,6 +38,8 @@
     <dd>Nas respostas com dados/gráfico, use a barra <strong>Baixar</strong>: PNG do gráfico, Excel/CSV dos dados do chat. Em relatórios dinâmicos, também há Excel/CSV/PDF completos (exige permissão de exportação do relatório).</dd>
     <dt>Como ampliar o gráfico</dt>
     <dd>Clique no gráfico da resposta para abrir em tamanho maior; feche com o X ou clicando fora.</dd>
+    <dt>Salas de reunião no chat</dt>
+    <dd>Além de <em>McpChat</em>, libere no nível: <em>ListMeetingRooms</em>/<em>BookRoom</em>/<em>RoomCalendar</em> (listar/agenda), <em>CreateBooking</em> (reservar) e <em>CancelBooking</em> (cancelar). Em «salas» / «agendar» o assistente mostra só os cards com foto (sem lista duplicada em texto). Ao escolher a data, lista <strong>todos</strong> os horários: livres clicáveis; ocupados destacados com <strong>nome e departamento</strong> (sem e-mail/celular). «Minhas reservas» vem em texto simples (sem tabela). Digitar outra data (dd/mm/aaaa) troca o dia na hora.</dd>
     <dt>Digitei só «financeiro» e a resposta não bateu com o que eu tinha pedido</dt>
     <dd>O piloto guarda a última intenção (ativos/inativos) na sessão. Peça «ativos» ou «inativos» e em seguida o departamento. Frases completas («ativos no Financeiro») também funcionam.</dd>
 </dl>

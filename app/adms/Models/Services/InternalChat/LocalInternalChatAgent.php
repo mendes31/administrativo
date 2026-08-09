@@ -12,6 +12,8 @@ class LocalInternalChatAgent
 {
     private RhChatIndicatorsService $rh;
     private ChatDynamicReportService $reports;
+    private ChatRoomsService $rooms;
+    private ChatRoomsBookingWizard $roomsWizard;
     private InternalChatLlmClient $llm;
     private int $userId = 0;
 
@@ -50,10 +52,14 @@ class LocalInternalChatAgent
     public function __construct(
         ?RhChatIndicatorsService $rh = null,
         ?ChatDynamicReportService $reports = null,
+        ?ChatRoomsService $rooms = null,
+        ?ChatRoomsBookingWizard $roomsWizard = null,
         ?InternalChatLlmClient $llm = null
     ) {
         $this->rh = $rh ?? new RhChatIndicatorsService();
         $this->reports = $reports ?? new ChatDynamicReportService();
+        $this->rooms = $rooms ?? new ChatRoomsService();
+        $this->roomsWizard = $roomsWizard ?? new ChatRoomsBookingWizard($this->rooms);
         $this->llm = $llm ?? new InternalChatLlmClient();
     }
 
@@ -66,7 +72,18 @@ class LocalInternalChatAgent
         $this->userId = (int) ($authContext['user_id'] ?? 0);
         $message = trim($message);
         if ($message === '') {
-            return ['resposta' => 'Envie uma pergunta. Exemplos: "quantos colaboradores ativos?", "relatório …", "quais relatórios no chat?".'];
+            return ['resposta' => 'Envie uma pergunta. Exemplos: "quantos colaboradores ativos?", "agendar", "salas".'];
+        }
+
+        // Fluxo guiado de salas (sala → data → horários).
+        if ($this->roomsWizard->isActive()) {
+            $wizard = $this->roomsWizard->continue($this->userId, $message);
+            if ($wizard !== null) {
+                return $wizard;
+            }
+        }
+        if (preg_match('/^(agendar|reservar|nova\s+reserva|agendar\s+sala|reservar\s+sala)$/iu', $message)) {
+            return $this->roomsWizard->start($this->userId);
         }
 
         $intent = $this->detectIntent($message);
@@ -90,6 +107,11 @@ class LocalInternalChatAgent
                     . "• inativos por mês\n"
                     . "• quais relatórios no chat?\n"
                     . "• relatório [nome ou tool]\n"
+                    . "• agendar / reservar (fluxo simples: sala → data → horários)\n"
+                    . "• salas / listar salas\n"
+                    . "• agenda da sala [nome] hoje\n"
+                    . "• minhas reservas\n"
+                    . "• cancelar reserva #123\n"
                     . "• depois de «ativos» ou «inativos», digite o departamento ou «por mês» / «por departamento»",
                 'provider' => 'local-rules',
             ];
@@ -113,6 +135,11 @@ class LocalInternalChatAgent
 
         if (preg_match('/bloquead|bloqueio|tentativas?\s+de\s+login/', $m)) {
             return ['name' => 'blocked'];
+        }
+
+        $roomsIntent = $this->detectRoomsIntent($m, $message);
+        if ($roomsIntent !== null) {
+            return $roomsIntent;
         }
 
         if (preg_match('/quais\s+relat[oó]?rios|listar\s+relat[oó]?rios|relat[oó]?rios\s+(no\s+)?chat|cat[aá]logo\s+(do\s+)?chat/u', $m)) {
@@ -282,6 +309,152 @@ class LocalInternalChatAgent
     }
 
     /**
+     * Intenções de salas de reunião.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function detectRoomsIntent(string $normalized, string $original): ?array
+    {
+        if (!preg_match('/\b(salas?|reserva|reservas|reservar|agendar|agenda|cancelar\s+reserva|book-room|reuni[aã]o)\b/u', $normalized)) {
+            return null;
+        }
+
+        if (preg_match('/cancelar\s+reserva\s*#?\s*(\d+)/u', $normalized, $mm)) {
+            return ['name' => 'rooms_cancel', 'booking_id' => (int) $mm[1]];
+        }
+        if (preg_match('/\bcancelar\s+reserva\b/u', $normalized)) {
+            return ['name' => 'rooms_cancel', 'booking_id' => 0];
+        }
+
+        if (preg_match('/\b(minhas\s+reservas|minha\s+agenda(\s+de\s+salas?)?)\b/u', $normalized)) {
+            return ['name' => 'rooms_my'];
+        }
+
+        if (preg_match('/^(salas?|listar\s+salas?|quais\s+salas?|salas?\s+dispon[ií]veis)$/u', $normalized)) {
+            // Lista com fotos + convite ao fluxo «agendar»
+            return ['name' => 'rooms_list'];
+        }
+        if (preg_match('/\b(listar|quais|ver)\s+salas?\b/u', $normalized)) {
+            return ['name' => 'rooms_list'];
+        }
+        if (preg_match('/^(agendar|reservar)$/u', $normalized)) {
+            return ['name' => 'rooms_wizard_start'];
+        }
+
+        if (preg_match('/\b(agenda|ocupa[cç][aã]o|disponibilidade)\b/u', $normalized)) {
+            $day = $this->extractRelativeDay($normalized) ?? date('Y-m-d');
+            $roomQuery = null;
+            // «agenda da sala X hoje» / «agenda sala grande 10/08/2026»
+            if (preg_match('/(?:agenda|ocupa[cç][aã]o|disponibilidade)\s+(?:da\s+|de\s+|na\s+)?sala\s+(.+)$/u', $normalized, $mm)) {
+                $roomQuery = trim($mm[1]);
+                $roomQuery = preg_replace('/\s+(hoje|amanh[aã]|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s*$/u', '', $roomQuery) ?? $roomQuery;
+                $roomQuery = trim($roomQuery);
+                if ($roomQuery === '' || preg_match('/^(hoje|amanh[aã])$/u', $roomQuery)) {
+                    $roomQuery = null;
+                }
+            }
+
+            return ['name' => 'rooms_agenda', 'room' => $roomQuery, 'date' => $day];
+        }
+
+        if (preg_match('/\b(reservar|agendar)\b/u', $normalized)) {
+            $parsed = $this->parseRoomReservation($normalized, $original);
+            if ($parsed === null) {
+                return [
+                    'name' => 'rooms_reserve_help',
+                ];
+            }
+
+            return array_merge(['name' => 'rooms_reserve'], $parsed);
+        }
+
+        if (preg_match('/^salas?\b/u', $normalized)) {
+            return ['name' => 'rooms_list'];
+        }
+
+        return null;
+    }
+
+    /**
+     * @return array{room:?string, start:string, end:string, title:string}|null
+     */
+    private function parseRoomReservation(string $normalized, string $original): ?array
+    {
+        // reservar sala NOME [hoje|amanhã|dd/mm/yyyy] HH:MM às HH:MM [reunião|título ...]
+        if (!preg_match(
+            '/(?:reservar|agendar)\s+(?:a\s+|uma\s+)?sala\s+(.+?)\s+(hoje|amanh[aã]|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?)\s+(?:das?\s*)?(\d{1,2}):(\d{2})\s*(?:às?|ate|até|a|-|–)\s*(\d{1,2}):(\d{2})(?:\s+(?:reuni[aã]o|t[ií]tulo|:)?\s*(.+))?$/u',
+            $normalized,
+            $mm
+        )) {
+            return null;
+        }
+
+        $room = trim($mm[1]);
+        $dayToken = $mm[2];
+        $sh = (int) $mm[3];
+        $sm = (int) $mm[4];
+        $eh = (int) $mm[5];
+        $em = (int) $mm[6];
+        $title = isset($mm[7]) ? trim($mm[7]) : 'Reunião';
+        if ($title === '') {
+            $title = 'Reunião';
+        }
+
+        $day = $this->resolveDayToken($dayToken);
+        if ($day === null) {
+            return null;
+        }
+
+        $start = sprintf('%s %02d:%02d:00', $day, $sh, $sm);
+        $end = sprintf('%s %02d:%02d:00', $day, $eh, $em);
+
+        return [
+            'room' => $room,
+            'start' => $start,
+            'end' => $end,
+            'title' => $title,
+        ];
+    }
+
+    private function extractRelativeDay(string $normalized): ?string
+    {
+        if (preg_match('/\bhoje\b/u', $normalized)) {
+            return date('Y-m-d');
+        }
+        if (preg_match('/\bamanh[aã]\b/u', $normalized)) {
+            return date('Y-m-d', strtotime('+1 day') ?: time());
+        }
+        if (preg_match('/\b(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?\b/', $normalized, $mm)) {
+            $d = (int) $mm[1];
+            $m = (int) $mm[2];
+            $y = isset($mm[3]) && $mm[3] !== '' ? (int) $mm[3] : (int) date('Y');
+            if ($y < 100) {
+                $y += 2000;
+            }
+            if (!checkdate($m, $d, $y)) {
+                return null;
+            }
+
+            return sprintf('%04d-%02d-%02d', $y, $m, $d);
+        }
+
+        return null;
+    }
+
+    private function resolveDayToken(string $token): ?string
+    {
+        $token = mb_strtolower(trim($token));
+        if ($token === 'hoje') {
+            return date('Y-m-d');
+        }
+        if (preg_match('/^amanh[aã]$/u', $token)) {
+            return date('Y-m-d', strtotime('+1 day') ?: time());
+        }
+
+        return $this->extractRelativeDay($token);
+    }
+
+    /**
      * @param array{tool?: string, resposta?: string} $result
      */
     private function rememberFromResult(array $result): void
@@ -379,6 +552,95 @@ class LocalInternalChatAgent
      */
     private function executeIntent(array $intent, string $message): array
     {
+        if ($intent['name'] === 'rooms_wizard_start') {
+            return $this->roomsWizard->start($this->userId);
+        }
+
+        if ($intent['name'] === 'rooms_list') {
+            $run = $this->rooms->listRooms(null);
+            $rooms = $run['data']['rooms'] ?? [];
+            if (is_array($rooms) && $rooms !== []) {
+                $this->roomsWizard->armPickRoomFromList($this->userId, $rooms);
+            }
+
+            return [
+                'resposta' => (string) ($run['resposta'] ?? ''),
+                'tool' => $run['tool'],
+                'data' => $run['data'] ?? null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'rooms_agenda') {
+            $run = $this->rooms->agenda(
+                isset($intent['room']) ? (string) $intent['room'] : null,
+                (string) ($intent['date'] ?? date('Y-m-d'))
+            );
+
+            return [
+                'resposta' => $run['resposta'],
+                'tool' => $run['tool'],
+                'data' => $run['data'] ?? null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'rooms_my') {
+            $run = $this->rooms->myBookings($this->userId);
+
+            return [
+                'resposta' => $run['resposta'],
+                'tool' => $run['tool'],
+                'data' => $run['data'] ?? null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'rooms_reserve_help') {
+            return [
+                'resposta' => "Para reservar pelo chat, use:\n"
+                    . "• reservar sala [nome] amanhã 14:00 às 15:00 reunião [título]\n"
+                    . "• reservar sala [nome] 10/08/2026 09:00 às 10:30 reunião Alinhamento\n"
+                    . "Antes: «salas» e «agenda da sala [nome] hoje». Também dá para reservar na tela book-room.",
+                'tool' => 'rooms.reserve',
+                'data' => null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'rooms_reserve') {
+            $run = $this->rooms->reserve(
+                $this->userId,
+                isset($intent['room']) ? (string) $intent['room'] : null,
+                (string) ($intent['start'] ?? ''),
+                (string) ($intent['end'] ?? ''),
+                (string) ($intent['title'] ?? 'Reunião'),
+                null
+            );
+
+            return [
+                'resposta' => $run['resposta'],
+                'tool' => $run['tool'],
+                'data' => $run['data'] ?? null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'rooms_cancel') {
+            $run = $this->rooms->cancel(
+                $this->userId,
+                (int) ($intent['booking_id'] ?? 0),
+                'Cancelado via Tiarajuzinho'
+            );
+
+            return [
+                'resposta' => $run['resposta'],
+                'tool' => $run['tool'],
+                'data' => $run['data'] ?? null,
+                'provider' => 'local-rules',
+            ];
+        }
+
         if ($intent['name'] === 'report_list') {
             $catalog = $this->reports->listCatalogForUser($this->userId);
             if ($catalog === []) {
@@ -668,9 +930,15 @@ class LocalInternalChatAgent
             . "{\"intent\":\"by_department\"}\n"
             . "{\"intent\":\"report_list\"}\n"
             . "{\"intent\":\"report_run\",\"query\":\"nome ou tool do relatório\"}\n"
+            . "{\"intent\":\"rooms_list\"}\n"
+            . "{\"intent\":\"rooms_agenda\",\"room\":\"Nome da sala\",\"date\":\"2026-08-10\"}\n"
+            . "{\"intent\":\"rooms_my\"}\n"
+            . "{\"intent\":\"rooms_reserve\",\"room\":\"Nome\",\"start\":\"2026-08-10 14:00:00\",\"end\":\"2026-08-10 15:00:00\",\"title\":\"Reunião\"}\n"
+            . "{\"intent\":\"rooms_cancel\",\"booking_id\":12}\n"
             . "{\"intent\":\"unknown\"}\n"
             . "Se a pergunta tiver mês (ex.: inativos em janeiro), use terminated_in_period — NÃO use department=janeiro.\n"
-            . "Se pedir inativos/desligados «por mês» ou só o ano (ex.: desligados 2025), use terminated_by_month — NÃO use report_run nem inactive.";
+            . "Se pedir inativos/desligados «por mês» ou só o ano (ex.: desligados 2025), use terminated_by_month — NÃO use report_run nem inactive.\n"
+            . "Salas: listar/agenda/reservar/cancelar usam as intents rooms_* (não misturar com RH).";
 
         $user = ($catalogHint !== '' ? "Relatórios no chat:\n{$catalogHint}\n" : '')
             . 'Pergunta do usuário: ' . $message;
@@ -697,12 +965,31 @@ class LocalInternalChatAgent
         $allowed = [
             'active', 'inactive', 'terminated_in_period', 'terminated_by_month',
             'blocked', 'by_department', 'report_list', 'report_run', 'clarify_by_month',
+            'rooms_list', 'rooms_agenda', 'rooms_my', 'rooms_reserve', 'rooms_cancel', 'rooms_reserve_help',
         ];
         if (!in_array($name, $allowed, true)) {
             return null;
         }
 
         $intent = ['name' => $name];
+        if (!empty($intentJson['room'])) {
+            $intent['room'] = (string) $intentJson['room'];
+        }
+        if (!empty($intentJson['date'])) {
+            $intent['date'] = (string) $intentJson['date'];
+        }
+        if (!empty($intentJson['start'])) {
+            $intent['start'] = (string) $intentJson['start'];
+        }
+        if (!empty($intentJson['end'])) {
+            $intent['end'] = (string) $intentJson['end'];
+        }
+        if (!empty($intentJson['title'])) {
+            $intent['title'] = (string) $intentJson['title'];
+        }
+        if (!empty($intentJson['booking_id'])) {
+            $intent['booking_id'] = (int) $intentJson['booking_id'];
+        }
         if (!empty($intentJson['department'])) {
             $dept = $this->resolveDepartmentAlias((string) $intentJson['department']);
             if ($dept !== null) {

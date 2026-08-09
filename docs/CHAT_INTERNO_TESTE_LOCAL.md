@@ -19,6 +19,10 @@
    - `quantos colaboradores inativos?`
    - `inativos em janeiro` (desligados no mês, não departamento)
    - `desligados 2025` / `inativos 2025` (série mensal do ano)
+   - `agendar` / `reservar` — fluxo guiado (sala numerada com foto → data → todos os horários do dia; ocupados com nome e departamento → título)
+   - `salas` / `agenda da sala [nome] hoje` / `minhas reservas`
+   - `cancelar reserva #12`
+   - No fluxo, vários horários: `3,4,5` ou `3-5` (blocos seguidos = 1 reserva)
    - `quantos usuários bloqueados?`
    - `ativos na TI` (alias: tecnologia da informação)
    - `ativos em Produção`
