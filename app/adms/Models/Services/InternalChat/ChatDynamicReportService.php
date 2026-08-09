@@ -359,10 +359,17 @@ class ChatDynamicReportService
         $tool = mb_strtolower((string) ($report['chat_tool_name'] ?? ''));
         $desc = mb_strtolower((string) ($report['chat_description'] ?? ''));
 
-        if ($tool !== '' && ($q === $tool || str_contains($q, $tool) || str_contains($tool, $q))) {
+        if ($tool !== '' && ($q === $tool || str_contains($q, $tool))) {
             return 100;
         }
-        if ($name !== '' && ($q === $name || str_contains($q, $name) || str_contains($name, $q))) {
+        // Evita match frágil: "por mes" dentro de "headcount_por_mes…"
+        if ($tool !== '' && mb_strlen($q) >= 10 && str_contains($tool, $q)) {
+            return 100;
+        }
+        if ($name !== '' && ($q === $name || str_contains($q, $name))) {
+            return 95;
+        }
+        if ($name !== '' && mb_strlen($q) >= 10 && str_contains($name, $q)) {
             return 95;
         }
 
@@ -375,12 +382,16 @@ class ChatDynamicReportService
             if ($ex === '') {
                 continue;
             }
-            if ($q === $ex || str_contains($q, $ex) || str_contains($ex, $q)) {
+            if ($q === $ex || str_contains($q, $ex)) {
+                return 90;
+            }
+            // Só aceita exemplo contendo a pergunta se a pergunta for suficientemente específica.
+            if (mb_strlen($q) >= 12 && str_contains($ex, $q)) {
                 return 90;
             }
         }
 
-        if ($desc !== '' && (str_contains($desc, $q) || str_contains($q, $desc))) {
+        if ($desc !== '' && mb_strlen($q) >= 12 && (str_contains($desc, $q) || str_contains($q, $desc))) {
             return 60;
         }
 

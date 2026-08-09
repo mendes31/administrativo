@@ -14,8 +14,8 @@ use App\adms\Models\Services\InternalChat\LocalInternalChatAgent;
 $agent = new LocalInternalChatAgent();
 $questions = $argv[1] ?? null;
 $queue = $questions !== null
-    ? [$questions]
-    : ['inativos', 'financeiro', 'ativos', 'financeiro', 'ativos na TI'];
+    ? (str_contains($questions, '|') ? explode('|', $questions) : [$questions])
+    : ['desligados 2025', 'inativos', 'por mes', 'financeiro', 'ativos', 'financeiro', 'ativos na TI'];
 
 foreach ($queue as $q) {
     $r = $agent->handle($q);

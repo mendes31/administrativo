@@ -227,6 +227,80 @@
   --bs-btn-hover-color: #fff;
 }
 
+.tjz-chart-wrap {
+  cursor: zoom-in;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.tjz-chart-wrap:hover {
+  box-shadow: 0 0.35rem 0.9rem rgba(0, 0, 0, 0.12);
+}
+
+.tjz-chart-wrap:focus-visible {
+  outline: 2px solid var(--tjz-orange, #F26222);
+  outline-offset: 2px;
+}
+
+.tjz-chart-zoom-preview {
+  max-width: 100%;
+  max-height: min(85vh, 720px);
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  background: #fff;
+  border-radius: 0.5rem;
+  padding: 0.5rem;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+}
+
+.tjz-download-bar {
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 0.5rem;
+}
+
+.tjz-download-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #6c757d;
+  margin-bottom: 0.3rem;
+}
+
+.tjz-download-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.tjz-download-btn {
+  font-size: 0.75rem !important;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-bot .tjz-download-btn.btn-outline-success {
+  --bs-btn-color: #198754;
+  --bs-btn-border-color: #198754;
+  --bs-btn-hover-bg: #198754;
+  --bs-btn-hover-border-color: #198754;
+  --bs-btn-hover-color: #fff;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-bot .tjz-download-btn.btn-success {
+  background: #198754;
+  border-color: #198754;
+  color: #fff;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-bot .tjz-download-btn.btn-outline-danger {
+  --bs-btn-color: #dc3545;
+  --bs-btn-border-color: #dc3545;
+  --bs-btn-hover-bg: #dc3545;
+  --bs-btn-hover-border-color: #dc3545;
+  --bs-btn-hover-color: #fff;
+}
+
 .tjz-avatar-zoom-btn {
   cursor: zoom-in;
   line-height: 0;

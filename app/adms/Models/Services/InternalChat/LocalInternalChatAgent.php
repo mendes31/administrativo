@@ -83,12 +83,14 @@ class LocalInternalChatAgent
                     . "• quantos colaboradores ativos?\n"
                     . "• quantos colaboradores inativos?\n"
                     . "• inativos em janeiro\n"
+                    . "• desligados 2025\n"
                     . "• quantos usuários bloqueados?\n"
                     . "• ativos na TI\n"
                     . "• headcount por departamento\n"
+                    . "• inativos por mês\n"
                     . "• quais relatórios no chat?\n"
                     . "• relatório [nome ou tool]\n"
-                    . "• depois de «ativos» ou «inativos», pode digitar só o departamento (ex.: financeiro)",
+                    . "• depois de «ativos» ou «inativos», digite o departamento ou «por mês» / «por departamento»",
                 'provider' => 'local-rules',
             ];
         }
@@ -121,14 +123,24 @@ class LocalInternalChatAgent
             return ['name' => 'report_run', 'query' => $message];
         }
 
+        // Follow-ups curtos ("por mês") NÃO devem cair no match frágil de exemplos de relatório.
+        $byMonthFollowUp = $this->extractByMonthFollowUp($m);
+        if ($byMonthFollowUp !== null) {
+            return $byMonthFollowUp;
+        }
+
+        if (preg_match('/por\s+departamento|headcount\s+por|ativos\s+por\s+depto|resumo\s+por\s+departamento/', $m)) {
+            if ($this->getLastStatusIntent() === 'inactive') {
+                return ['name' => 'inactive', 'department' => null];
+            }
+
+            return ['name' => 'by_department'];
+        }
+
         // Exemplos / tool_name / nome de relatório marcado para o chat.
         $matchedReport = $this->reports->resolveReport($this->userId, $message);
         if ($matchedReport !== null) {
             return ['name' => 'report_run', 'query' => $message, 'report_id' => (int) $matchedReport['id']];
-        }
-
-        if (preg_match('/por\s+departamento|headcount\s+por|ativos\s+por\s+depto|resumo\s+por\s+departamento/', $m)) {
-            return ['name' => 'by_department'];
         }
 
         $period = $this->extractPeriod($message);
@@ -141,6 +153,9 @@ class LocalInternalChatAgent
 
         // "inativos" contém "ativos" — tratar inativo ANTES do padrão de ativos.
         if (preg_match('/\binativos?\b|\bdesligad[oa]s?\b|\bex[- ]?colaboradores?\b/', $m)) {
+            // "desligados 2025" / "inativos por mês" → série mensal do ano
+            $yearOnly = $this->extractYearOnly($m);
+            $wantsByMonth = (bool) preg_match('/\bpor\s+m[eê]s\b|\bmensal\b|\bpor\s+meses\b/u', $m);
             if ($period !== null) {
                 return [
                     'name' => 'terminated_in_period',
@@ -148,8 +163,22 @@ class LocalInternalChatAgent
                     'year' => $period['year'],
                 ];
             }
+            if ($wantsByMonth || $yearOnly !== null) {
+                return [
+                    'name' => 'terminated_by_month',
+                    'year' => $yearOnly ?? (int) date('Y'),
+                    // «inativos 2025» não é o estoque atual — é série de desligamentos do ano.
+                    'clarify_inactive' => (bool) preg_match('/\binativos?\b/u', $m),
+                ];
+            }
 
             return ['name' => 'inactive', 'department' => $dept];
+        }
+
+        // Só o ano (ex.: «2025») após inativos/desligados na sessão.
+        $bareYear = $this->extractYearOnly($m);
+        if ($bareYear !== null && preg_match('/^(em\s+)?20\d{2}$/u', $m) && $this->getLastStatusIntent() === 'inactive') {
+            return ['name' => 'terminated_by_month', 'year' => $bareYear];
         }
 
         if (preg_match('/\b(quantos|qtd|quantidade|headcount|pessoas)\b|\bativos?\b|\bcolaboradores?\b|\bfuncionarios?\b|\busuarios?\b/u', $m)) {
@@ -214,6 +243,45 @@ class LocalInternalChatAgent
     }
 
     /**
+     * «por mês» / «mensal» — follow-up após inativos, ou frase completa.
+     *
+     * @return array{name:string, year?:int}|null
+     */
+    private function extractByMonthFollowUp(string $normalizedMessage): ?array
+    {
+        $m = trim($normalizedMessage);
+        if ($m === '') {
+            return null;
+        }
+
+        $year = $this->extractYearOnly($m) ?? (int) date('Y');
+
+        // Frase só com a dimensão (contexto da sessão).
+        if (preg_match('/^(por\s+m[eê]s|mensal|por\s+meses)(\s+(de\s+)?\d{4})?$/u', $m)) {
+            if ($this->getLastStatusIntent() === 'inactive') {
+                return ['name' => 'terminated_by_month', 'year' => $year];
+            }
+
+            return ['name' => 'clarify_by_month'];
+        }
+
+        return null;
+    }
+
+    private function extractYearOnly(string $message): ?int
+    {
+        if (!preg_match('/\b(20\d{2})\b/', mb_strtolower($message), $ym)) {
+            return null;
+        }
+        $year = (int) $ym[1];
+        if ($year < 2000 || $year > 2100) {
+            return null;
+        }
+
+        return $year;
+    }
+
+    /**
      * @param array{tool?: string, resposta?: string} $result
      */
     private function rememberFromResult(array $result): void
@@ -223,7 +291,11 @@ class LocalInternalChatAgent
         }
 
         $tool = (string) ($result['tool'] ?? '');
-        if ($tool === 'rh.count_inactive') {
+        if (
+            $tool === 'rh.count_inactive'
+            || $tool === 'rh.count_terminated_in_month'
+            || $tool === 'rh.count_terminated_by_month'
+        ) {
             $_SESSION['internal_chat_last_status'] = 'inactive';
         } elseif ($tool === 'rh.count_active' || $tool === 'rh.count_active_by_department') {
             $_SESSION['internal_chat_last_status'] = 'active';
@@ -388,6 +460,77 @@ class LocalInternalChatAgent
             ];
         }
 
+        if ($intent['name'] === 'clarify_by_month') {
+            return [
+                'resposta' => "Para ver desligamentos por mês, diga «inativos» e depois «por mês», "
+                    . "ou «inativos por mês». Para um mês específico: «inativos em janeiro».",
+                'tool' => 'rh.clarify_by_month',
+                'data' => null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'terminated_by_month') {
+            $year = (int) ($intent['year'] ?? (int) date('Y'));
+            $data = $this->rh->countTerminatedByMonth($year);
+            $inactiveNow = $this->rh->countInactiveEmployees(null);
+            $clarify = !empty($intent['clarify_inactive']);
+
+            $note = sprintf(
+                'Obs.: «Inativos» = estoque atual no Portal (status Inativo ou com data de desligamento): %d agora. '
+                . 'Com ano/mês, mostro desligamentos pela data de desligamento naquele período — são contagens diferentes.',
+                $inactiveNow['total']
+            );
+
+            if ($data['by_month'] === []) {
+                $emptyLines = [
+                    sprintf('Não há desligamentos registrados em %d (pela data de desligamento).', $year),
+                ];
+                if ($clarify) {
+                    $emptyLines[] = '';
+                    $emptyLines[] = $note;
+                    $emptyLines[] = 'Para o estoque atual, diga só «inativos».';
+                }
+
+                return [
+                    'resposta' => implode("\n", $emptyLines),
+                    'tool' => 'rh.count_terminated_by_month',
+                    'data' => array_merge($data, ['inactive_total_now' => $inactiveNow['total']]),
+                    'provider' => 'local-rules',
+                ];
+            }
+            $lines = [
+                sprintf('Desligamentos em %d (pela data de desligamento): %d no total.', $year, $data['total']),
+            ];
+            if ($clarify) {
+                $lines[] = '';
+                $lines[] = $note;
+            }
+            $lines[] = '';
+            $lines[] = 'Meses com desligamento:';
+            $series = [];
+            foreach ($data['by_month'] as $row) {
+                $lines[] = "• {$row['rotulo']}: {$row['total']}";
+                $series[] = [
+                    'departamento' => (string) $row['rotulo'],
+                    'total' => (int) $row['total'],
+                ];
+            }
+            $data['inactive_total_now'] = $inactiveNow['total'];
+            $data['visualization_type'] = 'bar_chart';
+            $data['chart'] = ChatDynamicReportService::chartFromByDepartment(
+                $series,
+                'Desligamentos por mês (' . $year . ')'
+            );
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.count_terminated_by_month',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
         if ($intent['name'] === 'terminated_in_period') {
             $month = (int) ($intent['month'] ?? (int) date('n'));
             $year = (int) ($intent['year'] ?? (int) date('Y'));
@@ -435,7 +578,8 @@ class LocalInternalChatAgent
                 );
             } else {
                 $resposta = sprintf(
-                    'Há %d colaborador(es) inativo(s) no Portal (status Inativo ou com data de desligamento).',
+                    'Há %d colaborador(es) inativo(s) no Portal agora (status Inativo ou com data de desligamento). '
+                    . 'Para desligamentos de um ano, diga «desligados 2025» ou «inativos 2025».',
                     $data['total']
                 );
             }
@@ -519,12 +663,14 @@ class LocalInternalChatAgent
             . "{\"intent\":\"active\",\"department\":\"TI\"}\n"
             . "{\"intent\":\"inactive\"}\n"
             . "{\"intent\":\"terminated_in_period\",\"month\":1,\"year\":2026}\n"
+            . "{\"intent\":\"terminated_by_month\",\"year\":2026}\n"
             . "{\"intent\":\"blocked\"}\n"
             . "{\"intent\":\"by_department\"}\n"
             . "{\"intent\":\"report_list\"}\n"
             . "{\"intent\":\"report_run\",\"query\":\"nome ou tool do relatório\"}\n"
             . "{\"intent\":\"unknown\"}\n"
-            . "Se a pergunta tiver mês (ex.: inativos em janeiro), use terminated_in_period — NÃO use department=janeiro.";
+            . "Se a pergunta tiver mês (ex.: inativos em janeiro), use terminated_in_period — NÃO use department=janeiro.\n"
+            . "Se pedir inativos/desligados «por mês» ou só o ano (ex.: desligados 2025), use terminated_by_month — NÃO use report_run nem inactive.";
 
         $user = ($catalogHint !== '' ? "Relatórios no chat:\n{$catalogHint}\n" : '')
             . 'Pergunta do usuário: ' . $message;
@@ -548,7 +694,10 @@ class LocalInternalChatAgent
             return null;
         }
 
-        $allowed = ['active', 'inactive', 'terminated_in_period', 'blocked', 'by_department', 'report_list', 'report_run'];
+        $allowed = [
+            'active', 'inactive', 'terminated_in_period', 'terminated_by_month',
+            'blocked', 'by_department', 'report_list', 'report_run', 'clarify_by_month',
+        ];
         if (!in_array($name, $allowed, true)) {
             return null;
         }

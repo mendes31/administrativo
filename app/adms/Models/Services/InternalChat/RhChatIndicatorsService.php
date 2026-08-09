@@ -82,6 +82,61 @@ class RhChatIndicatorsService extends DbConnection
     }
 
     /**
+     * Desligados agrupados por mês no ano (pela data_desligamento).
+     *
+     * @return array{total:int, year:int, by_month: list<array{mes:int, rotulo:string, total:int}>}
+     */
+    public function countTerminatedByMonth(int $year): array
+    {
+        $year = max(2000, min(2100, $year));
+        $monthNames = [
+            1 => 'jan', 2 => 'fev', 3 => 'mar', 4 => 'abr',
+            5 => 'mai', 6 => 'jun', 7 => 'jul', 8 => 'ago',
+            9 => 'set', 10 => 'out', 11 => 'nov', 12 => 'dez',
+        ];
+
+        $sql = "SELECT MONTH(usr.data_desligamento) AS mes, COUNT(*) AS total
+            FROM adms_users usr
+            WHERE usr.data_desligamento IS NOT NULL
+              AND YEAR(usr.data_desligamento) = :year
+            GROUP BY MONTH(usr.data_desligamento)
+            ORDER BY mes ASC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':year', $year, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $totalsByMonth = [];
+        foreach ($rows as $row) {
+            $m = (int) ($row['mes'] ?? 0);
+            if ($m >= 1 && $m <= 12) {
+                $totalsByMonth[$m] = (int) ($row['total'] ?? 0);
+            }
+        }
+
+        $byMonth = [];
+        $total = 0;
+        ksort($totalsByMonth, SORT_NUMERIC);
+        foreach ($totalsByMonth as $m => $n) {
+            if ($n < 1) {
+                continue;
+            }
+            $total += $n;
+            $byMonth[] = [
+                'mes' => (int) $m,
+                'rotulo' => ($monthNames[$m] ?? (string) $m) . '/' . $year,
+                'total' => $n,
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'year' => $year,
+            'by_month' => $byMonth,
+        ];
+    }
+
+    /**
      * @return array{total:int, by_department: list<array{departamento:string, total:int}>, match_mode?: string}
      */
     private function countEmployeesByStatus(bool $active, ?string $departmentName): array

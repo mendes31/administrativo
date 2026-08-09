@@ -258,7 +258,7 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=3">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=6">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
 <div class="offcanvas offcanvas-end tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
     <div class="offcanvas-header">
@@ -305,6 +305,20 @@ if (!empty($_SESSION['user_id'])) {
             <div class="modal-body text-center pt-0">
                 <img id="tjzAvatarZoomImg" src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" class="img-fluid rounded-circle tjz-zoom-preview">
                 <p id="tjzAvatarZoomModalLabel" class="text-white mt-3 mb-0 fw-semibold">Tiarajuzinho</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="tjzChartZoomModal" tabindex="-1" aria-labelledby="tjzChartZoomModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl modal-fullscreen-md-down">
+        <div class="modal-content border-0 bg-dark bg-opacity-75">
+            <div class="modal-header border-0">
+                <h5 class="modal-title text-white fs-6" id="tjzChartZoomModalLabel">Gráfico</h5>
+                <button type="button" class="btn-close btn-close-white ms-auto" data-bs-dismiss="modal" aria-label="Fechar"></button>
+            </div>
+            <div class="modal-body d-flex align-items-center justify-content-center p-2 p-md-3">
+                <img id="tjzChartZoomImg" src="" alt="Gráfico ampliado" class="img-fluid tjz-chart-zoom-preview">
             </div>
         </div>
     </div>
@@ -499,16 +513,293 @@ if (!empty($_SESSION['user_id'])) {
         return 'bar';
     }
 
+    function slugifyFilename(name) {
+        const base = String(name || 'tiarajuzinho')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^a-zA-Z0-9_-]+/g, '_')
+            .replace(/^_+|_+$/g, '')
+            .slice(0, 60);
+        return (base || 'tiarajuzinho') + '_' + new Date().toISOString().slice(0, 10);
+    }
+
+    function triggerBlobDownload(blob, filename) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+    }
+
+    function rowsToCsv(rows) {
+        if (!Array.isArray(rows) || !rows.length) {
+            return '';
+        }
+        const cols = Object.keys(rows[0]);
+        const escapeCell = function (v) {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object') v = JSON.stringify(v);
+            const s = String(v);
+            if (/[",\n\r;]/.test(s)) {
+                return '"' + s.replace(/"/g, '""') + '"';
+            }
+            return s;
+        };
+        const lines = [cols.map(escapeCell).join(';')];
+        rows.forEach(function (row) {
+            lines.push(cols.map(function (c) { return escapeCell(row[c]); }).join(';'));
+        });
+        return lines.join('\r\n');
+    }
+
+    function downloadCsv(rows, filename) {
+        const csv = rowsToCsv(rows);
+        if (!csv) return;
+        const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8' });
+        triggerBlobDownload(blob, filename.endsWith('.csv') ? filename : filename + '.csv');
+    }
+
+    /** Planilha XML simples (.xls) aberta pelo Excel sem biblioteca externa. */
+    function downloadExcelXml(rows, filename, sheetTitle) {
+        if (!Array.isArray(rows) || !rows.length) return;
+        const cols = Object.keys(rows[0]);
+        const xmlEscape = function (v) {
+            if (v === null || v === undefined) return '';
+            if (typeof v === 'object') v = JSON.stringify(v);
+            return String(v)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        };
+        let xml = '<?xml version="1.0" encoding="UTF-8"?>'
+            + '<?mso-application progid="Excel.Sheet"?>'
+            + '<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"'
+            + ' xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'
+            + '<Worksheet ss:Name="' + xmlEscape((sheetTitle || 'Dados').slice(0, 31)) + '"><Table>';
+        xml += '<Row>' + cols.map(function (c) {
+            return '<Cell><Data ss:Type="String">' + xmlEscape(c) + '</Data></Cell>';
+        }).join('') + '</Row>';
+        rows.forEach(function (row) {
+            xml += '<Row>';
+            cols.forEach(function (c) {
+                const raw = row[c];
+                const num = typeof raw === 'number' || (typeof raw === 'string' && raw !== '' && !isNaN(Number(raw)));
+                if (num && raw !== null && raw !== '') {
+                    xml += '<Cell><Data ss:Type="Number">' + xmlEscape(raw) + '</Data></Cell>';
+                } else {
+                    xml += '<Cell><Data ss:Type="String">' + xmlEscape(raw) + '</Data></Cell>';
+                }
+            });
+            xml += '</Row>';
+        });
+        xml += '</Table></Worksheet></Workbook>';
+        const blob = new Blob([xml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        triggerBlobDownload(blob, filename.endsWith('.xls') ? filename : filename + '.xls');
+    }
+
+    /** Exporta o gráfico com fundo branco (canvas transparente vira preto no PNG). */
+    function chartToPngDataUrl(chartInstance) {
+        if (!chartInstance || !chartInstance.canvas) {
+            return '';
+        }
+        const src = chartInstance.canvas;
+        const w = src.width || src.offsetWidth || 0;
+        const h = src.height || src.offsetHeight || 0;
+        if (!w || !h) {
+            return typeof chartInstance.toBase64Image === 'function'
+                ? chartInstance.toBase64Image('image/png', 1)
+                : '';
+        }
+        const out = document.createElement('canvas');
+        out.width = w;
+        out.height = h;
+        const ctx = out.getContext('2d');
+        if (!ctx) {
+            return typeof chartInstance.toBase64Image === 'function'
+                ? chartInstance.toBase64Image('image/png', 1)
+                : '';
+        }
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, w, h);
+        ctx.drawImage(src, 0, 0);
+        try {
+            return out.toDataURL('image/png', 1);
+        } catch (e) {
+            return typeof chartInstance.toBase64Image === 'function'
+                ? chartInstance.toBase64Image('image/png', 1)
+                : '';
+        }
+    }
+
+    function downloadChartPng(chartInstance, filename) {
+        const href = chartToPngDataUrl(chartInstance);
+        if (!href) {
+            return;
+        }
+        const a = document.createElement('a');
+        a.href = href;
+        a.download = filename.endsWith('.png') ? filename : filename + '.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+    }
+
+    function openChartZoom(chartInstance, title) {
+        const modalEl = document.getElementById('tjzChartZoomModal');
+        const imgEl = document.getElementById('tjzChartZoomImg');
+        const titleEl = document.getElementById('tjzChartZoomModalLabel');
+        if (!modalEl || !imgEl || typeof bootstrap === 'undefined') {
+            return;
+        }
+        const href = chartToPngDataUrl(chartInstance);
+        if (!href) {
+            return;
+        }
+        imgEl.src = href;
+        imgEl.alt = title || 'Gráfico ampliado';
+        if (titleEl) {
+            titleEl.textContent = title || 'Gráfico';
+        }
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    }
+
+    function normalizeExportRows(data, chart) {
+        if (Array.isArray(data.rows) && data.rows.length) {
+            return data.rows;
+        }
+        if (Array.isArray(data.by_month) && data.by_month.length) {
+            return data.by_month.map(function (r) {
+                return { mes: r.rotulo || r.mes || '', total: r.total };
+            });
+        }
+        if (Array.isArray(data.by_department) && data.by_department.length) {
+            return data.by_department.map(function (r) {
+                return { departamento: r.departamento || '', total: r.total };
+            });
+        }
+        if (chart && Array.isArray(chart.labels) && Array.isArray(chart.values)) {
+            return chart.labels.map(function (label, i) {
+                return { item: label, valor: chart.values[i] };
+            });
+        }
+        return [];
+    }
+
+    function attachDownloadBar(bubble, opts) {
+        const options = opts || {};
+        const rows = Array.isArray(options.rows) ? options.rows : [];
+        const chartInstance = options.chartInstance || null;
+        const reportId = parseInt(options.reportId || 0, 10);
+        const title = options.title || 'tiarajuzinho';
+        const baseName = slugifyFilename(title);
+        const urlAdm = <?= json_encode(rtrim((string)($_ENV['URL_ADM'] ?? ''), '/'), JSON_UNESCAPED_SLASHES) ?> + '/';
+
+        if (!rows.length && !chartInstance && !(reportId > 0)) {
+            return;
+        }
+
+        const bar = document.createElement('div');
+        bar.className = 'tjz-download-bar mt-2';
+        bar.setAttribute('role', 'group');
+        bar.setAttribute('aria-label', 'Baixar resultado');
+
+        const label = document.createElement('div');
+        label.className = 'tjz-download-label';
+        label.textContent = 'Baixar';
+        bar.appendChild(label);
+
+        const btns = document.createElement('div');
+        btns.className = 'tjz-download-actions';
+
+        const addBtn = function (cfg) {
+            const btn = document.createElement(cfg.href ? 'a' : 'button');
+            if (cfg.href) {
+                btn.href = cfg.href;
+                btn.target = '_blank';
+                btn.rel = 'noopener';
+            } else {
+                btn.type = 'button';
+                btn.addEventListener('click', cfg.onClick);
+            }
+            btn.className = 'btn btn-sm tjz-download-btn ' + (cfg.className || '');
+            btn.title = cfg.title || cfg.label;
+            btn.innerHTML = '<i class="' + cfg.icon + ' me-1"></i>' + escapeHtml(cfg.label);
+            btns.appendChild(btn);
+        };
+
+        if (chartInstance) {
+            addBtn({
+                label: 'Gráfico PNG',
+                icon: 'fas fa-image',
+                className: 'btn-outline-secondary',
+                title: 'Baixar imagem do gráfico',
+                onClick: function () { downloadChartPng(chartInstance, baseName + '_grafico'); }
+            });
+        }
+
+        if (rows.length) {
+            addBtn({
+                label: 'Excel',
+                icon: 'fas fa-file-excel',
+                className: 'btn-outline-success',
+                title: 'Baixar planilha Excel (.xls) com os dados do chat',
+                onClick: function () { downloadExcelXml(rows, baseName, title); }
+            });
+            addBtn({
+                label: 'CSV',
+                icon: 'fas fa-file-csv',
+                className: 'btn-outline-secondary',
+                title: 'Baixar CSV (abre no Excel)',
+                onClick: function () { downloadCsv(rows, baseName); }
+            });
+        }
+
+        if (reportId > 0) {
+            addBtn({
+                label: 'Excel completo',
+                icon: 'fas fa-file-excel',
+                className: 'btn-success',
+                title: 'Exportar relatório completo em Excel (.xlsx)',
+                href: urlAdm + 'export-dynamic-report-excel/' + reportId
+            });
+            addBtn({
+                label: 'CSV completo',
+                icon: 'fas fa-file-csv',
+                className: 'btn-outline-secondary',
+                title: 'Exportar relatório completo em CSV',
+                href: urlAdm + 'export-dynamic-report-csv/' + reportId
+            });
+            addBtn({
+                label: 'PDF',
+                icon: 'fas fa-file-pdf',
+                className: 'btn-outline-danger',
+                title: 'Exportar relatório em PDF',
+                href: urlAdm + 'export-dynamic-report-pdf/' + reportId
+            });
+        }
+
+        bar.appendChild(btns);
+        bubble.appendChild(bar);
+    }
+
     function renderChart(container, chart) {
         if (!chart || !chart.labels || !chart.values || typeof Chart === 'undefined') {
-            return;
+            return null;
         }
         if (!chart.labels.length || chart.labels.length !== chart.values.length) {
-            return;
+            return null;
         }
         const wrap = document.createElement('div');
-        wrap.className = 'mt-2 p-2 bg-white border rounded';
+        wrap.className = 'mt-2 p-2 bg-white border rounded tjz-chart-wrap';
         wrap.style.height = '220px';
+        wrap.title = 'Clique para ampliar o gráfico';
+        wrap.setAttribute('role', 'button');
+        wrap.setAttribute('tabindex', '0');
+        wrap.setAttribute('aria-label', 'Ampliar gráfico' + (chart.title ? ': ' + chart.title : ''));
         const canvas = document.createElement('canvas');
         canvas.id = 'mcpChatChart_' + (++chartSeq);
         wrap.appendChild(canvas);
@@ -537,17 +828,47 @@ if (!empty($_SESSION['user_id'])) {
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
+                backgroundColor: '#ffffff',
+                color: '#212529',
                 plugins: {
-                    legend: { display: chartType === 'pie' || chartType === 'doughnut' },
-                    title: { display: !!chart.title, text: chart.title || '' }
+                    legend: {
+                        display: chartType === 'pie' || chartType === 'doughnut',
+                        labels: { color: '#212529' }
+                    },
+                    title: {
+                        display: !!chart.title,
+                        text: chart.title || '',
+                        color: '#212529'
+                    }
                 },
                 scales: (chartType === 'pie' || chartType === 'doughnut') ? {} : {
-                    x: { ticks: { maxRotation: 45, minRotation: 0, font: { size: 10 } } },
-                    y: { beginAtZero: true }
+                    x: {
+                        ticks: { maxRotation: 45, minRotation: 0, font: { size: 10 }, color: '#495057' },
+                        grid: { color: 'rgba(0,0,0,0.08)' }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        ticks: { color: '#495057' },
+                        grid: { color: 'rgba(0,0,0,0.08)' }
+                    }
+                },
+                onClick: function () {
+                    openChartZoom(instance, chart.title || 'Gráfico');
                 }
             }
         });
+        wrap.addEventListener('click', function (e) {
+            e.preventDefault();
+            openChartZoom(instance, chart.title || 'Gráfico');
+        });
+        wrap.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                openChartZoom(instance, chart.title || 'Gráfico');
+            }
+        });
         chartInstances.push(instance);
+        return instance;
     }
 
     function resolvePayload(data) {
@@ -590,6 +911,14 @@ if (!empty($_SESSION['user_id'])) {
         }
 
         let chart = data.chart || null;
+        if (!chart && Array.isArray(data.by_month) && data.by_month.length) {
+            chart = {
+                type: 'bar',
+                title: 'Por mês',
+                labels: data.by_month.map(function (r) { return r.rotulo || String(r.mes || ''); }),
+                values: data.by_month.map(function (r) { return Number(r.total || 0); })
+            };
+        }
         if (!chart && Array.isArray(data.by_department) && data.by_department.length) {
             chart = {
                 type: 'bar',
@@ -598,9 +927,19 @@ if (!empty($_SESSION['user_id'])) {
                 values: data.by_department.map(function (r) { return Number(r.total || 0); })
             };
         }
+        let chartInstance = null;
         if (chart) {
-            renderChart(bubble, chart);
+            chartInstance = renderChart(bubble, chart);
         }
+
+        const exportRows = normalizeExportRows(data, chart);
+        const title = (data.name || (chart && chart.title) || 'resultado_chat');
+        attachDownloadBar(bubble, {
+            rows: exportRows,
+            chartInstance: chartInstance,
+            reportId: data.report_id || 0,
+            title: title
+        });
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 

@@ -18,6 +18,7 @@
    - `quantos colaboradores ativos?`
    - `quantos colaboradores inativos?`
    - `inativos em janeiro` (desligados no mês, não departamento)
+   - `desligados 2025` / `inativos 2025` (série mensal do ano)
    - `quantos usuários bloqueados?`
    - `ativos na TI` (alias: tecnologia da informação)
    - `ativos em Produção`
@@ -25,7 +26,7 @@
 
 O piloto **não** gera dashboard/gráfico nem SQL livre: só responde texto das tools do catálogo. Ollama (se ligado) só ajuda a escolher a intenção.
 
-**Contexto curto:** depois de `ativos` ou `inativos`, pode digitar só o departamento (`financeiro`, `TI`). A sessão guarda a última intenção.
+**Contexto curto:** depois de `ativos` ou `inativos`, pode digitar só o departamento (`financeiro`, `TI`), ou `por mês` / `por departamento`. A sessão guarda a última intenção. Ex.: `inativos` → `por mes` mostra desligamentos mensais do ano.
 
 ## Relatórios dinâmicos no chat (`report.run`)
 
@@ -52,6 +53,7 @@ Menu: **Administração → Tools do Assistente MCP** (`list-mcp-chat-tools`).
 O Assistente MCP renderiza:
 - tabela HTML quando `data.rows` vem de `report.run`;
 - gráfico Chart.js quando há `data.chart` (relatório com tipo barra/pizza/linha, ou `headcount por departamento`).
+- barra **Baixar** sob o resultado: PNG do gráfico, Excel/CSV dos dados; em `report.run` também Excel/CSV/PDF completos (`export-dynamic-report-*`).
 
 Peça no chat: `headcount por departamento` para ver o gráfico de ativos.
 
