@@ -6,6 +6,8 @@ use App\adms\Views\Services\LoadViewService;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\AdmsMcpApiConfigRepository;
+use App\adms\Models\Repository\DynamicReportsRepository;
+use App\adms\Models\Services\InternalChat\McpChatToolsAdminCatalog;
 use App\adms\Models\Services\LogResumoService;
 
 class McpApiConfig
@@ -15,12 +17,21 @@ class McpApiConfig
         $repo = new AdmsMcpApiConfigRepository();
         $config = $repo->getConfig();
 
+        $tab = strtolower(trim((string) ($_GET['tab'] ?? 'conexao')));
+        if (!in_array($tab, ['conexao', 'tools'], true)) {
+            $tab = 'conexao';
+        }
+
         $data = [
-            'title_head' => 'Configuração API MCP',
+            'title_head' => 'Assistente MCP',
             'menu' => 'mcp-api-config',
-            'buttonPermission' => ['McpApiConfig'],
+            'buttonPermission' => ['McpApiConfig', 'ListMcpChatTools', 'SaveMcpChatTool'],
             'mcp_api_config' => $config,
             'csrf_token' => CSRFHelper::generateCSRFToken('form_mcp_api_config'),
+            'csrf_token_tools' => CSRFHelper::generateCSRFToken('form_mcp_chat_tool'),
+            'active_tab' => $tab,
+            'builtin_tools' => McpChatToolsAdminCatalog::builtinTools(),
+            'chat_reports' => (new DynamicReportsRepository())->getReportsForChatAdmin(),
         ];
         $cfgId = (int) ($config['id'] ?? 0);
         if ($cfgId > 0) {
@@ -35,4 +46,3 @@ class McpApiConfig
         $loadView->loadView();
     }
 }
-

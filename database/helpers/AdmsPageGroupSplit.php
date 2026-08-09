@@ -142,6 +142,10 @@ final class AdmsPageGroupSplit
                 if ($pageId <= 0 || $controller === '') {
                     continue;
                 }
+                // Assistente MCP é transversal (grupo Parâmetros); não reclassificar no CRM.
+                if ($key === 'crm' && self::isMcpAssistentController($controller)) {
+                    continue;
+                }
                 $targetName = match ($key) {
                     'gp' => self::isSstRelatedController($controller)
                         ? self::classifySst($controller)
@@ -443,12 +447,17 @@ final class AdmsPageGroupSplit
     {
         if (
             $directory === 'settings'
-            || preg_match('/WhatsAppConfig|SapApi|McpChat|CalendarConfig/i', $controller) === 1
+            || preg_match('/WhatsAppConfig|SapApi|CalendarConfig/i', $controller) === 1
         ) {
             return 'CRM - Integrações e configurações';
         }
 
         return 'CRM - Operação';
+    }
+
+    public static function isMcpAssistentController(string $controller): bool
+    {
+        return preg_match('/^(McpApiConfig|SaveMcpApiConfig|ListMcpChatTools|SaveMcpChatTool|McpChat)$/i', $controller) === 1;
     }
 
     public static function classifyComunicacaoSocial(string $controller, string $directory): string

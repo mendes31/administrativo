@@ -46,7 +46,7 @@ Só entram relatórios com `chat_enabled` e que o utilizador possa ver (público
 
 ## Tools do assistente (fase C)
 
-Menu: **Administração → Tools do Assistente MCP** (`list-mcp-chat-tools`).
+Menu: **Administração → Configurações → Assistente MCP** (`mcp-api-config`), aba **Tools** (URL legada `list-mcp-chat-tools` redireciona).
 
 - Lista tools RH built-in.
 - Ativa/desativa relatórios no chat e edita tool / descrição / exemplos sem abrir o construtor completo.

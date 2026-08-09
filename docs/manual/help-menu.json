@@ -55,12 +55,12 @@
                         {
                             "type": "topic",
                             "topic_id": "mcp-api-config",
-                            "title": "Configuração API MCP"
+                            "title": "Assistente MCP"
                         },
                         {
                             "type": "topic",
                             "topic_id": "list-mcp-chat-tools",
-                            "title": "Tools do Assistente MCP"
+                            "title": "Tools do Assistente MCP (aba)"
                         },
                         {
                             "type": "topic",

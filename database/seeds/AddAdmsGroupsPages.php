@@ -93,7 +93,7 @@ class AddAdmsGroupsPages extends AbstractSeed
             ['name' => 'Estoque - Itens e movimentações', 'obs' => 'Itens, posições, cadastros e movimentações de estoque.'],
             ['name' => 'Estoque - Custeio', 'obs' => 'Períodos de custo, DRE, fatores, simulações e recursos de produção.'],
             ['name' => 'CRM - Operação', 'obs' => 'Pipeline, parceiros, oportunidades, atividades e relatórios CRM.'],
-            ['name' => 'CRM - Integrações e configurações', 'obs' => 'WhatsApp, SAP API, MCP chat e calendário vinculados ao CRM.'],
+            ['name' => 'CRM - Integrações e configurações', 'obs' => 'WhatsApp, SAP API e calendário vinculados ao CRM.'],
             // Cisão ACL Expand P3 (2026-07-29) - Comunicação Social
             ['name' => 'Comunicação Social - Timeline', 'obs' => 'Feed, posts, comentários, moderação e perfis da timeline.'],
             ['name' => 'Comunicação Social - Gamificação', 'obs' => 'Pontos, quizzes, ranking e dashboard de engajamento.'],

@@ -36,6 +36,7 @@ class AddAdmsPages extends BaseSeed
             ['name' => 'Gestão de Pessoas', 'obs' => 'Módulo completo de Gestão de Pessoas (RH)'],
             ['name' => 'Reserva de Salas', 'obs' => 'Módulo de agendamento e reserva de salas de reunião'],
             ['name' => 'Comunicação Social', 'obs' => 'Timeline interna e eventos corporativos'],
+            ['name' => 'Configurações', 'obs' => 'Configurações gerais do sistema'],
         ];
         foreach ($groupsToEnsure as $g) {
             $exists = $this->query('SELECT id FROM adms_groups_pages WHERE name = :name', ['name' => $g['name']])->fetch();
@@ -46,6 +47,14 @@ class AddAdmsPages extends BaseSeed
                     'created_at' => date('Y-m-d H:i:s'),
                 ])->save();
             }
+        }
+
+        $configGroup = $this->query(
+            "SELECT id FROM adms_groups_pages WHERE name = 'Configurações' LIMIT 1"
+        )->fetch();
+        $mcpGroupId = (int) ($configGroup['id'] ?? 0);
+        if ($mcpGroupId <= 0) {
+            $mcpGroupId = 26;
         }
 
         // Corrigir URLs legadas do CRUD de páginas (estavam iguais ao CRUD de grupos de página)
@@ -712,16 +721,16 @@ class AddAdmsPages extends BaseSeed
             ['name'=> 'Configuração SAP API', 'controller' => 'SapApiConfig', 'controller_url' => 'sap-api-config', 'directory' => 'settings', 'obs' => 'Configuração de integração via API com o SAP B1.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Salvar Configuração SAP API', 'controller' => 'SaveSapApiConfig', 'controller_url' => 'save-sap-api-config', 'directory' => 'settings', 'obs' => 'Salvar parâmetros da API SAP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Testar Configuração SAP API', 'controller' => 'TestSapApiConfig', 'controller_url' => 'test-sap-api-config', 'directory' => 'settings', 'obs' => 'Executar health-check da API SAP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
-            ['name'=> 'Configuração API MCP', 'controller' => 'McpApiConfig', 'controller_url' => 'mcp-api-config', 'directory' => 'settings', 'obs' => 'Configuração de integração com servidor MCP para chat/consultas.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
-            ['name'=> 'Salvar Configuração API MCP', 'controller' => 'SaveMcpApiConfig', 'controller_url' => 'save-mcp-api-config', 'directory' => 'settings', 'obs' => 'Salvar parâmetros da API MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
-            ['name'=> 'Tools do Assistente MCP', 'controller' => 'ListMcpChatTools', 'controller_url' => 'list-mcp-chat-tools', 'directory' => 'settings', 'obs' => 'Catálogo de tools do chat (RH + relatórios dinâmicos).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
-            ['name'=> 'Salvar Tool do Assistente MCP', 'controller' => 'SaveMcpChatTool', 'controller_url' => 'save-mcp-chat-tool', 'directory' => 'settings', 'obs' => 'Salvar metadados de relatório no chat MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
+            ['name'=> 'Assistente MCP', 'controller' => 'McpApiConfig', 'controller_url' => 'mcp-api-config', 'directory' => 'settings', 'obs' => 'Assistente MCP (conexão + tools) e integração do chat.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => $mcpGroupId],
+            ['name'=> 'Salvar Configuração API MCP', 'controller' => 'SaveMcpApiConfig', 'controller_url' => 'save-mcp-api-config', 'directory' => 'settings', 'obs' => 'Salvar parâmetros da API MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => $mcpGroupId],
+            ['name'=> 'Tools do Assistente MCP', 'controller' => 'ListMcpChatTools', 'controller_url' => 'list-mcp-chat-tools', 'directory' => 'settings', 'obs' => 'Aba Tools em mcp-api-config (redirect). Catálogo RH + relatórios dinâmicos.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => $mcpGroupId],
+            ['name'=> 'Salvar Tool do Assistente MCP', 'controller' => 'SaveMcpChatTool', 'controller_url' => 'save-mcp-chat-tool', 'directory' => 'settings', 'obs' => 'Salvar metadados de relatório no chat MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => $mcpGroupId],
             ['name'=> 'Configuração Push (PWA)', 'controller' => 'PushConfig', 'controller_url' => 'push-config', 'directory' => 'settings', 'obs' => 'Configuração VAPID e ativação de Web Push no PWA.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Gerar chaves VAPID Push', 'controller' => 'GeneratePushVapidKeys', 'controller_url' => 'generate-push-vapid-keys', 'directory' => 'settings', 'obs' => 'Gerar par de chaves VAPID para Web Push.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Salvar Configuração Push', 'controller' => 'SavePushConfig', 'controller_url' => 'save-push-config', 'directory' => 'settings', 'obs' => 'Salvar subject VAPID e status do Web Push.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Testar Notificação Push', 'controller' => 'TestPushNotification', 'controller_url' => 'test-push-notification', 'directory' => 'settings', 'obs' => 'Enviar notificação push de teste ao usuário logado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
             ['name'=> 'Limpar inscrições push inválidas', 'controller' => 'PrunePushSubscriptions', 'controller_url' => 'prune-push-subscriptions', 'directory' => 'settings', 'obs' => 'Verificar e remover inscrições Web Push expiradas (410/404).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 26],
-            ['name'=> 'Chat MCP (Assistente)', 'controller' => 'McpChat', 'controller_url' => 'mcp-chat', 'directory' => 'settings', 'obs' => 'Permissão para usar o chat integrado ao servidor MCP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
+            ['name'=> 'Chat MCP (Assistente)', 'controller' => 'McpChat', 'controller_url' => 'mcp-chat', 'directory' => 'settings', 'obs' => 'Permissão para usar o chat Tiarajuzinho (vários departamentos).', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => $mcpGroupId],
             ['name'=> 'Calendário e Feriados', 'controller' => 'CalendarConfig', 'controller_url' => 'calendar-config', 'directory' => 'settings', 'obs' => 'Configuração de calendário de trabalho e feriados.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             ['name'=> 'Enviar WhatsApp CRM', 'controller' => 'CrmSendWhatsApp', 'controller_url' => 'crm-send-whatsapp', 'directory' => 'crm', 'obs' => 'Enviar mensagem WhatsApp do CRM.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 34],
             
@@ -1390,6 +1399,25 @@ class AddAdmsPages extends BaseSeed
                 fn (string $sql) => $this->execute($sql),
                 $now
             );
+        }
+
+        // Garantir páginas MCP no grupo Configurações (fora do CRM).
+        if ($mcpGroupId > 0) {
+            $mcpControllers = [
+                'McpApiConfig',
+                'SaveMcpApiConfig',
+                'ListMcpChatTools',
+                'SaveMcpChatTool',
+                'McpChat',
+            ];
+            foreach ($mcpControllers as $ctrl) {
+                $c = str_replace("'", "''", $ctrl);
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET adms_groups_page_id = {$mcpGroupId}, updated_at = NOW()
+                     WHERE controller = '{$c}'"
+                );
+            }
         }
     }
 

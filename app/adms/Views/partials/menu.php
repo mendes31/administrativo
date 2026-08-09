@@ -126,16 +126,16 @@ $menus = [
                             'icon' => 'fas fa-link'
                         ],
                         [
-                            'label' => 'Configuração API MCP',
+                            'label' => 'Assistente MCP',
                             'url' => $_ENV['URL_ADM'] . 'mcp-api-config',
                             'permission' => 'McpApiConfig',
-                            'icon' => 'fas fa-robot'
-                        ],
-                        [
-                            'label' => 'Tools do Assistente MCP',
-                            'url' => $_ENV['URL_ADM'] . 'list-mcp-chat-tools',
-                            'permission' => 'ListMcpChatTools',
-                            'icon' => 'fas fa-toolbox'
+                            'icon' => 'fas fa-robot',
+                            'related_routes' => [
+                                'mcp-api-config',
+                                'save-mcp-api-config',
+                                'list-mcp-chat-tools',
+                                'save-mcp-chat-tool',
+                            ],
                         ],
                         [
                             'label' => 'Configuração Push (PWA)',
@@ -165,7 +165,7 @@ $menus = [
                             ],
                         ],
                     ]
-                ],             
+                ],
                
                 [
                     'label' => 'Logs',
