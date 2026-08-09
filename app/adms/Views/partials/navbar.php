@@ -43,10 +43,11 @@ if (!empty($_SESSION['user_id'])) {
     ?>
     <?php if ($showMobileBackInNavbar): ?>
         <button type="button"
+                id="navbarMobileBackBtn"
                 class="btn btn-link btn-sm d-inline d-md-none me-2"
                 aria-label="Voltar"
                 title="Voltar"
-                onclick="if (window.history.length > 1) { window.history.back(); } else { window.location.href='<?php echo $_ENV['URL_ADM']; ?>dashboard'; }">
+                onclick="if (window.tjzTryCloseChat && window.tjzTryCloseChat()) { return; } if (window.history.length > 1) { window.history.back(); } else { window.location.href='<?php echo $_ENV['URL_ADM']; ?>dashboard'; }">
             <i class="fas fa-arrow-left text-white" aria-hidden="true"></i>
         </button>
     <?php endif; ?>
@@ -258,13 +259,21 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=16">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=17">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
-<button class="btn tjz-fab d-md-none" type="button"
+<button class="btn tjz-fab" type="button" id="tjzFabBtn"
         data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
         title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
     <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="52" height="52">
 </button>
+<script>
+(function () {
+    var fab = document.getElementById('tjzFabBtn');
+    if (fab && fab.parentElement !== document.body) {
+        document.body.appendChild(fab);
+    }
+})();
+</script>
 <div class="offcanvas offcanvas-end tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
     <div class="offcanvas-header">
         <h5 class="offcanvas-title" id="mcpChatOffcanvasLabel">
@@ -1172,6 +1181,53 @@ if (!empty($_SESSION['user_id'])) {
             form.dispatchEvent(new Event('submit', { cancelable: true }));
         }
     });
+
+    // Mobile: botão voltar do sistema/navegador fecha o chat em vez de sair do Portal.
+    const offcanvasEl = document.getElementById('mcpChatOffcanvas');
+    let tjzChatHistoryOpen = false;
+    let tjzClosingFromPopstate = false;
+
+    window.tjzTryCloseChat = function () {
+        if (!offcanvasEl || !offcanvasEl.classList.contains('show') || typeof bootstrap === 'undefined') {
+            return false;
+        }
+        const inst = bootstrap.Offcanvas.getInstance(offcanvasEl) || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+        inst.hide();
+        return true;
+    };
+
+    if (offcanvasEl && typeof bootstrap !== 'undefined') {
+        offcanvasEl.addEventListener('shown.bs.offcanvas', function () {
+            if (!tjzChatHistoryOpen) {
+                history.pushState({ tjzChat: 1 }, '', location.href);
+                tjzChatHistoryOpen = true;
+            }
+        });
+
+        offcanvasEl.addEventListener('hidden.bs.offcanvas', function () {
+            if (tjzClosingFromPopstate) {
+                tjzClosingFromPopstate = false;
+                tjzChatHistoryOpen = false;
+                return;
+            }
+            if (tjzChatHistoryOpen && history.state && history.state.tjzChat) {
+                tjzChatHistoryOpen = false;
+                history.back();
+            } else {
+                tjzChatHistoryOpen = false;
+            }
+        });
+
+        window.addEventListener('popstate', function () {
+            if (!offcanvasEl.classList.contains('show')) {
+                return;
+            }
+            tjzClosingFromPopstate = true;
+            tjzChatHistoryOpen = false;
+            const inst = bootstrap.Offcanvas.getInstance(offcanvasEl) || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
+            inst.hide();
+        });
+    }
 })();
 </script>
 <?php endif; ?>

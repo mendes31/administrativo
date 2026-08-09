@@ -780,9 +780,9 @@
     }
     
     /* Elementos do conteúdo sempre clicáveis mas abaixo do menu */
-    #layoutSidenav_content *:not(.modal):not(.modal *),
+    #layoutSidenav_content *:not(.modal):not(.modal *):not(.tjz-fab):not(.tjz-fab *),
     #layoutSidenav_content form:not(.modal *),
-    #layoutSidenav_content button:not(.modal *),
+    #layoutSidenav_content button:not(.modal *):not(.tjz-fab),
     #layoutSidenav_content input:not(.modal *),
     #layoutSidenav_content select:not(.modal *),
     #layoutSidenav_content a:not(.modal *) {
@@ -894,9 +894,9 @@
         z-index: 1;
     }
     
-    #layoutSidenav_content *:not(.modal):not(.modal *),
+    #layoutSidenav_content *:not(.modal):not(.modal *):not(.tjz-fab):not(.tjz-fab *),
     #layoutSidenav_content form:not(.modal *),
-    #layoutSidenav_content button:not(.modal *),
+    #layoutSidenav_content button:not(.modal *):not(.tjz-fab),
     #layoutSidenav_content input:not(.modal *),
     #layoutSidenav_content select:not(.modal *),
     #layoutSidenav_content a:not(.modal *) {
