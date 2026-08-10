@@ -14,13 +14,13 @@ if (!empty($acesso['sistema_equipamento_tag'])) {
     $sistemaLabel .= ' · ' . (string) $acesso['sistema_equipamento_tag'];
 }
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Editar Acesso (TI)</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?= htmlspecialchars($url . 'ti-sistemas', ENT_QUOTES, 'UTF-8') ?>">Sistemas</a></li>
+<div class="container-fluid px-2 px-md-4">
+    <div class="mb-1 d-flex flex-column flex-sm-row gap-1 gap-sm-2">
+        <h2 class="mt-2 mt-sm-3 mb-1 h3">Editar Acesso (TI)</h2>
+        <ol class="breadcrumb mb-2 mb-sm-3 mt-0 mt-sm-3 ms-sm-auto small">
+            <li class="breadcrumb-item"><a href="<?= htmlspecialchars($url . 'ti-sistemas', ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none">Sistemas</a></li>
             <?php if ($sistemaId > 0): ?>
-                <li class="breadcrumb-item"><a href="<?= htmlspecialchars($url . 'ti-sistemas-view/' . $sistemaId, ENT_QUOTES, 'UTF-8') ?>">#<?= $sistemaId ?></a></li>
+                <li class="breadcrumb-item"><a href="<?= htmlspecialchars($url . 'ti-sistemas-view/' . $sistemaId, ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none">#<?= $sistemaId ?></a></li>
             <?php endif; ?>
             <li class="breadcrumb-item active">Editar acesso</li>
         </ol>
@@ -40,17 +40,21 @@ if (!empty($acesso['sistema_equipamento_tag'])) {
                 </div>
             <?php endif; ?>
 
-            <div class="row g-3 mb-3">
-                <div class="col-md-6">
-                    <strong>Colaborador</strong><br>
-                    <?= htmlspecialchars((string) ($acesso['usuario_nome'] ?? '—'), ENT_QUOTES, 'UTF-8') ?>
-                    <?php if (!empty($acesso['usuario_username'])): ?>
-                        <span class="text-muted small">(<?= htmlspecialchars((string) $acesso['usuario_username'], ENT_QUOTES, 'UTF-8') ?>)</span>
-                    <?php endif; ?>
-                </div>
-                <div class="col-md-6">
-                    <strong>Sistema</strong><br>
-                    <?= htmlspecialchars($sistemaLabel, ENT_QUOTES, 'UTF-8') ?>
+            <div class="user-view-panel mb-3">
+                <div class="user-view-panel-body">
+                    <div class="user-view-row">
+                        <div class="user-view-row-label">Colaborador</div>
+                        <div class="user-view-row-value">
+                            <?= htmlspecialchars((string) ($acesso['usuario_nome'] ?? '—'), ENT_QUOTES, 'UTF-8') ?>
+                            <?php if (!empty($acesso['usuario_username'])): ?>
+                                <span class="text-muted fw-normal small">(<?= htmlspecialchars((string) $acesso['usuario_username'], ENT_QUOTES, 'UTF-8') ?>)</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                    <div class="user-view-row">
+                        <div class="user-view-row-label">Sistema</div>
+                        <div class="user-view-row-value"><?= htmlspecialchars($sistemaLabel, ENT_QUOTES, 'UTF-8') ?></div>
+                    </div>
                 </div>
             </div>
             <p class="text-muted small">Colaborador e sistema não mudam aqui. Para trocar a pessoa, inative este vínculo e libere um novo acesso.</p>
@@ -59,19 +63,19 @@ if (!empty($acesso['sistema_equipamento_tag'])) {
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="return_to" value="<?= htmlspecialchars($returnTo, ENT_QUOTES, 'UTF-8') ?>">
 
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="login_externo" class="form-label">Login no sistema</label>
                     <input type="text" name="login_externo" id="login_externo" class="form-control" maxlength="120"
                            value="<?= htmlspecialchars((string) ($form['login_externo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="Usuário naquele equipamento">
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="perfil_obs" class="form-label">Perfil / função</label>
                     <input type="text" name="perfil_obs" id="perfil_obs" class="form-control" maxlength="180"
                            value="<?= htmlspecialchars((string) ($form['perfil_obs'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="Operador, consulta…">
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="data_liberacao" class="form-label">Data de liberação</label>
                     <input type="date" name="data_liberacao" id="data_liberacao" class="form-control"
                            value="<?= htmlspecialchars((string) ($form['data_liberacao'] ?? date('Y-m-d')), ENT_QUOTES, 'UTF-8') ?>">
@@ -80,7 +84,7 @@ if (!empty($acesso['sistema_equipamento_tag'])) {
                     <label for="observacoes" class="form-label">Observações</label>
                     <textarea name="observacoes" id="observacoes" class="form-control" rows="2"><?= htmlspecialchars((string) ($form['observacoes'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
-                <div class="col-12">
+                <div class="col-12 d-flex flex-column flex-sm-row gap-2">
                     <button type="submit" class="btn btn-warning btn-sm"><i class="fa-regular fa-pen-to-square me-1"></i>Salvar</button>
                     <a href="<?= htmlspecialchars($cancelUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-secondary btn-sm">Cancelar</a>
                 </div>

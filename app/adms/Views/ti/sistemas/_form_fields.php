@@ -11,7 +11,7 @@ $isEdit = !empty($form['id']) || !empty($sistemaId);
 $codigoAtual = trim((string) ($form['codigo'] ?? ''));
 $codigoPreview = trim((string) ($codigoPreview ?? ''));
 ?>
-<div class="col-md-3">
+<div class="col-12 col-md-3">
     <label for="codigo" class="form-label">Código interno</label>
     <?php if ($isEdit && $codigoAtual !== ''): ?>
         <input type="text" id="codigo" class="form-control" value="<?= htmlspecialchars($codigoAtual, ENT_QUOTES, 'UTF-8') ?>" readonly disabled>
@@ -22,13 +22,13 @@ $codigoPreview = trim((string) ($codigoPreview ?? ''));
         <div class="form-text">Gerado automaticamente ao salvar (sequencial).</div>
     <?php endif; ?>
 </div>
-<div class="col-md-5">
+<div class="col-12 col-md-5">
     <label for="nome" class="form-label">Nome do sistema / software <span class="text-danger">*</span></label>
     <input type="text" name="nome" id="nome" class="form-control" required maxlength="180"
            value="<?= htmlspecialchars((string) ($form['nome'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
            placeholder="Ex.: IHM Siemens, Portal RH">
 </div>
-<div class="col-md-2">
+<div class="col-6 col-md-2">
     <label for="tipo" class="form-label">Tipo</label>
     <select name="tipo" id="tipo" class="form-select">
         <?php foreach ($tipos as $t): ?>
@@ -38,7 +38,7 @@ $codigoPreview = trim((string) ($codigoPreview ?? ''));
         <?php endforeach; ?>
     </select>
 </div>
-<div class="col-md-2">
+<div class="col-6 col-md-2">
     <label for="status" class="form-label">Status</label>
     <select name="status" id="status" class="form-select">
         <option value="ativo" <?= ($form['status'] ?? 'ativo') === 'ativo' ? 'selected' : '' ?>>Ativo</option>
@@ -46,7 +46,7 @@ $codigoPreview = trim((string) ($codigoPreview ?? ''));
     </select>
 </div>
 
-<div class="col-md-4">
+<div class="col-12 col-md-4">
     <label for="adms_branch_id" class="form-label">Filial</label>
     <select name="adms_branch_id" id="adms_branch_id" class="form-select">
         <option value="">Selecione…</option>
@@ -69,13 +69,13 @@ $codigoPreview = trim((string) ($codigoPreview ?? ''));
     </select>
     <div class="form-text">Unidade onde o sistema/equipamento está instalado.</div>
 </div>
-<div class="col-md-4">
+<div class="col-12 col-md-4">
     <label for="localizacao" class="form-label">Localização / área</label>
     <input type="text" name="localizacao" id="localizacao" class="form-control" maxlength="180"
            value="<?= htmlspecialchars((string) ($form['localizacao'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
            placeholder="Ex.: Linha 1, Portaria, Almoxarifado">
 </div>
-<div class="col-md-4">
+<div class="col-12 col-md-4">
     <label for="equipamento_tag" class="form-label">
         Tag do equipamento
         <span class="text-danger ti-embarcado-required<?= $isEmbarcado ? '' : ' d-none' ?>">*</span>
@@ -89,17 +89,17 @@ $codigoPreview = trim((string) ($codigoPreview ?? ''));
 
 <div id="ti-embarcado-extra" class="col-12<?= $isEmbarcado ? '' : ' d-none' ?>">
     <div class="row g-3">
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <label for="fabricante" class="form-label">Fabricante</label>
             <input type="text" name="fabricante" id="fabricante" class="form-control" maxlength="120"
                    value="<?= htmlspecialchars((string) ($form['fabricante'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <label for="modelo" class="form-label">Modelo</label>
             <input type="text" name="modelo" id="modelo" class="form-control" maxlength="120"
                    value="<?= htmlspecialchars((string) ($form['modelo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>">
         </div>
-        <div class="col-md-4">
+        <div class="col-12 col-md-4">
             <label for="numero_serie" class="form-label">Nº de série / ref. patrimônio</label>
             <input type="text" name="numero_serie" id="numero_serie" class="form-control" maxlength="120"
                    value="<?= htmlspecialchars((string) ($form['numero_serie'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"

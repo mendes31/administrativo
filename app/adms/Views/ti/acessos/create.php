@@ -8,12 +8,15 @@ $sistemas = $this->data['sistemas'] ?? [];
 $usuarios = $this->data['usuarios'] ?? [];
 $returnTo = (string) ($this->data['return_to'] ?? '');
 $csrf = CSRFHelper::generateCSRFToken('form_ti_acesso');
+$cancelUrl = ($returnTo !== '' && str_starts_with($returnTo, $url))
+    ? $returnTo
+    : ($url . 'ti-sistemas');
 ?>
-<div class="container-fluid px-4">
-    <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3">Liberar Acesso (TI)</h2>
-        <ol class="breadcrumb mb-3 mt-3 ms-auto">
-            <li class="breadcrumb-item"><a href="<?= htmlspecialchars($url . 'ti-sistemas', ENT_QUOTES, 'UTF-8') ?>">Sistemas</a></li>
+<div class="container-fluid px-2 px-md-4">
+    <div class="mb-1 d-flex flex-column flex-sm-row gap-1 gap-sm-2">
+        <h2 class="mt-2 mt-sm-3 mb-1 h3">Liberar Acesso (TI)</h2>
+        <ol class="breadcrumb mb-2 mb-sm-3 mt-0 mt-sm-3 ms-sm-auto small">
+            <li class="breadcrumb-item"><a href="<?= htmlspecialchars($url . 'ti-sistemas', ENT_QUOTES, 'UTF-8') ?>" class="text-decoration-none">Sistemas</a></li>
             <li class="breadcrumb-item active">Liberar acesso</li>
         </ol>
     </div>
@@ -37,7 +40,7 @@ $csrf = CSRFHelper::generateCSRFToken('form_ti_acesso');
                 <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
                 <input type="hidden" name="return_to" value="<?= htmlspecialchars($returnTo, ENT_QUOTES, 'UTF-8') ?>">
 
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="adms_user_id" class="form-label">Colaborador <span class="text-danger">*</span></label>
                     <select name="adms_user_id" id="adms_user_id" class="form-select" required>
                         <option value="">Selecione…</option>
@@ -48,7 +51,7 @@ $csrf = CSRFHelper::generateCSRFToken('form_ti_acesso');
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-6">
+                <div class="col-12 col-md-6">
                     <label for="ti_sistema_id" class="form-label">Sistema <span class="text-danger">*</span></label>
                     <select name="ti_sistema_id" id="ti_sistema_id" class="form-select" required>
                         <option value="">Selecione…</option>
@@ -59,19 +62,19 @@ $csrf = CSRFHelper::generateCSRFToken('form_ti_acesso');
                         <?php endforeach; ?>
                     </select>
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="login_externo" class="form-label">Login no sistema</label>
                     <input type="text" name="login_externo" id="login_externo" class="form-control" maxlength="120"
                            value="<?= htmlspecialchars((string) ($form['login_externo'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="Usuário naquele equipamento">
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="perfil_obs" class="form-label">Perfil / função</label>
                     <input type="text" name="perfil_obs" id="perfil_obs" class="form-control" maxlength="180"
                            value="<?= htmlspecialchars((string) ($form['perfil_obs'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
                            placeholder="Operador, consulta…">
                 </div>
-                <div class="col-md-4">
+                <div class="col-12 col-md-4">
                     <label for="data_liberacao" class="form-label">Data de liberação</label>
                     <input type="date" name="data_liberacao" id="data_liberacao" class="form-control"
                            value="<?= htmlspecialchars((string) ($form['data_liberacao'] ?? date('Y-m-d')), ENT_QUOTES, 'UTF-8') ?>">
@@ -80,9 +83,9 @@ $csrf = CSRFHelper::generateCSRFToken('form_ti_acesso');
                     <label for="observacoes" class="form-label">Observações</label>
                     <textarea name="observacoes" id="observacoes" class="form-control" rows="2"><?= htmlspecialchars((string) ($form['observacoes'] ?? ''), ENT_QUOTES, 'UTF-8') ?></textarea>
                 </div>
-                <div class="col-12">
+                <div class="col-12 d-flex flex-column flex-sm-row gap-2">
                     <button type="submit" class="btn btn-success btn-sm">Liberar</button>
-                    <a href="<?= htmlspecialchars($url . 'ti-sistemas', ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-secondary btn-sm">Cancelar</a>
+                    <a href="<?= htmlspecialchars($cancelUrl, ENT_QUOTES, 'UTF-8') ?>" class="btn btn-outline-secondary btn-sm">Cancelar</a>
                 </div>
             </form>
         </div>
