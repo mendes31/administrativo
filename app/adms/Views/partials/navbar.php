@@ -259,7 +259,7 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=19">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=20">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
 <button class="btn tjz-fab" type="button" id="tjzFabBtn"
         data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
@@ -510,25 +510,75 @@ if (!empty($_SESSION['user_id'])) {
         return bubble;
     }
 
+    function buildCompactListHtml(rows, options) {
+        if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
+            return '';
+        }
+        const opts = options || {};
+        const maxRows = opts.maxRows || 40;
+        const cols = Object.keys(rows[0]);
+        const titleKey = cols.find(function (c) {
+            return /^(nome|name|descri[cç][aã]o|titulo|t[ií]tulo|item)$/i.test(c);
+        }) || cols[0];
+        const metaKeys = cols.filter(function (c) { return c !== titleKey; });
+
+        let html = '<div class="tjz-list-wrap mt-2">';
+        rows.slice(0, maxRows).forEach(function (row, idx) {
+            let titleVal = row[titleKey];
+            if (titleVal !== null && typeof titleVal === 'object') {
+                titleVal = JSON.stringify(titleVal);
+            }
+            html += '<article class="tjz-list-item">';
+            html += '<div class="tjz-list-item-head">';
+            html += '<span class="tjz-list-idx">' + (idx + 1) + '</span>';
+            html += '<strong class="tjz-list-title">' + escapeHtml(titleVal == null || titleVal === '' ? '—' : titleVal) + '</strong>';
+            html += '</div>';
+            if (metaKeys.length) {
+                html += '<dl class="tjz-list-fields">';
+                metaKeys.forEach(function (k) {
+                    let v = row[k];
+                    if (v !== null && typeof v === 'object') {
+                        v = JSON.stringify(v);
+                    }
+                    if (v == null || v === '' || v === '—') {
+                        return;
+                    }
+                    html += '<div class="tjz-list-field"><dt>' + escapeHtml(k) + '</dt><dd>' + escapeHtml(v) + '</dd></div>';
+                });
+                html += '</dl>';
+            }
+            html += '</article>';
+        });
+        if (rows.length > maxRows) {
+            html += '<div class="tjz-table-more">… e mais ' + (rows.length - maxRows) + ' linha(s) no Excel/CSV</div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
     function buildTableHtml(rows, options) {
         if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
             return '';
         }
         const opts = options || {};
-        const maxRows = opts.maxRows || (opts.compact ? 40 : 15);
+        if (opts.compact) {
+            return buildCompactListHtml(rows, opts);
+        }
+        const maxRows = opts.maxRows || 15;
         const cols = Object.keys(rows[0]);
-        let html = '<div class="tjz-table-wrap mt-2"><table class="table table-sm table-bordered mb-0 bg-white tjz-data-table">';
+        let html = '<div class="tjz-table-wrap mt-2" tabindex="0" role="region" aria-label="Tabela do resultado (deslize horizontalmente se necessário)"><table class="table table-sm table-bordered mb-0 bg-white tjz-data-table">';
         html += '<thead><tr>' + cols.map(function (c) {
             return '<th>' + escapeHtml(c) + '</th>';
         }).join('') + '</tr></thead><tbody>';
         rows.slice(0, maxRows).forEach(function (row) {
             html += '<tr>';
-            cols.forEach(function (c) {
+            cols.forEach(function (c, colIdx) {
                 let v = row[c];
                 if (v !== null && typeof v === 'object') {
                     v = JSON.stringify(v);
                 }
-                html += '<td>' + escapeHtml(v == null ? '' : v) + '</td>';
+                const wrapClass = colIdx === 0 ? ' class="tjz-cell-primary"' : '';
+                html += '<td' + wrapClass + '>' + escapeHtml(v == null ? '' : v) + '</td>';
             });
             html += '</tr>';
         });
@@ -1094,6 +1144,8 @@ if (!empty($_SESSION['user_id'])) {
             || (typeof payload.tool === 'string' && payload.tool.indexOf('rooms.') === 0);
         if (!skipTable && Array.isArray(data.rows) && data.rows.length) {
             const compact = !!(data.ui && data.ui.compact_table);
+            bubble.classList.add('tjz-bubble-bot--data');
+            bubble.style.maxWidth = '';
             bubble.insertAdjacentHTML('beforeend', buildTableHtml(data.rows, { compact: compact }));
         }
 
