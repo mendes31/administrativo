@@ -34,7 +34,7 @@
     <dt>“Já existe um acesso ativo”</dt>
     <dd>Revogue o vínculo atual antes de liberar de novo o mesmo colaborador no mesmo sistema.</dd>
     <dt>Não vejo o botão Editar</dt>
-    <dd>Inclua <em>TiAcessosUpdate</em> no nível (a migration copia a ACL de quem já tem <em>TiAcessosCreate</em>). Só acessos ativos podem ser editados.</dd>
+    <dd>A página é <em>Editar Acesso (TI)</em> (<code>TiAcessosUpdate</code> / <code>ti-acessos-update</code>), no grupo <em>TI - Sistemas e Acessos</em>. Quem já tinha <em>TiAcessosCreate</em> na data da migration recebe a cópia automática; se liberou «Liberar acesso» depois, marque também <em>Editar Acesso (TI)</em> no nível (ou rode a migration <code>20260810163000_sync_ti_acessos_update_acl_from_create</code>). Só acessos ativos podem ser editados.</dd>
     <dt>Quero trocar o colaborador do vínculo</dt>
     <dd>Inative o acesso atual e libere um novo com a pessoa correta.</dd>
     <dt>Offboarding não deixa concluir “Revogar acessos”</dt>

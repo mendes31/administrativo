@@ -75,6 +75,7 @@ class PagesRepository extends DbConnection
         $sql = 'SELECT 
                     ap.id, 
                     ap.name, 
+                    ap.controller,
                     ap.controller_url, 
                     ap.page_status, 
                     ap.public_page, 
