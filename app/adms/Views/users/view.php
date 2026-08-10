@@ -466,6 +466,7 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                     $tiAcessosView = is_array($this->data['ti_acessos'] ?? null) ? $this->data['ti_acessos'] : [];
                     $csrfTiRevokeView = CSRFHelper::generateCSRFToken('form_ti_acesso_revoke');
                     $canRevokeView = in_array('TiAcessosRevoke', $perms, true);
+                    $canUpdateAcessoView = in_array('TiAcessosUpdate', $perms, true);
                     ?>
                     <div class="user-view-section-head mb-3">
                         <p class="text-muted small mb-0">Mapa TI de sistemas/equipamentos (não é a ACL de páginas deste Portal).</p>
@@ -486,7 +487,7 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                                         <th>Login</th>
                                         <th>Situação</th>
                                         <th>Local</th>
-                                        <?php if ($canRevokeView): ?><th></th><?php endif; ?>
+                                        <?php if ($canUpdateAcessoView || $canRevokeView): ?><th></th><?php endif; ?>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -510,10 +511,14 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                                                     <div class="small text-muted"><?= htmlspecialchars((string) $a['sistema_filial_nome'], ENT_QUOTES, 'UTF-8') ?></div>
                                                 <?php endif; ?>
                                             </td>
-                                            <?php if ($canRevokeView): ?>
-                                                <td>
-                                                    <?php if (($a['status'] ?? '') === 'ativo'): ?>
-                                                        <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>"
+                                            <?php if ($canUpdateAcessoView || $canRevokeView): ?>
+                                                <td class="text-nowrap">
+                                                    <?php if (($a['status'] ?? '') === 'ativo' && $canUpdateAcessoView): ?>
+                                                        <a href="<?= htmlspecialchars($urlAdm . 'ti-acessos-update/' . (int) $a['id'] . '?return=' . rawurlencode($urlAdm . 'view-user/' . $userId . '?tab=acessos'), ENT_QUOTES, 'UTF-8') ?>"
+                                                           class="btn btn-outline-warning btn-sm">Editar</a>
+                                                    <?php endif; ?>
+                                                    <?php if (($a['status'] ?? '') === 'ativo' && $canRevokeView): ?>
+                                                        <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>" class="d-inline"
                                                               onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
                                                             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTiRevokeView, ENT_QUOTES, 'UTF-8') ?>">
                                                             <input type="hidden" name="return_to" value="<?= htmlspecialchars($urlAdm . 'view-user/' . $userId . '?tab=acessos', ENT_QUOTES, 'UTF-8') ?>">
@@ -545,13 +550,21 @@ $editTab = $activeTab === 'historico' ? 'usuario' : $activeTab;
                                         <div><dt>Login</dt><dd class="text-break"><?= htmlspecialchars((string) ($a['login_externo'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
                                         <div><dt>Local</dt><dd class="text-break"><?= htmlspecialchars((string) ($a['sistema_localizacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
                                     </dl>
-                                    <?php if ($canRevokeView && ($a['status'] ?? '') === 'ativo'): ?>
-                                        <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>"
-                                              onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
-                                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTiRevokeView, ENT_QUOTES, 'UTF-8') ?>">
-                                            <input type="hidden" name="return_to" value="<?= htmlspecialchars($urlAdm . 'view-user/' . $userId . '?tab=acessos', ENT_QUOTES, 'UTF-8') ?>">
-                                            <button type="submit" class="btn btn-outline-danger btn-sm w-100">Inativar</button>
-                                        </form>
+                                    <?php if (($canUpdateAcessoView || $canRevokeView) && ($a['status'] ?? '') === 'ativo'): ?>
+                                        <div class="d-flex gap-2 mt-2">
+                                            <?php if ($canUpdateAcessoView): ?>
+                                                <a href="<?= htmlspecialchars($urlAdm . 'ti-acessos-update/' . (int) $a['id'] . '?return=' . rawurlencode($urlAdm . 'view-user/' . $userId . '?tab=acessos'), ENT_QUOTES, 'UTF-8') ?>"
+                                                   class="btn btn-outline-warning btn-sm flex-fill">Editar</a>
+                                            <?php endif; ?>
+                                            <?php if ($canRevokeView): ?>
+                                                <form method="post" action="<?= htmlspecialchars($urlAdm . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>" class="flex-fill"
+                                                      onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
+                                                    <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfTiRevokeView, ENT_QUOTES, 'UTF-8') ?>">
+                                                    <input type="hidden" name="return_to" value="<?= htmlspecialchars($urlAdm . 'view-user/' . $userId . '?tab=acessos', ENT_QUOTES, 'UTF-8') ?>">
+                                                    <button type="submit" class="btn btn-outline-danger btn-sm w-100">Inativar</button>
+                                                </form>
+                                            <?php endif; ?>
+                                        </div>
                                     <?php endif; ?>
                                 </article>
                             <?php endforeach; ?>

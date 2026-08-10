@@ -34,7 +34,7 @@ final class TiSistemasView
         $pageElements = [
             'title_head' => 'Sistema (TI)',
             'menu' => 'ti-sistemas',
-            'buttonPermission' => ['TiSistemas', 'TiSistemasUpdate', 'TiAcessosCreate', 'TiAcessosRevoke'],
+            'buttonPermission' => ['TiSistemas', 'TiSistemasUpdate', 'TiAcessosCreate', 'TiAcessosUpdate', 'TiAcessosRevoke'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/ti/sistemas/view', $this->data))->loadView();

@@ -632,6 +632,7 @@ $form = $this->data['form'] ?? [];
             $urlAdm = (string) ($_ENV['URL_ADM'] ?? '');
             $userIdForm = (int) ($form['id'] ?? 0);
             $canCreateAcesso = in_array('TiAcessosCreate', $this->data['buttonPermission'] ?? [], true);
+            $canUpdateAcesso = in_array('TiAcessosUpdate', $this->data['buttonPermission'] ?? [], true);
             $canRevokeAcesso = in_array('TiAcessosRevoke', $this->data['buttonPermission'] ?? [], true);
         ?>
         <div class="tab-pane fade <?php echo $activeTab === 'acessos' ? 'show active' : ''; ?>" id="tab-acessos" role="tabpanel">
@@ -660,7 +661,7 @@ $form = $this->data['form'] ?? [];
                                 <th>Situação</th>
                                 <th>Liberação</th>
                                 <th>Revogação</th>
-                                <?php if ($canRevokeAcesso): ?><th></th><?php endif; ?>
+                                <?php if ($canUpdateAcesso || $canRevokeAcesso): ?><th></th><?php endif; ?>
                             </tr>
                         </thead>
                         <tbody>
@@ -691,9 +692,13 @@ $form = $this->data['form'] ?? [];
                                     </td>
                                     <td><?= htmlspecialchars((string) ($a['data_liberacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars((string) ($a['data_revogacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <?php if ($canRevokeAcesso): ?>
-                                        <td>
-                                            <?php if (($a['status'] ?? '') === 'ativo'): ?>
+                                    <?php if ($canUpdateAcesso || $canRevokeAcesso): ?>
+                                        <td class="text-nowrap">
+                                            <?php if (($a['status'] ?? '') === 'ativo' && $canUpdateAcesso): ?>
+                                                <a href="<?= htmlspecialchars($urlAdm . 'ti-acessos-update/' . (int) $a['id'] . '?return=' . rawurlencode($urlAdm . 'update-user/' . $userIdForm . '?tab=acessos'), ENT_QUOTES, 'UTF-8') ?>"
+                                                   class="btn btn-outline-warning btn-sm">Editar</a>
+                                            <?php endif; ?>
+                                            <?php if (($a['status'] ?? '') === 'ativo' && $canRevokeAcesso): ?>
                                                 <button type="submit" form="formTiAcessoRevoke<?= (int) $a['id'] ?>" class="btn btn-outline-danger btn-sm">Inativar</button>
                                             <?php endif; ?>
                                         </td>
@@ -725,8 +730,16 @@ $form = $this->data['form'] ?? [];
                                 <div><dt>Liberação</dt><dd><?= htmlspecialchars((string) ($a['data_liberacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
                                 <div><dt>Revogação</dt><dd><?= htmlspecialchars((string) ($a['data_revogacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></dd></div>
                             </dl>
-                            <?php if ($canRevokeAcesso && ($a['status'] ?? '') === 'ativo'): ?>
-                                <button type="submit" form="formTiAcessoRevoke<?= (int) $a['id'] ?>" class="btn btn-outline-danger btn-sm w-100">Inativar</button>
+                            <?php if (($canUpdateAcesso || $canRevokeAcesso) && ($a['status'] ?? '') === 'ativo'): ?>
+                                <div class="d-flex gap-2 mt-2">
+                                    <?php if ($canUpdateAcesso): ?>
+                                        <a href="<?= htmlspecialchars($urlAdm . 'ti-acessos-update/' . (int) $a['id'] . '?return=' . rawurlencode($urlAdm . 'update-user/' . $userIdForm . '?tab=acessos'), ENT_QUOTES, 'UTF-8') ?>"
+                                           class="btn btn-outline-warning btn-sm flex-fill">Editar</a>
+                                    <?php endif; ?>
+                                    <?php if ($canRevokeAcesso): ?>
+                                        <button type="submit" form="formTiAcessoRevoke<?= (int) $a['id'] ?>" class="btn btn-outline-danger btn-sm flex-fill">Inativar</button>
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
                         </article>
                     <?php endforeach; ?>

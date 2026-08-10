@@ -77,4 +77,30 @@ final class TiAcessoService
             throw new Exception('Não foi possível revogar o acesso.');
         }
     }
+
+    /**
+     * Edita login/perfil/obs de um acesso ativo (não troca colaborador nem sistema).
+     *
+     * @param array<string, mixed> $input
+     */
+    public function atualizar(int $acessoId, array $input, int $actorId): void
+    {
+        $repo = new TiAcessoRepository();
+        $acesso = $repo->getById($acessoId);
+        if ($acesso === null) {
+            throw new Exception('Acesso não encontrado.');
+        }
+        if (($acesso['status'] ?? '') !== TiAcessoRepository::STATUS_ATIVO) {
+            throw new Exception('Só é possível editar acessos ativos. Para vínculos inativos, liberar um novo acesso.');
+        }
+
+        if (!$repo->updateDetalhes($acessoId, [
+            'login_externo' => $input['login_externo'] ?? null,
+            'perfil_obs' => $input['perfil_obs'] ?? null,
+            'data_liberacao' => $input['data_liberacao'] ?? null,
+            'observacoes' => $input['observacoes'] ?? null,
+        ], $actorId)) {
+            throw new Exception('Não foi possível salvar as alterações do acesso.');
+        }
+    }
 }

@@ -116,9 +116,14 @@ class TiAcessoRepository extends DbConnection
         }
         try {
             $stmt = $this->getConnection()->prepare(
-                'SELECT a.*, s.nome AS sistema_nome
+                'SELECT a.*,
+                        s.nome AS sistema_nome,
+                        s.equipamento_tag AS sistema_equipamento_tag,
+                        u.name AS usuario_nome,
+                        u.username AS usuario_username
                  FROM ti_acessos a
                  LEFT JOIN ti_sistemas s ON s.id = a.ti_sistema_id
+                 LEFT JOIN adms_users u ON u.id = a.adms_user_id
                  WHERE a.id = :id LIMIT 1'
             );
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -235,6 +240,59 @@ class TiAcessoRepository extends DbConnection
             return $ok;
         } catch (Exception $e) {
             GenerateLog::generateLog('error', 'TiAcessoRepository::revogar', ['error' => $e->getMessage()]);
+            return false;
+        }
+    }
+
+    /**
+     * Atualiza login/perfil/observações e data de liberação de um acesso ativo.
+     *
+     * @param array<string, mixed> $data
+     */
+    public function updateDetalhes(int $id, array $data, int $actorId): bool
+    {
+        $antes = $this->getById($id);
+        if ($antes === null || ($antes['status'] ?? '') !== self::STATUS_ATIVO) {
+            return false;
+        }
+
+        try {
+            $login = trim((string) ($data['login_externo'] ?? ''));
+            $perfil = trim((string) ($data['perfil_obs'] ?? ''));
+            $obs = trim((string) ($data['observacoes'] ?? ''));
+            $dataLib = trim((string) ($data['data_liberacao'] ?? ''));
+            if ($dataLib === '') {
+                $dataLib = (string) ($antes['data_liberacao'] ?? date('Y-m-d'));
+            }
+
+            $sql = 'UPDATE ti_acessos SET
+                        login_externo = :login,
+                        perfil_obs = :perfil,
+                        data_liberacao = :data_lib,
+                        observacoes = :obs
+                    WHERE id = :id AND status = \'ativo\'';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':login', $login !== '' ? $login : null, $login !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':perfil', $perfil !== '' ? $perfil : null, $perfil !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':data_lib', $dataLib, PDO::PARAM_STR);
+            $stmt->bindValue(':obs', $obs !== '' ? $obs : null, $obs !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+            $ok = $stmt->execute();
+            if ($ok) {
+                $depois = $this->getById($id) ?? [];
+                LogAlteracaoService::registrarAlteracao(
+                    'ti_acessos',
+                    $id,
+                    $actorId > 0 ? $actorId : 1,
+                    'UPDATE',
+                    $antes,
+                    $depois
+                );
+            }
+
+            return $ok;
+        } catch (Exception $e) {
+            GenerateLog::generateLog('error', 'TiAcessoRepository::updateDetalhes', ['error' => $e->getMessage()]);
             return false;
         }
     }

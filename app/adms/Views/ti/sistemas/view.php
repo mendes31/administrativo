@@ -74,7 +74,7 @@ $perms = $this->data['buttonPermission'] ?? [];
                                 <th>Situação</th>
                                 <th>Liberação</th>
                                 <th>Revogação</th>
-                                <?php if (in_array('TiAcessosRevoke', $perms, true)): ?>
+                                <?php if (in_array('TiAcessosUpdate', $perms, true) || in_array('TiAcessosRevoke', $perms, true)): ?>
                                     <th></th>
                                 <?php endif; ?>
                             </tr>
@@ -96,9 +96,13 @@ $perms = $this->data['buttonPermission'] ?? [];
                                     </td>
                                     <td><?= htmlspecialchars((string) ($a['data_liberacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
                                     <td><?= htmlspecialchars((string) ($a['data_revogacao'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
-                                    <?php if (in_array('TiAcessosRevoke', $perms, true)): ?>
-                                        <td>
-                                            <?php if (($a['status'] ?? '') === 'ativo'): ?>
+                                    <?php if (in_array('TiAcessosUpdate', $perms, true) || in_array('TiAcessosRevoke', $perms, true)): ?>
+                                        <td class="text-nowrap">
+                                            <?php if (($a['status'] ?? '') === 'ativo' && in_array('TiAcessosUpdate', $perms, true)): ?>
+                                                <a href="<?= htmlspecialchars($url . 'ti-acessos-update/' . (int) $a['id'] . '?return=' . rawurlencode($url . 'ti-sistemas-view/' . $sid), ENT_QUOTES, 'UTF-8') ?>"
+                                                   class="btn btn-outline-warning btn-sm">Editar</a>
+                                            <?php endif; ?>
+                                            <?php if (($a['status'] ?? '') === 'ativo' && in_array('TiAcessosRevoke', $perms, true)): ?>
                                                 <form method="post" action="<?= htmlspecialchars($url . 'ti-acessos-revoke/' . (int) $a['id'], ENT_QUOTES, 'UTF-8') ?>" class="d-inline"
                                                       onsubmit="return confirm('Confirmar que a conta foi inativada neste sistema?');">
                                                     <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrfRevoke, ENT_QUOTES, 'UTF-8') ?>">

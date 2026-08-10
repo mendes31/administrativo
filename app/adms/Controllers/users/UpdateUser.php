@@ -151,7 +151,7 @@ class UpdateUser
         $pageElements = [
             'title_head' => 'Editar Usuário',
             'menu' => 'list-users',
-            'buttonPermission' => ['ListUsers', 'ViewUser', 'UpdateUserAccessLevels', 'TiAcessosCreate', 'TiAcessosRevoke', 'TiSistemasView'],
+            'buttonPermission' => ['ListUsers', 'ViewUser', 'UpdateUserAccessLevels', 'TiAcessosCreate', 'TiAcessosUpdate', 'TiAcessosRevoke', 'TiSistemasView'],
         ];
         
         $pageLayoutService = new PageLayoutService();
