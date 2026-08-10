@@ -27,7 +27,12 @@
    - `bloqueados sem desligamento` / `bloqueados mas não desligados`
    - `quantos desligados?`
    - `lista de desligados` / `lista de desligados em janeiro` / `lista desligados Produção`
-   - após um total, digite só `lista`
+   - `itens` / nome do relatório marcado para o chat
+   - depois do relatório, digite só o código (`1000001`, CardCode, DocNum…) para filtrar item/parceiro/documento
+   - ou troque de domínio na mesma frase: `item 43000001`, `parceiro C00001` (não fica preso no relatório anterior)
+   - o filtro consulta o SAP/SQL do relatório (não só as 15 linhas exibidas no chat)
+   - `limpar` / `nova consulta` — zera contexto (lista de pessoas e último relatório)
+
    - `desligados por departamento` / `desligados por departamento 2025`
    - `departamento do Rafael` / `Wladimir está bloqueado?` / `quantos anos de empresa o Wladimir possui?`
    - `ativos na TI` (alias: tecnologia da informação)
@@ -113,6 +118,30 @@ OLLAMA_MODEL=llama3.2
 ```
 
 Perguntas fora das regras locais são roteadas pelo LLM; a execução continua tipada (tools PHP).
+
+## API ERP externa (ex.: vendas `/api/sales`)
+
+O Portal, no modo URL externa, envia:
+
+```json
+{ "message": "texto da pergunta" }
+```
+
+Algumas APIs de ERP/MCP usam outro contrato, por exemplo:
+
+- URL completa: `http://192.168.1.118:5153/api/sales`
+- Corpo: `{ "Message": "Me traga as vendas entre …" }` (chave **Message** com M maiúsculo)
+
+Isso **não** é drop-in na tela Assistente MCP. Para usar:
+
+1. Rede: o PHP/WAMP precisa alcançar o host/porta do ERP.
+2. Adaptador no Portal (ou proxy na frente do ERP) que:
+   - converta `message` → `Message` (ou aceite as duas);
+   - use o path correto (`…/api/sales` se a base sozinha não bastar);
+   - normalize a resposta para o formato que o chat espera (`resposta` / JSON com reply).
+3. Decidir o modelo de uso: **substituir** o MCP atual (só vendas) ou **rotear** por domínio (RH/salas em `local:internal`, vendas no ERP).
+
+Sem esse adaptador, colar só a URL na config tende a falhar (404/400 por path ou por chave do JSON).
 
 ## Próximo passo (depois do piloto)
 

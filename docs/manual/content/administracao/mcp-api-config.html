@@ -22,12 +22,12 @@
     <li>Acesse <strong>Administração → Configurações → Assistente MCP</strong>.</li>
     <li>Na aba <strong>Conexão</strong>, informe <code>local:internal</code> (homologação) ou a URL HTTPS do servidor MCP, ative a integração e salve.</li>
     <li>Na aba <strong>Tools</strong>, consulte as tools internas de RH e libere relatórios dinâmicos (nome da tool, descrição e exemplos).</li>
-    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «salas» ou «relatório [nome]».</li>
+    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «salas», «relatório [nome]» ou «itens». Depois de um relatório, digite só o <strong>código</strong> (item, parceiro, documento) para filtrar as linhas.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>URL da API MCP</strong> Endereço do servidor de agente, ou o valor especial <code>local:internal</code> para o piloto RH no MySQL do Portal.</div>
+<div class="help-field"><strong>URL da API MCP</strong> Endereço do servidor de agente, ou o valor especial <code>local:internal</code> para o piloto RH no MySQL do Portal. Em modo externo, o Portal envia <code>POST</code> com corpo <code>{"message":"…"}</code> (chave em minúsculas) para a URL configurada. APIs ERP que usam <code>{"Message":"…"}</code> (M maiúsculo) ou path fixo (ex.: <code>/api/sales</code>) exigem adaptador/proxy — não bastam colar a URL na tela.</div>
 <div class="help-field"><strong>Ativar integração</strong> Se desmarcado, o chat não aparece / não responde mesmo com URL preenchida.</div>
 <div class="help-field"><strong>Modelo Ollama</strong> Escolhido na aba Conexão (lista via <code>/api/tags</code>). Cada chamada usa um modelo; fallbacks tentam o próximo se o principal falhar. Sem valor na tela, usa <code>OLLAMA_MODEL</code> do <code>.env</code>.</div>
 <div class="help-field"><strong>Disponível no Assistente MCP</strong> Liga ou desliga o relatório no catálogo do chat (aba Tools).</div>

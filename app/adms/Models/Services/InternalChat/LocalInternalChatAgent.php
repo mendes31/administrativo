@@ -72,7 +72,7 @@ class LocalInternalChatAgent
         $this->userId = (int) ($authContext['user_id'] ?? 0);
         $message = trim($message);
         if ($message === '') {
-            return ['resposta' => 'Envie uma pergunta. Exemplos: "quantos colaboradores ativos?", "agendar", "salas".'];
+            return $this->buildUnknownHelpReply('Envie uma pergunta para eu começar.');
         }
 
         // Fluxo guiado de salas (sala → data → horários).
@@ -86,6 +86,10 @@ class LocalInternalChatAgent
             return $this->roomsWizard->start($this->userId);
         }
 
+        if ($this->isGreetingOnly($message)) {
+            return $this->buildGreetingReply($message);
+        }
+
         $intent = $this->detectIntent($message);
         if ($intent === null) {
             $llm = $this->tryLlmInterpret($message);
@@ -95,32 +99,7 @@ class LocalInternalChatAgent
                 return $llm;
             }
 
-            return [
-                'resposta' => "Ainda não entendi no modo local. Experimente:\n"
-                    . "• quantos colaboradores ativos?\n"
-                    . "• quantos colaboradores inativos?\n"
-                    . "• inativos em janeiro\n"
-                    . "• desligados 2025\n"
-                    . "• quantos usuários bloqueados?\n"
-                    . "• bloqueados sem desligamento\n"
-                    . "• lista de desligados / lista de desligados em janeiro / lista desligados Produção\n"
-                    . "• (após totais) digite «lista» para ver os nomes\n"
-                    . "• departamento do Rafael / Wladimir está bloqueado? / anos de empresa do X\n"
-                    . "• (após lista ambígua) digite o número, o depto, o username — ou uma nova frase «status do Nome»\n"
-                    . "• limpar / nova consulta (zera contexto da sessão)\n"
-                    . "• ativos na TI\n"
-                    . "• headcount por departamento\n"
-                    . "• inativos por mês\n"
-                    . "• quais relatórios no chat?\n"
-                    . "• relatório [nome ou tool]\n"
-                    . "• agendar / reservar (fluxo simples: sala → data → horários)\n"
-                    . "• salas / listar salas\n"
-                    . "• agenda da sala [nome] hoje\n"
-                    . "• minhas reservas\n"
-                    . "• cancelar reserva #123\n"
-                    . "• depois de «ativos» ou «inativos», digite o departamento ou «por mês» / «por departamento»",
-                'provider' => 'local-rules',
-            ];
+            return $this->buildUnknownHelpReply();
         }
 
         $result = $this->executeIntent($intent, $message);
@@ -128,6 +107,104 @@ class LocalInternalChatAgent
         $this->rememberFromResult($result);
 
         return $result;
+    }
+
+    /**
+     * Saudação pura («bom dia», «olá», «oi», «como está»…) sem pedido de consulta.
+     */
+    private function isGreetingOnly(string $message): bool
+    {
+        $m = trim(preg_replace('/[!?？。．…]+$/u', '', trim($message)) ?? trim($message));
+        $m = preg_replace('/\s+/u', ' ', $m) ?? $m;
+        if ($m === '' || mb_strlen($m) > 80) {
+            return false;
+        }
+
+        $wellbeing = 'tudo\s+bem|tudo\s+bom|td\s+bem|beleza|como\s+vai|como\s+voc[eê]\s+est[aá]|'
+            . 'como\s+est[aá]|como\s+andas|e\s+a[ií]\s+tudo\s+bem';
+
+        // «bom dia», «olá», «bom dia, como está?»
+        if (preg_match(
+            '/^(ol[aá]|oie+|oi|hey|hello|hi|salve|opa|fala|eai|e\s+a[ií]|'
+            . 'bom\s+dia|boa\s+tarde|boa\s+noite)'
+            . '(\s*[,!]?\s*(' . $wellbeing . ')(\s*(com\s+voc[eê]|voc[eê]|a[ií]|ai)?)?)?'
+            . '\s*$/iu',
+            $m
+        )) {
+            return true;
+        }
+
+        // «como está?», «tudo bem?», «como vai você?»
+        return (bool) preg_match(
+            '/^(e\s+a[ií]|eai\s*[,!]?\s*)?'
+            . '(' . $wellbeing . ')'
+            . '(\s*(com\s+voc[eê]|voc[eê]|a[ií]|ai)?)?'
+            . '\s*$/iu',
+            $m
+        );
+    }
+
+    /**
+     * @return array{resposta: string, tool: string, data: null, provider: string}
+     */
+    private function buildGreetingReply(string $message): array
+    {
+        $m = mb_strtolower($message);
+        $hello = 'Olá';
+        if (preg_match('/bom\s+dia/u', $m)) {
+            $hello = 'Bom dia';
+        } elseif (preg_match('/boa\s+tarde/u', $m)) {
+            $hello = 'Boa tarde';
+        } elseif (preg_match('/boa\s+noite/u', $m)) {
+            $hello = 'Boa noite';
+        } elseif (preg_match('/^(oi|oie+)\b/u', $m)) {
+            $hello = 'Oi';
+        }
+
+        $wellbeing = (bool) preg_match(
+            '/tudo\s+bem|tudo\s+bom|td\s+bem|beleza|como\s+vai|como\s+est[aá]|como\s+andas|como\s+voc[eê]/u',
+            $m
+        );
+
+        $resposta = $wellbeing
+            ? "{$hello}! Estou bem, obrigado por perguntar. Como posso ajudar hoje?"
+            : "{$hello}! Como posso ajudar hoje?";
+
+        return [
+            'resposta' => $resposta,
+            'tool' => 'chat.greeting',
+            'data' => null,
+            'provider' => 'local-rules',
+        ];
+    }
+
+    /**
+     * @return array{resposta: string, tool: string, data: null, provider: string}
+     */
+    private function buildUnknownHelpReply(?string $intro = null): array
+    {
+        $intro = $intro ?? 'Olá! Não encontrei nada referente à sua solicitação. Segue uma listagem com as possibilidades de consulta:';
+
+        return [
+            'resposta' => $intro . "\n\n" . $this->formatHelpOptions(),
+            'tool' => 'chat.help',
+            'data' => null,
+            'provider' => 'local-rules',
+        ];
+    }
+
+    private function formatHelpOptions(): string
+    {
+        return "• quantos colaboradores ativos?\n"
+            . "• quantos colaboradores inativos?\n"
+            . "• inativos em janeiro / desligados 2025\n"
+            . "• quantos usuários bloqueados? / bloqueados sem desligamento\n"
+            . "• lista de desligados / lista desligados Produção\n"
+            . "• status do Rafael / Wladimir está bloqueado? / anos de empresa do X\n"
+            . "• itens / parceiros / item 43000001 / parceiro C00001\n"
+            . "• quais relatórios no chat? / relatório [nome]\n"
+            . "• agendar / salas / agenda da sala [nome] hoje\n"
+            . "• limpar / nova consulta (zera o contexto)";
     }
 
     /**
@@ -150,11 +227,23 @@ class LocalInternalChatAgent
                 unset(
                     $_SESSION['internal_chat_person_candidates'],
                     $_SESSION['internal_chat_last_terminated'],
-                    $_SESSION['internal_chat_last_status']
+                    $_SESSION['internal_chat_last_status'],
+                    $_SESSION['internal_chat_last_report']
                 );
             }
 
             return ['name' => 'clear_context'];
+        }
+
+        // Código de item/parceiro/doc (sozinho ou «item 43000001») → filtra relatório.
+        $reportCode = $this->detectReportCodeFollowUp($message, $m);
+        if ($reportCode !== null) {
+            return $reportCode;
+        }
+
+        // Matrícula/id numérico só vira pessoa se NÃO houver relatório recente.
+        if (preg_match('/^\d{3,}$/u', $m)) {
+            return ['name' => 'lookup_person', 'query' => $m];
         }
 
         $personRefine = $this->detectPersonCandidateRefine($message);
@@ -229,6 +318,15 @@ class LocalInternalChatAgent
         // Exemplos / tool_name / nome de relatório marcado para o chat.
         $matchedReport = $this->reports->resolveReport($this->userId, $message);
         if ($matchedReport !== null) {
+            $codeInMsg = $this->extractReportCodeFromMessage($message);
+            if ($codeInMsg !== null) {
+                return [
+                    'name' => 'report_code_filter',
+                    'code' => $codeInMsg,
+                    'report_id' => (int) $matchedReport['id'],
+                ];
+            }
+
             return ['name' => 'report_run', 'query' => $message, 'report_id' => (int) $matchedReport['id']];
         }
 
@@ -639,9 +737,156 @@ class LocalInternalChatAgent
             } else {
                 unset($_SESSION['internal_chat_person_candidates']);
             }
-        } elseif ($tool !== '' && str_starts_with($tool, 'rooms.')) {
+            unset($_SESSION['internal_chat_last_report']);
+        } elseif ($tool === 'report.run') {
+            $data = is_array($result['data'] ?? null) ? $result['data'] : [];
+            $reportId = (int) ($data['report_id'] ?? 0);
+            if ($reportId > 0) {
+                $_SESSION['internal_chat_last_report'] = [
+                    'report_id' => $reportId,
+                    'name' => (string) ($data['name'] ?? ''),
+                    'filter_code' => isset($data['filter_code']) ? (string) $data['filter_code'] : null,
+                ];
+            }
             unset($_SESSION['internal_chat_person_candidates']);
+        } elseif ($tool !== '' && str_starts_with($tool, 'rooms.')) {
+            unset($_SESSION['internal_chat_person_candidates'], $_SESSION['internal_chat_last_report']);
         }
+    }
+
+    /**
+     * Após um relatório, «43000001» / «item 43000001» / código de parceiro filtra as linhas.
+     *
+     * @return array{name: string, code: string, report_id: int}|null
+     */
+    private function detectReportCodeFollowUp(string $message, string $normalized): ?array
+    {
+        $code = $this->extractReportCodeFromMessage($message);
+        if ($code === null) {
+            return null;
+        }
+
+        // Não roubar perguntas completas de pessoa / RH / salas.
+        if ($this->extractPersonQuery($message) !== null) {
+            return null;
+        }
+        if (preg_match(
+            '/\b(quantos|qtd|quantidade|headcount|agendar|reservar|salas?|desligad|inativos?|bloqueados?|ativos?\b|departamento|status\s+(do|da|de)|ficha|lista\s+de)\b/u',
+            $normalized
+        )) {
+            return null;
+        }
+
+        $reportId = 0;
+        $hint = $this->stripReportCodeFromMessage($message, $code);
+
+        // Se a frase pede domínio explícito («item …», «parceiro …»), troca o relatório
+        // — não fica preso no último (ex.: PN → item).
+        if ($hint !== '') {
+            $matched = $this->reports->resolveReport($this->userId, $hint);
+            if ($matched !== null) {
+                $reportId = (int) $matched['id'];
+            }
+        }
+
+        if ($reportId < 1 && session_status() === PHP_SESSION_ACTIVE) {
+            // Ano puro após contexto de desligados continua no fluxo de RH.
+            if (preg_match('/^20\d{2}$/u', $code) && is_array($_SESSION['internal_chat_last_terminated'] ?? null)) {
+                return null;
+            }
+            $last = $_SESSION['internal_chat_last_report'] ?? null;
+            if (is_array($last)) {
+                $reportId = (int) ($last['report_id'] ?? 0);
+            }
+        }
+
+        if ($reportId < 1) {
+            return null;
+        }
+
+        $aliasKey = mb_strtolower(preg_replace('/\s+/u', ' ', $code) ?? $code);
+        if (isset(self::DEPARTMENT_ALIASES[$aliasKey]) || $this->matchBareDepartmentName($aliasKey) !== null) {
+            return null;
+        }
+
+        return [
+            'name' => 'report_code_filter',
+            'code' => $code,
+            'report_id' => $reportId,
+        ];
+    }
+
+    /**
+     * Extrai código de «43000001», «item 43000001», «parceiro C00001», «código: 1000001».
+     */
+    private function extractReportCodeFromMessage(string $message): ?string
+    {
+        $raw = trim(preg_replace('/[?!.]+$/u', '', trim($message)) ?? trim($message));
+        if ($raw === '') {
+            return null;
+        }
+
+        if (preg_match(
+            '/\b(?:item|itens|cd\s*item|cditem|itemcode|c[oó]digos?|cod(?:igo)?|sku|parceiros?|card\s*code|cardcode|clientes?|fornecedores?|doc(?:num|umento)?|pedidos?|notas?)\b\s*[:=\-]?\s*([A-Za-z0-9][A-Za-z0-9\-_\.\/]{1,40}|\d{3,})\b/iu',
+            $raw,
+            $mm
+        )) {
+            $code = trim((string) $mm[1]);
+            if (!$this->isReportCodeStopword($code)) {
+                return $code;
+            }
+        }
+
+        // Código no fim: «relatório itens 43000001»
+        if (preg_match('/\b([A-Za-z0-9][A-Za-z0-9\-_\.\/]{2,40}|\d{3,})\s*$/u', $raw, $mm)
+            && preg_match('/\b(?:item|itens|parceiros?|vendas?|compras?|relat[oó]rio)\b/iu', $raw)
+        ) {
+            $code = trim((string) $mm[1]);
+            if (!$this->isReportCodeStopword($code)) {
+                return $code;
+            }
+        }
+
+        $normalized = mb_strtolower($raw);
+        if (preg_match('/^\d{3,}$/u', $normalized)) {
+            return $raw;
+        }
+        if (preg_match('/^[a-z0-9][a-z0-9\-_\.\/]{2,40}$/iu', $raw)
+            && !$this->isReportCodeStopword($raw)
+            && !isset(self::DEPARTMENT_ALIASES[$normalized])
+            && $this->matchBareDepartmentName($normalized) === null
+        ) {
+            return $raw;
+        }
+
+        return null;
+    }
+
+    private function isReportCodeStopword(string $token): bool
+    {
+        $t = mb_strtolower(trim($token));
+        $stop = [
+            'item', 'itens', 'parceiro', 'parceiros', 'cliente', 'clientes', 'fornecedor', 'fornecedores',
+            'venda', 'vendas', 'compra', 'compras', 'codigo', 'código', 'codigos', 'códigos', 'sku',
+            'documento', 'documentos', 'pedido', 'pedidos', 'nota', 'notas', 'relatorio', 'relatório',
+            'cardcode', 'cditem', 'itemcode',
+        ];
+
+        return in_array($t, $stop, true);
+    }
+
+    private function stripReportCodeFromMessage(string $message, string $code): string
+    {
+        $hint = trim($message);
+        $hint = preg_replace('/\b' . preg_quote($code, '/') . '\b/iu', ' ', $hint) ?? $hint;
+        $hint = preg_replace(
+            '/\b(?:cd\s*item|cditem|itemcode|c[oó]digos?|cod(?:igo)?|sku|card\s*code|cardcode)\b/iu',
+            ' ',
+            $hint
+        ) ?? $hint;
+        $hint = preg_replace('/\s+/u', ' ', $hint) ?? $hint;
+
+        return trim($hint, " \t:=-");
     }
 
     /**
@@ -689,7 +934,7 @@ class LocalInternalChatAgent
     {
         $token = trim($token);
         $token = preg_replace(
-            '/^(status|departamento|depto|ficha|dados|informa[cç][oõ]es|perfil|bloqueio|sobre)\s+(do|da|de)\s+/iu',
+            '/^(status|departamento|depto|ficha|dados|informa[cç][oõ]es|perfil|bloqueio|sobre)(\s+(do|da|de))?\s+/iu',
             '',
             $token
         ) ?? $token;
@@ -795,13 +1040,13 @@ class LocalInternalChatAgent
             '/tempo\s+de\s+empresa\s+(?:do|da|de)\s+(.+)$/iu',
             '/(?:usu[aá]rio|colaborador|funcion[aá]rio)\s+(.+?)\s+est[aá]\s+bloquead/iu',
             '/(.+?)\s+est[aá]\s+bloquead/iu',
-            '/status\s+(?:do|da|de)\s+(.+)$/iu',
-            '/qual\s+(?:o\s+)?status\s+(?:do|da|de)\s+(.+)$/iu',
+            '/qual\s+(?:o\s+)?status\s+(?:do|da|de\s+)?(.+)$/iu',
+            '/status\s+(?:do|da|de\s+)?(.+)$/iu',
             '/(?:est[aá]\s+)?bloquead[oa]?\s+(?:o|a|do|da|de)\s+(.+)$/iu',
-            '/qual\s+(?:o\s+)?departamentos?\s+(?:do|da|de)\s+(.+)$/iu',
-            '/departamentos?\s+(?:do|da|de)\s+(.+)$/iu',
-            '/(?:ficha|dados|informa[cç][oõ]es|perfil)\s+(?:do|da|de)\s+(.+)$/iu',
-            '/sobre\s+(?:o|a)\s+(.+)$/iu',
+            '/qual\s+(?:o\s+)?departamentos?\s+(?:do|da|de\s+)?(.+)$/iu',
+            '/departamentos?\s+(?:do|da|de\s+)?(.+)$/iu',
+            '/(?:ficha|dados|informa[cç][oõ]es|perfil)\s+(?:do|da|de\s+)?(.+)$/iu',
+            '/sobre\s+(?:o|a\s+)?(.+)$/iu',
             '/quem\s+[eé]\s+(.+)$/iu',
         ];
 
@@ -866,11 +1111,35 @@ class LocalInternalChatAgent
         $query = (string) ($data['query'] ?? '');
         $matches = $data['matches'] ?? [];
         if (!is_array($matches) || $matches === []) {
-            return [
-                'resposta' => sprintf(
-                    'Não encontrei colaborador com «%s». Tente nome completo, username ou e-mail.',
+            $isCodeLike = (bool) preg_match('/^\d{3,}$/u', $query)
+                || (bool) preg_match('/^[a-z0-9][a-z0-9\-_\.\/]{2,40}$/iu', $query);
+            $hasReport = session_status() === PHP_SESSION_ACTIVE
+                && is_array($_SESSION['internal_chat_last_report'] ?? null)
+                && (int) (($_SESSION['internal_chat_last_report']['report_id'] ?? 0)) > 0;
+
+            if ($isCodeLike || $hasReport) {
+                $reportName = $hasReport
+                    ? (string) ($_SESSION['internal_chat_last_report']['name'] ?? 'relatório')
+                    : '';
+                $resposta = $hasReport
+                    ? sprintf(
+                        'Não encontrei «%s» no contexto do relatório «%s». Confira o código (item, parceiro, documento) ou abra o relatório completo.',
+                        $query,
+                        $reportName !== '' ? $reportName : 'atual'
+                    )
+                    : sprintf(
+                        'Não encontrei «%s». Se for código de relatório, abra o relatório no chat e tente de novo; se for pessoa, use o nome.',
+                        $query
+                    );
+            } else {
+                $resposta = sprintf(
+                    'Não encontrei colaborador com «%s». Tente nome completo, username, e-mail ou matrícula.',
                     $query
-                ),
+                );
+            }
+
+            return [
+                'resposta' => $resposta,
                 'tool' => 'rh.lookup_person',
                 'data' => $data,
                 'provider' => 'local-rules',
@@ -1374,8 +1643,30 @@ class LocalInternalChatAgent
         }
 
         if ($intent['name'] === 'report_run') {
-            if (!empty($intent['report_id'])) {
-                $run = $this->reports->runById($this->userId, (int) $intent['report_id']);
+            $codeInMsg = $this->extractReportCodeFromMessage($message);
+            $reportId = !empty($intent['report_id']) ? (int) $intent['report_id'] : 0;
+            if ($codeInMsg !== null) {
+                if ($reportId < 1) {
+                    $hint = $this->stripReportCodeFromMessage($message, $codeInMsg);
+                    $matched = $this->reports->resolveReport(
+                        $this->userId,
+                        $hint !== '' ? $hint : (string) ($intent['query'] ?? $message)
+                    );
+                    $reportId = $matched !== null ? (int) $matched['id'] : 0;
+                }
+                if ($reportId > 0) {
+                    $run = $this->reports->runByIdFilteredByCode($this->userId, $reportId, $codeInMsg);
+
+                    return [
+                        'resposta' => (string) ($run['resposta'] ?? ''),
+                        'tool' => $run['tool'] ?? 'report.run',
+                        'data' => $run['data'] ?? null,
+                        'provider' => 'local-rules',
+                    ];
+                }
+            }
+            if ($reportId > 0) {
+                $run = $this->reports->runById($this->userId, $reportId);
             } else {
                 $run = $this->reports->resolveAndRun($this->userId, (string) ($intent['query'] ?? $message));
             }
@@ -1438,9 +1729,26 @@ class LocalInternalChatAgent
 
         if ($intent['name'] === 'clear_context') {
             return [
-                'resposta' => 'Contexto da conversa limpo. Pode fazer uma nova pergunta (ex.: «status do Rafael Mendes»).',
+                'resposta' => 'Contexto da conversa limpo (pessoas e último relatório). Pode perguntar de novo.',
                 'tool' => 'chat.clear_context',
                 'data' => null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'report_code_filter') {
+            $reportId = (int) ($intent['report_id'] ?? 0);
+            $code = trim((string) ($intent['code'] ?? $message));
+            if ($reportId < 1) {
+                $last = $_SESSION['internal_chat_last_report'] ?? null;
+                $reportId = is_array($last) ? (int) ($last['report_id'] ?? 0) : 0;
+            }
+            $run = $this->reports->runByIdFilteredByCode($this->userId, $reportId, $code);
+
+            return [
+                'resposta' => (string) ($run['resposta'] ?? ''),
+                'tool' => $run['tool'] ?? 'report.run',
+                'data' => $run['data'] ?? null,
                 'provider' => 'local-rules',
             ];
         }
@@ -1458,6 +1766,24 @@ class LocalInternalChatAgent
                 $cleaned = $this->sanitizePersonQuery($query);
                 $query = $cleaned ?? $query;
             }
+
+            // Código após relatório (itens/parceiros/vendas) → filtra o relatório, não RH.
+            $reportFollowUp = $this->detectReportCodeFollowUp($query !== '' ? $query : $message, mb_strtolower($query !== '' ? $query : $message));
+            if ($reportFollowUp !== null) {
+                $run = $this->reports->runByIdFilteredByCode(
+                    $this->userId,
+                    (int) $reportFollowUp['report_id'],
+                    (string) $reportFollowUp['code']
+                );
+
+                return [
+                    'resposta' => (string) ($run['resposta'] ?? ''),
+                    'tool' => $run['tool'] ?? 'report.run',
+                    'data' => $run['data'] ?? null,
+                    'provider' => 'local-rules',
+                ];
+            }
+
             $data = $this->rh->lookupPerson($query);
 
             return $this->buildLookupPersonResult($data);
@@ -1793,6 +2119,89 @@ class LocalInternalChatAgent
     }
 
     /**
+     * System prompt do roteador LLM (data do dia injetada no PHP).
+     */
+    private function buildLlmRouterSystemPrompt(): string
+    {
+        $today = date('Y-m-d');
+        $tomorrow = date('Y-m-d', strtotime('+1 day') ?: time());
+        $thisMonth = (int) date('n');
+        $thisYear = (int) date('Y');
+
+        return "Você é um roteador de intenções para RH e relatórios do Portal.\n"
+            . "Responda SOMENTE com um objeto JSON válido — sem markdown, sem texto antes/depois, sem comentários.\n\n"
+            . "CONTEXTO\n"
+            . "Data de hoje: {$today}  (use para resolver expressões relativas: \"esse mês\", \"mês passado\", \"hoje\", \"amanhã\", \"essa semana\")\n\n"
+            . "INTENTS VÁLIDAS (use exatamente estas chaves; nunca invente uma nova)\n"
+            . "- {\"intent\":\"active\"}\n"
+            . "- {\"intent\":\"active\",\"department\":\"TI\"}\n"
+            . "- {\"intent\":\"inactive\"}\n"
+            . "- {\"intent\":\"terminated_in_period\",\"month\":1,\"year\":{$thisYear}}\n"
+            . "- {\"intent\":\"terminated_by_month\",\"year\":{$thisYear}}\n"
+            . "- {\"intent\":\"blocked\"}\n"
+            . "- {\"intent\":\"blocked_not_terminated\"}\n"
+            . "- {\"intent\":\"terminated_list\",\"year\":{$thisYear},\"department\":\"Produção\"}\n"
+            . "- {\"intent\":\"terminated_total\"}\n"
+            . "- {\"intent\":\"terminated_by_department\",\"year\":{$thisYear}}\n"
+            . "- {\"intent\":\"lookup_person\",\"query\":\"Rafael\"}\n"
+            . "- {\"intent\":\"by_department\"}\n"
+            . "- {\"intent\":\"report_list\"}\n"
+            . "- {\"intent\":\"report_run\",\"query\":\"nome ou tool do relatório\"}\n"
+            . "- {\"intent\":\"rooms_list\"}\n"
+            . "- {\"intent\":\"rooms_agenda\",\"room\":\"Nome da sala\",\"date\":\"{$today}\"}\n"
+            . "- {\"intent\":\"rooms_my\"}\n"
+            . "- {\"intent\":\"rooms_reserve\",\"room\":\"Nome\",\"start\":\"{$today} 14:00:00\",\"end\":\"{$today} 15:00:00\",\"title\":\"Reunião\"}\n"
+            . "- {\"intent\":\"rooms_cancel\",\"booking_id\":12}\n"
+            . "- {\"intent\":\"rooms_reserve_help\"}\n"
+            . "- {\"intent\":\"unknown\"}\n\n"
+            . "REGRAS DE DEPARTAMENTO\n"
+            . "Use sempre o nome canônico: TI, Produção, Recursos Humanos, Financeiro, Comercial.\n"
+            . "Sinônimos comuns: \"tecnologia da informação\"/\"informática\"/\"T.I.\" → TI; \"RH\" → Recursos Humanos.\n"
+            . "Comparação deve ignorar maiúsculas/minúsculas e acentos.\n\n"
+            . "REGRAS DE PESSOA (lookup_person)\n"
+            . "Se a pergunta for sobre status/ficha/departamento/bloqueio/anos de empresa de uma pessoa,\n"
+            . "retorne lookup_person com query = apenas o nome, removendo prefixos como\n"
+            . "\"status\", \"status do\", \"status de\", \"ficha\", \"dados de\", \"informações sobre\".\n"
+            . "Funciona com ou sem preposição: \"status wladimir\" e \"status do wladimir\" → query=\"wladimir\".\n"
+            . "NÃO corrija ortografia do nome — passe a query como o usuário escreveu\n"
+            . "(a busca no cadastro usa LIKE/contém, não fuzzy/soundex).\n"
+            . "Exemplo: \"status wldimir\" → {\"intent\":\"lookup_person\",\"query\":\"wldimir\"}.\n"
+            . "Se a mensagem for só números/código (ex.: \"43000001\") DEPOIS de um relatório no chat,\n"
+            . "isso filtra item/parceiro/documento no relatório (tratado no Portal) — use unknown e não invente pessoa.\n"
+            . "Sem relatório recente, código numérico pode ser matrícula: lookup_person com query=os dígitos.\n\n"
+            . "REGRAS DE DESLIGADOS/INATIVOS\n"
+            . "\"quantos desligados\" sem período → terminated_total.\n"
+            . "Lista nominativa de desligados → terminated_list (month/year/department opcionais).\n"
+            . "Bloqueados sem desligamento → blocked_not_terminated.\n"
+            . "\"desligados por departamento\" → terminated_by_department (year opcional).\n"
+            . "Se a pergunta tiver mês (ex.: \"inativos em janeiro\") → terminated_in_period.\n"
+            . "   NUNCA use department para um valor de mês (ex.: department=\"janeiro\" está errado).\n"
+            . "Se pedir inativos/desligados \"por mês\" ou apenas um ano (ex.: \"desligados 2025\") → terminated_by_month.\n"
+            . "   NUNCA use report_run nem inactive para esses casos.\n"
+            . "\"esse mês\" → terminated_in_period com month={$thisMonth}, year={$thisYear}.\n\n"
+            . "REGRAS DE SALAS\n"
+            . "Intents rooms_* são exclusivas de reserva de salas — nunca misturar com intents de RH.\n"
+            . "Resolva datas/horas relativas (\"hoje\", \"amanhã\", \"às 15h\") usando a data de hoje acima.\n"
+            . "Formato de data: \"YYYY-MM-DD\". Formato de data+hora: \"YYYY-MM-DD HH:MM:SS\".\n"
+            . "Se o usuário não especificar data em rooms_agenda, use a data de hoje.\n"
+            . "Se pedir como reservar sem dados completos → rooms_reserve_help.\n\n"
+            . "QUANDO NÃO TIVER CERTEZA\n"
+            . "Se a pergunta não se encaixar claramente em nenhuma intent, ou faltar informação\n"
+            . "essencial (ex.: reservar sala sem nome de sala), retorne {\"intent\":\"unknown\"}.\n"
+            . "Nunca invente campos que não foram ditos pelo usuário.\n\n"
+            . "EXEMPLOS (casos de borda; datas relativas já resolvidas com a data de hoje)\n"
+            . "\"status do wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\"}\n"
+            . "\"status wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\"}\n"
+            . "\"quantos desligados esse mês\" → {\"intent\":\"terminated_in_period\",\"month\":{$thisMonth},\"year\":{$thisYear}}\n"
+            . "\"desligados 2025\" → {\"intent\":\"terminated_by_month\",\"year\":2025}\n"
+            . "\"desligados por departamento em 2025\" → {\"intent\":\"terminated_by_department\",\"year\":2025}\n"
+            . "\"quem está bloqueado mas não desligado\" → {\"intent\":\"blocked_not_terminated\"}\n"
+            . "\"reservar sala azul amanhã 14h às 15h para reunião de time\" → "
+            . "{\"intent\":\"rooms_reserve\",\"room\":\"Azul\",\"start\":\"{$tomorrow} 14:00:00\",\"end\":\"{$tomorrow} 15:00:00\",\"title\":\"reunião de time\"}\n"
+            . "\"agenda da sala azul\" → {\"intent\":\"rooms_agenda\",\"room\":\"Azul\",\"date\":\"{$today}\"}";
+    }
+
+    /**
      * Roteamento via API de IA (OpenAI/Anthropic) ou Ollama.
      *
      * @return array{resposta: string, tool?: string, data?: mixed, provider: string}|null
@@ -1809,38 +2218,7 @@ class LocalInternalChatAgent
             $catalogHint .= "- {$tool} | {$item['name']}\n";
         }
 
-        $system = "Você é um roteador de intenções para RH e relatórios do Portal. "
-            . "Responda APENAS com JSON válido, sem markdown.\n"
-            . "Use department canônico quando possível: TI, Produção, Recursos Humanos, Financeiro, Comercial.\n"
-            . "Sinônimos: tecnologia da informação/informática → TI; RH → Recursos Humanos.\n"
-            . "Formatos possíveis:\n"
-            . "{\"intent\":\"active\"}\n"
-            . "{\"intent\":\"active\",\"department\":\"TI\"}\n"
-            . "{\"intent\":\"inactive\"}\n"
-            . "{\"intent\":\"terminated_in_period\",\"month\":1,\"year\":2026}\n"
-            . "{\"intent\":\"terminated_by_month\",\"year\":2026}\n"
-            . "{\"intent\":\"blocked\"}\n"
-            . "{\"intent\":\"blocked_not_terminated\"}\n"
-            . "{\"intent\":\"terminated_list\",\"year\":2025,\"department\":\"Produção\"}\n"
-            . "{\"intent\":\"terminated_total\"}\n"
-            . "{\"intent\":\"terminated_by_department\",\"year\":2025}\n"
-            . "{\"intent\":\"lookup_person\",\"query\":\"Rafael\"}\n"
-            . "{\"intent\":\"by_department\"}\n"
-            . "{\"intent\":\"report_list\"}\n"
-            . "{\"intent\":\"report_run\",\"query\":\"nome ou tool do relatório\"}\n"
-            . "{\"intent\":\"rooms_list\"}\n"
-            . "{\"intent\":\"rooms_agenda\",\"room\":\"Nome da sala\",\"date\":\"2026-08-10\"}\n"
-            . "{\"intent\":\"rooms_my\"}\n"
-            . "{\"intent\":\"rooms_reserve\",\"room\":\"Nome\",\"start\":\"2026-08-10 14:00:00\",\"end\":\"2026-08-10 15:00:00\",\"title\":\"Reunião\"}\n"
-            . "{\"intent\":\"rooms_cancel\",\"booking_id\":12}\n"
-            . "{\"intent\":\"unknown\"}\n"
-            . "Se perguntar departamento/bloqueio/anos de empresa de uma pessoa, use lookup_person com query=só o nome (ex.: Rafael), sem prefixos.\n"
-            . "Lista nominativa de desligados → terminated_list (month/year/department opcionais). «quantos desligados» → terminated_total.\n"
-            . "Bloqueados sem desligamento → blocked_not_terminated. «quantos desligados» sem período → terminated_total.\n"
-            . "«desligados por departamento» → terminated_by_department (year opcional).\n"
-            . "Se a pergunta tiver mês (ex.: inativos em janeiro), use terminated_in_period — NÃO use department=janeiro.\n"
-            . "Se pedir inativos/desligados «por mês» ou só o ano (ex.: desligados 2025), use terminated_by_month — NÃO use report_run nem inactive.\n"
-            . "Salas: listar/agenda/reservar/cancelar usam as intents rooms_* (não misturar com RH).";
+        $system = $this->buildLlmRouterSystemPrompt();
 
         $user = ($catalogHint !== '' ? "Relatórios no chat:\n{$catalogHint}\n" : '')
             . 'Pergunta do usuário: ' . $message;
@@ -1925,10 +2303,56 @@ class LocalInternalChatAgent
             $intent['query'] = (string) $intentJson['query'];
         }
 
+        if ($name === 'lookup_person') {
+            $safeQuery = $this->sanitizeLlmPersonQuery($message, (string) ($intent['query'] ?? ''));
+            if ($safeQuery === '') {
+                return null;
+            }
+            $intent['query'] = $safeQuery;
+        }
+
         $result = $this->executeIntent($intent, $message);
         $result['provider'] = $llm['provider'];
 
         return $result;
+    }
+
+    /**
+     * Impede o LLM de trocar um código/nome da mensagem por outra pessoa inventada.
+     */
+    private function sanitizeLlmPersonQuery(string $message, string $llmQuery): string
+    {
+        $fromMsg = $this->extractPersonQuery($message);
+        if ($fromMsg !== null) {
+            return $fromMsg;
+        }
+
+        $msg = trim(preg_replace('/[?!.]+$/u', '', trim($message)) ?? trim($message));
+        if ($msg === '') {
+            return '';
+        }
+
+        if (preg_match('/^\d{3,}$/u', $msg)) {
+            return $msg;
+        }
+
+        $llmQuery = trim($llmQuery);
+        if ($llmQuery === '') {
+            return $msg;
+        }
+
+        $msgKey = mb_strtolower($msg);
+        $qKey = mb_strtolower($llmQuery);
+        if (str_contains($msgKey, $qKey) || str_contains($qKey, $msgKey)) {
+            return $llmQuery;
+        }
+
+        // Mensagem parece só um nome: use a mensagem, não o chute do modelo.
+        if (preg_match('/^[a-záàâãéêíóôõúç][a-záàâãéêíóôõúç0-9\s\.\-]{1,80}$/iu', $msg)) {
+            return $msg;
+        }
+
+        return '';
     }
 
     /**
@@ -1993,8 +2417,14 @@ class LocalInternalChatAgent
             'name' => $data['name'] ?? null,
         ];
 
-        $system = 'Você é analista de RH/dados do Portal. Responda em português, no máximo 3 frases objetivas '
-            . '(destaque, concentração, alerta se fizer sentido). Não invente números fora do JSON. Sem markdown.';
+        $system = "Você é analista de RH/dados do Portal.\n"
+            . "Responda SEMPRE em português do Brasil.\n"
+            . "Responda em no máximo 3 frases objetivas (destaque, concentração, alerta se fizer sentido).\n"
+            . "Baseie-se APENAS nos números presentes no JSON fornecido — nunca invente, estime ou arredonde "
+            . "para um valor não presente nos dados.\n"
+            . "Não exponha IDs internos, chaves técnicas ou nomes de campos do JSON — traduza para linguagem natural.\n"
+            . "Se o JSON estiver vazio ou não tiver dados suficientes para uma conclusão, diga isso em vez de forçar uma análise.\n"
+            . "Sem markdown.";
         $user = "Resumo: {$summary}\nJSON: " . json_encode($payloadData, JSON_UNESCAPED_UNICODE);
 
         $llm = $this->llm->complete($system, $user, false);

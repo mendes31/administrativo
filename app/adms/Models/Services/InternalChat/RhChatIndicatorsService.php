@@ -507,22 +507,58 @@ class RhChatIndicatorsService extends DbConnection
                 WHERE usr.name LIKE :q
                    OR usr.username LIKE :q
                    OR usr.email LIKE :q
+                   OR usr.matricula LIKE :q
+                   OR CAST(usr.id AS CHAR) = :q_exact_id
                 ORDER BY
                     CASE
-                        WHEN LOWER(usr.name) = LOWER(:q_exact) THEN 0
-                        WHEN LOWER(usr.username) = LOWER(:q_exact2) THEN 1
-                        WHEN LOWER(usr.name) LIKE LOWER(:q_prefix) THEN 2
-                        ELSE 3
+                        WHEN usr.matricula = :q_exact_mat THEN 0
+                        WHEN LOWER(usr.name) = LOWER(:q_exact) THEN 1
+                        WHEN LOWER(usr.username) = LOWER(:q_exact2) THEN 2
+                        WHEN LOWER(usr.name) LIKE LOWER(:q_prefix) THEN 3
+                        ELSE 4
                     END,
                     usr.name ASC
                 LIMIT 8";
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':q', $like, PDO::PARAM_STR);
-        $stmt->bindValue(':q_exact', $query, PDO::PARAM_STR);
-        $stmt->bindValue(':q_exact2', $query, PDO::PARAM_STR);
-        $stmt->bindValue(':q_prefix', $query . '%', PDO::PARAM_STR);
-        $stmt->execute();
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        try {
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':q', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact_id', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact_mat', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact2', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_prefix', $query . '%', PDO::PARAM_STR);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable $e) {
+            // Homolog sem coluna matricula: fallback legado.
+            $sql = "SELECT usr.id, usr.name, usr.username, usr.email, usr.status, usr.bloqueado,
+                           usr.data_admissao, usr.data_desligamento,
+                           dep.name AS departamento, pos.name AS cargo
+                    FROM adms_users usr
+                    LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+                    LEFT JOIN adms_positions pos ON pos.id = usr.user_position_id
+                    WHERE usr.name LIKE :q
+                       OR usr.username LIKE :q
+                       OR usr.email LIKE :q
+                       OR CAST(usr.id AS CHAR) = :q_exact_id
+                    ORDER BY
+                        CASE
+                            WHEN LOWER(usr.name) = LOWER(:q_exact) THEN 0
+                            WHEN LOWER(usr.username) = LOWER(:q_exact2) THEN 1
+                            WHEN LOWER(usr.name) LIKE LOWER(:q_prefix) THEN 2
+                            ELSE 3
+                        END,
+                        usr.name ASC
+                    LIMIT 8";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':q', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact_id', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_exact2', $query, PDO::PARAM_STR);
+            $stmt->bindValue(':q_prefix', $query . '%', PDO::PARAM_STR);
+            $stmt->execute();
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        }
 
         $matches = [];
         foreach ($rows as $row) {
