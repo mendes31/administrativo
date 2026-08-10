@@ -24,6 +24,12 @@
    - `cancelar reserva #12`
    - No fluxo, vários horários: `3,4,5` ou `3-5` (blocos seguidos = 1 reserva)
    - `quantos usuários bloqueados?`
+   - `bloqueados sem desligamento` / `bloqueados mas não desligados`
+   - `quantos desligados?`
+   - `lista de desligados` / `lista de desligados em janeiro` / `lista desligados Produção`
+   - após um total, digite só `lista`
+   - `desligados por departamento` / `desligados por departamento 2025`
+   - `departamento do Rafael` / `Wladimir está bloqueado?` / `quantos anos de empresa o Wladimir possui?`
    - `ativos na TI` (alias: tecnologia da informação)
    - `ativos em Produção`
    - `headcount por departamento`

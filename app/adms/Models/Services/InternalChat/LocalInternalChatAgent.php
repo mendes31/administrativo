@@ -102,6 +102,10 @@ class LocalInternalChatAgent
                     . "• inativos em janeiro\n"
                     . "• desligados 2025\n"
                     . "• quantos usuários bloqueados?\n"
+                    . "• bloqueados sem desligamento\n"
+                    . "• lista de desligados / lista de desligados em janeiro / lista desligados Produção\n"
+                    . "• (após totais) digite «lista» para ver os nomes\n"
+                    . "• departamento do Rafael / Wladimir está bloqueado? / anos de empresa do X\n"
                     . "• ativos na TI\n"
                     . "• headcount por departamento\n"
                     . "• inativos por mês\n"
@@ -133,8 +137,34 @@ class LocalInternalChatAgent
         $m = preg_replace('/[?!.]+$/u', '', $m) ?? $m;
         $m = trim($m);
 
+        // Follow-up «lista» após totais de desligados.
+        $listFollowUp = $this->detectTerminatedListFollowUp($m, $message);
+        if ($listFollowUp !== null) {
+            return $listFollowUp;
+        }
+
+        $personRefine = $this->detectPersonCandidateRefine($message);
+        if ($personRefine !== null) {
+            return $personRefine;
+        }
+
         if (preg_match('/bloquead|bloqueio|tentativas?\s+de\s+login/', $m)) {
+            $personBlocked = $this->extractPersonQuery($message);
+            if ($personBlocked !== null) {
+                return ['name' => 'lookup_person', 'query' => $personBlocked];
+            }
+            if (preg_match('/n[aã]o\s+desligad|sem\s+desligamento|bloquead[oa]s?\s+(mas\s+)?n[aã]o\s+desligad|desligad[oa]s?\s+n[aã]o/u', $m)
+                || preg_match('/bloquead[oa]s?\s+(ainda\s+)?(na\s+empresa|ativos?)/u', $m)
+            ) {
+                return ['name' => 'blocked_not_terminated'];
+            }
+
             return ['name' => 'blocked'];
+        }
+
+        $personQuery = $this->extractPersonQuery($message);
+        if ($personQuery !== null) {
+            return ['name' => 'lookup_person', 'query' => $personQuery];
         }
 
         $roomsIntent = $this->detectRoomsIntent($m, $message);
@@ -157,6 +187,24 @@ class LocalInternalChatAgent
         }
 
         if (preg_match('/por\s+departamento|headcount\s+por|ativos\s+por\s+depto|resumo\s+por\s+departamento/', $m)) {
+            if (preg_match('/\binativos?\b|\bdesligad[oa]s?\b|\bex[- ]?colaboradores?\b/', $m)) {
+                $yearOnly = $this->extractYearOnly($m);
+                $period = $this->extractPeriod($message);
+                if ($period !== null) {
+                    return [
+                        'name' => 'terminated_in_period',
+                        'month' => $period['month'],
+                        'year' => $period['year'],
+                        'by_department' => true,
+                    ];
+                }
+
+                return [
+                    'name' => 'terminated_by_department',
+                    'year' => $yearOnly,
+                    'month' => null,
+                ];
+            }
             if ($this->getLastStatusIntent() === 'inactive') {
                 return ['name' => 'inactive', 'department' => null];
             }
@@ -180,14 +228,48 @@ class LocalInternalChatAgent
 
         // "inativos" contém "ativos" — tratar inativo ANTES do padrão de ativos.
         if (preg_match('/\binativos?\b|\bdesligad[oa]s?\b|\bex[- ]?colaboradores?\b/', $m)) {
+            $wantsList = (bool) preg_match(
+                '/\b(lista|listar|nomes|nominativa|quais\s+(s[aã]o|foram)|quem\s+(s[aã]o|foram)|mostrar\s+(os\s+)?nomes)\b/u',
+                $m
+            );
+            $wantsByDept = (bool) preg_match('/\bpor\s+departamento\b|\bpor\s+depto\b/u', $m);
             // "desligados 2025" / "inativos por mês" → série mensal do ano
             $yearOnly = $this->extractYearOnly($m);
             $wantsByMonth = (bool) preg_match('/\bpor\s+m[eê]s\b|\bmensal\b|\bpor\s+meses\b/u', $m);
+            $listDept = $dept;
+            if ($listDept === null && $wantsList) {
+                // «lista desligados Produção» / «desligados da TI»
+                $listDept = $this->extractDepartment($message);
+                $listDept = $this->resolveDepartmentAlias($listDept);
+                if ($listDept === null) {
+                    $listDept = $this->extractTerminatedListDepartment($message);
+                }
+                if ($period !== null) {
+                    $listDept = null;
+                }
+            }
+
+            if ($wantsList && preg_match('/\bdesligad[oa]s?\b/u', $m)) {
+                return [
+                    'name' => 'terminated_list',
+                    'month' => $period['month'] ?? null,
+                    'year' => $period['year'] ?? $yearOnly,
+                    'department' => $listDept,
+                ];
+            }
             if ($period !== null) {
                 return [
                     'name' => 'terminated_in_period',
                     'month' => $period['month'],
                     'year' => $period['year'],
+                    'by_department' => $wantsByDept,
+                ];
+            }
+            if ($wantsByDept) {
+                return [
+                    'name' => 'terminated_by_department',
+                    'year' => $yearOnly,
+                    'month' => null,
                 ];
             }
             if ($wantsByMonth || $yearOnly !== null) {
@@ -198,14 +280,33 @@ class LocalInternalChatAgent
                     'clarify_inactive' => (bool) preg_match('/\binativos?\b/u', $m),
                 ];
             }
+            // «quantos desligados?» → total com data_desligamento (não misturar com estoque inativo)
+            if (preg_match('/\bdesligad[oa]s?\b/u', $m) && !preg_match('/\binativos?\b/u', $m)) {
+                return ['name' => 'terminated_total'];
+            }
 
             return ['name' => 'inactive', 'department' => $dept];
         }
 
-        // Só o ano (ex.: «2025») após inativos/desligados na sessão.
+        // Só o ano (ex.: «2026») após desligados na sessão → lista do ano (não gráfico mensal).
         $bareYear = $this->extractYearOnly($m);
-        if ($bareYear !== null && preg_match('/^(em\s+)?20\d{2}$/u', $m) && $this->getLastStatusIntent() === 'inactive') {
-            return ['name' => 'terminated_by_month', 'year' => $bareYear];
+        if ($bareYear !== null && preg_match('/^(em\s+|de\s+|s[oó]\s+(os\s+(de\s+)?)?)?20\d{2}$/u', $m)) {
+            $lastTerm = (session_status() === PHP_SESSION_ACTIVE)
+                ? ($_SESSION['internal_chat_last_terminated'] ?? null)
+                : null;
+            if (is_array($lastTerm)) {
+                return [
+                    'name' => 'terminated_list',
+                    'month' => null,
+                    'year' => $bareYear,
+                    'department' => isset($lastTerm['department']) && $lastTerm['department'] !== ''
+                        ? (string) $lastTerm['department']
+                        : null,
+                ];
+            }
+            if ($this->getLastStatusIntent() === 'inactive') {
+                return ['name' => 'terminated_by_month', 'year' => $bareYear];
+            }
         }
 
         if (preg_match('/\b(quantos|qtd|quantidade|headcount|pessoas)\b|\bativos?\b|\bcolaboradores?\b|\bfuncionarios?\b|\busuarios?\b/u', $m)) {
@@ -235,7 +336,7 @@ class LocalInternalChatAgent
         }
 
         // Não tratar frases de intenção como nome de departamento.
-        if (preg_match('/\b(quantos|qtd|quantidade|ativos?|inativos?|bloqueados?|colaboradores?|funcionarios?|usuarios?|headcount|pessoas|desligad[oa]s?)\b/u', $normalizedMessage)) {
+        if (preg_match('/\b(quantos|qtd|quantidade|ativos?|inativos?|bloqueados?|colaboradores?|funcionarios?|usuarios?|headcount|pessoas|desligad[oa]s?|departamento|anos?|empresa)\b/u', $normalizedMessage)) {
             return null;
         }
 
@@ -468,11 +569,529 @@ class LocalInternalChatAgent
             $tool === 'rh.count_inactive'
             || $tool === 'rh.count_terminated_in_month'
             || $tool === 'rh.count_terminated_by_month'
+            || $tool === 'rh.count_terminated'
+            || $tool === 'rh.count_terminated_by_department'
+            || $tool === 'rh.list_terminated'
         ) {
             $_SESSION['internal_chat_last_status'] = 'inactive';
+            unset($_SESSION['internal_chat_person_candidates']);
+            if (in_array($tool, [
+                'rh.count_terminated_in_month',
+                'rh.count_terminated_by_month',
+                'rh.count_terminated',
+                'rh.count_terminated_by_department',
+                'rh.list_terminated',
+            ], true)) {
+                $data = is_array($result['data'] ?? null) ? $result['data'] : [];
+                $_SESSION['internal_chat_last_terminated'] = [
+                    'month' => isset($data['month']) ? (int) $data['month'] : null,
+                    'year' => isset($data['year']) ? (int) $data['year'] : null,
+                    'department' => isset($data['department']) ? (string) $data['department'] : null,
+                ];
+                // count_terminated_in_month uses month/year keys
+                if ($tool === 'rh.count_terminated_in_month') {
+                    $_SESSION['internal_chat_last_terminated']['month'] = (int) ($data['month'] ?? 0) ?: null;
+                    $_SESSION['internal_chat_last_terminated']['year'] = (int) ($data['year'] ?? 0) ?: null;
+                }
+                if ($tool === 'rh.count_terminated_by_month') {
+                    $_SESSION['internal_chat_last_terminated']['year'] = (int) ($data['year'] ?? 0) ?: null;
+                    $_SESSION['internal_chat_last_terminated']['month'] = null;
+                    $_SESSION['internal_chat_last_terminated']['department'] = null;
+                }
+            }
         } elseif ($tool === 'rh.count_active' || $tool === 'rh.count_active_by_department') {
             $_SESSION['internal_chat_last_status'] = 'active';
+            unset($_SESSION['internal_chat_person_candidates'], $_SESSION['internal_chat_last_terminated']);
+        } elseif ($tool === 'rh.lookup_person') {
+            $data = $result['data'] ?? null;
+            $preserve = is_array($data) && !empty($data['preserve_candidates']);
+            $matches = is_array($data) ? ($data['matches'] ?? []) : [];
+            if ($preserve) {
+                // Mantém a lista ambígua original para novos refinamentos (TI → Comercial → 2…).
+                return;
+            }
+            if (is_array($matches) && count($matches) > 1) {
+                $_SESSION['internal_chat_person_candidates'] = [
+                    'query' => (string) ($data['query'] ?? ''),
+                    'matches' => array_values(array_map(static function (array $row): array {
+                        return [
+                            'id' => (int) ($row['id'] ?? 0),
+                            'name' => (string) ($row['name'] ?? ''),
+                            'username' => (string) ($row['username'] ?? ''),
+                            'department' => (string) ($row['department'] ?? ''),
+                        ];
+                    }, $matches)),
+                ];
+            } else {
+                unset($_SESSION['internal_chat_person_candidates']);
+            }
+        } elseif ($tool !== '' && str_starts_with($tool, 'rooms.')) {
+            unset($_SESSION['internal_chat_person_candidates']);
         }
+    }
+
+    /**
+     * Após lista ambígua (vários Rafaéis), aceita «TI», username ou número da lista.
+     *
+     * @return array{name: string, token?: string}|null
+     */
+    private function detectPersonCandidateRefine(string $message): ?array
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return null;
+        }
+        $pending = $_SESSION['internal_chat_person_candidates'] ?? null;
+        if (!is_array($pending) || empty($pending['matches']) || !is_array($pending['matches'])) {
+            return null;
+        }
+
+        $raw = trim($message);
+        if ($raw === '' || mb_strlen($raw) > 60) {
+            return null;
+        }
+
+        // Nova pergunta completa sobre outra pessoa → não refinar.
+        if ($this->extractPersonQuery($message) !== null) {
+            return null;
+        }
+
+        $m = mb_strtolower($raw);
+        if (preg_match(
+            '/\b(quantos|qtd|quantidade|headcount|agendar|reservar|salas?|relat[oó]rios?|desligad|inativos?|bloqueados?|ativos?\s+(na|em|por)|por\s+m[eê]s|por\s+departamento)\b/u',
+            $m
+        )) {
+            return null;
+        }
+
+        return ['name' => 'lookup_person_refine', 'token' => $raw];
+    }
+
+    /**
+     * «lista» / «lista Produção» após um total de desligados.
+     *
+     * @return array{name: string, month?: ?int, year?: ?int, department?: ?string}|null
+     */
+    private function detectTerminatedListFollowUp(string $normalizedMessage, string $message): ?array
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return null;
+        }
+        $last = $_SESSION['internal_chat_last_terminated'] ?? null;
+        if (!is_array($last)) {
+            return null;
+        }
+
+        $m = trim($normalizedMessage);
+        if ($m === '') {
+            return null;
+        }
+
+        // Frases completas «lista de desligados…» ficam no ramo principal.
+        if (preg_match('/\bdesligad[oa]s?\b/u', $m)) {
+            return null;
+        }
+
+        // «2026» / «em 2026» após totais/lista de desligados → lista filtrada do ano.
+        $yearOnly = $this->extractYearOnly($m);
+        if (
+            $yearOnly !== null
+            && preg_match('/^(em\s+|de\s+|s[oó]\s+(os\s+(de\s+)?)?)?20\d{2}$/u', $m)
+        ) {
+            $lastTerm = (session_status() === PHP_SESSION_ACTIVE)
+                ? ($_SESSION['internal_chat_last_terminated'] ?? null)
+                : null;
+            if (is_array($lastTerm)) {
+                return [
+                    'name' => 'terminated_list',
+                    'month' => null,
+                    'year' => $yearOnly,
+                    'department' => isset($lastTerm['department']) && $lastTerm['department'] !== ''
+                        ? (string) $lastTerm['department']
+                        : null,
+                ];
+            }
+        }
+
+        $period = $this->extractPeriod($message);
+        $dept = $this->extractTerminatedListDepartment($message);
+        if ($dept === null) {
+            $dept = $this->extractDepartment($message);
+            $dept = $this->resolveDepartmentAlias($dept);
+        }
+        if ($period !== null) {
+            $dept = null;
+        }
+
+        $isListCmd = (bool) preg_match(
+            '/^(lista|listar|nomes|mostrar(\s+lista)?|quem)(\s+.*)?$/iu',
+            $m
+        ) || (bool) preg_match('/^(lista|listar)\s+/iu', $m);
+
+        if (!$isListCmd) {
+            return null;
+        }
+
+        return [
+            'name' => 'terminated_list',
+            'month' => $period['month'] ?? ($last['month'] ?? null),
+            'year' => $period['year'] ?? ($yearOnly ?? ($last['year'] ?? null)),
+            'department' => $dept ?? ($last['department'] ?? null),
+        ];
+    }
+
+    /**
+     * Extrai nome/username de perguntas sobre uma pessoa.
+     */
+    private function extractPersonQuery(string $message): ?string
+    {
+        $raw = trim(preg_replace('/[?!.]+$/u', '', trim($message)) ?? trim($message));
+        if ($raw === '') {
+            return null;
+        }
+
+        $lower = mb_strtolower($raw);
+        // Agregados: não tratar como pessoa (exceto «quantos anos de empresa…»).
+        if (preg_match('/\b(quantos|qtd|quantidade|headcount|por\s+departamento|por\s+m[eê]s|todos)\b/u', $lower)
+            && !preg_match('/anos?\s+de\s+empresa|tempo\s+de\s+empresa/u', $lower)
+        ) {
+            return null;
+        }
+
+        $patterns = [
+            '/anos?\s+de\s+empresa\s+(?:que\s+)?(?:o|a|do|da|de)\s+(.+?)(?:\s+possui|\s+tem)?$/iu',
+            '/(?:quanto\s+tempo|h[aá]\s+quanto\s+tempo).{0,40}empresa.{0,20}(?:o|a|do|da|de)\s+(.+)$/iu',
+            '/tempo\s+de\s+empresa\s+(?:do|da|de)\s+(.+)$/iu',
+            '/(?:usu[aá]rio|colaborador|funcion[aá]rio)\s+(.+?)\s+est[aá]\s+bloquead/iu',
+            '/(.+?)\s+est[aá]\s+bloquead/iu',
+            '/qual\s+(?:o\s+)?departamentos?\s+(?:do|da|de)\s+(.+)$/iu',
+            '/departamentos?\s+(?:do|da|de)\s+(.+)$/iu',
+            '/(?:ficha|dados|informa[cç][oõ]es|perfil)\s+(?:do|da|de)\s+(.+)$/iu',
+            '/sobre\s+(?:o|a)\s+(.+)$/iu',
+            '/quem\s+[eé]\s+(.+)$/iu',
+        ];
+
+        $stop = [
+            'usuario', 'usuário', 'usuarios', 'usuários', 'colaborador', 'colaboradores',
+            'funcionario', 'funcionário', 'funcionarios', 'funcionários', 'alguem', 'alguém',
+            'ele', 'ela', 'este', 'esta', 'esse', 'essa', 'nome', 'pessoa',
+        ];
+
+        foreach ($patterns as $pattern) {
+            if (!preg_match($pattern, $raw, $mm)) {
+                continue;
+            }
+            $name = $this->sanitizePersonQuery((string) ($mm[1] ?? ''));
+            if ($name === null) {
+                continue;
+            }
+            $nameKey = mb_strtolower($name);
+            if (in_array($nameKey, $stop, true)) {
+                continue;
+            }
+            if (preg_match('/^(quantos?|bloquead|desligad|inativos?|ativos?|departamentos?)/u', $nameKey)) {
+                continue;
+            }
+            // Evitar capturar frases longas demais.
+            if (mb_strlen($name) > 80 || substr_count($name, ' ') > 6) {
+                continue;
+            }
+
+            return $name;
+        }
+
+        return null;
+    }
+
+    /**
+     * Remove placeholders do LLM («Nome da pessoa X») e artigos.
+     */
+    private function sanitizePersonQuery(string $name): ?string
+    {
+        $name = trim($name);
+        $name = preg_replace('/^(o|a|os|as|do|da|de|um|uma)\s+/iu', '', $name) ?? $name;
+        $name = preg_replace(
+            '/^(nome\s+(da\s+pessoa|do\s+usu[aá]rio|ou\s+username|completo)|pessoa|usu[aá]rio)\s+/iu',
+            '',
+            $name
+        ) ?? $name;
+        $name = trim($name, " \t\"'`");
+        if (mb_strlen($name) < 2) {
+            return null;
+        }
+
+        return $name;
+    }
+
+    /**
+     * @param array{query: string, matches: list<array<string, mixed>>, match_count: int} $data
+     * @return array{resposta: string, tool: string, data: mixed, provider: string}
+     */
+    private function buildLookupPersonResult(array $data): array
+    {
+        $query = (string) ($data['query'] ?? '');
+        $matches = $data['matches'] ?? [];
+        if (!is_array($matches) || $matches === []) {
+            return [
+                'resposta' => sprintf(
+                    'Não encontrei colaborador com «%s». Tente nome completo, username ou e-mail.',
+                    $query
+                ),
+                'tool' => 'rh.lookup_person',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if (count($matches) > 1) {
+            $lines = [
+                sprintf('Encontrei %d pessoas para «%s». Seja mais específico:', count($matches), $query),
+                'Digite o departamento (ex.: TI), o username ou o número da lista:',
+            ];
+            foreach ($matches as $idx => $row) {
+                $n = $idx + 1;
+                $lines[] = sprintf(
+                    '%d. %s (%s) — %s — %s',
+                    $n,
+                    $row['name'] ?? '',
+                    ($row['username'] ?? '') !== '' ? $row['username'] : 'sem user',
+                    $row['department'] ?? '',
+                    !empty($row['blocked']) ? 'bloqueado' : 'não bloqueado'
+                );
+            }
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.lookup_person',
+                'data' => array_merge($data, [
+                    'match_count' => count($matches),
+                    'matches' => $matches,
+                ]),
+                'provider' => 'local-rules',
+            ];
+        }
+
+        return [
+            'resposta' => $this->formatPersonCard($matches[0]),
+            'tool' => 'rh.lookup_person',
+            'data' => array_merge($data, [
+                'match_count' => 1,
+                'matches' => $matches,
+            ]),
+            'provider' => 'local-rules',
+        ];
+    }
+
+    /**
+     * @return array{resposta: string, tool: string, data: mixed, provider: string}
+     */
+    private function executePersonRefine(string $token): array
+    {
+        $pending = $_SESSION['internal_chat_person_candidates'] ?? null;
+        $candidates = is_array($pending) ? ($pending['matches'] ?? []) : [];
+        if (!is_array($candidates) || $candidates === []) {
+            return [
+                'resposta' => 'Não há uma lista anterior de pessoas para refinar. Pergunte de novo, ex.: «departamento do Rafael».',
+                'tool' => 'rh.lookup_person',
+                'data' => null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        $filtered = $this->filterPersonCandidates($candidates, $token);
+        if ($filtered === []) {
+            return [
+                'resposta' => sprintf(
+                    'Ninguém na lista anterior combina com «%s». Digite o departamento, o username ou o número (1, 2…).',
+                    $token
+                ),
+                'tool' => 'rh.lookup_person',
+                'data' => [
+                    'query' => (string) ($pending['query'] ?? ''),
+                    'matches' => $candidates,
+                    'match_count' => count($candidates),
+                    'refine_token' => $token,
+                    'preserve_candidates' => true,
+                ],
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if (count($filtered) === 1) {
+            $id = (int) ($filtered[0]['id'] ?? 0);
+            $full = $this->rh->lookupPerson(
+                (string) (($filtered[0]['username'] ?? '') !== ''
+                    ? $filtered[0]['username']
+                    : ($filtered[0]['name'] ?? ''))
+            );
+            // Prefer exact id if multiple username collisions
+            if ($id > 0 && !empty($full['matches'])) {
+                $exact = array_values(array_filter(
+                    $full['matches'],
+                    static fn(array $row): bool => (int) ($row['id'] ?? 0) === $id
+                ));
+                if ($exact !== []) {
+                    $full['matches'] = $exact;
+                    $full['match_count'] = 1;
+                    $full['query'] = (string) ($exact[0]['name'] ?? $full['query']);
+                }
+            }
+
+            $result = $this->buildLookupPersonResult($full);
+            if (is_array($result['data'] ?? null)) {
+                $result['data']['preserve_candidates'] = true;
+                $result['data']['refine_token'] = $token;
+            }
+
+            return $result;
+        }
+
+        $query = (string) ($pending['query'] ?? '');
+        $fullMatches = [];
+        foreach ($filtered as $cand) {
+            $look = $this->rh->lookupPerson(
+                (string) (($cand['username'] ?? '') !== '' ? $cand['username'] : ($cand['name'] ?? ''))
+            );
+            $id = (int) ($cand['id'] ?? 0);
+            foreach ($look['matches'] as $row) {
+                if ($id > 0 && (int) ($row['id'] ?? 0) === $id) {
+                    $fullMatches[] = $row;
+                    break;
+                }
+            }
+        }
+        if ($fullMatches === []) {
+            $fullMatches = $filtered;
+        }
+
+        $result = $this->buildLookupPersonResult([
+            'query' => $query !== '' ? ($query . ' / ' . $token) : $token,
+            'matches' => $fullMatches,
+            'match_count' => count($fullMatches),
+        ]);
+        if (is_array($result['data'] ?? null)) {
+            $result['data']['preserve_candidates'] = true;
+            $result['data']['refine_token'] = $token;
+        }
+
+        return $result;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $candidates
+     * @return list<array<string, mixed>>
+     */
+    private function filterPersonCandidates(array $candidates, string $token): array
+    {
+        $token = trim($token);
+        if ($token === '') {
+            return [];
+        }
+
+        if (preg_match('/^\d+$/', $token)) {
+            $idx = (int) $token - 1;
+            if ($idx >= 0 && isset($candidates[$idx])) {
+                return [$candidates[$idx]];
+            }
+
+            return [];
+        }
+
+        $tokenKey = mb_strtolower($token);
+        $deptAlias = $this->resolveDepartmentAlias($token);
+        $deptKey = $deptAlias !== null ? mb_strtolower($deptAlias) : $tokenKey;
+
+        $byUsername = [];
+        $byDept = [];
+        $byName = [];
+        $short = mb_strlen($tokenKey) <= 3;
+        foreach ($candidates as $row) {
+            $username = mb_strtolower((string) ($row['username'] ?? ''));
+            $dept = mb_strtolower((string) ($row['department'] ?? ''));
+            $name = mb_strtolower((string) ($row['name'] ?? ''));
+
+            if ($username !== '') {
+                if ($username === $tokenKey || (!$short && str_contains($username, $tokenKey))) {
+                    $byUsername[] = $row;
+                }
+            }
+            if ($dept !== '') {
+                $deptHit = $dept === $deptKey
+                    || (!$short && (str_contains($dept, $deptKey) || str_contains($deptKey, $dept)));
+                // Tokens curtos (TI, RH): só igualdade / alias canônico.
+                if ($short) {
+                    $deptHit = $dept === $deptKey;
+                }
+                if ($deptHit) {
+                    $byDept[] = $row;
+                }
+            }
+            if (!$short && $name !== '' && str_contains($name, $tokenKey)) {
+                $byName[] = $row;
+            }
+        }
+
+        if ($byUsername !== []) {
+            return $byUsername;
+        }
+        if ($byDept !== []) {
+            return $byDept;
+        }
+
+        return $byName;
+    }
+
+    /**
+     * @param array<string, mixed> $p
+     */
+    private function formatPersonCard(array $p): string
+    {
+        $blockedLabel = !empty($p['blocked']) ? 'sim' : 'não';
+        $termLabel = !empty($p['termination_date'])
+            ? ('desligado em ' . $this->formatBrDate((string) $p['termination_date']))
+            : 'sem desligamento';
+        $admLabel = !empty($p['admission_date'])
+            ? $this->formatBrDate((string) $p['admission_date'])
+            : 'não informada';
+
+        return sprintf(
+            "%s (@%s)\n"
+            . "• Departamento: %s\n"
+            . "• Cargo: %s\n"
+            . "• Status: %s\n"
+            . "• Bloqueado: %s\n"
+            . "• Admissão: %s\n"
+            . "• Tempo de empresa: %s\n"
+            . "• Desligamento: %s",
+            (string) ($p['name'] ?? ''),
+            ($p['username'] ?? '') !== '' ? $p['username'] : '—',
+            (string) ($p['department'] ?? '—'),
+            (string) ($p['position'] ?? '—'),
+            ($p['status'] ?? '') !== '' ? $p['status'] : '—',
+            $blockedLabel,
+            $admLabel,
+            (string) ($p['tenure_label'] ?? '—'),
+            $termLabel
+        );
+    }
+
+    private function formatBrDate(string $ymd): string
+    {
+        if (!preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $ymd, $mm)) {
+            return $ymd;
+        }
+
+        return $mm[3] . '/' . $mm[2] . '/' . $mm[1];
+    }
+
+    private function formatBrDateOrDash(string $ymd): string
+    {
+        $ymd = trim($ymd);
+        if ($ymd === '') {
+            return '—';
+        }
+        $br = $this->formatBrDate($ymd);
+
+        return $br !== '' ? $br : '—';
     }
 
     /**
@@ -544,6 +1163,54 @@ class LocalInternalChatAgent
         $key = preg_replace('/\s+/u', ' ', $key) ?? $key;
 
         return self::DEPARTMENT_ALIASES[$key] ?? $department;
+    }
+
+    /**
+     * Departamento no fim de frases tipo «lista desligados Produção».
+     */
+    private function extractTerminatedListDepartment(string $message): ?string
+    {
+        $m = trim($message);
+        $m = preg_replace(
+            '/^(lista|listar)\s+(de\s+)?(usu[aá]rios?\s+|colaboradores?\s+)?desligad[oa]s?\s+/iu',
+            '',
+            $m
+        ) ?? $m;
+        $m = preg_replace('/^desligad[oa]s?\s+(da|do|de|em|na|no)\s+/iu', '', $m) ?? $m;
+        $m = preg_replace('/^(lista|listar)\s+/iu', '', $m) ?? $m;
+        $m = trim($m, " \t\"'`");
+        if ($m === '' || preg_match('/^(em\s+)?20\d{2}$/u', mb_strtolower($m))) {
+            return null;
+        }
+        if ($this->extractPeriod($m) !== null || $this->extractPeriod('em ' . $m) !== null) {
+            return null;
+        }
+
+        $alias = $this->resolveDepartmentAlias($m);
+        $candidates = array_filter([$m, $alias], static fn($v) => is_string($v) && $v !== '');
+        foreach ($this->rh->listDepartmentNames() as $name) {
+            foreach ($candidates as $cand) {
+                if (mb_strtolower($name) === mb_strtolower($cand)) {
+                    return $name;
+                }
+            }
+        }
+
+        // Último token (ex.: «lista de desligados Produção»)
+        $parts = preg_split('/\s+/u', $m) ?: [];
+        $last = (string) end($parts);
+        if ($last !== '') {
+            $lastAlias = $this->resolveDepartmentAlias($last);
+            foreach ($this->rh->listDepartmentNames() as $name) {
+                if (mb_strtolower($name) === mb_strtolower($last)
+                    || ($lastAlias !== null && mb_strtolower($name) === mb_strtolower($lastAlias))
+                ) {
+                    return $name;
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
@@ -688,15 +1355,197 @@ class LocalInternalChatAgent
 
         if ($intent['name'] === 'blocked') {
             $data = $this->rh->countBlockedUsers();
+            $notTerm = $this->rh->countBlockedNotTerminated();
             $resposta = sprintf(
-                'Há %d usuário(s) bloqueado(s) no Portal. Destes, %d têm tentativas de login registradas.',
+                'Há %d usuário(s) bloqueado(s) no Portal. Destes, %d têm tentativas de login registradas. '
+                . 'Bloqueados sem data de desligamento: %d.',
                 $data['total'],
-                $data['with_attempts']
+                $data['with_attempts'],
+                $notTerm['total']
             );
 
             return [
                 'resposta' => $resposta,
                 'tool' => 'rh.count_blocked',
+                'data' => array_merge($data, ['blocked_not_terminated' => $notTerm['total']]),
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'blocked_not_terminated') {
+            $data = $this->rh->countBlockedNotTerminated();
+            $lines = [
+                sprintf(
+                    'Há %d usuário(s) bloqueado(s) sem data de desligamento (ainda constam sem desligamento no cadastro).',
+                    $data['total']
+                ),
+            ];
+            if ($data['by_department'] !== []) {
+                $lines[] = '';
+                $lines[] = 'Por departamento:';
+                foreach ($data['by_department'] as $row) {
+                    $lines[] = "• {$row['departamento']}: {$row['total']}";
+                }
+                $data['visualization_type'] = 'bar_chart';
+                $data['chart'] = ChatDynamicReportService::chartFromByDepartment(
+                    $data['by_department'],
+                    'Bloqueados sem desligamento'
+                );
+            }
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.count_blocked_not_terminated',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'lookup_person_refine') {
+            return $this->executePersonRefine((string) ($intent['token'] ?? $message));
+        }
+
+        if ($intent['name'] === 'lookup_person') {
+            $query = trim((string) ($intent['query'] ?? ''));
+            $fromMessage = $this->extractPersonQuery($message);
+            if ($fromMessage !== null) {
+                $query = $fromMessage;
+            } else {
+                $cleaned = $this->sanitizePersonQuery($query);
+                $query = $cleaned ?? $query;
+            }
+            $data = $this->rh->lookupPerson($query);
+
+            return $this->buildLookupPersonResult($data);
+        }
+
+        if ($intent['name'] === 'terminated_list') {
+            $month = isset($intent['month']) ? (int) $intent['month'] : null;
+            $year = isset($intent['year']) ? (int) $intent['year'] : null;
+            $department = isset($intent['department']) ? $this->resolveDepartmentAlias((string) $intent['department']) : null;
+            if ($month !== null && $month < 1) {
+                $month = null;
+            }
+            if ($year !== null && $year < 1) {
+                $year = null;
+            }
+            if ($department === '') {
+                $department = null;
+            }
+            $data = $this->rh->listTerminated(
+                $month,
+                $year,
+                $department,
+                150
+            );
+            $periodLabel = 'todos os períodos';
+            $monthNames = [
+                1 => 'janeiro', 2 => 'fevereiro', 3 => 'março', 4 => 'abril',
+                5 => 'maio', 6 => 'junho', 7 => 'julho', 8 => 'agosto',
+                9 => 'setembro', 10 => 'outubro', 11 => 'novembro', 12 => 'dezembro',
+            ];
+            if ($month && $year) {
+                $periodLabel = ($monthNames[$month] ?? (string) $month) . '/' . $year;
+            } elseif ($year) {
+                $periodLabel = (string) $year;
+            }
+            $deptLabel = $department ? (' · ' . $department) : '';
+            $shown = count($data['rows']);
+            $lines = [
+                sprintf('Lista de desligados (%s%s): %d no total.', $periodLabel, $deptLabel, $data['total']),
+            ];
+            if ($shown < 1) {
+                $lines[] = 'Nenhum registro neste filtro.';
+            } else {
+                $lines[] = sprintf(
+                    'Tabela com %d nome(s). Use Baixar Excel/CSV para exportar%s.',
+                    $shown,
+                    !empty($data['truncated']) ? ' (lista truncada; refine o filtro)' : ''
+                );
+            }
+
+            // Linhas amigáveis para a UI (sem duplicar em bullets).
+            $displayRows = [];
+            foreach ($data['rows'] as $row) {
+                $displayRows[] = [
+                    'Nome' => (string) ($row['nome'] ?? ''),
+                    'User' => (string) ($row['username'] ?? ''),
+                    'Depto' => (string) ($row['departamento'] ?? ''),
+                    'Cargo' => (string) ($row['cargo'] ?? ''),
+                    'Desligamento' => $this->formatBrDateOrDash((string) ($row['desligamento'] ?? '')),
+                ];
+            }
+            $data['rows'] = $displayRows;
+            $data['name'] = 'Desligados (' . $periodLabel . $deptLabel . ')';
+            $data['ui'] = ['compact_table' => true];
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.list_terminated',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'terminated_total') {
+            $data = $this->rh->countTerminated(null, null);
+            $lines = [
+                sprintf('Há %d colaborador(es) com data de desligamento cadastrada.', $data['total']),
+                'Para ver nomes: «lista de desligados». Por período: «lista de desligados em janeiro» / «lista desligados 2025». Por depto: «lista desligados Produção».',
+                'Ou, depois deste total, digite «lista» e em seguida o ano («2026») ou o departamento.',
+            ];
+            if ($data['by_department'] !== []) {
+                $lines[] = '';
+                $lines[] = 'Por departamento (todos os períodos):';
+                foreach (array_slice($data['by_department'], 0, 10) as $row) {
+                    $lines[] = "• {$row['departamento']}: {$row['total']}";
+                }
+            }
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.count_terminated',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'terminated_by_department') {
+            $month = isset($intent['month']) ? (int) $intent['month'] : null;
+            $year = isset($intent['year']) ? (int) $intent['year'] : null;
+            $data = $this->rh->countTerminated($month > 0 ? $month : null, $year > 0 ? $year : null);
+            $periodLabel = 'todos os períodos';
+            if ($month && $year) {
+                $monthNames = [
+                    1 => 'janeiro', 2 => 'fevereiro', 3 => 'março', 4 => 'abril',
+                    5 => 'maio', 6 => 'junho', 7 => 'julho', 8 => 'agosto',
+                    9 => 'setembro', 10 => 'outubro', 11 => 'novembro', 12 => 'dezembro',
+                ];
+                $periodLabel = ($monthNames[$month] ?? (string) $month) . '/' . $year;
+            } elseif ($year) {
+                $periodLabel = (string) $year;
+            }
+            $lines = [
+                sprintf('Desligados (%s): %d no total.', $periodLabel, $data['total']),
+            ];
+            if ($data['by_department'] === []) {
+                $lines[] = 'Nenhum registro por departamento neste filtro.';
+            } else {
+                $lines[] = '';
+                $lines[] = 'Por departamento:';
+                foreach ($data['by_department'] as $row) {
+                    $lines[] = "• {$row['departamento']}: {$row['total']}";
+                }
+                $data['visualization_type'] = 'bar_chart';
+                $data['chart'] = ChatDynamicReportService::chartFromByDepartment(
+                    $data['by_department'],
+                    'Desligados por departamento (' . $periodLabel . ')'
+                );
+            }
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.count_terminated_by_department',
                 'data' => $data,
                 'provider' => 'local-rules',
             ];
@@ -927,6 +1776,11 @@ class LocalInternalChatAgent
             . "{\"intent\":\"terminated_in_period\",\"month\":1,\"year\":2026}\n"
             . "{\"intent\":\"terminated_by_month\",\"year\":2026}\n"
             . "{\"intent\":\"blocked\"}\n"
+            . "{\"intent\":\"blocked_not_terminated\"}\n"
+            . "{\"intent\":\"terminated_list\",\"year\":2025,\"department\":\"Produção\"}\n"
+            . "{\"intent\":\"terminated_total\"}\n"
+            . "{\"intent\":\"terminated_by_department\",\"year\":2025}\n"
+            . "{\"intent\":\"lookup_person\",\"query\":\"Rafael\"}\n"
             . "{\"intent\":\"by_department\"}\n"
             . "{\"intent\":\"report_list\"}\n"
             . "{\"intent\":\"report_run\",\"query\":\"nome ou tool do relatório\"}\n"
@@ -936,6 +1790,10 @@ class LocalInternalChatAgent
             . "{\"intent\":\"rooms_reserve\",\"room\":\"Nome\",\"start\":\"2026-08-10 14:00:00\",\"end\":\"2026-08-10 15:00:00\",\"title\":\"Reunião\"}\n"
             . "{\"intent\":\"rooms_cancel\",\"booking_id\":12}\n"
             . "{\"intent\":\"unknown\"}\n"
+            . "Se perguntar departamento/bloqueio/anos de empresa de uma pessoa, use lookup_person com query=só o nome (ex.: Rafael), sem prefixos.\n"
+            . "Lista nominativa de desligados → terminated_list (month/year/department opcionais). «quantos desligados» → terminated_total.\n"
+            . "Bloqueados sem desligamento → blocked_not_terminated. «quantos desligados» sem período → terminated_total.\n"
+            . "«desligados por departamento» → terminated_by_department (year opcional).\n"
             . "Se a pergunta tiver mês (ex.: inativos em janeiro), use terminated_in_period — NÃO use department=janeiro.\n"
             . "Se pedir inativos/desligados «por mês» ou só o ano (ex.: desligados 2025), use terminated_by_month — NÃO use report_run nem inactive.\n"
             . "Salas: listar/agenda/reservar/cancelar usam as intents rooms_* (não misturar com RH).";
@@ -963,8 +1821,9 @@ class LocalInternalChatAgent
         }
 
         $allowed = [
-            'active', 'inactive', 'terminated_in_period', 'terminated_by_month',
-            'blocked', 'by_department', 'report_list', 'report_run', 'clarify_by_month',
+            'active', 'inactive', 'terminated_in_period', 'terminated_by_month', 'terminated_total',
+            'terminated_list', 'terminated_by_department', 'blocked', 'blocked_not_terminated', 'lookup_person',
+            'by_department', 'report_list', 'report_run', 'clarify_by_month',
             'rooms_list', 'rooms_agenda', 'rooms_my', 'rooms_reserve', 'rooms_cancel', 'rooms_reserve_help',
         ];
         if (!in_array($name, $allowed, true)) {
@@ -972,6 +1831,9 @@ class LocalInternalChatAgent
         }
 
         $intent = ['name' => $name];
+        if (!empty($intentJson['query']) && ($name === 'lookup_person' || $name === 'report_run')) {
+            $intent['query'] = (string) $intentJson['query'];
+        }
         if (!empty($intentJson['room'])) {
             $intent['room'] = (string) $intentJson['room'];
         }
@@ -996,8 +1858,8 @@ class LocalInternalChatAgent
                 $first = mb_strtolower(explode(' ', $dept)[0] ?? '');
                 if (isset(self::MONTHS[$first])) {
                     $dept = null;
-                    if ($name === 'inactive' || $name === 'terminated_in_period') {
-                        $intent['name'] = 'terminated_in_period';
+                    if ($name === 'inactive' || $name === 'terminated_in_period' || $name === 'terminated_list') {
+                        $intent['name'] = $name === 'terminated_list' ? 'terminated_list' : 'terminated_in_period';
                         $intent['month'] = self::MONTHS[$first];
                         $intent['year'] = !empty($intentJson['year'])
                             ? (int) $intentJson['year']
@@ -1034,7 +1896,13 @@ class LocalInternalChatAgent
     private function maybeEnrichWithAnalysis(array $result): array
     {
         $tool = (string) ($result['tool'] ?? '');
-        if (!in_array($tool, ['report.run', 'rh.count_active_by_department', 'rh.count_terminated_in_month'], true)) {
+        if (!in_array($tool, [
+            'report.run',
+            'rh.count_active_by_department',
+            'rh.count_terminated_in_month',
+            'rh.count_terminated_by_department',
+            'rh.count_blocked_not_terminated',
+        ], true)) {
             return $result;
         }
 

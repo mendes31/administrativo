@@ -165,31 +165,56 @@ class InternalChatLlmClient
             return null;
         }
 
-        $model = (string) ($_ENV['OLLAMA_MODEL'] ?? 'llama3.2');
-        $payload = [
-            'model' => $model,
-            'prompt' => $system . "\n\n" . $user,
-            'stream' => false,
-            'options' => ['num_predict' => 400],
-        ];
-        if ($jsonMode) {
-            $payload['format'] = 'json';
+        $models = $this->resolveOllamaModels();
+        foreach ($models as $model) {
+            $payload = [
+                'model' => $model,
+                'prompt' => $system . "\n\n" . $user,
+                'stream' => false,
+                'options' => ['num_predict' => 400],
+            ];
+            if ($jsonMode) {
+                $payload['format'] = 'json';
+            }
+
+            $body = $this->httpJson('POST', $base . '/api/generate', $payload, [
+                'Content-Type: application/json',
+            ], 45);
+
+            if ($body === null) {
+                continue;
+            }
+
+            $text = trim((string) ($body['response'] ?? ''));
+            if ($text === '') {
+                continue;
+            }
+
+            return ['text' => $text, 'provider' => 'ollama:' . $model];
         }
 
-        $body = $this->httpJson('POST', $base . '/api/generate', $payload, [
-            'Content-Type: application/json',
-        ], 45);
+        return null;
+    }
 
-        if ($body === null) {
-            return null;
+    /**
+     * Cadeia: modelo da tela MCP → fallbacks → OLLAMA_MODEL do .env.
+     *
+     * @return list<string>
+     */
+    private function resolveOllamaModels(): array
+    {
+        try {
+            $repo = new \App\adms\Models\Repository\AdmsMcpApiConfigRepository();
+            $chain = $repo->resolveOllamaModelChain();
+            if ($chain !== []) {
+                return $chain;
+            }
+        } catch (\Throwable) {
+            // segue fallback .env
         }
 
-        $text = trim((string) ($body['response'] ?? ''));
-        if ($text === '') {
-            return null;
-        }
-
-        return ['text' => $text, 'provider' => 'ollama:' . $model];
+        $primary = trim((string) ($_ENV['OLLAMA_MODEL'] ?? 'llama3.2'));
+        return $primary !== '' ? [$primary] : ['llama3.2'];
     }
 
     /**

@@ -4,6 +4,12 @@ use App\adms\Helpers\CSRFHelper;
 
 $config = $this->data['mcp_api_config'] ?? [];
 $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_mcp_api_config');
+$ollamaModels = $this->data['ollama_models'] ?? [];
+$ollamaUrl = (string) ($this->data['ollama_url'] ?? '');
+$ollamaEnvModel = (string) ($this->data['ollama_env_model'] ?? 'llama3.2');
+$selectedModel = trim((string) ($config['ollama_model'] ?? ''));
+$fallbackModels = trim((string) ($config['ollama_models_fallback'] ?? ''));
+$customSelected = $selectedModel !== '' && $ollamaModels !== [] && !in_array($selectedModel, $ollamaModels, true);
 $activeTab = (string) ($this->data['active_tab'] ?? 'conexao');
 if (!in_array($activeTab, ['conexao', 'tools'], true)) {
     $activeTab = 'conexao';
@@ -107,12 +113,88 @@ if ($activeTab === 'tools' && !$canTools) {
                                     </label>
                                 </div>
 
+                                <hr class="my-4">
+                                <h6 class="mb-3"><i class="fas fa-brain me-1"></i> Modelo Ollama (roteamento / análise)</h6>
+                                <?php if ($ollamaUrl === ''): ?>
+                                    <div class="alert alert-warning small">
+                                        Defina <code>OLLAMA_URL</code> no <code>.env</code> (ex.: <code>http://127.0.0.1:11434</code>)
+                                        para listar e usar modelos locais. A URL do Ollama continua no servidor; aqui você só escolhe o <strong>modelo</strong>.
+                                    </div>
+                                <?php else: ?>
+                                    <p class="small text-muted mb-2">
+                                        Ollama em <code><?= htmlspecialchars($ollamaUrl, ENT_QUOTES, 'UTF-8') ?></code>.
+                                        Cada requisição usa <strong>um</strong> modelo; se falhar, tenta os fallbacks na ordem.
+                                    </p>
+                                <?php endif; ?>
+
+                                <div class="mb-3">
+                                    <label class="form-label" for="ollama_model">Modelo principal</label>
+                                    <?php if ($ollamaModels !== []): ?>
+                                        <select name="ollama_model" id="ollama_model" class="form-select">
+                                            <option value="">Usar padrão do .env (<?= htmlspecialchars($ollamaEnvModel, ENT_QUOTES, 'UTF-8') ?>)</option>
+                                            <?php foreach ($ollamaModels as $modelName): ?>
+                                                <option value="<?= htmlspecialchars((string) $modelName, ENT_QUOTES, 'UTF-8') ?>"
+                                                    <?= $selectedModel === $modelName ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars((string) $modelName, ENT_QUOTES, 'UTF-8') ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                            <option value="__custom__" <?= $customSelected ? 'selected' : '' ?>>Outro (digitar)…</option>
+                                        </select>
+                                        <input type="text"
+                                               name="ollama_model_custom"
+                                               id="ollama_model_custom"
+                                               class="form-control mt-2 <?= $customSelected ? '' : 'd-none' ?>"
+                                               placeholder="ex.: qwen:4b"
+                                               value="<?= $customSelected ? htmlspecialchars($selectedModel, ENT_QUOTES, 'UTF-8') : '' ?>">
+                                    <?php else: ?>
+                                        <input type="text"
+                                               name="ollama_model"
+                                               id="ollama_model"
+                                               class="form-control"
+                                               placeholder="ex.: qwen:4b  (vazio = <?= htmlspecialchars($ollamaEnvModel, ENT_QUOTES, 'UTF-8') ?>)"
+                                               value="<?= htmlspecialchars($selectedModel, ENT_QUOTES, 'UTF-8') ?>">
+                                        <div class="form-text">
+                                            Não foi possível listar modelos via API. Digite o nome (ou rode <code>ollama list</code>).
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="mb-4">
+                                    <label class="form-label" for="ollama_models_fallback">Fallbacks (opcional)</label>
+                                    <input type="text"
+                                           name="ollama_models_fallback"
+                                           id="ollama_models_fallback"
+                                           class="form-control"
+                                           placeholder="llama3.2, qwen:4b"
+                                           value="<?= htmlspecialchars($fallbackModels, ENT_QUOTES, 'UTF-8') ?>">
+                                    <div class="form-text">
+                                        Separados por vírgula. A API do Ollama não mistura modelos numa única chamada;
+                                        o chat tenta o principal e, se falhar, o próximo da lista.
+                                    </div>
+                                </div>
+
                                 <div class="d-grid gap-2">
                                     <button type="submit" class="btn btn-success btn-lg">
                                         <i class="fas fa-save me-2"></i>Salvar Configuração
                                     </button>
                                 </div>
                             </form>
+                            <?php if ($ollamaModels !== []): ?>
+                            <script>
+                            (function () {
+                                var sel = document.getElementById('ollama_model');
+                                var custom = document.getElementById('ollama_model_custom');
+                                if (!sel || !custom) return;
+                                function sync() {
+                                    var isCustom = sel.value === '__custom__';
+                                    custom.classList.toggle('d-none', !isCustom);
+                                    custom.disabled = !isCustom;
+                                }
+                                sel.addEventListener('change', sync);
+                                sync();
+                            })();
+                            </script>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

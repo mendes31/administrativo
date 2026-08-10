@@ -24,6 +24,12 @@ class SaveMcpApiConfig
 
         $baseUrl = trim($_POST['base_url'] ?? '');
         $isActive = isset($_POST['is_active']) ? 1 : 0;
+        $ollamaModel = trim((string) ($_POST['ollama_model'] ?? ''));
+        $ollamaFallback = trim((string) ($_POST['ollama_models_fallback'] ?? ''));
+        // Permite digitar modelo custom se o select for "__custom__"
+        if ($ollamaModel === '__custom__') {
+            $ollamaModel = trim((string) ($_POST['ollama_model_custom'] ?? ''));
+        }
 
         $isLocalInternal = in_array(strtolower($baseUrl), ['local:internal', 'local://internal'], true);
         if ($baseUrl === '' || (!$isLocalInternal && !filter_var($baseUrl, FILTER_VALIDATE_URL))) {
@@ -39,6 +45,8 @@ class SaveMcpApiConfig
         $saved = $repo->saveConfig([
             'base_url' => $normalizedBaseUrl,
             'is_active' => $isActive,
+            'ollama_model' => $ollamaModel,
+            'ollama_models_fallback' => $ollamaFallback,
         ]);
 
         if ($saved) {

@@ -13,36 +13,38 @@ $canSave = in_array('SaveMcpChatTool', $this->data['buttonPermission'] ?? [], tr
     <div class="card-header">
         <strong><i class="fas fa-cogs me-1"></i> Tools internas (RH)</strong>
     </div>
-    <div class="card-body p-0">
-        <div class="table-responsive">
-            <table class="table table-sm table-striped mb-0 align-middle">
-                <thead>
-                    <tr>
-                        <th>Tool</th>
-                        <th>Nome</th>
-                        <th>Descrição</th>
-                        <th>Exemplos</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <?php foreach ($builtin as $tool): ?>
-                        <tr>
-                            <td><code><?= htmlspecialchars((string) $tool['tool']) ?></code></td>
-                            <td><?= htmlspecialchars((string) $tool['name']) ?></td>
-                            <td><?= htmlspecialchars((string) $tool['description']) ?></td>
-                            <td class="small text-muted">
-                                <?= htmlspecialchars(implode(' · ', $tool['examples'] ?? [])) ?>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                </tbody>
-            </table>
-        </div>
+    <div class="card-body">
+        <?php if ($builtin === []): ?>
+            <p class="text-muted mb-0">Nenhuma tool built-in cadastrada.</p>
+        <?php else: ?>
+            <div class="vstack gap-3">
+                <?php foreach ($builtin as $tool): ?>
+                    <div class="border rounded-3 p-3 bg-light bg-opacity-50">
+                        <div class="d-flex flex-wrap align-items-baseline gap-2 mb-1">
+                            <code class="small"><?= htmlspecialchars((string) $tool['tool']) ?></code>
+                            <strong><?= htmlspecialchars((string) $tool['name']) ?></strong>
+                        </div>
+                        <p class="small mb-2 text-body-secondary">
+                            <?= htmlspecialchars((string) $tool['description']) ?>
+                        </p>
+                        <?php if (!empty($tool['examples']) && is_array($tool['examples'])): ?>
+                            <div class="d-flex flex-wrap gap-1">
+                                <?php foreach ($tool['examples'] as $example): ?>
+                                    <span class="badge text-bg-secondary fw-normal text-wrap text-start">
+                                        <?= htmlspecialchars((string) $example) ?>
+                                    </span>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
+        <?php endif; ?>
     </div>
 </div>
 
 <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
         <strong><i class="fas fa-file-alt me-1"></i> Relatórios dinâmicos → chat</strong>
         <a class="btn btn-sm btn-outline-primary" href="<?= $_ENV['URL_ADM'] ?>list-dynamic-reports">
             Abrir Relatórios
@@ -74,12 +76,14 @@ $canSave = in_array('SaveMcpChatTool', $this->data['buttonPermission'] ?? [], tr
                                 <?php else: ?>
                                     <span class="badge bg-secondary me-2">Off</span>
                                 <?php endif; ?>
-                                <?= htmlspecialchars((string) ($report['name'] ?? '')) ?>
-                                <span class="text-muted small ms-2">
-                                    #<?= $rid ?>
-                                    <?php if (!empty($report['chat_tool_name'])): ?>
-                                        · <code><?= htmlspecialchars((string) $report['chat_tool_name']) ?></code>
-                                    <?php endif; ?>
+                                <span class="text-break">
+                                    <?= htmlspecialchars((string) ($report['name'] ?? '')) ?>
+                                    <span class="text-muted small ms-1">
+                                        #<?= $rid ?>
+                                        <?php if (!empty($report['chat_tool_name'])): ?>
+                                            · <code><?= htmlspecialchars((string) $report['chat_tool_name']) ?></code>
+                                        <?php endif; ?>
+                                    </span>
                                 </span>
                             </button>
                         </h2>
@@ -119,7 +123,7 @@ $canSave = in_array('SaveMcpChatTool', $this->data['buttonPermission'] ?? [], tr
                                         <textarea class="form-control" name="chat_example_prompts" id="toolEx<?= $rid ?>"
                                                   rows="3" <?= $canSave ? '' : 'readonly' ?>><?= htmlspecialchars($examplesText) ?></textarea>
                                     </div>
-                                    <div class="col-12 d-flex gap-2">
+                                    <div class="col-12 d-flex flex-wrap gap-2">
                                         <?php if ($canSave): ?>
                                             <button type="submit" class="btn btn-primary btn-sm">
                                                 <i class="fas fa-save me-1"></i> Salvar

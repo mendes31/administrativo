@@ -32,6 +32,9 @@ class McpApiConfig
             'active_tab' => $tab,
             'builtin_tools' => McpChatToolsAdminCatalog::builtinTools(),
             'chat_reports' => (new DynamicReportsRepository())->getReportsForChatAdmin(),
+            'ollama_models' => $this->fetchOllamaModels(),
+            'ollama_url' => rtrim((string) ($_ENV['OLLAMA_URL'] ?? ''), '/'),
+            'ollama_env_model' => trim((string) ($_ENV['OLLAMA_MODEL'] ?? 'llama3.2')),
         ];
         $cfgId = (int) ($config['id'] ?? 0);
         if ($cfgId > 0) {
@@ -44,5 +47,44 @@ class McpApiConfig
 
         $loadView = new LoadViewService('adms/Views/settings/mcpApiConfig', $data);
         $loadView->loadView();
+    }
+
+    /**
+     * Lista modelos instalados no Ollama (GET /api/tags).
+     *
+     * @return list<string>
+     */
+    private function fetchOllamaModels(): array
+    {
+        $base = rtrim((string) ($_ENV['OLLAMA_URL'] ?? ''), '/');
+        if ($base === '') {
+            return [];
+        }
+
+        $ch = curl_init($base . '/api/tags');
+        curl_setopt_array($ch, [
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT => 4,
+            CURLOPT_CONNECTTIMEOUT => 2,
+        ]);
+        $raw = curl_exec($ch);
+        $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        curl_close($ch);
+
+        if ($raw === false || $code >= 400) {
+            return [];
+        }
+
+        $decoded = json_decode((string) $raw, true);
+        $models = [];
+        foreach (($decoded['models'] ?? []) as $item) {
+            $name = trim((string) ($item['name'] ?? ''));
+            if ($name !== '') {
+                $models[] = $name;
+            }
+        }
+        sort($models, SORT_NATURAL | SORT_FLAG_CASE);
+
+        return array_values(array_unique($models));
     }
 }

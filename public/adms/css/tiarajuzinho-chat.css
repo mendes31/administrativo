@@ -154,6 +154,65 @@
   border-radius: 1rem 1rem 1rem 0.35rem !important;
   box-shadow: 0 2px 10px rgba(43, 33, 28, 0.06);
   padding: 0.65rem 0.85rem !important;
+  overflow-x: hidden;
+  max-width: min(85%, 100%);
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-tool-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--tjz-orange-deep);
+  background: var(--tjz-orange-soft);
+  border: 1px solid var(--tjz-border);
+  border-radius: 999px;
+  padding: 0.12rem 0.55rem;
+  margin-bottom: 0.45rem;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  border: 1px solid var(--tjz-border, rgba(242, 98, 34, 0.22));
+  border-radius: 0.65rem;
+  background: #fff;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-data-table {
+  margin: 0 !important;
+  width: 100%;
+  font-size: 0.72rem;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-data-table th,
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-data-table td {
+  padding: 0.35rem 0.4rem !important;
+  white-space: nowrap;
+  vertical-align: middle;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-data-table th:first-child,
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-data-table td:first-child {
+  white-space: normal;
+  min-width: 7.5rem;
+  max-width: 9.5rem;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+#mcpChatOffcanvas.tiarajuzinho-chat .tjz-table-more {
+  font-size: 0.7rem;
+  color: var(--tjz-muted, #7a6a62);
+  padding: 0.35rem 0.5rem 0.45rem;
 }
 
 #mcpChatOffcanvas.tiarajuzinho-chat .tjz-bubble-thinking {

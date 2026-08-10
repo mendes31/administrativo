@@ -272,8 +272,8 @@ class RhChatIndicatorsService extends DbConnection
     public function countBlockedUsers(): array
     {
         $sql = "SELECT
-            SUM(CASE WHEN bloqueado = 'Sim' OR bloqueado = '1' OR bloqueado = 1 THEN 1 ELSE 0 END) AS total,
-            SUM(CASE WHEN (bloqueado = 'Sim' OR bloqueado = '1' OR bloqueado = 1)
+            SUM(CASE WHEN {$this->blockedSql()} THEN 1 ELSE 0 END) AS total,
+            SUM(CASE WHEN {$this->blockedSql()}
                       AND COALESCE(tentativas_login, 0) > 0 THEN 1 ELSE 0 END) AS with_attempts
             FROM adms_users";
         $row = $this->getConnection()->query($sql)->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -282,5 +282,362 @@ class RhChatIndicatorsService extends DbConnection
             'total' => (int) ($row['total'] ?? 0),
             'with_attempts' => (int) ($row['with_attempts'] ?? 0),
         ];
+    }
+
+    /**
+     * Bloqueados no Portal sem data de desligamento (ainda «na empresa» no cadastro).
+     *
+     * @return array{total:int, by_department: list<array{departamento:string, total:int}>}
+     */
+    public function countBlockedNotTerminated(): array
+    {
+        $blocked = $this->blockedSql('usr');
+        $sqlTotal = "SELECT COUNT(*) AS total
+            FROM adms_users usr
+            WHERE {$blocked}
+              AND usr.data_desligamento IS NULL";
+        $total = (int) ($this->getConnection()->query($sqlTotal)->fetchColumn() ?: 0);
+
+        $sqlByDept = "SELECT dep.name AS departamento, COUNT(*) AS total
+            FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$blocked}
+              AND usr.data_desligamento IS NULL
+            GROUP BY dep.id, dep.name
+            ORDER BY total DESC, dep.name ASC
+            LIMIT 30";
+        $rows = $this->getConnection()->query($sqlByDept)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'total' => $total,
+            'by_department' => $this->mapDepartmentRows($rows),
+        ];
+    }
+
+    /**
+     * Desligados (com data_desligamento), opcionalmente por ano e/ou mês.
+     *
+     * @return array{
+     *   total:int,
+     *   year:?int,
+     *   month:?int,
+     *   by_department: list<array{departamento:string, total:int}>
+     * }
+     */
+    public function countTerminated(?int $month = null, ?int $year = null): array
+    {
+        if ($month !== null) {
+            $month = max(1, min(12, $month));
+        }
+        if ($year !== null) {
+            $year = max(2000, min(2100, $year));
+        }
+
+        $where = ['usr.data_desligamento IS NOT NULL'];
+        $params = [];
+        if ($month !== null) {
+            $where[] = 'MONTH(usr.data_desligamento) = :month';
+            $params[':month'] = $month;
+        }
+        if ($year !== null) {
+            $where[] = 'YEAR(usr.data_desligamento) = :year';
+            $params[':year'] = $year;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $sqlTotal = "SELECT COUNT(*) AS total FROM adms_users usr WHERE {$whereSql}";
+        $stmt = $this->getConnection()->prepare($sqlTotal);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $total = (int) ($stmt->fetchColumn() ?: 0);
+
+        $sqlByDept = "SELECT dep.name AS departamento, COUNT(*) AS total
+            FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$whereSql}
+            GROUP BY dep.id, dep.name
+            ORDER BY total DESC, dep.name ASC
+            LIMIT 30";
+        $stmt2 = $this->getConnection()->prepare($sqlByDept);
+        foreach ($params as $k => $v) {
+            $stmt2->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $stmt2->execute();
+        $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'total' => $total,
+            'year' => $year,
+            'month' => $month,
+            'by_department' => $this->mapDepartmentRows($rows),
+        ];
+    }
+
+    /**
+     * Lista nominativa de desligados (com data_desligamento).
+     *
+     * @return array{
+     *   total:int,
+     *   year:?int,
+     *   month:?int,
+     *   department:?string,
+     *   truncated:bool,
+     *   rows: list<array<string, mixed>>
+     * }
+     */
+    public function listTerminated(
+        ?int $month = null,
+        ?int $year = null,
+        ?string $department = null,
+        int $limit = 150
+    ): array {
+        if ($month !== null) {
+            $month = max(1, min(12, $month));
+        }
+        if ($year !== null) {
+            $year = max(2000, min(2100, $year));
+        }
+        $limit = max(1, min(500, $limit));
+        $department = $department !== null ? trim($department) : '';
+
+        $where = ['usr.data_desligamento IS NOT NULL'];
+        $params = [];
+        $types = [];
+        if ($month !== null) {
+            $where[] = 'MONTH(usr.data_desligamento) = :month';
+            $params[':month'] = $month;
+            $types[':month'] = PDO::PARAM_INT;
+        }
+        if ($year !== null) {
+            $where[] = 'YEAR(usr.data_desligamento) = :year';
+            $params[':year'] = $year;
+            $types[':year'] = PDO::PARAM_INT;
+        }
+        if ($department !== '') {
+            $where[] = 'LOWER(dep.name) = LOWER(:dept)';
+            $params[':dept'] = $department;
+            $types[':dept'] = PDO::PARAM_STR;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) AS total
+            FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$whereSql}";
+        $stmtCount = $this->getConnection()->prepare($sqlCount);
+        foreach ($params as $k => $v) {
+            $stmtCount->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmtCount->execute();
+        $total = (int) ($stmtCount->fetchColumn() ?: 0);
+
+        $sql = "SELECT usr.name AS nome,
+                       usr.username,
+                       dep.name AS departamento,
+                       pos.name AS cargo,
+                       usr.data_admissao AS admissao,
+                       usr.data_desligamento AS desligamento,
+                       usr.motivo_desligamento AS motivo,
+                       usr.status
+                FROM adms_users usr
+                LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+                LEFT JOIN adms_positions pos ON pos.id = usr.user_position_id
+                WHERE {$whereSql}
+                ORDER BY usr.data_desligamento DESC, usr.name ASC
+                LIMIT {$limit}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $rows = [];
+        foreach ($raw as $row) {
+            $adm = $this->normalizeDate($row['admissao'] ?? null);
+            $term = $this->normalizeDate($row['desligamento'] ?? null);
+            $rows[] = [
+                'nome' => (string) ($row['nome'] ?? ''),
+                'username' => (string) ($row['username'] ?? ''),
+                'departamento' => (string) (($row['departamento'] ?? '') !== '' ? $row['departamento'] : '(sem departamento)'),
+                'cargo' => (string) (($row['cargo'] ?? '') !== '' ? $row['cargo'] : '—'),
+                'admissao' => $adm ?? '',
+                'desligamento' => $term ?? '',
+                'motivo' => (string) (($row['motivo'] ?? '') !== '' ? $row['motivo'] : '—'),
+                'status' => (string) ($row['status'] ?? ''),
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'year' => $year,
+            'month' => $month,
+            'department' => $department !== '' ? $department : null,
+            'truncated' => $total > count($rows),
+            'rows' => $rows,
+            'name' => 'Desligados',
+        ];
+    }
+
+    /**
+     * Busca colaborador por nome, username ou e-mail (sem CPF/celular).
+     *
+     * @return array{
+     *   query: string,
+     *   matches: list<array<string, mixed>>,
+     *   match_count: int
+     * }
+     */
+    public function lookupPerson(string $query): array
+    {
+        $query = trim(preg_replace('/\s+/u', ' ', $query) ?? $query);
+        if ($query === '' || mb_strlen($query) < 2) {
+            return ['query' => $query, 'matches' => [], 'match_count' => 0];
+        }
+
+        $like = '%' . $query . '%';
+        $sql = "SELECT usr.id, usr.name, usr.username, usr.email, usr.status, usr.bloqueado,
+                       usr.data_admissao, usr.data_desligamento,
+                       dep.name AS departamento, pos.name AS cargo
+                FROM adms_users usr
+                LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+                LEFT JOIN adms_positions pos ON pos.id = usr.user_position_id
+                WHERE usr.name LIKE :q
+                   OR usr.username LIKE :q
+                   OR usr.email LIKE :q
+                ORDER BY
+                    CASE
+                        WHEN LOWER(usr.name) = LOWER(:q_exact) THEN 0
+                        WHEN LOWER(usr.username) = LOWER(:q_exact2) THEN 1
+                        WHEN LOWER(usr.name) LIKE LOWER(:q_prefix) THEN 2
+                        ELSE 3
+                    END,
+                    usr.name ASC
+                LIMIT 8";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':q', $like, PDO::PARAM_STR);
+        $stmt->bindValue(':q_exact', $query, PDO::PARAM_STR);
+        $stmt->bindValue(':q_exact2', $query, PDO::PARAM_STR);
+        $stmt->bindValue(':q_prefix', $query . '%', PDO::PARAM_STR);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $matches = [];
+        foreach ($rows as $row) {
+            $admissao = $this->normalizeDate($row['data_admissao'] ?? null);
+            $desligamento = $this->normalizeDate($row['data_desligamento'] ?? null);
+            $tenure = $this->computeTenure($admissao, $desligamento);
+            $blocked = $this->isBlockedValue($row['bloqueado'] ?? null);
+
+            $matches[] = [
+                'id' => (int) ($row['id'] ?? 0),
+                'name' => (string) ($row['name'] ?? ''),
+                'username' => (string) ($row['username'] ?? ''),
+                'email' => (string) ($row['email'] ?? ''),
+                'status' => (string) ($row['status'] ?? ''),
+                'blocked' => $blocked,
+                'department' => (string) (($row['departamento'] ?? '') !== '' ? $row['departamento'] : '(sem departamento)'),
+                'position' => (string) (($row['cargo'] ?? '') !== '' ? $row['cargo'] : '(sem cargo)'),
+                'admission_date' => $admissao,
+                'termination_date' => $desligamento,
+                'years_at_company' => $tenure['years_decimal'],
+                'tenure_label' => $tenure['label'],
+            ];
+        }
+
+        return [
+            'query' => $query,
+            'matches' => $matches,
+            'match_count' => count($matches),
+        ];
+    }
+
+    private function blockedSql(string $alias = ''): string
+    {
+        $col = $alias !== '' ? "{$alias}.bloqueado" : 'bloqueado';
+
+        return "({$col} = 'Sim' OR {$col} = '1' OR {$col} = 1)";
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array{departamento:string, total:int}>
+     */
+    private function mapDepartmentRows(array $rows): array
+    {
+        $byDepartment = [];
+        foreach ($rows as $row) {
+            $byDepartment[] = [
+                'departamento' => (string) (($row['departamento'] ?? '') !== '' ? $row['departamento'] : '(sem departamento)'),
+                'total' => (int) ($row['total'] ?? 0),
+            ];
+        }
+
+        return $byDepartment;
+    }
+
+    private function isBlockedValue(mixed $value): bool
+    {
+        if ($value === true || $value === 1 || $value === '1') {
+            return true;
+        }
+        $s = mb_strtolower(trim((string) $value));
+
+        return $s === 'sim' || $s === 's' || $s === 'true';
+    }
+
+    private function normalizeDate(mixed $value): ?string
+    {
+        if ($value === null || $value === '' || $value === '0000-00-00') {
+            return null;
+        }
+        $s = substr((string) $value, 0, 10);
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $s)) {
+            return null;
+        }
+
+        return $s;
+    }
+
+    /**
+     * @return array{years_decimal: float|null, label: string}
+     */
+    private function computeTenure(?string $admission, ?string $termination): array
+    {
+        if ($admission === null) {
+            return ['years_decimal' => null, 'label' => 'sem data de admissão'];
+        }
+
+        try {
+            $start = new \DateTimeImmutable($admission);
+            $end = $termination !== null
+                ? new \DateTimeImmutable($termination)
+                : new \DateTimeImmutable('today');
+            if ($end < $start) {
+                return ['years_decimal' => null, 'label' => 'datas inconsistentes'];
+            }
+            $diff = $start->diff($end);
+            $years = $diff->y;
+            $months = $diff->m;
+            $decimal = round($years + ($months / 12), 1);
+            if ($years <= 0 && $months <= 0) {
+                $label = $diff->days . ' dia(s)';
+            } elseif ($years <= 0) {
+                $label = $months . ' mês(es)';
+            } elseif ($months <= 0) {
+                $label = $years . ' ano(s)';
+            } else {
+                $label = $years . ' ano(s) e ' . $months . ' mês(es)';
+            }
+            if ($termination !== null) {
+                $label .= ' (até o desligamento)';
+            }
+
+            return ['years_decimal' => $decimal, 'label' => $label];
+        } catch (\Throwable) {
+            return ['years_decimal' => null, 'label' => 'não calculável'];
+        }
     }
 }

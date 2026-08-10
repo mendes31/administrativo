@@ -259,7 +259,7 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=17">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=19">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
 <button class="btn tjz-fab" type="button" id="tjzFabBtn"
         data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
@@ -481,14 +481,28 @@ if (!empty($_SESSION['user_id'])) {
         messagesEl.scrollTop = messagesEl.scrollHeight;
     }
 
-    function appendAssistantText(text) {
+    function appendAssistantText(text, meta) {
         const wrapper = document.createElement('div');
         wrapper.className = 'mb-2 d-flex justify-content-start align-items-start gap-2';
         const bubble = document.createElement('div');
         bubble.className = 'tjz-bubble-bot';
         bubble.style.maxWidth = '85%';
         bubble.style.whiteSpace = 'pre-wrap';
-        bubble.textContent = text;
+        bubble.style.overflowWrap = 'anywhere';
+        bubble.style.wordBreak = 'break-word';
+        if (meta && meta.tool) {
+            const badge = document.createElement('div');
+            badge.className = 'tjz-tool-badge';
+            badge.textContent = 'tool: ' + String(meta.tool);
+            if (meta.provider) {
+                badge.title = 'provider: ' + String(meta.provider);
+            }
+            bubble.appendChild(badge);
+        }
+        const body = document.createElement('div');
+        body.className = 'tjz-bubble-text';
+        body.textContent = text;
+        bubble.appendChild(body);
         wrapper.appendChild(createBotAvatarEl());
         wrapper.appendChild(bubble);
         messagesEl.appendChild(wrapper);
@@ -496,27 +510,33 @@ if (!empty($_SESSION['user_id'])) {
         return bubble;
     }
 
-    function buildTableHtml(rows) {
+    function buildTableHtml(rows, options) {
         if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
             return '';
         }
+        const opts = options || {};
+        const maxRows = opts.maxRows || (opts.compact ? 40 : 15);
         const cols = Object.keys(rows[0]);
-        let html = '<div class="table-responsive mt-2"><table class="table table-sm table-bordered mb-0 bg-white">';
+        let html = '<div class="tjz-table-wrap mt-2"><table class="table table-sm table-bordered mb-0 bg-white tjz-data-table">';
         html += '<thead><tr>' + cols.map(function (c) {
-            return '<th class="small">' + escapeHtml(c) + '</th>';
+            return '<th>' + escapeHtml(c) + '</th>';
         }).join('') + '</tr></thead><tbody>';
-        rows.slice(0, 15).forEach(function (row) {
+        rows.slice(0, maxRows).forEach(function (row) {
             html += '<tr>';
             cols.forEach(function (c) {
                 let v = row[c];
                 if (v !== null && typeof v === 'object') {
                     v = JSON.stringify(v);
                 }
-                html += '<td class="small">' + escapeHtml(v == null ? '' : v) + '</td>';
+                html += '<td>' + escapeHtml(v == null ? '' : v) + '</td>';
             });
             html += '</tr>';
         });
-        html += '</tbody></table></div>';
+        html += '</tbody></table>';
+        if (rows.length > maxRows) {
+            html += '<div class="tjz-table-more">… e mais ' + (rows.length - maxRows) + ' linha(s) no Excel/CSV</div>';
+        }
+        html += '</div>';
         return html;
     }
 
@@ -1056,7 +1076,10 @@ if (!empty($_SESSION['user_id'])) {
 
     function appendAssistantPayload(payload) {
         const text = (payload && payload.resposta) ? String(payload.resposta) : JSON.stringify(payload, null, 2);
-        const bubble = appendAssistantText(text);
+        const bubble = appendAssistantText(text, {
+            tool: payload && payload.tool ? payload.tool : null,
+            provider: payload && payload.provider ? payload.provider : null
+        });
         const data = payload && payload.data ? payload.data : null;
         if (!data || typeof data !== 'object') {
             return;
@@ -1070,7 +1093,8 @@ if (!empty($_SESSION['user_id'])) {
         const skipTable = !!(data.ui && data.ui.type === 'rooms_wizard')
             || (typeof payload.tool === 'string' && payload.tool.indexOf('rooms.') === 0);
         if (!skipTable && Array.isArray(data.rows) && data.rows.length) {
-            bubble.insertAdjacentHTML('beforeend', buildTableHtml(data.rows));
+            const compact = !!(data.ui && data.ui.compact_table);
+            bubble.insertAdjacentHTML('beforeend', buildTableHtml(data.rows, { compact: compact }));
         }
 
         if (data.report_url) {

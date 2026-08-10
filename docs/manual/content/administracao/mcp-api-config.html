@@ -22,14 +22,14 @@
     <li>Acesse <strong>Administração → Configurações → Assistente MCP</strong>.</li>
     <li>Na aba <strong>Conexão</strong>, informe <code>local:internal</code> (homologação) ou a URL HTTPS do servidor MCP, ative a integração e salve.</li>
     <li>Na aba <strong>Tools</strong>, consulte as tools internas de RH e libere relatórios dinâmicos (nome da tool, descrição e exemplos).</li>
-    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «ativos na TI», «salas», «agenda da sala X hoje», «quais relatórios no chat?» ou «relatório [nome]».</li>
+    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «salas» ou «relatório [nome]».</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
 <div class="help-field"><strong>URL da API MCP</strong> Endereço do servidor de agente, ou o valor especial <code>local:internal</code> para o piloto RH no MySQL do Portal.</div>
 <div class="help-field"><strong>Ativar integração</strong> Se desmarcado, o chat não aparece / não responde mesmo com URL preenchida.</div>
-<div class="help-field"><strong>LLM (API)</strong> Chaves (<code>OPENAI_API_KEY</code>, <code>ANTHROPIC_API_KEY</code>) ficam no <code>.env</code> do servidor — não na tela.</div>
+<div class="help-field"><strong>Modelo Ollama</strong> Escolhido na aba Conexão (lista via <code>/api/tags</code>). Cada chamada usa um modelo; fallbacks tentam o próximo se o principal falhar. Sem valor na tela, usa <code>OLLAMA_MODEL</code> do <code>.env</code>.</div>
 <div class="help-field"><strong>Disponível no Assistente MCP</strong> Liga ou desliga o relatório no catálogo do chat (aba Tools).</div>
 <div class="help-field"><strong>Nome da tool</strong> Identificador estável (ex.: <code>headcount_ti</code>). Se vazio ao ativar, gera a partir do nome do relatório.</div>
 <div class="help-field"><strong>Descrição para a IA</strong> Texto curto para ajudar o roteamento (Ollama/API).</div>
@@ -53,4 +53,6 @@
     <dd>Além de <em>McpChat</em>, libere no nível: <em>ListMeetingRooms</em>/<em>BookRoom</em>/<em>RoomCalendar</em> (listar/agenda), <em>CreateBooking</em> (reservar) e <em>CancelBooking</em> (cancelar).</dd>
     <dt>Salvei o relatório mas o chat não encontra</dt>
     <dd>Confirme modo <code>local:internal</code> ativo, flag «Disponível no chat» e se o utilizador do chat tem ACL para ver o relatório.</dd>
+    <dt>Listei vários Rafaéis e digitei TI — veio headcount</dt>
+    <dd>Corrigido: a lista fica na sessão; digite o departamento, o username ou o número (1, 2…). Na bolha da resposta aparece o selo <code>tool: rh.lookup_person</code>.</dd>
 </dl>
