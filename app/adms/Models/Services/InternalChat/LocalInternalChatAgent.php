@@ -106,6 +106,8 @@ class LocalInternalChatAgent
                     . "• lista de desligados / lista de desligados em janeiro / lista desligados Produção\n"
                     . "• (após totais) digite «lista» para ver os nomes\n"
                     . "• departamento do Rafael / Wladimir está bloqueado? / anos de empresa do X\n"
+                    . "• (após lista ambígua) digite o número, o depto, o username — ou uma nova frase «status do Nome»\n"
+                    . "• limpar / nova consulta (zera contexto da sessão)\n"
                     . "• ativos na TI\n"
                     . "• headcount por departamento\n"
                     . "• inativos por mês\n"
@@ -141,6 +143,18 @@ class LocalInternalChatAgent
         $listFollowUp = $this->detectTerminatedListFollowUp($m, $message);
         if ($listFollowUp !== null) {
             return $listFollowUp;
+        }
+
+        if (preg_match('/^(limpar|nova\s+consulta|esqueci|esquecer|outra\s+pessoa|reiniciar)(\s+contexto)?$/iu', $m)) {
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                unset(
+                    $_SESSION['internal_chat_person_candidates'],
+                    $_SESSION['internal_chat_last_terminated'],
+                    $_SESSION['internal_chat_last_status']
+                );
+            }
+
+            return ['name' => 'clear_context'];
         }
 
         $personRefine = $this->detectPersonCandidateRefine($message);
@@ -646,24 +660,42 @@ class LocalInternalChatAgent
         }
 
         $raw = trim($message);
-        if ($raw === '' || mb_strlen($raw) > 60) {
+        if ($raw === '' || mb_strlen($raw) > 80) {
             return null;
         }
 
-        // Nova pergunta completa sobre outra pessoa → não refinar.
+        // Nova pergunta completa sobre pessoa (status/ficha/departamento…) → nova busca, não refinar.
         if ($this->extractPersonQuery($message) !== null) {
             return null;
         }
 
         $m = mb_strtolower($raw);
         if (preg_match(
-            '/\b(quantos|qtd|quantidade|headcount|agendar|reservar|salas?|relat[oó]rios?|desligad|inativos?|bloqueados?|ativos?\s+(na|em|por)|por\s+m[eê]s|por\s+departamento)\b/u',
+            '/\b(quantos|qtd|quantidade|headcount|agendar|reservar|salas?|relat[oó]rios?|desligad|inativos?|bloqueados?|ativos?\s+(na|em|por)|por\s+m[eê]s|por\s+departamento|status\s+(do|da|de)|ficha|nova\s+consulta)\b/u',
             $m
         )) {
             return null;
         }
 
-        return ['name' => 'lookup_person_refine', 'token' => $raw];
+        $token = $this->normalizePersonRefineToken($raw);
+
+        return ['name' => 'lookup_person_refine', 'token' => $token];
+    }
+
+    /**
+     * Remove prefixos de frase («status do», «departamento da») para casar nome na lista.
+     */
+    private function normalizePersonRefineToken(string $token): string
+    {
+        $token = trim($token);
+        $token = preg_replace(
+            '/^(status|departamento|depto|ficha|dados|informa[cç][oõ]es|perfil|bloqueio|sobre)\s+(do|da|de)\s+/iu',
+            '',
+            $token
+        ) ?? $token;
+        $token = preg_replace('/^(do|da|de|o|a)\s+/iu', '', $token) ?? $token;
+
+        return trim($token);
     }
 
     /**
@@ -763,6 +795,9 @@ class LocalInternalChatAgent
             '/tempo\s+de\s+empresa\s+(?:do|da|de)\s+(.+)$/iu',
             '/(?:usu[aá]rio|colaborador|funcion[aá]rio)\s+(.+?)\s+est[aá]\s+bloquead/iu',
             '/(.+?)\s+est[aá]\s+bloquead/iu',
+            '/status\s+(?:do|da|de)\s+(.+)$/iu',
+            '/qual\s+(?:o\s+)?status\s+(?:do|da|de)\s+(.+)$/iu',
+            '/(?:est[aá]\s+)?bloquead[oa]?\s+(?:o|a|do|da|de)\s+(.+)$/iu',
             '/qual\s+(?:o\s+)?departamentos?\s+(?:do|da|de)\s+(.+)$/iu',
             '/departamentos?\s+(?:do|da|de)\s+(.+)$/iu',
             '/(?:ficha|dados|informa[cç][oõ]es|perfil)\s+(?:do|da|de)\s+(.+)$/iu',
@@ -982,7 +1017,7 @@ class LocalInternalChatAgent
      */
     private function filterPersonCandidates(array $candidates, string $token): array
     {
-        $token = trim($token);
+        $token = $this->normalizePersonRefineToken($token);
         if ($token === '') {
             return [];
         }
@@ -1397,6 +1432,15 @@ class LocalInternalChatAgent
                 'resposta' => implode("\n", $lines),
                 'tool' => 'rh.count_blocked_not_terminated',
                 'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'clear_context') {
+            return [
+                'resposta' => 'Contexto da conversa limpo. Pode fazer uma nova pergunta (ex.: «status do Rafael Mendes»).',
+                'tool' => 'chat.clear_context',
+                'data' => null,
                 'provider' => 'local-rules',
             ];
         }
