@@ -425,6 +425,12 @@ $menus = [
                 'icon' => 'fas fa-chart-line'
             ],
             [
+                'label' => 'Dashboard de Vendas SAP',
+                'url' => $_ENV['URL_ADM'] . 'crm-sales-dashboard',
+                'permission' => 'CrmSalesDashboard',
+                'icon' => 'fas fa-chart-area'
+            ],
+            [
                 'label' => 'Pipeline de Vendas',
                 'url' => $_ENV['URL_ADM'] . 'crm-kanban-pipeline',
                 'permission' => 'CrmKanbanPipeline',

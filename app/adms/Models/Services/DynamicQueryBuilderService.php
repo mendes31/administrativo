@@ -345,12 +345,17 @@ class DynamicQueryBuilderService
 
     public static function hasSapSignature(string $sql): bool
     {
+        // Views CRM/HANA do Portal (não estão na lista clássica OINV/OCRD)
+        if (preg_match('/\bVW_CRM_[A-Z0-9_]+\b/i', $sql)) {
+            return true;
+        }
+
         $sapB1Tables = [
             'OCRD', 'OCRG', 'CRD1',
             'OINV', 'INV1', 'ORDR', 'RDR1', 'OQUT', 'QUT1', 'ORDN', 'RDN1', 'ORIN', 'RIN1', 'RIN3', 'RIN12',
             'OPCH', 'PCH1', 'OPOR', 'POR1', 'OPRQ', 'PRQ1', 'OPDN', 'PDN1',
             'OITM', 'OITB', 'OITW',
-            'OSLP',
+            'OSLP', 'OTER',
             'OUSG',
             'OBPL',
             'OJDT', 'JDT1', 'OACT',

@@ -1,0 +1,65 @@
+<h1>Dashboard de Vendas SAP (CRM)</h1>
+
+<h2>Função no sistema</h2>
+<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN), KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA (não consulta o SAP a cada filtro). É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Faturamento líquido</dt>
+    <dd>Soma de linhas de fatura menos devoluções (valores sinalizados) no período filtrado.</dd>
+    <dt>AnoMes</dt>
+    <dd>Competência mensal do documento (<code>YYYY-MM</code>), usada na evolução e no isolamento de mês.</dd>
+    <dt>Cache MySQL</dt>
+    <dd>Tabela <code>crm_sales_fact_daily</code> com fatos diários agregados por cliente e dimensões comerciais. O painel lê só este cache.</dd>
+    <dt>VIEW <code>VW_CRM_VENDAS_LINHA</code></dt>
+    <dd>Objeto no HANA usado na <em>sincronização</em> (não no carregamento do painel). Sem ela, o sync usa CTE com filtro de data — mais lento na carga inicial.</dd>
+    <dt>Atualizar agora (incremental)</dt>
+    <dd>Botão que dispara sync <strong>incremental</strong> (HANA → MySQL, overlap de ~3 dias). A carga completa (36 meses) é só via CLI <code>--full</code>.</dd>
+    <dt>Sync no 1º acesso do dia</dt>
+    <dd>Ao abrir o painel pela primeira vez no dia, o sistema sincroniza o incremento automaticamente (com lock para não duplicar). Demais acessos/filtros no mesmo dia leem só o cache.</dd>
+    <dt>Cross-filter</dt>
+    <dd>Clique em barra, fatia ou ponto aplica filtro ao painel inteiro; chips permitem remover cada filtro.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>.</li>
+    <li>Acesse <strong>CRM → Dashboard de Vendas SAP</strong>.</li>
+    <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
+    <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
+    <li>Opcionalmente filtre por vendedor, grupo de cliente ou região na barra de ferramentas.</li>
+    <li>Clique em gráficos (evolução, grupo, vendedor, região, grupo de item) para refinar; use chips ou <strong>Limpar tudo</strong>.</li>
+    <li>Para forçar atualização no meio do dia, use <strong>Atualizar agora (incremental)</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
+    <li>Confira no rodapé/meta a data da última sincronização e a fonte do sync (VIEW ou CTE).</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período</strong> Presets: mês atual, mês anterior, últimos 3/6/12/24/36 meses, ano atual (YTD), ano anterior; ou <em>Personalizado</em> com data início e data fim (máx. 36 meses). Padrão: últimos 12 meses.</div>
+<div class="help-field"><strong>Data início / Data fim</strong> Visíveis só no período personalizado; aplicadas ao clicar em <strong>Atualizar</strong> (<code>date_from</code>/<code>date_to</code> na API).</div>
+<div class="help-field"><strong>Vendedor</strong> Nome do vendedor SAP (<code>OSLP.SlpName</code>).</div>
+<div class="help-field"><strong>Grupo de cliente</strong> Grupo do PN (<code>OCRG.GroupName</code>).</div>
+<div class="help-field"><strong>Região</strong> Preferência pelo território SAP (<code>OTER.descript</code>); se vazio no cadastro do PN, usa a <strong>UF</strong> (<code>OCRD.State1</code>). Sem ambos: “Sem região”.</div>
+<div class="help-field"><strong>KPIs</strong> Faturamento líquido, devoluções, taxa de devolução e ticket médio por cliente ativo.</div>
+<div class="help-field"><strong>API dados</strong> Endpoint <code>crm-sales-dashboard-data</code> agrega só no MySQL (resposta rápida ao trocar filtros).</div>
+<div class="help-field"><strong>API sync</strong> Endpoint <code>crm-sales-dashboard-sync</code> — somente <code>incremental</code> na web. Full sync apenas via CLI.</div>
+<div class="help-field"><strong>CLI / cron</strong> <code>php scripts/sync_crm_sales_sap.php</code> (incremental), <code>--full</code> (36 meses). Cron opcional se não quiser depender do 1º acesso do dia.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>Execute <code>vendor/bin/phinx migrate</code> e confirme permissão <em>CrmSalesDashboard</em> no nível de acesso.</dd>
+    <dt>Cache vazio / aviso de sincronização</dt>
+    <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez. Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
+    <dt>Erro da API SAP / timeout no sync</dt>
+    <dd>Confirme a Configuração SAP API. Em produção, crie a VIEW <code>VW_CRM_VENDAS_LINHA</code> (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) e conceda SELECT — o CTE fallback deixa o <code>--full</code> bem mais lento.</dd>
+    <dt>Painel rápido, mas números “atrasados”</dt>
+    <dd>Esperado: o painel lê MySQL. Use <strong>Atualizar agora (incremental)</strong> ou abra o painel (1º acesso do dia). Cancelamentos/ajustes recentes entram no overlap de 3 dias.</dd>
+    <dt>Barras com valor muito alto (ex.: TERCEIROS / SP)</dt>
+    <dd>A escala é limitada em silêncio para comparar os demais; o valor real aparece no rótulo/tooltip (marcador ▸). Os gráficos de barras mostram cerca de 10 itens e têm rolagem para o restante.</dd>
+    <dt>Gráficos vazios</dt>
+    <dd>Sem movimentos no período, filtros muito restritivos ou cache ainda não cobre o intervalo. Use <strong>Limpar tudo</strong>, amplie o período ou rode sync <code>--full</code>.</dd>
+    <dt>Confundi com Dashboard CRM</dt>
+    <dd>O Dashboard CRM trata pipeline/oportunidades internas; este painel usa vendas reais do SAP via cache.</dd>
+</dl>

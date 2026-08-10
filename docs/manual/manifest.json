@@ -626,6 +626,11 @@
                     "file": "crm/crm-manager-dashboard.html"
                 },
                 {
+                    "id": "crm-sales-dashboard",
+                    "title": "Dashboard de Vendas SAP (CRM)",
+                    "file": "crm/crm-sales-dashboard.html"
+                },
+                {
                     "id": "crm-dashboards",
                     "title": "Dashboards CRM",
                     "file": "crm/crm-dashboards.html"

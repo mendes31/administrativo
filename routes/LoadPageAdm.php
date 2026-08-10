@@ -131,7 +131,7 @@ class LoadPageAdm
         "LgpdConsentimentoColeta", "LgpdConsentimentoColetaProcessar", "LgpdConsentimentoEmail", "LgpdConsentimentoEmailProcessar",
         "LgpdTia", "LgpdTiaCreate", "LgpdTiaEdit", "LgpdTiaView", "LgpdTiaDelete", "LgpdTiaDashboard", "LgpdTiaTemplateFinanceiro", "LgpdTiaTemplateMarketing", "LgpdTiaTemplateRh", "LgpdTiaTemplateTi", "LgpdTiaTemplates", "LgpdTiaExportPdf", "LgpdTiaExportPdfList", "LgpdTiaExportPdfView",
         // CRM - Módulo de Gestão de Relacionamento com Clientes
-        "CrmDashboard", "CrmKanbanPipeline", "CrmMoveOpportunity",
+        "CrmDashboard", "CrmSalesDashboard", "CrmSalesDashboardData", "CrmSalesDashboardSync", "CrmKanbanPipeline", "CrmMoveOpportunity",
         "CrmListPartners", "CrmCreatePartner", "CrmViewPartner", "CrmUpdatePartner", "CrmDeletePartner",
         "CrmListOpportunities", "CrmCreateOpportunity", "CrmViewOpportunity", "CrmUpdateOpportunity", "CrmDeleteOpportunity",
         "CrmListActivities", "CrmCreateActivity", "CrmCompleteActivity", "CrmDeleteActivity",

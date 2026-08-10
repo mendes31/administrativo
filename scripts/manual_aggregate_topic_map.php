@@ -61,7 +61,7 @@ function buildManualAggregateTopicMap(): array
         'gamification-engagement-dashboard',
     ], 'com-gamificacao');
 
-    $add(['crm-dashboard', 'crm-manager-dashboard'], 'crm-dashboards');
+    $add(['crm-dashboard', 'crm-manager-dashboard', 'crm-sales-dashboard', 'crm-sales-dashboard-data', 'crm-sales-dashboard-sync'], 'crm-dashboards');
     $add(['crm-kanban-pipeline'], 'crm-pipeline');
     $add([
         'crm-list-partners', 'crm-create-partner', 'crm-update-partner', 'crm-view-partner',

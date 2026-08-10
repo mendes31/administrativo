@@ -560,6 +560,11 @@
                     "title": "Dashboard Gerencial CRM"
                 },
                 {
+                    "type": "topic",
+                    "topic_id": "crm-sales-dashboard",
+                    "title": "Dashboard de Vendas SAP (CRM)"
+                },
+                {
                     "type": "group",
                     "label": "Atividades",
                     "children": [

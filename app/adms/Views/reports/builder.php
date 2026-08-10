@@ -353,7 +353,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                                         <small class="text-muted">
                                             <i class="fas fa-magic"></i> <strong>Auto-detecção:</strong>
                                             <br>
-                                            Tabelas SAP B1: OCRD, OINV, ORDR, OITM, etc → <span class="badge bg-warning">SAP B1</span>
+                                            Tabelas SAP B1: OCRD, OINV, ORDR, OITM, <code>VW_CRM_*</code>, etc → <span class="badge bg-warning">SAP B1</span>
                                             <br>
                                             Outras tabelas → <span class="badge bg-success">Local</span>
                                         </small>

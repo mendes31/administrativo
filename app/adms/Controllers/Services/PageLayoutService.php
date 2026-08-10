@@ -332,6 +332,9 @@ class PageLayoutService
             'McpChat',
             // CRM - Gestão de Relacionamento com Clientes
             'CrmDashboard',
+            'CrmSalesDashboard',
+            'CrmSalesDashboardData',
+            'CrmSalesDashboardSync',
             'CrmKanbanPipeline',
             // Parceiros
             'CrmListPartners',
