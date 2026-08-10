@@ -15,6 +15,7 @@ class LocalInternalChatAgent
     private ChatRoomsService $rooms;
     private ChatRoomsBookingWizard $roomsWizard;
     private InternalChatLlmClient $llm;
+    private ChatToolPermissionGate $perms;
     private int $userId = 0;
 
     /** @var array<string, string> sinônimo → nome canônico no cadastro */
@@ -54,13 +55,15 @@ class LocalInternalChatAgent
         ?ChatDynamicReportService $reports = null,
         ?ChatRoomsService $rooms = null,
         ?ChatRoomsBookingWizard $roomsWizard = null,
-        ?InternalChatLlmClient $llm = null
+        ?InternalChatLlmClient $llm = null,
+        ?ChatToolPermissionGate $perms = null
     ) {
         $this->rh = $rh ?? new RhChatIndicatorsService();
         $this->reports = $reports ?? new ChatDynamicReportService();
         $this->rooms = $rooms ?? new ChatRoomsService();
         $this->roomsWizard = $roomsWizard ?? new ChatRoomsBookingWizard($this->rooms);
         $this->llm = $llm ?? new InternalChatLlmClient();
+        $this->perms = $perms ?? new ChatToolPermissionGate();
     }
 
     /**
@@ -77,12 +80,18 @@ class LocalInternalChatAgent
 
         // Fluxo guiado de salas (sala → data → horários).
         if ($this->roomsWizard->isActive()) {
+            if (!$this->perms->canUseTool('rooms.wizard') && !$this->perms->canUseTool('rooms.reserve')) {
+                return $this->denyTool('rooms.wizard');
+            }
             $wizard = $this->roomsWizard->continue($this->userId, $message);
             if ($wizard !== null) {
                 return $wizard;
             }
         }
         if (preg_match('/^(agendar|reservar|nova\s+reserva|agendar\s+sala|reservar\s+sala)$/iu', $message)) {
+            if (!$this->perms->canUseTool('rooms.wizard')) {
+                return $this->denyTool('rooms.wizard');
+            }
             return $this->roomsWizard->start($this->userId);
         }
 
@@ -102,11 +111,43 @@ class LocalInternalChatAgent
             return $this->buildUnknownHelpReply();
         }
 
+        $denied = $this->denyIfUnauthorizedIntent((string) ($intent['name'] ?? ''));
+        if ($denied !== null) {
+            return $denied;
+        }
+
         $result = $this->executeIntent($intent, $message);
         $result = $this->maybeEnrichWithAnalysis($result);
         $this->rememberFromResult($result);
 
         return $result;
+    }
+
+    /**
+     * @return array{resposta: string, tool: string, data: null, provider: string}|null
+     */
+    private function denyIfUnauthorizedIntent(string $intentName): ?array
+    {
+        if ($intentName === '' || $this->perms->canUseIntent($intentName)) {
+            return null;
+        }
+
+        return $this->denyTool(
+            ChatToolPermissionGate::intentToToolMap()[$intentName] ?? $intentName
+        );
+    }
+
+    /**
+     * @return array{resposta: string, tool: string, data: null, provider: string}
+     */
+    private function denyTool(string $tool): array
+    {
+        return [
+            'resposta' => $this->perms->denyMessageForTool($tool),
+            'tool' => 'chat.denied',
+            'data' => ['denied_tool' => $tool],
+            'provider' => 'local-rules',
+        ];
     }
 
     /**
@@ -195,16 +236,43 @@ class LocalInternalChatAgent
 
     private function formatHelpOptions(): string
     {
-        return "• quantos colaboradores ativos?\n"
-            . "• quantos colaboradores inativos?\n"
-            . "• inativos em janeiro / desligados 2025\n"
-            . "• quantos usuários bloqueados? / bloqueados sem desligamento\n"
-            . "• lista de desligados / lista desligados Produção\n"
-            . "• status do Rafael / Wladimir está bloqueado? / anos de empresa do X\n"
-            . "• itens / parceiros / item 43000001 / parceiro C00001\n"
-            . "• quais relatórios no chat? / relatório [nome]\n"
-            . "• agendar / salas / agenda da sala [nome] hoje\n"
-            . "• limpar / nova consulta (zera o contexto)";
+        $lines = [];
+        if ($this->perms->canUseTool('rh.count_active')) {
+            $lines[] = '• quantos colaboradores ativos? / ativos na TI';
+        }
+        if ($this->perms->canUseTool('rh.count_inactive') || $this->perms->canUseTool('rh.count_terminated_in_month')) {
+            $lines[] = '• quantos inativos? / inativos em janeiro / desligados 2025';
+        }
+        if ($this->perms->canUseTool('rh.count_blocked') || $this->perms->canUseTool('rh.count_blocked_not_terminated')) {
+            $lines[] = '• quantos bloqueados? / bloqueados sem desligamento';
+        }
+        if ($this->perms->canUseTool('rh.list_terminated')) {
+            $lines[] = '• lista de desligados / lista desligados Produção';
+        }
+        if ($this->perms->canUseTool('rh.list_hired') || $this->perms->canUseTool('rh.count_hired')) {
+            $lines[] = '• lista de contratações em junho / quantas admissões em 2026';
+        }
+        if ($this->perms->canUseTool('rh.lookup_person')) {
+            $lines[] = '• status do Rafael / Wladimir está bloqueado? / anos de empresa do X';
+        }
+        if ($this->perms->canUseTool('report.list') || $this->perms->canUseTool('report.run')) {
+            $lines[] = '• itens / parceiros / item 43000001 / parceiro C00001';
+            $lines[] = '• quais relatórios no chat? / relatório [nome]';
+        }
+        if ($this->perms->canUseTool('rooms.wizard') || $this->perms->canUseTool('rooms.list')) {
+            $lines[] = '• agendar / salas / agenda da sala [nome] hoje';
+        }
+        if ($this->perms->canUseTool('rooms.my') || $this->perms->canUseTool('rooms.cancel')) {
+            $lines[] = '• minhas reservas / cancelar reserva #123';
+        }
+        $lines[] = '• limpar / nova consulta (zera o contexto)';
+
+        if (count($lines) <= 1) {
+            return "• No momento não há consultas liberadas no seu nível além de limpar o contexto.\n"
+                . "• Peça ao administrador as páginas necessárias (ex.: ListUsers, relatórios do chat, salas).";
+        }
+
+        return implode("\n", $lines);
     }
 
     /**
@@ -216,10 +284,17 @@ class LocalInternalChatAgent
         $m = preg_replace('/[?!.]+$/u', '', $m) ?? $m;
         $m = trim($m);
 
-        // Follow-up «lista» após totais de desligados.
-        $listFollowUp = $this->detectTerminatedListFollowUp($m, $message);
-        if ($listFollowUp !== null) {
-            return $listFollowUp;
+        // Follow-up «lista» após totais de desligados (nunca para contratações/admissões).
+        if (!$this->mentionsHiring($m)) {
+            $listFollowUp = $this->detectTerminatedListFollowUp($m, $message);
+            if ($listFollowUp !== null) {
+                return $listFollowUp;
+            }
+        }
+
+        $hireIntent = $this->detectHireIntent($m, $message);
+        if ($hireIntent !== null) {
+            return $hireIntent;
         }
 
         if (preg_match('/^(limpar|nova\s+consulta|esqueci|esquecer|outra\s+pessoa|reiniciar)(\s+contexto)?$/iu', $m)) {
@@ -227,6 +302,7 @@ class LocalInternalChatAgent
                 unset(
                     $_SESSION['internal_chat_person_candidates'],
                     $_SESSION['internal_chat_last_terminated'],
+                    $_SESSION['internal_chat_last_hired'],
                     $_SESSION['internal_chat_last_status'],
                     $_SESSION['internal_chat_last_report']
                 );
@@ -700,6 +776,7 @@ class LocalInternalChatAgent
                     'year' => isset($data['year']) ? (int) $data['year'] : null,
                     'department' => isset($data['department']) ? (string) $data['department'] : null,
                 ];
+                unset($_SESSION['internal_chat_last_hired']);
                 // count_terminated_in_month uses month/year keys
                 if ($tool === 'rh.count_terminated_in_month') {
                     $_SESSION['internal_chat_last_terminated']['month'] = (int) ($data['month'] ?? 0) ?: null;
@@ -711,9 +788,22 @@ class LocalInternalChatAgent
                     $_SESSION['internal_chat_last_terminated']['department'] = null;
                 }
             }
-        } elseif ($tool === 'rh.count_active' || $tool === 'rh.count_active_by_department') {
+        } elseif ($tool === 'rh.list_hired' || $tool === 'rh.count_hired') {
             $_SESSION['internal_chat_last_status'] = 'active';
             unset($_SESSION['internal_chat_person_candidates'], $_SESSION['internal_chat_last_terminated']);
+            $data = is_array($result['data'] ?? null) ? $result['data'] : [];
+            $_SESSION['internal_chat_last_hired'] = [
+                'month' => isset($data['month']) ? (int) $data['month'] : null,
+                'year' => isset($data['year']) ? (int) $data['year'] : null,
+                'department' => isset($data['department']) ? (string) $data['department'] : null,
+            ];
+        } elseif ($tool === 'rh.count_active' || $tool === 'rh.count_active_by_department') {
+            $_SESSION['internal_chat_last_status'] = 'active';
+            unset(
+                $_SESSION['internal_chat_person_candidates'],
+                $_SESSION['internal_chat_last_terminated'],
+                $_SESSION['internal_chat_last_hired']
+            );
         } elseif ($tool === 'rh.lookup_person') {
             $data = $result['data'] ?? null;
             $preserve = is_array($data) && !empty($data['preserve_candidates']);
@@ -944,6 +1034,67 @@ class LocalInternalChatAgent
     }
 
     /**
+     * Contratações / admissões (não confundir com desligados).
+     */
+    private function mentionsHiring(string $normalizedMessage): bool
+    {
+        return (bool) preg_match(
+            '/\b(contrata[cç][oõ]es|contrata[cç][aã]o|contratad[oa]s?|admiss[oõ]es|admiss[aã]o|admitid[oa]s?|nov[oa]s?\s+colaboradores?|novas?\s+admiss)\b/u',
+            $normalizedMessage
+        );
+    }
+
+    /**
+     * @return array{name: string, month?: ?int, year?: ?int, department?: ?string}|null
+     */
+    private function detectHireIntent(string $normalizedMessage, string $message): ?array
+    {
+        if (!$this->mentionsHiring($normalizedMessage)) {
+            return null;
+        }
+
+        $period = $this->extractPeriod($message);
+        $yearOnly = $this->extractYearOnly($normalizedMessage);
+        $dept = $this->extractDepartment($message);
+        $dept = $this->resolveDepartmentAlias($dept);
+        if ($period !== null) {
+            $dept = null;
+        }
+
+        $wantsList = (bool) preg_match(
+            '/\b(lista|listar|nomes|nominativa|quais\s+(s[aã]o|foram)|quem\s+(s[aã]o|foram)|mostrar\s+(os\s+)?nomes)\b/u',
+            $normalizedMessage
+        );
+
+        if ($wantsList) {
+            return [
+                'name' => 'hired_list',
+                'month' => $period['month'] ?? null,
+                'year' => $period['year'] ?? $yearOnly,
+                'department' => $dept,
+            ];
+        }
+
+        if ($period !== null) {
+            return [
+                'name' => 'hired_in_period',
+                'month' => $period['month'],
+                'year' => $period['year'],
+            ];
+        }
+
+        if ($yearOnly !== null) {
+            return [
+                'name' => 'hired_in_period',
+                'month' => null,
+                'year' => $yearOnly,
+            ];
+        }
+
+        return ['name' => 'hired_total'];
+    }
+
+    /**
      * «lista» / «lista Produção» após um total de desligados.
      *
      * @return array{name: string, month?: ?int, year?: ?int, department?: ?string}|null
@@ -965,6 +1116,10 @@ class LocalInternalChatAgent
 
         // Frases completas «lista de desligados…» ficam no ramo principal.
         if (preg_match('/\bdesligad[oa]s?\b/u', $m)) {
+            return null;
+        }
+        // Contratações/admissões nunca herdam o contexto de desligados.
+        if ($this->mentionsHiring($m)) {
             return null;
         }
 
@@ -1415,7 +1570,7 @@ class LocalInternalChatAgent
         }
 
         $monthNames = implode('|', array_map(static fn ($k) => preg_quote($k, '/'), array_keys(self::MONTHS)));
-        if (preg_match('/\b(?:mes\s+de\s+|mês\s+de\s+)?(' . $monthNames . ')\b(?:\s+de\s+(\d{4}))?/u', $m, $mm)) {
+        if (preg_match('/\b(?:mes\s+de\s+|mês\s+de\s+)?(' . $monthNames . ')\b(?:\s*(?:de\s+|\/)\s*(\d{4}))?/u', $m, $mm)) {
             $monthKey = $mm[1];
             $month = self::MONTHS[$monthKey] ?? null;
             if ($month === null) {
@@ -1789,6 +1944,109 @@ class LocalInternalChatAgent
             return $this->buildLookupPersonResult($data);
         }
 
+        if ($intent['name'] === 'hired_list') {
+            $month = isset($intent['month']) ? (int) $intent['month'] : null;
+            $year = isset($intent['year']) ? (int) $intent['year'] : null;
+            $department = isset($intent['department']) ? $this->resolveDepartmentAlias((string) $intent['department']) : null;
+            if ($month !== null && $month < 1) {
+                $month = null;
+            }
+            if ($year !== null && $year < 1) {
+                $year = null;
+            }
+            if ($department === '') {
+                $department = null;
+            }
+            $data = $this->rh->listHired($month, $year, $department, 150);
+            $periodLabel = 'todos os períodos';
+            $monthNames = [
+                1 => 'janeiro', 2 => 'fevereiro', 3 => 'março', 4 => 'abril',
+                5 => 'maio', 6 => 'junho', 7 => 'julho', 8 => 'agosto',
+                9 => 'setembro', 10 => 'outubro', 11 => 'novembro', 12 => 'dezembro',
+            ];
+            if ($month && $year) {
+                $periodLabel = ($monthNames[$month] ?? (string) $month) . '/' . $year;
+            } elseif ($year) {
+                $periodLabel = (string) $year;
+            }
+            $deptLabel = $department ? (' · ' . $department) : '';
+            $shown = count($data['rows']);
+            $lines = [
+                sprintf('Lista de contratações (%s%s): %d no total.', $periodLabel, $deptLabel, $data['total']),
+            ];
+            if ($shown < 1) {
+                $lines[] = 'Nenhum registro neste filtro.';
+            } else {
+                $lines[] = sprintf(
+                    'Tabela com %d nome(s). Use Baixar Excel/CSV para exportar%s.',
+                    $shown,
+                    !empty($data['truncated']) ? ' (lista truncada; refine o filtro)' : ''
+                );
+            }
+
+            $displayRows = [];
+            foreach ($data['rows'] as $row) {
+                $displayRows[] = [
+                    'Nome' => (string) ($row['nome'] ?? ''),
+                    'User' => (string) ($row['username'] ?? ''),
+                    'Depto' => (string) ($row['departamento'] ?? ''),
+                    'Cargo' => (string) ($row['cargo'] ?? ''),
+                    'Admissão' => $this->formatBrDateOrDash((string) ($row['admissao'] ?? '')),
+                ];
+            }
+            $data['rows'] = $displayRows;
+            $data['name'] = 'Contratações (' . $periodLabel . $deptLabel . ')';
+            $data['ui'] = ['compact_table' => true];
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.list_hired',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'hired_in_period' || $intent['name'] === 'hired_total') {
+            $month = isset($intent['month']) ? (int) $intent['month'] : null;
+            $year = isset($intent['year']) ? (int) $intent['year'] : null;
+            if ($month !== null && $month < 1) {
+                $month = null;
+            }
+            if ($year !== null && $year < 1) {
+                $year = null;
+            }
+            $data = $this->rh->countHired($month, $year);
+            $periodLabel = 'todos os períodos';
+            $monthNames = [
+                1 => 'janeiro', 2 => 'fevereiro', 3 => 'março', 4 => 'abril',
+                5 => 'maio', 6 => 'junho', 7 => 'julho', 8 => 'agosto',
+                9 => 'setembro', 10 => 'outubro', 11 => 'novembro', 12 => 'dezembro',
+            ];
+            if ($month && $year) {
+                $periodLabel = ($monthNames[$month] ?? (string) $month) . '/' . $year;
+            } elseif ($year) {
+                $periodLabel = (string) $year;
+            }
+            $lines = [
+                sprintf('Contratações (%s): %d no total (pela data de admissão).', $periodLabel, $data['total']),
+                'Para nomes: «lista de contratações em junho/2026» ou «lista de admissões 2025».',
+            ];
+            if ($data['by_department'] !== []) {
+                $lines[] = '';
+                $lines[] = 'Por departamento:';
+                foreach (array_slice($data['by_department'], 0, 10) as $row) {
+                    $lines[] = "• {$row['departamento']}: {$row['total']}";
+                }
+            }
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.count_hired',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
         if ($intent['name'] === 'terminated_list') {
             $month = isset($intent['month']) ? (int) $intent['month'] : null;
             $year = isset($intent['year']) ? (int) $intent['year'] : null;
@@ -2143,6 +2401,9 @@ class LocalInternalChatAgent
             . "- {\"intent\":\"terminated_list\",\"year\":{$thisYear},\"department\":\"Produção\"}\n"
             . "- {\"intent\":\"terminated_total\"}\n"
             . "- {\"intent\":\"terminated_by_department\",\"year\":{$thisYear}}\n"
+            . "- {\"intent\":\"hired_list\",\"month\":6,\"year\":{$thisYear}}\n"
+            . "- {\"intent\":\"hired_in_period\",\"month\":6,\"year\":{$thisYear}}\n"
+            . "- {\"intent\":\"hired_total\"}\n"
             . "- {\"intent\":\"lookup_person\",\"query\":\"Rafael\"}\n"
             . "- {\"intent\":\"by_department\"}\n"
             . "- {\"intent\":\"report_list\"}\n"
@@ -2179,6 +2440,11 @@ class LocalInternalChatAgent
             . "Se pedir inativos/desligados \"por mês\" ou apenas um ano (ex.: \"desligados 2025\") → terminated_by_month.\n"
             . "   NUNCA use report_run nem inactive para esses casos.\n"
             . "\"esse mês\" → terminated_in_period com month={$thisMonth}, year={$thisYear}.\n\n"
+            . "REGRAS DE CONTRATAÇÕES/ADMISSÕES\n"
+            . "Contratação, admissões, admitidos, contratados → NUNCA terminated_* (isso é desligamento).\n"
+            . "Lista nominativa → hired_list (month/year/department opcionais; filtro pela data_admissao).\n"
+            . "\"quantas contratações em junho\" / \"admissões em 2026\" → hired_in_period.\n"
+            . "\"quantas contratações\" sem período → hired_total.\n\n"
             . "REGRAS DE SALAS\n"
             . "Intents rooms_* são exclusivas de reserva de salas — nunca misturar com intents de RH.\n"
             . "Resolva datas/horas relativas (\"hoje\", \"amanhã\", \"às 15h\") usando a data de hoje acima.\n"
@@ -2193,6 +2459,8 @@ class LocalInternalChatAgent
             . "\"status do wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\"}\n"
             . "\"status wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\"}\n"
             . "\"quantos desligados esse mês\" → {\"intent\":\"terminated_in_period\",\"month\":{$thisMonth},\"year\":{$thisYear}}\n"
+            . "\"lista de contratações em junho/{$thisYear}\" → {\"intent\":\"hired_list\",\"month\":6,\"year\":{$thisYear}}\n"
+            . "\"quantas admissões em 2025\" → {\"intent\":\"hired_in_period\",\"year\":2025}\n"
             . "\"desligados 2025\" → {\"intent\":\"terminated_by_month\",\"year\":2025}\n"
             . "\"desligados por departamento em 2025\" → {\"intent\":\"terminated_by_department\",\"year\":2025}\n"
             . "\"quem está bloqueado mas não desligado\" → {\"intent\":\"blocked_not_terminated\"}\n"
@@ -2244,12 +2512,38 @@ class LocalInternalChatAgent
 
         $allowed = [
             'active', 'inactive', 'terminated_in_period', 'terminated_by_month', 'terminated_total',
-            'terminated_list', 'terminated_by_department', 'blocked', 'blocked_not_terminated', 'lookup_person',
+            'terminated_list', 'terminated_by_department', 'hired_list', 'hired_in_period', 'hired_total',
+            'blocked', 'blocked_not_terminated', 'lookup_person',
             'by_department', 'report_list', 'report_run', 'clarify_by_month',
             'rooms_list', 'rooms_agenda', 'rooms_my', 'rooms_reserve', 'rooms_cancel', 'rooms_reserve_help',
         ];
         if (!in_array($name, $allowed, true)) {
             return null;
+        }
+
+        // Guardrail: LLM não pode mapear contratação → desligamento.
+        if ($this->mentionsHiring(mb_strtolower($message)) && str_starts_with($name, 'terminated')) {
+            $period = $this->extractPeriod($message);
+            $yearOnly = $this->extractYearOnly(mb_strtolower($message));
+            $wantsList = (bool) preg_match(
+                '/\b(lista|listar|nomes|nominativa|quais\s+(s[aã]o|foram)|quem\s+(s[aã]o|foram))\b/u',
+                mb_strtolower($message)
+            );
+            if ($wantsList) {
+                $name = 'hired_list';
+            } elseif ($period !== null || $yearOnly !== null) {
+                $name = 'hired_in_period';
+            } else {
+                $name = 'hired_total';
+            }
+            $intentJson['intent'] = $name;
+            if ($period !== null) {
+                $intentJson['month'] = $period['month'];
+                $intentJson['year'] = $period['year'];
+            } elseif ($yearOnly !== null) {
+                $intentJson['year'] = $yearOnly;
+                unset($intentJson['month']);
+            }
         }
 
         $intent = ['name' => $name];
@@ -2280,8 +2574,16 @@ class LocalInternalChatAgent
                 $first = mb_strtolower(explode(' ', $dept)[0] ?? '');
                 if (isset(self::MONTHS[$first])) {
                     $dept = null;
-                    if ($name === 'inactive' || $name === 'terminated_in_period' || $name === 'terminated_list') {
-                        $intent['name'] = $name === 'terminated_list' ? 'terminated_list' : 'terminated_in_period';
+                    if ($name === 'inactive' || $name === 'terminated_in_period' || $name === 'terminated_list'
+                        || $name === 'hired_list' || $name === 'hired_in_period'
+                    ) {
+                        if ($name === 'terminated_list' || $name === 'hired_list') {
+                            $intent['name'] = $name;
+                        } elseif ($name === 'hired_in_period') {
+                            $intent['name'] = 'hired_in_period';
+                        } else {
+                            $intent['name'] = 'terminated_in_period';
+                        }
                         $intent['month'] = self::MONTHS[$first];
                         $intent['year'] = !empty($intentJson['year'])
                             ? (int) $intentJson['year']
@@ -2309,6 +2611,13 @@ class LocalInternalChatAgent
                 return null;
             }
             $intent['query'] = $safeQuery;
+        }
+
+        $denied = $this->denyIfUnauthorizedIntent((string) ($intent['name'] ?? $name));
+        if ($denied !== null) {
+            $denied['provider'] = $llm['provider'];
+
+            return $denied;
         }
 
         $result = $this->executeIntent($intent, $message);

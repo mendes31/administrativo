@@ -27,6 +27,7 @@
    - `bloqueados sem desligamento` / `bloqueados mas não desligados`
    - `quantos desligados?`
    - `lista de desligados` / `lista de desligados em janeiro` / `lista desligados Produção`
+   - `lista de contratações em junho/2026` / `quantas admissões em 2025` (pela `data_admissao`, não confundir com desligados)
    - `itens` / nome do relatório marcado para o chat
    - depois do relatório, digite só o código (`1000001`, CardCode, DocNum…) para filtrar item/parceiro/documento
    - ou troque de domínio na mesma frase: `item 43000001`, `parceiro C00001` (não fica preso no relatório anterior)
@@ -118,6 +119,15 @@ OLLAMA_MODEL=llama3.2
 ```
 
 Perguntas fora das regras locais são roteadas pelo LLM; a execução continua tipada (tools PHP).
+
+### Permissões (ACL do nível)
+
+- `McpChat` — abre o chat.
+- Tools RH (`rh.*`) — exigem `ListUsers` e/ou `ViewUser`.
+- Contratações (`rh.list_hired` / `rh.count_hired`) — mesma ACL; filtro pela `data_admissao` (não usar tools de desligados).
+- Salas (`rooms.*`) — mesmos controllers das telas de reserva (`CreateBooking`, `ListMeetingRooms`, …).
+- Relatórios (`report.*`) — `chat_enabled` + partilha/`userCanViewReport`.
+- Sem a página no nível: a tool não entra na ajuda e a execução é negada (não vazam dados de outros módulos).
 
 ## API ERP externa (ex.: vendas `/api/sales`)
 

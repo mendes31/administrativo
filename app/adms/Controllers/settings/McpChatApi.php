@@ -59,23 +59,11 @@ class McpChatApi
 
         // Piloto local (homologação): consultas RH no MySQL do Portal, sem servidor MCP externo.
         if (strcasecmp($endpoint, 'local:internal') === 0 || strcasecmp($endpoint, 'local://internal') === 0) {
-            $agent = new \App\adms\Models\Services\InternalChat\LocalInternalChatAgent();
+            $gate = new \App\adms\Models\Services\InternalChat\ChatToolPermissionGate();
+            $agent = new \App\adms\Models\Services\InternalChat\LocalInternalChatAgent(perms: $gate);
             $authContext = [
                 'user_id' => (int) ($_SESSION['user_id'] ?? 0),
-                'allowed_tools' => [
-                    'rh.count_active',
-                    'rh.count_inactive',
-                    'rh.count_terminated_in_month',
-                    'rh.count_blocked',
-                    'rh.count_active_by_department',
-                    'report.list',
-                    'report.run',
-                    'rooms.list',
-                    'rooms.agenda',
-                    'rooms.my',
-                    'rooms.reserve',
-                    'rooms.cancel',
-                ],
+                'allowed_tools' => $gate->allowedTools(),
             ];
             $result = $agent->handle($message, $authContext);
             echo json_encode([

@@ -482,6 +482,172 @@ class RhChatIndicatorsService extends DbConnection
     }
 
     /**
+     * Contratações/admissões (pela data_admissao), opcionalmente por ano e/ou mês.
+     *
+     * @return array{
+     *   total:int,
+     *   year:?int,
+     *   month:?int,
+     *   by_department: list<array{departamento:string, total:int}>
+     * }
+     */
+    public function countHired(?int $month = null, ?int $year = null): array
+    {
+        if ($month !== null) {
+            $month = max(1, min(12, $month));
+        }
+        if ($year !== null) {
+            $year = max(2000, min(2100, $year));
+        }
+
+        $where = ['usr.data_admissao IS NOT NULL'];
+        $params = [];
+        if ($month !== null) {
+            $where[] = 'MONTH(usr.data_admissao) = :month';
+            $params[':month'] = $month;
+        }
+        if ($year !== null) {
+            $where[] = 'YEAR(usr.data_admissao) = :year';
+            $params[':year'] = $year;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $sqlTotal = "SELECT COUNT(*) AS total FROM adms_users usr WHERE {$whereSql}";
+        $stmt = $this->getConnection()->prepare($sqlTotal);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $total = (int) ($stmt->fetchColumn() ?: 0);
+
+        $sqlByDept = "SELECT dep.name AS departamento, COUNT(*) AS total
+            FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$whereSql}
+            GROUP BY dep.id, dep.name
+            ORDER BY total DESC, dep.name ASC
+            LIMIT 30";
+        $stmt2 = $this->getConnection()->prepare($sqlByDept);
+        foreach ($params as $k => $v) {
+            $stmt2->bindValue($k, $v, PDO::PARAM_INT);
+        }
+        $stmt2->execute();
+        $rows = $stmt2->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'total' => $total,
+            'year' => $year,
+            'month' => $month,
+            'by_department' => $this->mapDepartmentRows($rows),
+        ];
+    }
+
+    /**
+     * Lista nominativa de contratações (pela data_admissao).
+     *
+     * @return array{
+     *   total:int,
+     *   year:?int,
+     *   month:?int,
+     *   department:?string,
+     *   truncated:bool,
+     *   rows: list<array<string, mixed>>,
+     *   name: string
+     * }
+     */
+    public function listHired(
+        ?int $month = null,
+        ?int $year = null,
+        ?string $department = null,
+        int $limit = 150
+    ): array {
+        if ($month !== null) {
+            $month = max(1, min(12, $month));
+        }
+        if ($year !== null) {
+            $year = max(2000, min(2100, $year));
+        }
+        $limit = max(1, min(500, $limit));
+        $department = $department !== null ? trim($department) : '';
+
+        $where = ['usr.data_admissao IS NOT NULL'];
+        $params = [];
+        $types = [];
+        if ($month !== null) {
+            $where[] = 'MONTH(usr.data_admissao) = :month';
+            $params[':month'] = $month;
+            $types[':month'] = PDO::PARAM_INT;
+        }
+        if ($year !== null) {
+            $where[] = 'YEAR(usr.data_admissao) = :year';
+            $params[':year'] = $year;
+            $types[':year'] = PDO::PARAM_INT;
+        }
+        if ($department !== '') {
+            $where[] = 'LOWER(dep.name) = LOWER(:dept)';
+            $params[':dept'] = $department;
+            $types[':dept'] = PDO::PARAM_STR;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) AS total
+            FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$whereSql}";
+        $stmtCount = $this->getConnection()->prepare($sqlCount);
+        foreach ($params as $k => $v) {
+            $stmtCount->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmtCount->execute();
+        $total = (int) ($stmtCount->fetchColumn() ?: 0);
+
+        $sql = "SELECT usr.name AS nome,
+                       usr.username,
+                       dep.name AS departamento,
+                       pos.name AS cargo,
+                       usr.data_admissao AS admissao,
+                       usr.data_desligamento AS desligamento,
+                       usr.status
+                FROM adms_users usr
+                LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+                LEFT JOIN adms_positions pos ON pos.id = usr.user_position_id
+                WHERE {$whereSql}
+                ORDER BY usr.data_admissao DESC, usr.name ASC
+                LIMIT {$limit}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $rows = [];
+        foreach ($raw as $row) {
+            $adm = $this->normalizeDate($row['admissao'] ?? null);
+            $term = $this->normalizeDate($row['desligamento'] ?? null);
+            $rows[] = [
+                'nome' => (string) ($row['nome'] ?? ''),
+                'username' => (string) ($row['username'] ?? ''),
+                'departamento' => (string) (($row['departamento'] ?? '') !== '' ? $row['departamento'] : '(sem departamento)'),
+                'cargo' => (string) (($row['cargo'] ?? '') !== '' ? $row['cargo'] : '—'),
+                'admissao' => $adm ?? '',
+                'desligamento' => $term ?? '',
+                'status' => (string) ($row['status'] ?? ''),
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'year' => $year,
+            'month' => $month,
+            'department' => $department !== '' ? $department : null,
+            'truncated' => $total > count($rows),
+            'rows' => $rows,
+            'name' => 'Contratações',
+        ];
+    }
+
+    /**
      * Busca colaborador por nome, username ou e-mail (sem CPF/celular).
      *
      * @return array{
