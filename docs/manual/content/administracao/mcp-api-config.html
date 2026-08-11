@@ -66,6 +66,8 @@
     <dd>Corrigido: o chat sugere «Você quis dizer?» com opções numeradas (só o que o nível permite). Digite <code>1</code> ou clique. «limpar» zera as sugestões.</dd>
     <dt>Pediu «vendas por mês» e o chat procurou o código «mes»</dt>
     <dd>Corrigido: «vendas por mês» abre o relatório completo. Para um mês: «vendas 08/2026» ou «vendas jun/26». Código SAP (item/parceiro) continua só com dígito, ex. <code>43000001</code>.</dd>
+    <dt>Chat devolve HTTP 502 / Cloudflare ao abrir «Vendas por cliente»</dt>
+    <dd>O túnel não aguenta devolver dezenas de milhares de linhas. O chat passa a usar <code>SELECT TOP 15</code>. No SQL do relatório, agregue: <code>GROUP BY</code> cliente e <code>SUM</code> do líquido, com <code>ORDER BY</code> do total. «Vendas por mês» já é agregado, por isso costuma passar.</dd>
     <dt>Tabela/gráfico do chat veio com data ISO e valor sem R$</dt>
     <dd>A bolha formata pelo tipo do valor (mês <code>08/2026</code>, moeda <code>R$ 1.234,56</code>). Excel/CSV do chat continuam com o número cru para somar na planilha. Atualize a página (Ctrl+F5) e pergunte de novo.</dd>
     <dt>Listei vários Rafaéis e digitei TI — veio headcount</dt>

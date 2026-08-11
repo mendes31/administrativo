@@ -113,7 +113,7 @@ class ChatDynamicReportService
             $wrapped = $this->wrapSqlWithMonthFilter((string) $report['custom_sql'], $month, $year);
             if ($wrapped !== null) {
                 $cfg = $report;
-                $cfg['custom_sql'] = $wrapped;
+                $cfg['custom_sql'] = $this->ensureChatSqlLimit($wrapped, self::MAX_ROWS_IN_CHAT);
                 $cfg['query_mode'] = 'custom_sql';
                 $cfg['cache_namespace'] = 'chat_report_month_' . $reportId . '_' . $year . $month;
                 $cfg['force_refresh'] = true;
@@ -244,7 +244,7 @@ class ChatDynamicReportService
             $wrapped = $this->wrapSqlWithCodeFilter((string) $report['custom_sql'], $codeCols, $code);
             if ($wrapped !== null) {
                 $cfg = $report;
-                $cfg['custom_sql'] = $wrapped;
+                $cfg['custom_sql'] = $this->ensureChatSqlLimit($wrapped, self::MAX_ROWS_IN_CHAT);
                 $cfg['query_mode'] = 'custom_sql';
                 $cfg['cache_namespace'] = 'chat_report_filter_' . $reportId . '_' . md5($code);
                 $cfg['force_refresh'] = true;
@@ -591,6 +591,50 @@ class ChatDynamicReportService
         return $preferred !== [] ? $preferred : $fallback;
     }
 
+    /**
+     * O chat não pode puxar o resultado SAP inteiro (túnel Cloudflare → HTTP 502).
+     */
+    private function ensureChatSqlLimit(string $sql, int $top): string
+    {
+        $sql = trim($sql);
+        if ($sql === '' || $top < 1) {
+            return $sql;
+        }
+        if (preg_match('/\bSELECT\s+(DISTINCT\s+)?TOP\s+\d+/i', $sql)) {
+            return $sql;
+        }
+        $sql = preg_replace('/;+\s*$/', '', $sql) ?? $sql;
+        if (preg_match('/^\s*WITH\s+/i', $sql) || preg_match('/\bUNION\b/i', $sql)) {
+            return "SELECT TOP {$top} * FROM (\n{$sql}\n) AS _chat_top";
+        }
+        if (preg_match('/^\s*SELECT\s+DISTINCT\s+/i', $sql)) {
+            return preg_replace('/^(\s*SELECT\s+DISTINCT)\s+/i', '$1 TOP ' . $top . ' ', $sql, 1) ?? $sql;
+        }
+
+        return preg_replace('/^(\s*SELECT)\s+/i', '$1 TOP ' . $top . ' ', $sql, 1) ?? $sql;
+    }
+
+    private function formatQueryFailure(string $error): string
+    {
+        $e = mb_strtolower($error);
+        if (
+            str_contains($e, '502')
+            || str_contains($e, 'cloudflare')
+            || str_contains($e, 'incomplete response')
+            || str_contains($e, 'overloaded')
+        ) {
+            return 'A API SAP não concluiu a consulta (HTTP 502 / túnel Cloudflare). '
+                . 'No chat limitamos a ' . self::MAX_ROWS_IN_CHAT . ' linhas (SELECT TOP). '
+                . 'Se ainda falhar, agregue no SQL (GROUP BY cliente/item) em vez de listar cada nota. '
+                . 'Pode abrir o relatório completo com TOP ou GROUP BY.';
+        }
+        if (str_contains($e, '504') || str_contains($e, 'timeout') || str_contains($e, 'timed out')) {
+            return 'A consulta SAP estourou o tempo. Estreite o período (ex.: vendas 08/2026) ou use GROUP BY / TOP no SQL.';
+        }
+
+        return 'Falha na consulta: ' . $error;
+    }
+
     private function columnLooksLikeCode(string $columnKey): bool
     {
         $columnKey = mb_strtolower(trim($columnKey));
@@ -632,6 +676,9 @@ class ChatDynamicReportService
         }
 
         $perPage = max(self::MAX_ROWS_IN_CHAT, min(500, $perPage));
+        if (!empty($report['custom_sql'])) {
+            $report['custom_sql'] = $this->ensureChatSqlLimit((string) $report['custom_sql'], $perPage);
+        }
         $report['cache_namespace'] = 'chat_report_' . $reportId;
         $report['force_refresh'] = true;
         $report['page'] = 1;
@@ -642,7 +689,7 @@ class ChatDynamicReportService
         } catch (\Throwable $e) {
             return [
                 'ok' => false,
-                'resposta' => 'Erro ao executar o relatório: ' . $e->getMessage(),
+                'resposta' => $this->formatQueryFailure($e->getMessage()),
                 'tool' => 'report.run',
             ];
         }
@@ -650,7 +697,7 @@ class ChatDynamicReportService
         if (empty($result['success'])) {
             return [
                 'ok' => false,
-                'resposta' => 'Falha na consulta: ' . (string) ($result['error'] ?? 'erro desconhecido'),
+                'resposta' => $this->formatQueryFailure((string) ($result['error'] ?? 'erro desconhecido')),
                 'tool' => 'report.run',
                 'data' => $result,
             ];
