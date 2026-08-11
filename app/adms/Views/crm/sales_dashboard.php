@@ -100,15 +100,20 @@ $canSync = !empty($this->data['can_sync']);
 .crm-sales-dash .csd-panel .panel-sub{font-size:12px; color:var(--csd-ink-mute); margin:0 0 10px;}
 .crm-sales-dash .csd-chart{position:relative; width:100%; cursor:pointer;}
 .crm-sales-dash .csd-chart-scroll{
-  max-height:300px; overflow-y:auto; overflow-x:hidden;
+  height:360px; max-height:360px; min-height:360px;
+  overflow-y:hidden; overflow-x:hidden;
   border:1px solid var(--csd-line); border-radius:10px; background:#FAFBFA;
   scrollbar-width:thin;
 }
+.crm-sales-dash .csd-chart-scroll.is-scrollable{overflow-y:auto;}
 .crm-sales-dash .csd-chart-scroll::-webkit-scrollbar{width:8px;}
 .crm-sales-dash .csd-chart-scroll::-webkit-scrollbar-thumb{
   background:#C5CBC3; border-radius:8px;
 }
-.crm-sales-dash .csd-chart-inner{position:relative; width:100%; min-height:120px;}
+.crm-sales-dash .csd-chart-inner{
+  position:relative; width:100%; height:360px; min-height:360px;
+}
+.crm-sales-dash .csd-chart-inner canvas{display:block; width:100% !important;}
 .crm-sales-dash .csd-chart-empty{
   display:flex; align-items:center; justify-content:center; min-height:160px;
   padding:16px; text-align:center; color:var(--csd-ink-mute); font-size:13px;
@@ -283,7 +288,7 @@ $canSync = !empty($this->data['can_sync']);
         <h2>Top vendedores</h2>
         <p class="panel-sub">Faturamento líquido · top 10 visíveis, role para ver mais</p>
         <div class="csd-chart csd-chart-scroll">
-          <div class="csd-chart-inner" style="height:300px;">
+          <div class="csd-chart-inner">
             <canvas id="chartVendedores" aria-label="Faturamento por vendedor"></canvas>
           </div>
         </div>
@@ -292,7 +297,7 @@ $canSync = !empty($this->data['can_sync']);
         <h2>Vendas por região</h2>
         <p class="panel-sub">Por UF · top 10 visíveis, role para ver mais</p>
         <div class="csd-chart csd-chart-scroll">
-          <div class="csd-chart-inner" style="height:300px;">
+          <div class="csd-chart-inner">
             <canvas id="chartRegiao" aria-label="Faturamento por região"></canvas>
           </div>
         </div>
@@ -314,7 +319,7 @@ $canSync = !empty($this->data['can_sync']);
         <h2>Vendas por grupo de item</h2>
         <p class="panel-sub">Participação · top 10 visíveis, role para ver mais</p>
         <div class="csd-chart csd-chart-scroll">
-          <div class="csd-chart-inner" style="height:300px;">
+          <div class="csd-chart-inner">
             <canvas id="chartGrupoItem" aria-label="Faturamento por grupo de item"></canvas>
           </div>
         </div>
@@ -329,4 +334,4 @@ $canSync = !empty($this->data['can_sync']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=6"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=8"></script>

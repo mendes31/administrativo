@@ -304,8 +304,9 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                             <ul class="small mb-0">
                                 <li><code>SELECT * FROM adms_users</code> → Todos os usuários (Local)</li>
                                 <li><code>SELECT name, email FROM adms_users WHERE status = 'Ativo'</code> → Usuários ativos (Local)</li>
-                                <li><code>SELECT * FROM OITM</code> → Todos os itens (SAP B1) 🔷</li>
+                                <li><code>SELECT TOP 100 * FROM OITM</code> → Itens (SAP B1) 🔷 — sempre use TOP em SAP</li>
                                 <li><code>SELECT CardCode, CardName, Balance FROM OCRD WHERE CardType = 'C'</code> → Clientes (SAP B1) 🔷</li>
+                                <li><code>SELECT TOP 50 * FROM "VW_CRM_VENDAS_LINHA" ORDER BY "DocDate" DESC</code> → Vendas CRM (SAP) 🔷</li>
                                 <li><code>SELECT DocNum, DocDate, DocTotal FROM OINV WHERE MONTH(DocDate) = MONTH(CURRENT_DATE)</code> → NFs do mês (SAP B1) 🔷</li>
                             </ul>
                         </div>
@@ -1104,7 +1105,18 @@ async function showPreviewBuilder(forceRefresh = false, incremental = false) {
     
     try {
         const response = await fetch('<?= $_ENV['URL_ADM'] ?>execute-dynamic-report', {method: 'POST', body: formData});
-        const result = await response.json();
+        const raw = await response.text();
+        let result;
+        try {
+            result = JSON.parse(raw);
+        } catch (parseErr) {
+            const looksHtml = /^\s*</.test(raw || '');
+            throw new Error(
+                looksHtml
+                    ? 'A prévia devolveu HTML em vez de JSON (timeout/limite da API ou resultado demasiado grande). Em SAP use SELECT TOP N … em vez de SELECT * sem limite.'
+                    : ('Resposta inválida da prévia: ' + (parseErr.message || 'JSON inválido'))
+            );
+        }
         console.log('✅ Resultado:', result);
         
         if (result.success) {
@@ -1202,8 +1214,19 @@ async function showPreviewSQL(forceRefresh = false, incremental = false) {
     
     try {
         const response = await fetch('<?= $_ENV['URL_ADM'] ?>execute-dynamic-report', {method: 'POST', body: formData});
-        const result = await response.json();
+        const raw = await response.text();
         clearInterval(progressInterval);
+        let result;
+        try {
+            result = JSON.parse(raw);
+        } catch (parseErr) {
+            const looksHtml = /^\s*</.test(raw || '');
+            throw new Error(
+                looksHtml
+                    ? 'A prévia devolveu HTML em vez de JSON (timeout/limite da API ou resultado demasiado grande). Em SAP use SELECT TOP N … em vez de SELECT * sem limite.'
+                    : ('Resposta inválida da prévia: ' + (parseErr.message || 'JSON inválido'))
+            );
+        }
         console.log('✅ Resultado:', result);
         
         if (result.success) {

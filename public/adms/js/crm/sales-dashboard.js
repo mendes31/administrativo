@@ -16,8 +16,9 @@
     '#7C3AED', '#0D9488', '#CA8A04', '#DB2777', '#475569',
     '#65A30D', '#0284C7', '#EA580C', '#8B5CF6', '#059669'
   ];
-  const BAR_ROW_PX = 30;
+  const BAR_ROW_PX = 36;
   const BAR_VISIBLE_ROWS = 10;
+  const BAR_VIEW_H = BAR_VISIBLE_ROWS * BAR_ROW_PX;
   const rotulos = {
     vendedor: 'Vendedor',
     grupo_cliente: 'Grupo de cliente',
@@ -213,14 +214,31 @@
 
   function setBarChartViewport(canvasId, rowCount) {
     const host = ensureBarScrollHost(canvasId);
-    if (!host) return;
+    if (!host) return BAR_VIEW_H;
     const n = Math.max(1, rowCount || 1);
-    const fullH = Math.max(BAR_ROW_PX, n * BAR_ROW_PX);
-    const viewH = Math.min(fullH, BAR_VISIBLE_ROWS * BAR_ROW_PX);
-    host.inner.style.height = fullH + 'px';
-    host.scroll.style.height = viewH + 'px';
-    host.scroll.style.maxHeight = (BAR_VISIBLE_ROWS * BAR_ROW_PX) + 'px';
+    const needsScroll = n > BAR_VISIBLE_ROWS;
+    // Até 10 itens: canvas = área fixa do painel (sem scroll).
+    // Acima de 10: canvas cresce 1 linha por item e o painel rola.
+    const contentH = needsScroll ? n * BAR_ROW_PX : BAR_VIEW_H;
+
+    host.scroll.style.height = BAR_VIEW_H + 'px';
+    host.scroll.style.minHeight = BAR_VIEW_H + 'px';
+    host.scroll.style.maxHeight = BAR_VIEW_H + 'px';
+    host.scroll.classList.toggle('is-scrollable', needsScroll);
+    host.scroll.style.overflowY = needsScroll ? 'auto' : 'hidden';
+    host.scroll.style.overflowX = 'hidden';
     host.scroll.scrollTop = 0;
+
+    host.inner.style.height = contentH + 'px';
+    host.inner.style.minHeight = contentH + 'px';
+    host.inner.style.maxHeight = needsScroll ? 'none' : BAR_VIEW_H + 'px';
+
+    host.canvas.removeAttribute('height');
+    host.canvas.removeAttribute('width');
+    host.canvas.style.display = 'block';
+    host.canvas.style.height = contentH + 'px';
+    host.canvas.style.width = '100%';
+    return contentH;
   }
 
   function emptySeriesMessage(canvasId, msg) {
@@ -322,10 +340,10 @@
     emptySeriesMessage(canvasId, rows.length ? '' : 'Sem dados para os filtros aplicados');
     if (!rows.length) return null;
 
-    // Mantém ranking completo; viewport mostra ~top 10 com scroll para o restante
-    setBarChartViewport(canvasId, rows.length);
+    const contentH = setBarChartViewport(canvasId, rows.length);
     const values = rows.map((r) => r.valor);
     const scale = adaptiveAxisMax(values);
+    const fewBars = rows.length <= BAR_VISIBLE_ROWS;
 
     const canvas = document.getElementById(canvasId);
     const chart = new Chart(canvas, {
@@ -336,14 +354,16 @@
           data: values,
           backgroundColor: rows.map((r, i) => corBarra(campoFiltro, r.label, i)),
           borderRadius: 4,
-          maxBarThickness: 18
+          barPercentage: fewBars ? 0.55 : 0.7,
+          categoryPercentage: 0.85,
+          maxBarThickness: fewBars ? 28 : 22
         }]
       },
       options: {
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { left: 2, right: 52, top: 4, bottom: 4 } },
+        layout: { padding: { left: 2, right: 56, top: 8, bottom: 8 } },
         onClick: onClickChart(campoFiltro),
         plugins: {
           legend: { display: false },
@@ -362,12 +382,21 @@
             ticks: { callback: (v) => fmtMoedaCompacta(v), maxTicksLimit: 5 },
             grid: { color: '#E2E6E0' }
           },
-          y: { grid: { display: false }, ticks: categoryTickOpts(labelMaxLen || 34) }
+          y: {
+            grid: { display: false },
+            ticks: categoryTickOpts(labelMaxLen || 34)
+          }
         }
       },
       plugins: [barValueLabelsPlugin]
     });
     chart.$csdClipped = !!scale.clipped;
+    requestAnimationFrame(function () {
+      setBarChartViewport(canvasId, rows.length);
+      if (chart && typeof chart.resize === 'function') {
+        chart.resize();
+      }
+    });
     return chart;
   }
 

@@ -179,11 +179,16 @@ class CrmSalesSapSyncService
                     }
                 }
 
-                // Reescreve o intervalo do chunk (evita duplicar grãos ao re-agregar)
-                $this->repo->deleteByDateRange($chunkFrom, $chunkTo);
-                if ($mapped !== []) {
-                    $stats['rows_upserted'] += $this->repo->upsertBatch($mapped);
+                // Nunca apagar o mês se o SAP devolveu 0 linhas (protege contra API/schema
+                // desatualizado ou filtro que falhou). Só reescreve quando há fatos novos.
+                if ($mapped === []) {
+                    $stats['months_processed']++;
+                    $cursor = $cursor->add(new DateInterval('P1M'));
+                    continue;
                 }
+
+                $this->repo->deleteByDateRange($chunkFrom, $chunkTo);
+                $stats['rows_upserted'] += $this->repo->upsertBatch($mapped);
 
                 $stats['months_processed']++;
                 $cursor = $cursor->add(new DateInterval('P1M'));
