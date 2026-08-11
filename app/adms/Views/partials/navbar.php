@@ -259,8 +259,17 @@ if (!empty($_SESSION['user_id'])) {
 
 <?php if ($mcpChatAvailable): ?>
 <?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=20">
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=21">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/dynamic-report-format.js?v=3"></script>
+<script>
+<?php
+$tjzFormatJs = dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'public' . DIRECTORY_SEPARATOR . 'adms' . DIRECTORY_SEPARATOR . 'js' . DIRECTORY_SEPARATOR . 'dynamic-report-format.js';
+if (is_readable($tjzFormatJs)) {
+    readfile($tjzFormatJs);
+}
+?>
+</script>
 <button class="btn tjz-fab" type="button" id="tjzFabBtn"
         data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
         title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
@@ -510,6 +519,16 @@ if (!empty($_SESSION['user_id'])) {
         return bubble;
     }
 
+    function formatTjzCell(header, value, types) {
+        const type = (types && types[header]) || 'text';
+        if (window.DynamicReportFormat && DynamicReportFormat.formatCell) {
+            return DynamicReportFormat.formatCell(value, type);
+        }
+        if (value == null || value === '') return '';
+        if (typeof value === 'object') return JSON.stringify(value);
+        return String(value);
+    }
+
     function buildCompactListHtml(rows, options) {
         if (!Array.isArray(rows) || !rows.length || typeof rows[0] !== 'object' || rows[0] === null) {
             return '';
@@ -517,6 +536,9 @@ if (!empty($_SESSION['user_id'])) {
         const opts = options || {};
         const maxRows = opts.maxRows || 40;
         const cols = Object.keys(rows[0]);
+        const types = (window.DynamicReportFormat && DynamicReportFormat.inferColumnTypes)
+            ? DynamicReportFormat.inferColumnTypes(rows)
+            : {};
         const titleKey = cols.find(function (c) {
             return /^(nome|name|descri[cç][aã]o|titulo|t[ií]tulo|item)$/i.test(c);
         }) || cols[0];
@@ -524,23 +546,17 @@ if (!empty($_SESSION['user_id'])) {
 
         let html = '<div class="tjz-list-wrap mt-2">';
         rows.slice(0, maxRows).forEach(function (row, idx) {
-            let titleVal = row[titleKey];
-            if (titleVal !== null && typeof titleVal === 'object') {
-                titleVal = JSON.stringify(titleVal);
-            }
+            const titleVal = formatTjzCell(titleKey, row[titleKey], types);
             html += '<article class="tjz-list-item">';
             html += '<div class="tjz-list-item-head">';
             html += '<span class="tjz-list-idx">' + (idx + 1) + '</span>';
-            html += '<strong class="tjz-list-title">' + escapeHtml(titleVal == null || titleVal === '' ? '—' : titleVal) + '</strong>';
+            html += '<strong class="tjz-list-title">' + escapeHtml(titleVal === '' ? '—' : titleVal) + '</strong>';
             html += '</div>';
             if (metaKeys.length) {
                 html += '<dl class="tjz-list-fields">';
                 metaKeys.forEach(function (k) {
-                    let v = row[k];
-                    if (v !== null && typeof v === 'object') {
-                        v = JSON.stringify(v);
-                    }
-                    if (v == null || v === '' || v === '—') {
+                    const v = formatTjzCell(k, row[k], types);
+                    if (v === '' || v === '—') {
                         return;
                     }
                     html += '<div class="tjz-list-field"><dt>' + escapeHtml(k) + '</dt><dd>' + escapeHtml(v) + '</dd></div>';
@@ -566,6 +582,9 @@ if (!empty($_SESSION['user_id'])) {
         }
         const maxRows = opts.maxRows || 15;
         const cols = Object.keys(rows[0]);
+        const types = (window.DynamicReportFormat && DynamicReportFormat.inferColumnTypes)
+            ? DynamicReportFormat.inferColumnTypes(rows)
+            : {};
         let html = '<div class="tjz-table-wrap mt-2" tabindex="0" role="region" aria-label="Tabela do resultado (deslize horizontalmente se necessário)"><table class="table table-sm table-bordered mb-0 bg-white tjz-data-table">';
         html += '<thead><tr>' + cols.map(function (c) {
             return '<th>' + escapeHtml(c) + '</th>';
@@ -573,12 +592,8 @@ if (!empty($_SESSION['user_id'])) {
         rows.slice(0, maxRows).forEach(function (row) {
             html += '<tr>';
             cols.forEach(function (c, colIdx) {
-                let v = row[c];
-                if (v !== null && typeof v === 'object') {
-                    v = JSON.stringify(v);
-                }
                 const wrapClass = colIdx === 0 ? ' class="tjz-cell-primary"' : '';
-                html += '<td' + wrapClass + '>' + escapeHtml(v == null ? '' : v) + '</td>';
+                html += '<td' + wrapClass + '>' + escapeHtml(formatTjzCell(c, row[c], types)) + '</td>';
             });
             html += '</tr>';
         });
@@ -890,17 +905,33 @@ if (!empty($_SESSION['user_id'])) {
         wrap.appendChild(canvas);
         container.appendChild(wrap);
 
+        function formatChartTick(value) {
+            if (window.DynamicReportFormat && DynamicReportFormat.formatCell && DynamicReportFormat.inferType) {
+                const axisType = DynamicReportFormat.inferType(chart.values || []);
+                return DynamicReportFormat.formatCell(value, axisType);
+            }
+            const n = Number(value);
+            if (!Number.isFinite(n)) return value;
+            if (Math.abs(n % 1) > 1e-6) {
+                return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+            }
+            return n.toLocaleString('pt-BR');
+        }
+
         const chartType = mapChartType(chart.type);
+        const chartLabels = (window.DynamicReportFormat && DynamicReportFormat.formatLabels)
+            ? DynamicReportFormat.formatLabels(chart.labels)
+            : chart.labels;
         const colors = [
             '#0d6efd', '#198754', '#fd7e14', '#6f42c1', '#20c997',
             '#dc3545', '#0dcaf0', '#6610f2', '#ffc107', '#6c757d'
         ];
-        const bg = chart.labels.map(function (_, i) { return colors[i % colors.length]; });
+        const bg = chartLabels.map(function (_, i) { return colors[i % colors.length]; });
 
         const instance = new Chart(canvas.getContext('2d'), {
             type: chartType,
             data: {
-                labels: chart.labels,
+                labels: chartLabels,
                 datasets: [{
                     label: chart.title || 'Valores',
                     data: chart.values,
@@ -924,6 +955,15 @@ if (!empty($_SESSION['user_id'])) {
                         display: !!chart.title,
                         text: chart.title || '',
                         color: '#212529'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (ctx) {
+                                const raw = (ctx.parsed && ctx.parsed.y != null) ? ctx.parsed.y : ctx.parsed;
+                                const prefix = ctx.dataset && ctx.dataset.label ? ctx.dataset.label + ': ' : '';
+                                return prefix + formatChartTick(raw);
+                            }
+                        }
                     }
                 },
                 scales: (chartType === 'pie' || chartType === 'doughnut') ? {} : {
@@ -933,7 +973,10 @@ if (!empty($_SESSION['user_id'])) {
                     },
                     y: {
                         beginAtZero: true,
-                        ticks: { color: '#495057' },
+                        ticks: {
+                            color: '#495057',
+                            callback: function (value) { return formatChartTick(value); }
+                        },
                         grid: { color: 'rgba(0,0,0,0.08)' }
                     }
                 },
@@ -1138,15 +1181,32 @@ if (!empty($_SESSION['user_id'])) {
         if (data.ui && data.ui.type === 'rooms_wizard') {
             renderRoomsWizardUi(bubble, data.ui);
         }
+        if (data.ui && data.ui.type === 'suggest' && Array.isArray(data.ui.options)) {
+            const wrap = document.createElement('div');
+            wrap.className = 'tjz-suggest';
+            wrap.setAttribute('role', 'list');
+            data.ui.options.forEach(function (opt) {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = 'tjz-suggest-btn';
+                btn.setAttribute('data-tjz-send', String(opt.value || ''));
+                btn.textContent = String(opt.label || opt.value || '');
+                wrap.appendChild(btn);
+            });
+            bubble.appendChild(wrap);
+        }
 
         // Tabelas só para indicadores/relatórios — salas/reservas usam texto ou cards.
         const skipTable = !!(data.ui && data.ui.type === 'rooms_wizard')
             || (typeof payload.tool === 'string' && payload.tool.indexOf('rooms.') === 0);
-        if (!skipTable && Array.isArray(data.rows) && data.rows.length) {
+        const tableRows = (Array.isArray(data.rows_display) && data.rows_display.length)
+            ? data.rows_display
+            : data.rows;
+        if (!skipTable && Array.isArray(tableRows) && tableRows.length) {
             const compact = !!(data.ui && data.ui.compact_table);
             bubble.classList.add('tjz-bubble-bot--data');
             bubble.style.maxWidth = '';
-            bubble.insertAdjacentHTML('beforeend', buildTableHtml(data.rows, { compact: compact }));
+            bubble.insertAdjacentHTML('beforeend', buildTableHtml(tableRows, { compact: compact }));
         }
 
         if (data.report_url) {

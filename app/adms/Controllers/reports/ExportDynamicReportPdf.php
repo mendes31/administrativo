@@ -2,6 +2,7 @@
 
 namespace App\adms\Controllers\reports;
 
+use App\adms\Helpers\DynamicReportValueFormatter;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
 use Dompdf\Dompdf;
@@ -77,6 +78,7 @@ class ExportDynamicReportPdf
             $html .= '<p class="small" style="margin-top:12px;">Nenhum registro retornado pela consulta.</p>';
         } else {
             $headers = array_keys($rows[0]);
+            $columnTypes = DynamicReportValueFormatter::inferColumnTypes($rows);
             $html .= '<table><thead><tr>';
             foreach ($headers as $h) {
                 $html .= '<th>' . htmlspecialchars((string)$h) . '</th>';
@@ -92,7 +94,7 @@ class ExportDynamicReportPdf
                     } elseif ($val === null) {
                         $val = '';
                     } else {
-                        $val = (string)$val;
+                        $val = DynamicReportValueFormatter::formatCell($val, $columnTypes[$h] ?? 'text');
                     }
                     $html .= '<td>' . htmlspecialchars($val) . '</td>';
                 }

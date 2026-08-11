@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services\InternalChat;
 
+use App\adms\Helpers\DynamicReportValueFormatter;
 use App\adms\Models\Repository\DynamicReportsRepository;
 use App\adms\Models\Services\DynamicQueryBuilderService;
 
@@ -70,6 +71,133 @@ class ChatDynamicReportService
         }
 
         return $this->runById($userId, (int) $report['id']);
+    }
+
+    /**
+     * Filtra o relatório por mês/ano (DocDate ou coluna de competência na saída).
+     *
+     * @return array{ok:bool, resposta:string, tool:string, data?:mixed}
+     */
+    public function runByIdFilteredByMonth(int $userId, int $reportId, int $month, int $year): array
+    {
+        $month = max(1, min(12, $month));
+        if ($year < 100) {
+            $year = $year >= 70 ? 1900 + $year : 2000 + $year;
+        }
+
+        $report = $this->repo->getById($reportId);
+        if (!$report || empty($report['chat_enabled'])) {
+            return [
+                'ok' => false,
+                'resposta' => 'Relatório não encontrado ou não está disponível no chat.',
+                'tool' => 'report.run',
+            ];
+        }
+        if ($userId > 0 && !$this->repo->userCanViewReport($report, $userId)) {
+            return [
+                'ok' => false,
+                'resposta' => 'Sem permissão para executar este relatório no chat.',
+                'tool' => 'report.run',
+            ];
+        }
+
+        $name = (string) ($report['name'] ?? 'Relatório');
+        $viz = (string) ($report['visualization_type'] ?? 'table');
+        $reportUrl = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/view-dynamic-report/' . $reportId;
+        $periodLabel = self::monthYearLabel($month, $year);
+
+        $rows = [];
+        $usedSqlFilter = false;
+
+        if (($report['query_mode'] ?? '') === 'custom_sql' || !empty($report['custom_sql'])) {
+            $wrapped = $this->wrapSqlWithMonthFilter((string) $report['custom_sql'], $month, $year);
+            if ($wrapped !== null) {
+                $cfg = $report;
+                $cfg['custom_sql'] = $wrapped;
+                $cfg['query_mode'] = 'custom_sql';
+                $cfg['cache_namespace'] = 'chat_report_month_' . $reportId . '_' . $year . $month;
+                $cfg['force_refresh'] = true;
+                $cfg['page'] = 1;
+                $cfg['per_page'] = self::MAX_ROWS_IN_CHAT;
+                try {
+                    $result = $this->queryBuilder->executeReport($cfg);
+                    if (!empty($result['success'])) {
+                        $rows = is_array($result['data'] ?? null) ? $result['data'] : [];
+                        $usedSqlFilter = true;
+                    }
+                } catch (\Throwable) {
+                    $rows = [];
+                }
+            }
+        }
+
+        if (!$usedSqlFilter) {
+            $base = $this->runById($userId, $reportId, 500);
+            if (empty($base['ok'])) {
+                return $base;
+            }
+            $data = is_array($base['data'] ?? null) ? $base['data'] : [];
+            $rows = $this->filterRowsByMonth(is_array($data['rows'] ?? null) ? $data['rows'] : [], $month, $year);
+            $reportUrl = (string) ($data['report_url'] ?? $reportUrl);
+            $viz = (string) ($data['visualization_type'] ?? $viz);
+        }
+
+        if ($rows === []) {
+            return [
+                'ok' => false,
+                'resposta' => sprintf(
+                    'Não encontrei dados de %s no relatório «%s». Tente outro mês (ex.: 07/2026, jul/2026) ou abra o relatório completo.',
+                    $periodLabel,
+                    $name
+                ),
+                'tool' => 'report.run',
+                'data' => [
+                    'report_id' => $reportId,
+                    'name' => $name,
+                    'filter_month' => $month,
+                    'filter_year' => $year,
+                    'rows_count' => 0,
+                    'rows' => [],
+                    'report_url' => $reportUrl,
+                ],
+            ];
+        }
+
+        $preview = array_slice($rows, 0, self::MAX_ROWS_IN_CHAT);
+        $total = count($rows);
+        $lines = [
+            sprintf('Filtro %s no relatório «%s»: %d linha(s).', $periodLabel, $name, $total),
+        ];
+
+        return [
+            'ok' => true,
+            'resposta' => implode("\n", $lines),
+            'tool' => 'report.run',
+            'data' => [
+                'report_id' => $reportId,
+                'name' => $name,
+                'filter_month' => $month,
+                'filter_year' => $year,
+                'report_url' => $reportUrl,
+                'visualization_type' => $viz,
+                'chart_config' => $report['chart_config'] ?? [],
+                'rows_count' => $total,
+                'rows' => $preview,
+                'rows_display' => DynamicReportValueFormatter::formatRows($preview),
+                'chart' => self::chartWithFormattedLabels(self::buildChartFromRows($preview, $viz)),
+            ],
+        ];
+    }
+
+    public static function monthYearLabel(int $month, int $year): string
+    {
+        $names = [
+            1 => 'janeiro', 2 => 'fevereiro', 3 => 'março', 4 => 'abril',
+            5 => 'maio', 6 => 'junho', 7 => 'julho', 8 => 'agosto',
+            9 => 'setembro', 10 => 'outubro', 11 => 'novembro', 12 => 'dezembro',
+        ];
+
+        return ($names[$month] ?? (string) $month) . '/' . $year;
     }
 
     /**
@@ -210,7 +338,8 @@ class ChatDynamicReportService
                 'chart_config' => $report['chart_config'] ?? [],
                 'rows_count' => $total,
                 'rows' => $preview,
-                'chart' => self::buildChartFromRows($preview, $viz),
+                'rows_display' => DynamicReportValueFormatter::formatRows($preview),
+                'chart' => self::chartWithFormattedLabels(self::buildChartFromRows($preview, $viz)),
             ],
         ];
     }
@@ -311,6 +440,89 @@ class ChatDynamicReportService
         }
 
         return "SELECT * FROM (\n{$sql}\n) AS _chat_f WHERE (" . implode(' OR ', $parts) . ')';
+    }
+
+    private function wrapSqlWithMonthFilter(string $sql, int $month, int $year): ?string
+    {
+        $sql = trim($sql);
+        $sql = preg_replace('/^[\d\s]+/i', '', $sql) ?? $sql;
+        $sql = trim($sql);
+        if ($sql === '' || !preg_match('/^\s*SELECT\s+/i', $sql)) {
+            return null;
+        }
+        $sql = preg_replace('/;+\s*$/', '', $sql) ?? $sql;
+        $col = $this->guessDateColumnFromSql($sql);
+        if ($col === null) {
+            return null;
+        }
+        $quoted = '"' . preg_replace('/[^A-Za-z0-9_]/', '', $col) . '"';
+        $condition = 'YEAR(' . $quoted . ') = ' . $year . ' AND MONTH(' . $quoted . ') = ' . $month;
+
+        return $this->injectWhereBeforeGroupOrder($sql, $condition);
+    }
+
+    private function guessDateColumnFromSql(string $sql): ?string
+    {
+        if (preg_match('/"(DocDate|TaxDate|CreateDate|UpdateDate|DocDueDate|Data)"/i', $sql, $m)) {
+            return (string) $m[1];
+        }
+        if (preg_match('/\b(DocDate|TaxDate|CreateDate|DocDueDate)\b/i', $sql, $m)) {
+            return (string) $m[1];
+        }
+        if (preg_match('/VW_CRM_VENDAS|\bOINV\b|\bORIN\b|\bORDR\b/i', $sql)) {
+            return 'DocDate';
+        }
+
+        return null;
+    }
+
+    private function injectWhereBeforeGroupOrder(string $sql, string $condition): string
+    {
+        if (preg_match('/\bGROUP\s+BY\b/i', $sql)) {
+            if (preg_match('/\bWHERE\b/i', $sql)) {
+                return preg_replace('/\bGROUP\s+BY\b/i', "AND ({$condition}) GROUP BY", $sql, 1)
+                    ?? ($sql . " AND ({$condition})");
+            }
+
+            return preg_replace('/\bGROUP\s+BY\b/i', "WHERE ({$condition}) GROUP BY", $sql, 1)
+                ?? ($sql . "\nWHERE ({$condition})");
+        }
+
+        return $this->injectWhereBeforeOrderBy($sql, $condition);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function filterRowsByMonth(array $rows, int $month, int $year): array
+    {
+        $needles = [
+            sprintf('%04d-%02d', $year, $month),
+            sprintf('%02d/%04d', $month, $year),
+            sprintf('%d/%04d', $month, $year),
+            sprintf('%02d/%02d', $month, $year % 100),
+        ];
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach ($row as $value) {
+                if (is_array($value) || is_object($value)) {
+                    continue;
+                }
+                $cell = (string) $value;
+                foreach ($needles as $needle) {
+                    if (str_contains($cell, $needle)) {
+                        $out[] = $row;
+                        continue 3;
+                    }
+                }
+            }
+        }
+
+        return $out;
     }
 
     private function injectWhereBeforeOrderBy(string $sql, string $condition): string
@@ -476,6 +688,7 @@ class ChatDynamicReportService
             }
         }
 
+        $outRows = $perPage > self::MAX_ROWS_IN_CHAT ? $preview : $chatPreview;
         $chart = self::buildChartFromRows($chatPreview, $viz);
 
         return [
@@ -489,10 +702,25 @@ class ChatDynamicReportService
                 'visualization_type' => $viz,
                 'chart_config' => $report['chart_config'] ?? [],
                 'rows_count' => $total,
-                'rows' => $perPage > self::MAX_ROWS_IN_CHAT ? $preview : $chatPreview,
-                'chart' => $chart,
+                'rows' => $outRows,
+                'rows_display' => DynamicReportValueFormatter::formatRows($outRows),
+                'chart' => self::chartWithFormattedLabels($chart),
             ],
         ];
+    }
+
+    /**
+     * @param array{type?:string, labels?:list<mixed>, values?:list<float|int>, title?:string}|null $chart
+     * @return array{type?:string, labels?:list<string>, values?:list<float|int>, title?:string}|null
+     */
+    private static function chartWithFormattedLabels(?array $chart): ?array
+    {
+        if ($chart === null || empty($chart['labels']) || !is_array($chart['labels'])) {
+            return $chart;
+        }
+        $chart['labels'] = DynamicReportValueFormatter::formatLabels($chart['labels']);
+
+        return $chart;
     }
 
     /**
@@ -635,7 +863,7 @@ class ChatDynamicReportService
     /**
      * @return array<string, mixed>|null
      */
-    public function resolveReport(int $userId, string $query): ?array
+    public function resolveReport(int $userId, string $query, bool $preferMonth = false): ?array
     {
         $q = mb_strtolower(trim($query));
         $q = preg_replace('/[?!.]+$/u', '', $q) ?? $q;
@@ -668,7 +896,7 @@ class ChatDynamicReportService
                 continue;
             }
 
-            $score = $this->scoreMatch($q, $report);
+            $score = $this->scoreMatch($q, $report, $preferMonth);
             if ($score > $bestScore) {
                 $bestScore = $score;
                 $best = $report;
@@ -681,49 +909,89 @@ class ChatDynamicReportService
     /**
      * @param array<string, mixed> $report
      */
-    private function scoreMatch(string $q, array $report): int
+    private function scoreMatch(string $q, array $report, bool $preferMonth = false): int
     {
         $name = mb_strtolower((string) ($report['name'] ?? ''));
         $tool = mb_strtolower((string) ($report['chat_tool_name'] ?? ''));
         $desc = mb_strtolower((string) ($report['chat_description'] ?? ''));
+        $sql = (string) ($report['custom_sql'] ?? '');
 
+        $qWantsSales = (bool) preg_match('/\bvendas?\b|\bfaturamento\b/u', $q);
+        $reportIsSales = (bool) preg_match('/venda|faturamento|vw_crm_vendas|\bOINV\b/iu', $name . ' ' . $tool . ' ' . $sql);
+        $reportIsItemCatalog = (bool) preg_match('/\bOITM\b/i', $sql)
+            && !preg_match('/vw_crm_vendas|\bOINV\b/i', $sql);
+
+        // «venda por item» não deve cair no cadastro [FILTRO] Itens (OITM).
+        if ($qWantsSales && $reportIsItemCatalog) {
+            return 0;
+        }
+
+        $score = 0;
         if ($tool !== '' && ($q === $tool || str_contains($q, $tool))) {
-            return 100;
-        }
-        // Evita match frágil: "por mes" dentro de "headcount_por_mes…"
-        if ($tool !== '' && mb_strlen($q) >= 10 && str_contains($tool, $q)) {
-            return 100;
-        }
-        if ($name !== '' && ($q === $name || str_contains($q, $name))) {
-            return 95;
-        }
-        if ($name !== '' && mb_strlen($q) >= 10 && str_contains($name, $q)) {
-            return 95;
+            $score = 100;
+        } elseif ($tool !== '' && mb_strlen($q) >= 10 && str_contains($tool, $q)) {
+            $score = 100;
+        } elseif ($name !== '' && ($q === $name || str_contains($q, $name))) {
+            $score = 95;
+        } elseif ($name !== '' && mb_strlen($q) >= 10 && str_contains($name, $q)) {
+            $score = 95;
+        } else {
+            $examples = $report['chat_example_prompts'] ?? [];
+            if (!is_array($examples)) {
+                $examples = [];
+            }
+            foreach ($examples as $ex) {
+                $ex = mb_strtolower(trim((string) $ex));
+                if ($ex === '') {
+                    continue;
+                }
+                if ($q === $ex) {
+                    $score = 90;
+                    break;
+                }
+                // Exemplos curtos («item») não podem casar no meio de outra pergunta.
+                if (mb_strlen($ex) >= 10 && str_contains($q, $ex)) {
+                    $score = 90;
+                    break;
+                }
+                if (mb_strlen($q) >= 12 && str_contains($ex, $q)) {
+                    $score = 90;
+                    break;
+                }
+            }
         }
 
-        $examples = $report['chat_example_prompts'] ?? [];
-        if (!is_array($examples)) {
-            $examples = [];
+        if ($score === 0 && $desc !== '' && mb_strlen($q) >= 12 && (str_contains($desc, $q) || str_contains($q, $desc))) {
+            $score = 60;
         }
-        foreach ($examples as $ex) {
-            $ex = mb_strtolower(trim((string) $ex));
-            if ($ex === '') {
-                continue;
+
+        if ($score === 0 && mb_strlen($q) >= 5) {
+            $hay = $name . ' ' . str_replace('_', ' ', $tool);
+            $examples = $report['chat_example_prompts'] ?? [];
+            if (is_array($examples)) {
+                foreach ($examples as $ex) {
+                    $hay .= ' ' . mb_strtolower(trim((string) $ex));
+                }
             }
-            if ($q === $ex || str_contains($q, $ex)) {
-                return 90;
-            }
-            // Só aceita exemplo contendo a pergunta se a pergunta for suficientemente específica.
-            if (mb_strlen($q) >= 12 && str_contains($ex, $q)) {
-                return 90;
+            if (preg_match('/\b' . preg_quote($q, '/') . '\b/u', $hay)) {
+                $score = 75;
             }
         }
 
-        if ($desc !== '' && mb_strlen($q) >= 12 && (str_contains($desc, $q) || str_contains($q, $desc))) {
-            return 60;
+        if ($score > 0 && $qWantsSales && $reportIsSales) {
+            $score += 15;
+        }
+        if ($score > 0 && $preferMonth) {
+            $monthish = (bool) preg_match(
+                '/mes|m[eê]s|mensal|mesano|por[_\s-]?mes|YEAR\s*\(\s*"DocDate"/iu',
+                $name . ' ' . $tool . ' ' . $sql
+            );
+            if ($monthish) {
+                $score += 25;
+            }
         }
 
-        return 0;
+        return $score;
     }
 
     /**

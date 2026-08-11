@@ -16,12 +16,16 @@
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Dados exibidos</strong> Espelham o estado atual do registro no banco; use Editar para modificar.</div>
+<div class="help-field"><strong>Dados exibidos</strong> Resultado da consulta SQL; a tela formata pelo tipo do valor (data, mês/ano, moeda), sem exigir alias especial.</div>
+<div class="help-field"><strong>Data</strong> Valores ISO (<code>2026-08-01T00:00:00</code>) aparecem como <code>01/08/2026</code>. Se a coluna inteira for dia 1 à meia-noite (agregação mensal da API SAP), aparece <code>08/2026</code>.</div>
+<div class="help-field"><strong>Moeda</strong> Números com 1 ou 2 casas decimais aparecem como <code>R$ 1.234,56</code>. Inteiros não viram moeda (código de item, quantidade, DocEntry).</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>ViewDynamicReport</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
+    <dt>Valor não aparece em R$ ou data continua ISO</dt>
+    <dd>Atualize a página (Ctrl+F5). A formatação usa o tipo do dado na coluna, não o nome do alias. Inteiros não são moeda; Excel continua com o número cru.</dd>
     <dt>Erro 004 ao executar ação</dt>
     <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
     <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>

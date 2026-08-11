@@ -101,6 +101,11 @@ class LocalInternalChatAgent
 
         $intent = $this->detectIntent($message);
         if ($intent === null) {
+            $didYouMean = $this->replyDidYouMean($message);
+            if ($didYouMean !== null) {
+                $this->rememberFromResult($didYouMean);
+                return $didYouMean;
+            }
             $llm = $this->tryLlmInterpret($message);
             if ($llm !== null) {
                 $llm = $this->maybeEnrichWithAnalysis($llm);
@@ -108,7 +113,7 @@ class LocalInternalChatAgent
                 return $llm;
             }
 
-            return $this->buildUnknownHelpReply();
+            return $this->buildUnknownHelpReply(null, $message);
         }
 
         $denied = $this->denyIfUnauthorizedIntent((string) ($intent['name'] ?? ''));
@@ -222,9 +227,12 @@ class LocalInternalChatAgent
     /**
      * @return array{resposta: string, tool: string, data: null, provider: string}
      */
-    private function buildUnknownHelpReply(?string $intro = null): array
+    private function buildUnknownHelpReply(?string $intro = null, ?string $query = null): array
     {
-        $intro = $intro ?? 'Olá! Não encontrei nada referente à sua solicitação. Segue uma listagem com as possibilidades de consulta:';
+        $q = trim((string) $query);
+        $intro = $intro ?? ($q !== ''
+            ? sprintf('Não encontrei «%s». Tente outra formulação ou um dos exemplos:', mb_substr($q, 0, 80))
+            : 'Olá! Não encontrei nada referente à sua solicitação. Segue uma listagem com as possibilidades de consulta:');
 
         return [
             'resposta' => $intro . "\n\n" . $this->formatHelpOptions(),
@@ -276,6 +284,267 @@ class LocalInternalChatAgent
     }
 
     /**
+     * @return array{name: string, token?: string}|null
+     */
+    private function detectSuggestionPick(string $message): ?array
+    {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return null;
+        }
+        if (!preg_match('/^\s*(\d{1,2})\s*$/u', $message, $m)) {
+            return null;
+        }
+        $pending = $_SESSION['internal_chat_suggestions'] ?? null;
+        if (!is_array($pending) || empty($pending['items']) || !is_array($pending['items'])) {
+            return null;
+        }
+        $n = (int) $m[1];
+        foreach ($pending['items'] as $item) {
+            if (!is_array($item) || (int) ($item['n'] ?? 0) !== $n) {
+                continue;
+            }
+            $intent = $item['intent'] ?? null;
+            if (!is_array($intent) || empty($intent['name'])) {
+                return null;
+            }
+
+            return $intent;
+        }
+
+        return [
+            'name' => 'suggest_invalid',
+            'max' => count($pending['items']),
+        ];
+    }
+
+    /**
+     * @return array{resposta: string, tool: string, data: mixed, provider: string}|null
+     */
+    private function replyDidYouMean(string $message): ?array
+    {
+        $items = $this->buildDidYouMeanSuggestions($message);
+        if ($items === []) {
+            return null;
+        }
+
+        $shown = mb_substr(trim($message), 0, 80);
+        $lines = [
+            sprintf('Não encontrei «%s». Você quis dizer?', $shown),
+        ];
+        $options = [];
+        foreach ($items as $item) {
+            $lines[] = $item['n'] . ' ' . $item['label'];
+            $options[] = [
+                'label' => $item['n'] . '. ' . $item['label'],
+                'value' => (string) $item['n'],
+            ];
+        }
+        $lines[] = '';
+        $lines[] = 'Digite o número da opção.';
+
+        if (session_status() === PHP_SESSION_ACTIVE) {
+            $_SESSION['internal_chat_suggestions'] = [
+                'query' => $shown,
+                'items' => $items,
+            ];
+        }
+
+        return [
+            'resposta' => implode("\n", $lines),
+            'tool' => 'chat.suggest',
+            'data' => [
+                'ui' => [
+                    'type' => 'suggest',
+                    'options' => $options,
+                ],
+            ],
+            'provider' => 'local-rules',
+        ];
+    }
+
+    /**
+     * @return list<array{n:int, label:string, score:float, intent:array<string, mixed>}>
+     */
+    private function buildDidYouMeanSuggestions(string $message): array
+    {
+        $period = $this->extractPeriod($message);
+        $raw = $period !== null ? $this->stripPeriodFromMessage($message) : $message;
+        $q = $this->normalizeChatPrompt($raw);
+        if (mb_strlen($q) < 4) {
+            return [];
+        }
+
+        $ranked = [];
+
+        if ($this->perms->canUseTool('report.run') || $this->perms->canUseTool('report.list')) {
+            foreach ($this->reports->listCatalogForUser($this->userId) as $item) {
+                $phrases = [(string) ($item['name'] ?? ''), (string) ($item['chat_tool_name'] ?? '')];
+                foreach ($item['examples'] ?? [] as $ex) {
+                    $phrases[] = (string) $ex;
+                }
+                $best = 0.0;
+                $label = (string) ($item['name'] ?? 'Relatório');
+                foreach ($phrases as $phrase) {
+                    $phrase = trim($phrase);
+                    if ($phrase === '') {
+                        continue;
+                    }
+                    $score = $this->suggestSimilarity($q, $phrase);
+                    if ($score > $best) {
+                        $best = $score;
+                        $label = $phrase;
+                    }
+                }
+                if ($best < 0.58) {
+                    continue;
+                }
+                $intent = [
+                    'name' => 'report_run',
+                    'report_id' => (int) ($item['id'] ?? 0),
+                    'query' => (string) ($item['name'] ?? $q),
+                ];
+                if ($period !== null) {
+                    $intent = [
+                        'name' => 'report_month_filter',
+                        'report_id' => (int) ($item['id'] ?? 0),
+                        'month' => $period['month'],
+                        'year' => $period['year'],
+                        'query' => (string) ($item['name'] ?? $q),
+                    ];
+                }
+                $ranked[] = [
+                    'label' => $label,
+                    'score' => $best,
+                    'intent' => $intent,
+                    'key' => 'report:' . (int) ($item['id'] ?? 0),
+                ];
+            }
+        }
+
+        foreach ($this->builtinSuggestCatalog() as $row) {
+            if (!$this->perms->canUseTool((string) $row['tool'])) {
+                continue;
+            }
+            $best = 0.0;
+            foreach ($row['phrases'] as $phrase) {
+                $best = max($best, $this->suggestSimilarity($q, (string) $phrase));
+            }
+            if ($best < 0.62) {
+                continue;
+            }
+            $ranked[] = [
+                'label' => (string) $row['label'],
+                'score' => $best,
+                'intent' => $row['intent'],
+                'key' => 'tool:' . $row['tool'],
+            ];
+        }
+
+        usort($ranked, static fn (array $a, array $b): int => $b['score'] <=> $a['score']);
+        $out = [];
+        $seen = [];
+        foreach ($ranked as $row) {
+            $key = (string) $row['key'];
+            if (isset($seen[$key])) {
+                continue;
+            }
+            $seen[$key] = true;
+            $out[] = [
+                'n' => count($out) + 1,
+                'label' => (string) $row['label'],
+                'score' => (float) $row['score'],
+                'intent' => $row['intent'],
+            ];
+            if (count($out) >= 5) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @return list<array{label:string, tool:string, phrases:list<string>, intent:array<string, mixed>}>
+     */
+    private function builtinSuggestCatalog(): array
+    {
+        return [
+            [
+                'label' => 'Colaboradores ativos',
+                'tool' => 'rh.count_active',
+                'phrases' => ['ativos', 'colaboradores ativos', 'quantos ativos', 'headcount'],
+                'intent' => ['name' => 'active'],
+            ],
+            [
+                'label' => 'Inativos / desligados',
+                'tool' => 'rh.count_inactive',
+                'phrases' => ['inativos', 'desligados', 'ex colaboradores'],
+                'intent' => ['name' => 'inactive'],
+            ],
+            [
+                'label' => 'Usuários bloqueados',
+                'tool' => 'rh.count_blocked',
+                'phrases' => ['bloqueados', 'bloqueio', 'usuarios bloqueados'],
+                'intent' => ['name' => 'blocked'],
+            ],
+            [
+                'label' => 'Lista de desligados',
+                'tool' => 'rh.list_terminated',
+                'phrases' => ['lista de desligados', 'listar desligados'],
+                'intent' => ['name' => 'terminated_list'],
+            ],
+            [
+                'label' => 'Lista de contratações',
+                'tool' => 'rh.list_hired',
+                'phrases' => ['contratacoes', 'contratações', 'admissoes', 'admissões', 'admitidos'],
+                'intent' => ['name' => 'hired_list'],
+            ],
+            [
+                'label' => 'Agendar sala',
+                'tool' => 'rooms.wizard',
+                'phrases' => ['agendar', 'reservar sala', 'salas', 'agendar sala'],
+                'intent' => ['name' => 'rooms_wizard_start'],
+            ],
+        ];
+    }
+
+    private function suggestSimilarity(string $query, string $candidate): float
+    {
+        $q = $this->normalizeChatPrompt($query);
+        $c = $this->normalizeChatPrompt($candidate);
+        if ($q === '' || $c === '') {
+            return 0.0;
+        }
+        if ($q === $c) {
+            return 1.0;
+        }
+        if (str_contains($c, $q)) {
+            return min(0.96, 0.74 + (mb_strlen($q) / max(mb_strlen($c), 1)) * 0.22);
+        }
+
+        $best = 0.0;
+        $parts = preg_split('/\s+/u', $c) ?: [];
+        $parts[] = $c;
+        foreach ($parts as $part) {
+            if ($part === '') {
+                continue;
+            }
+            if (function_exists('similar_text')) {
+                similar_text($q, $part, $pct);
+                $best = max($best, ((float) $pct) / 100);
+            }
+            $qBytes = (string) $q;
+            $pBytes = (string) $part;
+            if (strlen($qBytes) <= 255 && strlen($pBytes) <= 255) {
+                $max = max(strlen($qBytes), strlen($pBytes), 1);
+                $best = max($best, 1 - (levenshtein($qBytes, $pBytes) / $max));
+            }
+        }
+
+        return $best;
+    }
+
+    /**
      * @return array{name: string, department?: string|null}|null
      */
     private function detectIntent(string $message): ?array
@@ -304,11 +573,17 @@ class LocalInternalChatAgent
                     $_SESSION['internal_chat_last_terminated'],
                     $_SESSION['internal_chat_last_hired'],
                     $_SESSION['internal_chat_last_status'],
-                    $_SESSION['internal_chat_last_report']
+                    $_SESSION['internal_chat_last_report'],
+                    $_SESSION['internal_chat_suggestions']
                 );
             }
 
             return ['name' => 'clear_context'];
+        }
+
+        $reportMonth = $this->detectReportMonthFollowUp($message);
+        if ($reportMonth !== null) {
+            return $reportMonth;
         }
 
         // Código de item/parceiro/doc (sozinho ou «item 43000001») → filtra relatório.
@@ -325,6 +600,11 @@ class LocalInternalChatAgent
         $personRefine = $this->detectPersonCandidateRefine($message);
         if ($personRefine !== null) {
             return $personRefine;
+        }
+
+        $suggestPick = $this->detectSuggestionPick($message);
+        if ($suggestPick !== null) {
+            return $suggestPick;
         }
 
         if (preg_match('/bloquead|bloqueio|tentativas?\s+de\s+login/', $m)) {
@@ -392,18 +672,36 @@ class LocalInternalChatAgent
         }
 
         // Exemplos / tool_name / nome de relatório marcado para o chat.
-        $matchedReport = $this->reports->resolveReport($this->userId, $message);
+        $periodInQuery = $this->extractPeriod($message);
+        $matchQuery = $periodInQuery !== null
+            ? ($this->stripPeriodFromMessage($message) ?: $message)
+            : $message;
+        $matchedReport = $this->reports->resolveReport($this->userId, $matchQuery, $periodInQuery !== null);
         if ($matchedReport !== null) {
-            $codeInMsg = $this->extractReportCodeFromMessage($message);
-            if ($codeInMsg !== null) {
+            $matchNorm = $this->normalizeChatPrompt($matchQuery);
+            $tokens = preg_split('/\s+/u', $matchNorm) ?: [];
+            $singleWord = count($tokens) === 1 && mb_strlen($matchNorm) < 14
+                && !$this->messageMatchesReportPrompt($matchQuery, $matchedReport);
+            if ($periodInQuery !== null) {
                 return [
-                    'name' => 'report_code_filter',
-                    'code' => $codeInMsg,
+                    'name' => 'report_month_filter',
                     'report_id' => (int) $matchedReport['id'],
+                    'month' => $periodInQuery['month'],
+                    'year' => $periodInQuery['year'],
                 ];
             }
+            if (!$singleWord) {
+                $codeInMsg = $this->extractReportCodeFromMessage($message);
+                if ($codeInMsg !== null && !$this->messageMatchesReportPrompt($message, $matchedReport)) {
+                    return [
+                        'name' => 'report_code_filter',
+                        'code' => $codeInMsg,
+                        'report_id' => (int) $matchedReport['id'],
+                    ];
+                }
 
-            return ['name' => 'report_run', 'query' => $message, 'report_id' => (int) $matchedReport['id']];
+                return ['name' => 'report_run', 'query' => $message, 'report_id' => (int) $matchedReport['id']];
+            }
         }
 
         $period = $this->extractPeriod($message);
@@ -753,6 +1051,9 @@ class LocalInternalChatAgent
         }
 
         $tool = (string) ($result['tool'] ?? '');
+        if ($tool !== '' && $tool !== 'chat.suggest') {
+            unset($_SESSION['internal_chat_suggestions']);
+        }
         if (
             $tool === 'rh.count_inactive'
             || $tool === 'rh.count_terminated_in_month'
@@ -845,12 +1146,53 @@ class LocalInternalChatAgent
     }
 
     /**
+     * Só o período («08/2026», «jun/26») após um relatório → filtra o último relatório.
+     *
+     * @return array{name: string, report_id: int, month: int, year: int}|null
+     */
+    private function detectReportMonthFollowUp(string $message): ?array
+    {
+        $period = $this->extractPeriod($message);
+        if ($period === null) {
+            return null;
+        }
+        if (preg_match('/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/u', $message)) {
+            return null;
+        }
+        $left = $this->stripPeriodFromMessage($message);
+        $left = preg_replace('/\b(em|de|do|da|no|na|o|a|os|as|mes|mês|mensal|por)\b/iu', ' ', $left) ?? $left;
+        $left = trim(preg_replace('/\s+/u', ' ', $left) ?? $left);
+        if ($left !== '') {
+            return null;
+        }
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            return null;
+        }
+        $last = $_SESSION['internal_chat_last_report'] ?? null;
+        $reportId = is_array($last) ? (int) ($last['report_id'] ?? 0) : 0;
+        if ($reportId < 1) {
+            return null;
+        }
+
+        return [
+            'name' => 'report_month_filter',
+            'report_id' => $reportId,
+            'month' => $period['month'],
+            'year' => $period['year'],
+        ];
+    }
+
+    /**
      * Após um relatório, «43000001» / «item 43000001» / código de parceiro filtra as linhas.
      *
      * @return array{name: string, code: string, report_id: int}|null
      */
     private function detectReportCodeFollowUp(string $message, string $normalized): ?array
     {
+        if ($this->extractPeriod($message) !== null) {
+            return null;
+        }
+
         $code = $this->extractReportCodeFromMessage($message);
         if ($code === null) {
             return null;
@@ -922,27 +1264,27 @@ class LocalInternalChatAgent
             $mm
         )) {
             $code = trim((string) $mm[1]);
-            if (!$this->isReportCodeStopword($code)) {
+            if ($this->looksLikeReportFilterCode($code)) {
                 return $code;
             }
         }
 
-        // Código no fim: «relatório itens 43000001»
+        // Código no fim: «relatório itens 43000001» (não «vendas por mes»).
         if (preg_match('/\b([A-Za-z0-9][A-Za-z0-9\-_\.\/]{2,40}|\d{3,})\s*$/u', $raw, $mm)
             && preg_match('/\b(?:item|itens|parceiros?|vendas?|compras?|relat[oó]rio)\b/iu', $raw)
         ) {
             $code = trim((string) $mm[1]);
-            if (!$this->isReportCodeStopword($code)) {
+            if ($this->looksLikeReportFilterCode($code)) {
                 return $code;
             }
         }
 
         $normalized = mb_strtolower($raw);
-        if (preg_match('/^\d{3,}$/u', $normalized)) {
+        if (preg_match('/^\d{3,}$/u', $normalized) && $this->looksLikeReportFilterCode($raw)) {
             return $raw;
         }
         if (preg_match('/^[a-z0-9][a-z0-9\-_\.\/]{2,40}$/iu', $raw)
-            && !$this->isReportCodeStopword($raw)
+            && $this->looksLikeReportFilterCode($raw)
             && !isset(self::DEPARTMENT_ALIASES[$normalized])
             && $this->matchBareDepartmentName($normalized) === null
         ) {
@@ -960,9 +1302,80 @@ class LocalInternalChatAgent
             'venda', 'vendas', 'compra', 'compras', 'codigo', 'código', 'codigos', 'códigos', 'sku',
             'documento', 'documentos', 'pedido', 'pedidos', 'nota', 'notas', 'relatorio', 'relatório',
             'cardcode', 'cditem', 'itemcode',
+            'mes', 'mês', 'meses', 'ano', 'anos', 'dia', 'dias', 'data', 'datas',
+            'mensal', 'anual', 'diario', 'diário', 'semanal', 'periodo', 'período',
+            'liquido', 'líquido', 'faturamento', 'total', 'por', 'para', 'com', 'sem',
         ];
+        if (in_array($t, $stop, true)) {
+            return true;
+        }
 
-        return in_array($t, $stop, true);
+        return isset(self::MONTHS[$t]);
+    }
+
+    /**
+     * Código SAP (item/parceiro/documento) tem dígito. Palavras como «mes» não filtram.
+     */
+    private function looksLikeReportFilterCode(string $code): bool
+    {
+        $code = trim($code);
+        if ($code === '' || $this->isReportCodeStopword($code)) {
+            return false;
+        }
+        if (preg_match('/^\d{1,2}[\/\-]\d{2,4}$/u', $code)) {
+            return false;
+        }
+        if (!preg_match('/\d/u', $code)) {
+            return false;
+        }
+
+        return mb_strlen($code) >= 3;
+    }
+
+    /**
+     * «vendas por mes» é o exemplo do relatório, não «filtra por código mes».
+     *
+     * @param array<string, mixed> $report
+     */
+    private function messageMatchesReportPrompt(string $message, array $report): bool
+    {
+        $q = $this->normalizeChatPrompt($message);
+        if ($q === '') {
+            return false;
+        }
+        $candidates = [
+            (string) ($report['name'] ?? ''),
+            (string) ($report['chat_tool_name'] ?? ''),
+        ];
+        $examples = $report['chat_example_prompts'] ?? [];
+        if (is_array($examples)) {
+            foreach ($examples as $ex) {
+                $candidates[] = (string) $ex;
+            }
+        }
+        foreach ($candidates as $candidate) {
+            $n = $this->normalizeChatPrompt($candidate);
+            if ($n !== '' && $q === $n) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function normalizeChatPrompt(string $value): string
+    {
+        $value = mb_strtolower(trim($value));
+        $value = strtr($value, [
+            'á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a',
+            'é' => 'e', 'ê' => 'e', 'í' => 'i',
+            'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ú' => 'u', 'ç' => 'c',
+        ]);
+        $value = str_replace(['_', '-'], ' ', $value);
+        $value = preg_replace('/[?!.]+$/u', '', $value) ?? $value;
+        $value = preg_replace('/\s+/u', ' ', $value) ?? $value;
+
+        return trim($value);
     }
 
     private function stripReportCodeFromMessage(string $message, string $code): string
@@ -1559,8 +1972,31 @@ class LocalInternalChatAgent
     private function extractPeriod(string $message): ?array
     {
         $m = mb_strtolower($message);
+        $m = strtr($m, [
+            'á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a',
+            'é' => 'e', 'ê' => 'e', 'í' => 'i',
+            'ó' => 'o', 'ô' => 'o', 'õ' => 'o', 'ú' => 'u', 'ç' => 'c',
+        ]);
 
-        // 01/2026 ou 1/2026
+        if (preg_match('/\b(esse|este)\s+mes(\s+atual)?\b/u', $m) || preg_match('/\bmes\s+atual\b/u', $m)) {
+            return ['month' => (int) date('n'), 'year' => (int) date('Y')];
+        }
+        if (preg_match('/\bmes\s+passado\b/u', $m)) {
+            $dt = new \DateTimeImmutable('first day of last month');
+
+            return ['month' => (int) $dt->format('n'), 'year' => (int) $dt->format('Y')];
+        }
+
+        // 10/08/2026
+        if (preg_match('/\b(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})\b/', $m, $mm)) {
+            $month = (int) $mm[2];
+            $year = $this->expandTwoDigitYear((int) $mm[3]);
+            if ($month >= 1 && $month <= 12) {
+                return ['month' => $month, 'year' => $year];
+            }
+        }
+
+        // 08/2026, 8/2026, 08-2026
         if (preg_match('/\b(\d{1,2})[\/\-](\d{4})\b/', $m, $mm)) {
             $month = (int) $mm[1];
             $year = (int) $mm[2];
@@ -1569,19 +2005,63 @@ class LocalInternalChatAgent
             }
         }
 
+        // 2026-08
+        if (preg_match('/\b(20\d{2})[\/\-](\d{1,2})\b/', $m, $mm)) {
+            $year = (int) $mm[1];
+            $month = (int) $mm[2];
+            if ($month >= 1 && $month <= 12) {
+                return ['month' => $month, 'year' => $year];
+            }
+        }
+
+        // 08/26 (mm/aa)
+        if (preg_match('/\b(\d{1,2})[\/\-](\d{2})\b/', $m, $mm)) {
+            $month = (int) $mm[1];
+            $year = $this->expandTwoDigitYear((int) $mm[2]);
+            if ($month >= 1 && $month <= 12) {
+                return ['month' => $month, 'year' => $year];
+            }
+        }
+
         $monthNames = implode('|', array_map(static fn ($k) => preg_quote($k, '/'), array_keys(self::MONTHS)));
-        if (preg_match('/\b(?:mes\s+de\s+|mês\s+de\s+)?(' . $monthNames . ')\b(?:\s*(?:de\s+|\/)\s*(\d{4}))?/u', $m, $mm)) {
+        if (preg_match('/\b(?:mes\s+de\s+)?(' . $monthNames . ')(?:\s*\/\s*|\s+de\s+|\s+)?(\d{2,4})?\b/u', $m, $mm)) {
             $monthKey = $mm[1];
             $month = self::MONTHS[$monthKey] ?? null;
             if ($month === null) {
                 return null;
             }
-            $year = isset($mm[2]) && $mm[2] !== '' ? (int) $mm[2] : (int) date('Y');
+            $year = isset($mm[2]) && $mm[2] !== ''
+                ? $this->expandTwoDigitYear((int) $mm[2])
+                : (int) date('Y');
 
             return ['month' => $month, 'year' => $year];
         }
 
         return null;
+    }
+
+    private function expandTwoDigitYear(int $year): int
+    {
+        if ($year < 100) {
+            return $year >= 70 ? 1900 + $year : 2000 + $year;
+        }
+
+        return $year;
+    }
+
+    private function stripPeriodFromMessage(string $message): string
+    {
+        $monthNames = implode('|', array_map(static fn ($k) => preg_quote($k, '/'), array_keys(self::MONTHS)));
+        $s = $message;
+        $s = preg_replace('/\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b/u', ' ', $s) ?? $s;
+        $s = preg_replace('/\b20\d{2}[\/\-]\d{1,2}\b/u', ' ', $s) ?? $s;
+        $s = preg_replace('/\b\d{1,2}[\/\-]\d{2,4}\b/u', ' ', $s) ?? $s;
+        $s = preg_replace('/\b(?:mes\s+de\s+|mês\s+de\s+)?(' . $monthNames . ')(?:\s*\/\s*|\s+de\s+|\s+)?(\d{2,4})?\b/iu', ' ', $s) ?? $s;
+        $s = preg_replace('/\b(esse|este)\s+m[eê]s(\s+atual)?\b/iu', ' ', $s) ?? $s;
+        $s = preg_replace('/\bm[eê]s\s+(atual|passado)\b/iu', ' ', $s) ?? $s;
+        $s = preg_replace('/\s+/u', ' ', $s) ?? $s;
+
+        return trim($s);
     }
 
     private function extractDepartment(string $message): ?string
@@ -1798,8 +2278,24 @@ class LocalInternalChatAgent
         }
 
         if ($intent['name'] === 'report_run') {
-            $codeInMsg = $this->extractReportCodeFromMessage($message);
+            $period = $this->extractPeriod($message);
             $reportId = !empty($intent['report_id']) ? (int) $intent['report_id'] : 0;
+            if ($period !== null && $reportId > 0) {
+                $run = $this->reports->runByIdFilteredByMonth(
+                    $this->userId,
+                    $reportId,
+                    (int) $period['month'],
+                    (int) $period['year']
+                );
+
+                return [
+                    'resposta' => (string) ($run['resposta'] ?? ''),
+                    'tool' => $run['tool'] ?? 'report.run',
+                    'data' => $run['data'] ?? null,
+                    'provider' => 'local-rules',
+                ];
+            }
+            $codeInMsg = $this->extractReportCodeFromMessage($message);
             if ($codeInMsg !== null) {
                 if ($reportId < 1) {
                     $hint = $this->stripReportCodeFromMessage($message, $codeInMsg);
@@ -1882,11 +2378,55 @@ class LocalInternalChatAgent
             ];
         }
 
+        if ($intent['name'] === 'suggest_invalid') {
+            $max = (int) ($intent['max'] ?? 0);
+            $resposta = $max > 0
+                ? sprintf('Opção inválida. Digite um número de 1 a %d.', $max)
+                : 'Opção inválida. Digite o número da sugestão.';
+
+            return [
+                'resposta' => $resposta,
+                'tool' => 'chat.suggest',
+                'data' => null,
+                'provider' => 'local-rules',
+            ];
+        }
+
         if ($intent['name'] === 'clear_context') {
             return [
                 'resposta' => 'Contexto da conversa limpo (pessoas e último relatório). Pode perguntar de novo.',
                 'tool' => 'chat.clear_context',
                 'data' => null,
+                'provider' => 'local-rules',
+            ];
+        }
+
+        if ($intent['name'] === 'report_month_filter') {
+            $reportId = (int) ($intent['report_id'] ?? 0);
+            if ($reportId < 1) {
+                $hint = $this->stripPeriodFromMessage($message);
+                $matched = $this->reports->resolveReport(
+                    $this->userId,
+                    $hint !== '' ? $hint : (string) ($intent['query'] ?? $message),
+                    true
+                );
+                $reportId = $matched !== null ? (int) $matched['id'] : 0;
+            }
+            if ($reportId < 1) {
+                $last = $_SESSION['internal_chat_last_report'] ?? null;
+                $reportId = is_array($last) ? (int) ($last['report_id'] ?? 0) : 0;
+            }
+            $run = $this->reports->runByIdFilteredByMonth(
+                $this->userId,
+                $reportId,
+                (int) ($intent['month'] ?? 0),
+                (int) ($intent['year'] ?? 0)
+            );
+
+            return [
+                'resposta' => (string) ($run['resposta'] ?? ''),
+                'tool' => $run['tool'] ?? 'report.run',
+                'data' => $run['data'] ?? null,
                 'provider' => 'local-rules',
             ];
         }
@@ -2408,6 +2948,7 @@ class LocalInternalChatAgent
             . "- {\"intent\":\"by_department\"}\n"
             . "- {\"intent\":\"report_list\"}\n"
             . "- {\"intent\":\"report_run\",\"query\":\"nome ou tool do relatório\"}\n"
+            . "- {\"intent\":\"report_month_filter\",\"query\":\"vendas\",\"month\":8,\"year\":2026}\n"
             . "- {\"intent\":\"rooms_list\"}\n"
             . "- {\"intent\":\"rooms_agenda\",\"room\":\"Nome da sala\",\"date\":\"{$today}\"}\n"
             . "- {\"intent\":\"rooms_my\"}\n"
@@ -2514,7 +3055,7 @@ class LocalInternalChatAgent
             'active', 'inactive', 'terminated_in_period', 'terminated_by_month', 'terminated_total',
             'terminated_list', 'terminated_by_department', 'hired_list', 'hired_in_period', 'hired_total',
             'blocked', 'blocked_not_terminated', 'lookup_person',
-            'by_department', 'report_list', 'report_run', 'clarify_by_month',
+            'by_department', 'report_list', 'report_run', 'report_month_filter', 'suggest_invalid', 'clarify_by_month',
             'rooms_list', 'rooms_agenda', 'rooms_my', 'rooms_reserve', 'rooms_cancel', 'rooms_reserve_help',
         ];
         if (!in_array($name, $allowed, true)) {
@@ -2600,6 +3141,12 @@ class LocalInternalChatAgent
         }
         if (!empty($intentJson['year'])) {
             $intent['year'] = (int) $intentJson['year'];
+        }
+        if (!empty($intentJson['report_id'])) {
+            $intent['report_id'] = (int) $intentJson['report_id'];
+        }
+        if ($name === 'report_run' && !empty($intent['month']) && !empty($intent['year'])) {
+            $intent['name'] = 'report_month_filter';
         }
         if (!empty($intentJson['query'])) {
             $intent['query'] = (string) $intentJson['query'];

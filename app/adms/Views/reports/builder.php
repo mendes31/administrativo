@@ -423,6 +423,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
 </div>
 
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
+<script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/dynamic-report-format.js?v=2"></script>
 <script>
 const shouldOpenSqlTab = <?= $shouldOpenSqlTab ? 'true' : 'false' ?>;
 let reportState = {
@@ -1302,8 +1303,19 @@ function renderPreview(result) {
     document.getElementById('previewContent').insertAdjacentHTML('beforeend', infoHtml);
 }
 
+function formatReportCell(header, value, types) {
+    const type = (types && types[header]) || 'text';
+    if (window.DynamicReportFormat && DynamicReportFormat.formatCell) {
+        return DynamicReportFormat.formatCell(value, type);
+    }
+    return value == null ? '' : String(value);
+}
+
 function renderTable(data) {
     const headers = Object.keys(data[0]);
+    const types = (window.DynamicReportFormat && DynamicReportFormat.inferColumnTypes)
+        ? DynamicReportFormat.inferColumnTypes(data)
+        : {};
     let html = `
         <div class="table-responsive">
             <table class="table table-striped table-bordered table-sm">
@@ -1314,7 +1326,7 @@ function renderTable(data) {
     `;
     data.forEach(row => {
         html += '<tr>';
-        headers.forEach(h => html += `<td>${row[h] ?? ''}</td>`);
+        headers.forEach(h => html += `<td>${formatReportCell(h, row[h], types)}</td>`);
         html += '</tr>';
     });
     html += '</tbody></table></div>';
@@ -1323,7 +1335,10 @@ function renderTable(data) {
 
 function renderChart(data, type) {
     document.getElementById('previewContent').innerHTML = '<canvas id="previewChart"></canvas>';
-    const labels = data.map(row => Object.values(row)[0]);
+    const rawLabels = data.map(row => Object.values(row)[0]);
+    const labels = (window.DynamicReportFormat && DynamicReportFormat.formatLabels)
+        ? DynamicReportFormat.formatLabels(rawLabels)
+        : rawLabels;
     const values = data.map(row => parseFloat(Object.values(row)[1]) || 0);
     
     new Chart(document.getElementById('previewChart'), {

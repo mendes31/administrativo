@@ -1,4 +1,5 @@
 <?php
+use App\adms\Helpers\DynamicReportValueFormatter;
 use App\adms\Helpers\UserAccessHelper;
 
 $report = $this->data['report'] ?? null;
@@ -9,6 +10,7 @@ $connectionLabels = [
     'sap_api' => 'SAP API'
 ];
 $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($result['connection_type'] ?? 'Desconhecido');
+$columnTypes = DynamicReportValueFormatter::inferColumnTypes($result['data'] ?? []);
 ?>
 
 <div class="container-fluid">
@@ -207,7 +209,10 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                                                         } elseif ($value === null) {
                                                             echo '<span class="text-muted">NULL</span>';
                                                         } else {
-                                                            echo htmlspecialchars((string)$value);
+                                                            echo htmlspecialchars(DynamicReportValueFormatter::formatCell(
+                                                                $value,
+                                                                $columnTypes[$header] ?? 'text'
+                                                            ));
                                                         }
                                                     ?></td>
                                                 <?php endforeach; ?>
@@ -242,9 +247,13 @@ $connectionLabel = $connectionLabels[$result['connection_type'] ?? ''] ?? ($resu
                             <!-- Gráfico -->
                             <canvas id="reportChart" style="max-height: 500px;"></canvas>
                             <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
+                            <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/dynamic-report-format.js?v=2"></script>
                             <script>
                                 const chartData = <?= json_encode($result['data']) ?>;
-                                const labels = chartData.map(row => Object.values(row)[0]);
+                                const rawLabels = chartData.map(row => Object.values(row)[0]);
+                                const labels = (window.DynamicReportFormat && DynamicReportFormat.formatLabels)
+                                    ? DynamicReportFormat.formatLabels(rawLabels)
+                                    : rawLabels;
                                 const values = chartData.map(row => parseFloat(Object.values(row)[1]) || 0);
                                 
                                 // Configuração de cores do relatório (se existir)

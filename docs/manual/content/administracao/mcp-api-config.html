@@ -22,7 +22,7 @@
     <li>Acesse <strong>Administração → Configurações → Assistente MCP</strong>.</li>
     <li>Na aba <strong>Conexão</strong>, informe <code>local:internal</code> (homologação) ou a URL HTTPS do servidor MCP, ative a integração e salve.</li>
     <li>Na aba <strong>Tools</strong>, consulte as tools internas de RH e libere relatórios dinâmicos (nome da tool, descrição e exemplos).</li>
-    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «lista de contratações em junho», «salas», «relatório [nome]» ou «itens». Depois de um relatório, digite só o <strong>código</strong> (item, parceiro, documento) para filtrar as linhas.</li>
+    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «lista de contratações em junho», «salas», «relatório [nome]», «vendas por mês», «vendas 08/2026» ou «itens». Depois de um relatório, digite o <strong>mês</strong> (<code>08/2026</code>, <code>jun/26</code>) ou só o <strong>código SAP com dígito</strong> (ex.: <code>43000001</code>) para filtrar.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -35,6 +35,8 @@
 <div class="help-field"><strong>Nome da tool</strong> Identificador estável (ex.: <code>headcount_ti</code>). Se vazio ao ativar, gera a partir do nome do relatório.</div>
 <div class="help-field"><strong>Descrição para a IA</strong> Texto curto para ajudar o roteamento (Ollama/API).</div>
 <div class="help-field"><strong>Exemplos de perguntas</strong> Uma frase por linha; o chat usa esses textos para reconhecer o pedido.</div>
+<div class="help-field"><strong>Filtro por mês no chat</strong> Aceita competência em várias formas: <code>08/2026</code>, <code>8/2026</code>, <code>08/26</code>, <code>jun/2026</code>, <code>junho/2026</code>, <code>junho de 2026</code>, <code>2026-08</code>, <code>esse mês</code>, <code>mês passado</code>. Exemplos: «vendas 08/2026», «faturamento jun/26». Depois do relatório aberto, basta «08/2026». Código SAP (item/parceiro) continua só com dígito, ex. <code>43000001</code>.</div>
+<div class="help-field"><strong>Você quis dizer?</strong> Se a frase não casa com uma regra, o chat lista opções próximas (relatórios liberados no chat e consultas do nível do usuário). Digite o número (1, 2…) ou clique na opção. Erros de digitação («fatuamento») também entram. A IA (Ollama/API), se configurada, só é usada quando não há sugestão local.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -60,6 +62,12 @@
     <dd>Além de <em>McpChat</em>, libere no nível: <em>ListMeetingRooms</em>/<em>BookRoom</em>/<em>RoomCalendar</em> (listar/agenda), <em>CreateBooking</em> (reservar) e <em>CancelBooking</em> (cancelar).</dd>
     <dt>Salvei o relatório mas o chat não encontra</dt>
     <dd>Confirme modo <code>local:internal</code> ativo, flag «Disponível no chat» e se o utilizador do chat tem ACL para ver o relatório.</dd>
+    <dt>Digitou «faturamento» e veio a lista enorme de ajuda</dt>
+    <dd>Corrigido: o chat sugere «Você quis dizer?» com opções numeradas (só o que o nível permite). Digite <code>1</code> ou clique. «limpar» zera as sugestões.</dd>
+    <dt>Pediu «vendas por mês» e o chat procurou o código «mes»</dt>
+    <dd>Corrigido: «vendas por mês» abre o relatório completo. Para um mês: «vendas 08/2026» ou «vendas jun/26». Código SAP (item/parceiro) continua só com dígito, ex. <code>43000001</code>.</dd>
+    <dt>Tabela/gráfico do chat veio com data ISO e valor sem R$</dt>
+    <dd>A bolha formata pelo tipo do valor (mês <code>08/2026</code>, moeda <code>R$ 1.234,56</code>). Excel/CSV do chat continuam com o número cru para somar na planilha. Atualize a página (Ctrl+F5) e pergunte de novo.</dd>
     <dt>Listei vários Rafaéis e digitei TI — veio headcount</dt>
     <dd>Corrigido: a lista fica na sessão; digite o departamento, o username ou o número (1, 2…). Na bolha da resposta aparece o selo <code>tool: rh.lookup_person</code>.</dd>
 </dl>

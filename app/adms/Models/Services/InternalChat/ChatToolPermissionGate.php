@@ -32,6 +32,7 @@ final class ChatToolPermissionGate
         return [
             'chat.greeting' => [],
             'chat.help' => [],
+            'chat.suggest' => [],
             'chat.clear_context' => [],
 
             // Relatórios: ACL fina em userCanViewReport / chat_enabled.
@@ -73,6 +74,7 @@ final class ChatToolPermissionGate
     {
         return [
             'clear_context' => 'chat.clear_context',
+            'suggest_invalid' => 'chat.suggest',
             'lookup_person' => 'rh.lookup_person',
             'lookup_person_refine' => 'rh.lookup_person',
             'active' => 'rh.count_active',
@@ -92,6 +94,7 @@ final class ChatToolPermissionGate
             'report_list' => 'report.list',
             'report_run' => 'report.run',
             'report_code_filter' => 'report.run',
+            'report_month_filter' => 'report.run',
             'rooms_list' => 'rooms.list',
             'rooms_agenda' => 'rooms.agenda',
             'rooms_my' => 'rooms.my',

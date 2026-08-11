@@ -677,6 +677,34 @@ body:has(#mcpChatOffcanvas.show) button.tjz-fab {
   margin-top: 0.15rem;
 }
 
+.tjz-suggest {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.55rem;
+}
+
+.tjz-suggest-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  background: #fff;
+  color: #212529;
+  border-radius: 0.5rem;
+  padding: 0.45rem 0.7rem;
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.tjz-suggest-btn:hover,
+.tjz-suggest-btn:focus-visible {
+  border-color: var(--tjz-orange, #F26222);
+  color: var(--tjz-orange-deep, #c24a12);
+  outline: none;
+}
+
 .tjz-wizard-nav-btn {
   border: 1px solid rgba(0, 0, 0, 0.14);
   background: #f8f9fa;
