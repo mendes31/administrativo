@@ -2416,6 +2416,37 @@
                     "file": "ti/ti-acessos.html"
                 }
             ]
+        },
+        {
+            "id": "portaria",
+            "title": "Portaria",
+            "topics": [
+                {
+                    "id": "portaria-painel",
+                    "title": "Painel da Portaria",
+                    "file": "portaria/portaria-painel.html"
+                },
+                {
+                    "id": "portaria-visitantes",
+                    "title": "Visitantes da Portaria",
+                    "file": "portaria/portaria-visitantes.html"
+                },
+                {
+                    "id": "portaria-autorizacoes",
+                    "title": "Autorizações de Visita",
+                    "file": "portaria/portaria-autorizacoes.html"
+                },
+                {
+                    "id": "portaria-pontos",
+                    "title": "Pontos de Controle",
+                    "file": "portaria/portaria-pontos.html"
+                },
+                {
+                    "id": "portaria-movimentacoes",
+                    "title": "Movimentações da Portaria",
+                    "file": "portaria/portaria-movimentacoes.html"
+                }
+            ]
         }
     ]
 }

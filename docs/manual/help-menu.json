@@ -2307,6 +2307,37 @@
             ]
         },
         {
+            "id": "portaria",
+            "title": "Portaria",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "portaria-painel",
+                    "title": "Painel da Portaria"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "portaria-visitantes",
+                    "title": "Visitantes"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "portaria-autorizacoes",
+                    "title": "Autorizações"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "portaria-pontos",
+                    "title": "Pontos de Controle"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "portaria-movimentacoes",
+                    "title": "Movimentações"
+                }
+            ]
+        },
+        {
             "id": "sst",
             "title": "Segurança e Medicina",
             "children": [

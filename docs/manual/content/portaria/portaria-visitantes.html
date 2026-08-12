@@ -1,0 +1,14 @@
+<h1>Visitantes da Portaria</h1>
+<h2>Função no sistema</h2>
+<p>Mantém o cadastro de pessoas externas separado dos usuários internos e reúne documento, contato, empresa, situação do termo e histórico de autorizações.</p>
+<p><strong>Quem acessa:</strong> permissões <em>PortariaVisitantes</em>, <em>PortariaVisitantesCreate</em>, <em>PortariaVisitantesView</em> e <em>PortariaVisitantesUpdate</em> nos respectivos Controllers.</p>
+<h2>Fluxo principal</h2>
+<ol><li>Acesse <em>Portaria → Visitantes</em>.</li><li>Pesquise antes de cadastrar para evitar duplicidade.</li><li>Clique em <strong>Cadastrar visitante</strong> e informe ao menos o nome.</li><li>Abra a ficha para conferir o termo e as autorizações.</li><li>Use <strong>Editar</strong> para atualizar contatos ou inativar o cadastro.</li></ol>
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Nome</strong> Identificação obrigatória do visitante.</div>
+<div class="help-field"><strong>Documento</strong> Documento conferido presencialmente; evite registros duplicados.</div>
+<div class="help-field"><strong>Empresa, telefone e e-mail</strong> Dados para identificação e contato.</div>
+<div class="help-field"><strong>Status do termo</strong> <em>vigente</em>, <em>vencido</em> ou <em>ausente</em>, conforme o aceite mais recente.</div>
+<div class="help-field"><strong>Ativo</strong> Controla a disponibilidade do visitante nos formulários.</div>
+<h2>Problemas comuns</h2>
+<dl><dt>Termo aparece ausente</dt><dd>O visitante ainda não possui evidência de aceite vinculada a um termo LGPD.</dd><dt>Termo vencido</dt><dd>Registre novo aceite da versão aplicável antes de uma nova entrada.</dd><dt>Visitante não aparece nos selects</dt><dd>Confira se o cadastro está ativo.</dd><dt>Cadastro duplicado</dt><dd>Pesquise por nome, documento e empresa antes de criar outro registro.</dd></dl>

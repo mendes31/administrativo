@@ -9,6 +9,7 @@ Cada domínio utiliza os seis artefatos padronizados definidos em
 |---|---|---|
 | [Gestão de Pessoas](Gestao_Pessoas/01_Executivo.md) | Em construção | Inicial |
 | [TI / Acessos](TI_Acessos/01_Executivo.md) | Inicial | Fase 1 (MVP) |
+| [Portaria](Portaria/01_Executivo.md) | Inicial (Fase 1) | MVP em implementação |
 | SST | Pendente | Pendente |
 | Estoque | Pendente | Pendente |
 | Compras | Pendente | Pendente |

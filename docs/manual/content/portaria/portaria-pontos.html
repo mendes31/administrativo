@@ -1,0 +1,13 @@
+<h1>Pontos de Controle</h1>
+<h2>Função no sistema</h2>
+<p>Cadastra os locais físicos usados para registrar entradas, saídas e regularizações, como portarias e recepções.</p>
+<p><strong>Quem acessa:</strong> permissões <em>PortariaPontos</em>, <em>PortariaPontosCreate</em> e <em>PortariaPontosUpdate</em> nos respectivos Controllers.</p>
+<h2>Fluxo principal</h2>
+<ol><li>Acesse <em>Portaria → Pontos</em>.</li><li>Clique em <strong>Cadastrar ponto</strong>.</li><li>Informe nome, código opcional e filial.</li><li>Mantenha ativo enquanto o local puder registrar movimentações.</li><li>Edite e inative pontos fora de operação; não reutilize códigos para outro local.</li></ol>
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Nome</strong> Descrição obrigatória e reconhecível do local.</div>
+<div class="help-field"><strong>Código</strong> Identificador opcional e único do ponto.</div>
+<div class="help-field"><strong>Filial</strong> Unidade relacionada; pode ficar vazia para ponto comum ao complexo.</div>
+<div class="help-field"><strong>Ativo</strong> Define se o ponto aparece no registro de movimentações.</div>
+<h2>Problemas comuns</h2>
+<dl><dt>Código já cadastrado</dt><dd>Escolha um código diferente ou edite o ponto existente.</dd><dt>Ponto não aparece em Movimentações</dt><dd>Confira se está ativo.</dd><dt>Filial não aparece</dt><dd>Cadastre ou ative a filial no módulo administrativo.</dd><dt>Ponto antigo possui histórico</dt><dd>Inative em vez de excluir; as movimentações devem continuar auditáveis.</dd></dl>

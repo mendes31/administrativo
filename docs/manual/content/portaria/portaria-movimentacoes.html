@@ -1,0 +1,14 @@
+<h1>Movimentações da Portaria</h1>
+<h2>Função no sistema</h2>
+<p>Registra entradas e saídas append-only no perímetro do complexo, identifica quem está presente e permite corrigir uma saída esquecida sem apagar o histórico.</p>
+<p><strong>Quem acessa:</strong> permissão <em>PortariaMovimentacoes</em> no Controller. Cada porteiro deve usar credencial própria para preservar a autoria.</p>
+<h2>Fluxo principal</h2>
+<ol><li>Acesse <em>Portaria → Movimentações</em>.</li><li>Selecione visitante, autorização quando aplicável e ponto de controle.</li><li>Clique em <strong>Registrar entrada</strong> ou <strong>Registrar saída</strong>.</li><li>Se uma entrada já estiver aberta, confira o alerta.</li><li>Informe o motivo e use <strong>Regularizar saída e entrar</strong>; o sistema grava uma saída regularizada e a nova entrada.</li><li>Confira a lista de presentes.</li></ol>
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Visitante</strong> Pessoa externa ativa vinculada ao movimento.</div>
+<div class="help-field"><strong>Autorização</strong> Protocolo aprovado relacionado à visita; a saída não é bloqueada se estiver vencido.</div>
+<div class="help-field"><strong>Ponto</strong> Local físico onde o evento ocorreu.</div>
+<div class="help-field"><strong>Motivo da regularização</strong> Justificativa obrigatória para encerrar a entrada anterior esquecida.</div>
+<div class="help-field"><strong>Permanência excedida</strong> Alerta gravado na saída quando ultrapassa o fim autorizado.</div>
+<h2>Problemas comuns</h2>
+<dl><dt>Visitante já está dentro</dt><dd>Não crie entrada duplicada. Use a opção de regularização com justificativa.</dd><dt>Saída com autorização vencida</dt><dd>Registre normalmente; saída é sempre permitida e pode gerar alerta de permanência excedida.</dd><dt>Autorização não aparece</dt><dd>Somente autorizações aprovadas aparecem no formulário.</dd><dt>Ponto não aparece</dt><dd>Ative o ponto em <em>Portaria → Pontos</em>.</dd><dt>Usuário compartilhado</dt><dd>Não utilize credencial genérica; a movimentação registra o porteiro autenticado.</dd></dl>

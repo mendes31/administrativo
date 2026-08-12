@@ -1,0 +1,15 @@
+<h1>Autorizações de Visita</h1>
+<h2>Função no sistema</h2>
+<p>Registra visitas agendadas e não programadas, o anfitrião responsável, período permitido, decisão e tentativas de contato por push, WhatsApp ou ligação.</p>
+<p><strong>Quem acessa:</strong> permissões <em>PortariaAutorizacoes</em>, <em>PortariaAutorizacoesCreate</em> e <em>PortariaAutorizacoesView</em> nos respectivos Controllers.</p>
+<h2>Fluxo principal</h2>
+<ol><li>Acesse <em>Portaria → Autorizações</em>.</li><li>Crie a autorização escolhendo visitante e anfitrião.</li><li>Informe período, horários, destino, origem e motivo.</li><li>Em visita não programada, registre cada contato com o anfitrião.</li><li>Na ficha, autorize ou recuse enquanto o status estiver aguardando.</li><li>A autorização aprovada pode ser vinculada à entrada.</li></ol>
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Protocolo</strong> Gerado automaticamente no padrão <code>PORT-AAAAMMDD-XXXX</code>.</div>
+<div class="help-field"><strong>Origem</strong> Agendada ou não programada.</div>
+<div class="help-field"><strong>Período e horários</strong> Janela autorizada para acesso.</div>
+<div class="help-field"><strong>Dias permitidos</strong> Lista numérica para autorizações recorrentes, por exemplo <code>1,2,3,4,5</code>.</div>
+<div class="help-field"><strong>Status</strong> Aguardando, autorizada, recusada ou cancelada.</div>
+<div class="help-field"><strong>Canal de contato</strong> Push, WhatsApp ou ligação, com resultado e observações.</div>
+<h2>Problemas comuns</h2>
+<dl><dt>Anfitrião não respondeu</dt><dd>Registre push/WhatsApp e depois a ligação. O MVP não aprova automaticamente.</dd><dt>Não aparecem visitantes</dt><dd>Cadastre ou reative o visitante.</dd><dt>Botões de decisão não aparecem</dt><dd>Eles são exibidos somente quando a autorização está aguardando.</dd><dt>Protocolo repetido</dt><dd>Tente novamente; o sufixo é aleatório e o banco impede duplicidade.</dd></dl>

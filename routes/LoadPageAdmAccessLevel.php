@@ -510,10 +510,10 @@ class LoadPageAdmAccessLevel
             'documents', 'errors', 'evaluations', 'financialReports', 'frequency',
             'groupsPages', 'informativos', 'inventory', 'legal', 'lgpd', 'login', 'logs',
             'movement', 'notifications', 'packages', 'pages', 'pay', 'paymentMethod',
-            'performance', 'permission', 'pdi', 'policies', 'portal', 'positions', 'projects',
+            'performance', 'permission', 'pdi', 'policies', 'portal', 'portaria', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
             'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline', 'gamification',
-            'trainings', 'users', 'workShifts', 'whistleblowing',
+            'trainings', 'ti', 'users', 'workShifts', 'whistleblowing',
         ];
 
         foreach ($knownOnDisk as $canonical) {

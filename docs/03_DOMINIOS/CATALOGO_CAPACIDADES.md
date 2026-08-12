@@ -108,6 +108,23 @@ Registrar, atribuir, movimentar, manter, inventariar e baixar ativos.
 | Discovery de rede | Avançada | Planejada |
 | Sync AD / SaaS | Avançada | Planejada |
 
+### Portaria / Controle de Acesso Físico
+
+| Capacidade | Classificação | Estado |
+|---|---|---|
+| Cadastrar visitantes e pontos de controle | Essencial | Planejada (Fase 0/1) |
+| Autorizar visitas (período / multidia) | Essencial | Planejada |
+| Termo (texto em LGPD Termos) + aceite Portaria | Essencial | Planejada |
+| Validade do aceite configurável (padrão 1 ano) | Essencial | Planejada |
+| Auditoria de visitantes e termos | Essencial | Planejada |
+| Notificar anfitrião (push/WhatsApp) + registrar ligação | Essencial | Planejada |
+| Registrar entradas/saídas e presença no complexo | Essencial | Planejada |
+| Regularizar saída faltante | Essencial | Planejada |
+| Não programados + autorização do anfitrião | Essencial | Planejada |
+| Pré-formalização / OTP / QR | Recomendada | Planejada (Fase 2) |
+| Prestadores + SST | Recomendada | Planejada (Fase 3) |
+| Áreas / filial / emergência / hardware | Avançada | Planejada |
+
 ### Comunicação
 
 Publicar, segmentar, notificar, confirmar leitura e medir alcance.

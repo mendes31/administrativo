@@ -29,7 +29,12 @@ use App\adms\Helpers\CSRFHelper;
                                 <select name="tipo" class="form-select">
                                     <?php
                                     $tipo = $this->data['formData']['tipo'] ?? 'login';
-                                    $tipos = ['login' => 'Login do Sistema', 'site' => 'Site/Portal', 'outro' => 'Outro'];
+                                    $tipos = [
+                                        'login' => 'Login do Sistema',
+                                        'site' => 'Site/Portal',
+                                        'acesso_dependencias' => 'Acesso às Dependências (Portaria)',
+                                        'outro' => 'Outro',
+                                    ];
                                     foreach ($tipos as $k => $label):
                                     ?>
                                         <option value="<?= $k ?>" <?= $tipo === $k ? 'selected' : '' ?>><?= $label ?></option>

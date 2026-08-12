@@ -1446,6 +1446,54 @@ $menus = [
         ],
     ],
     [
+        'id' => 'portaria',
+        'icon' => 'fa-solid fa-door-open',
+        'label' => 'Portaria',
+        'submenu' => [
+            [
+                'label' => 'Painel',
+                'url' => $_ENV['URL_ADM'] . 'portaria-painel',
+                'permission' => 'PortariaPainel',
+                'icon' => 'fas fa-gauge-high',
+                'related_routes' => ['portaria-painel'],
+            ],
+            [
+                'label' => 'Visitantes',
+                'url' => $_ENV['URL_ADM'] . 'portaria-visitantes',
+                'permission' => 'PortariaVisitantes',
+                'icon' => 'fas fa-address-card',
+                'related_routes' => [
+                    'portaria-visitantes', 'portaria-visitantes-create',
+                    'portaria-visitantes-view', 'portaria-visitantes-update',
+                ],
+            ],
+            [
+                'label' => 'Autorizações',
+                'url' => $_ENV['URL_ADM'] . 'portaria-autorizacoes',
+                'permission' => 'PortariaAutorizacoes',
+                'icon' => 'fas fa-clipboard-check',
+                'related_routes' => [
+                    'portaria-autorizacoes', 'portaria-autorizacoes-create',
+                    'portaria-autorizacoes-view',
+                ],
+            ],
+            [
+                'label' => 'Pontos',
+                'url' => $_ENV['URL_ADM'] . 'portaria-pontos',
+                'permission' => 'PortariaPontos',
+                'icon' => 'fas fa-location-dot',
+                'related_routes' => ['portaria-pontos', 'portaria-pontos-create', 'portaria-pontos-update'],
+            ],
+            [
+                'label' => 'Movimentações',
+                'url' => $_ENV['URL_ADM'] . 'portaria-movimentacoes',
+                'permission' => 'PortariaMovimentacoes',
+                'icon' => 'fas fa-right-left',
+                'related_routes' => ['portaria-movimentacoes'],
+            ],
+        ],
+    ],
+    [
         'id' => 'sst',
         'icon' => 'fa-solid fa-heart-pulse',
         'label' => 'Segurança e Medicina',

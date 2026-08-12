@@ -16,6 +16,7 @@ Sistema Administrativo
 ├── Financeiro
 ├── Patrimônio
 ├── TI / Acessos
+├── Portaria / Controle de Acesso Físico
 ├── Comunicação
 ├── Canal de Denúncias
 └── Analytics Corporativo
@@ -89,6 +90,13 @@ embarcados fora da rede) e mapa colaborador ↔ acesso, consumido no offboarding
 Não substitui a ACL de páginas do Portal, o inventário LGPD de dados, o Estoque
 nem o cadastro patrimonial de hardware.
 
+### Portaria / Controle de Acesso Físico
+
+Visitantes externos, termos de ciência às dependências, autorizações de visita,
+movimentações de entrada/saída, pontos de controle e presença no complexo.
+Consome colaboradores (`adms_users`) como anfitrião/porteiro. Não substitui
+TI/Acessos (contas em sistemas), login do Portal nem inventário LGPD.
+
 ### Comunicação
 
 Informativos, comunicados, timeline, eventos e canais corporativos.
@@ -124,6 +132,7 @@ fontes operacionais.
 8. Canal de Denúncias;
 9. Patrimônio;
 10. TI / Acessos;
-11. Analytics Corporativo.
+11. Portaria / Controle de Acesso Físico;
+12. Analytics Corporativo.
 
 Mudanças nessa ordem devem considerar risco e prioridade empresarial.
