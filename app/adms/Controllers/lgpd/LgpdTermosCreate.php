@@ -31,6 +31,8 @@ class LgpdTermosCreate
             'data_inicio_vigencia' => $_POST['data_inicio_vigencia'] ?? date('Y-m-d 00:00:00'),
             'data_fim_vigencia' => $_POST['data_fim_vigencia'] ?? null,
             'status' => $_POST['status'] ?? 'Ativo',
+            'publico_canal' => !empty($_POST['publico_canal']) ? 1 : 0,
+            'slug_publico' => $_POST['slug_publico'] ?? '',
         ];
 
         if (empty($data['versao']) || empty($data['titulo']) || empty($data['conteudo'])) {
@@ -42,6 +44,17 @@ class LgpdTermosCreate
         }
 
         $repo = new LgpdTermosRepository();
+        $canal = $repo->normalizePublicChannelFields($data);
+        if ($canal['error'] !== null) {
+            $_SESSION['msg'] = $canal['error'];
+            $_SESSION['msg_type'] = 'danger';
+            $this->data['formData'] = $data;
+            $this->showForm();
+            return;
+        }
+        $data['publico_canal'] = $canal['publico_canal'];
+        $data['slug_publico'] = $canal['slug_publico'];
+
         $newId = $repo->create($data);
 
         if ($newId) {

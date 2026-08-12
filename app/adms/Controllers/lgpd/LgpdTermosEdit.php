@@ -66,6 +66,17 @@ class LgpdTermosEdit
         $repo = new LgpdTermosRepository();
         $id = (int)($data['id'] ?? 0);
 
+        $data['publico_canal'] = !empty($data['publico_canal']) ? 1 : 0;
+        $canal = $repo->normalizePublicChannelFields($data, $id);
+        if ($canal['error'] !== null) {
+            $this->data['errors'][] = $canal['error'];
+            $this->viewForm();
+            return;
+        }
+        $data['publico_canal'] = $canal['publico_canal'];
+        $data['slug_publico'] = $canal['slug_publico'];
+        $this->data['form'] = $data;
+
         // Buscar dados antes da alteração para log
         $dadosAntes = $repo->getById($id) ?? [];
 

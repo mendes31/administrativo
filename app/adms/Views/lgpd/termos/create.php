@@ -61,6 +61,31 @@ use App\adms\Helpers\CSRFHelper;
                                     <option value="Inativo" <?= $status === 'Inativo' ? 'selected' : '' ?>>Inativo</option>
                                 </select>
                             </div>
+                            <div class="col-md-9">
+                                <label class="form-label d-block">Canal público LGPD</label>
+                                <?php $pub = !empty($this->data['formData']['publico_canal']); ?>
+                                <div class="form-check mt-2">
+                                    <input class="form-check-input" type="checkbox" name="publico_canal" id="publico_canal" value="1"
+                                           <?= $pub ? 'checked' : '' ?>
+                                           onchange="document.getElementById('slug_publico_wrap').style.display = this.checked ? '' : 'none';">
+                                    <label class="form-check-label" for="publico_canal">
+                                        Publicar no canal público (<code>/lgpd/{slug}</code>)
+                                    </label>
+                                </div>
+                                <div id="slug_publico_wrap" class="mt-2" style="<?= $pub ? '' : 'display:none' ?>">
+                                    <label class="form-label" for="slug_publico">Slug da URL</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text">/lgpd/</span>
+                                        <input type="text" name="slug_publico" id="slug_publico" class="form-control"
+                                               placeholder="politica"
+                                               value="<?= htmlspecialchars($this->data['formData']['slug_publico'] ?? '') ?>">
+                                    </div>
+                                    <small class="text-muted">
+                                        Só documentos marcados aqui ficam públicos. Ex.: <code>politica</code>, <code>termos</code>.
+                                        Termos de uso do sistema normalmente <strong>não</strong> devem ser publicados.
+                                    </small>
+                                </div>
+                            </div>
                         </div>
 
                         <div class="mt-4 d-flex justify-content-between">

@@ -85,10 +85,20 @@ $h = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, '
     <?php endif; ?>
 
     <div class="lgpd-pub-cards">
-        <a class="lgpd-pub-tile" href="<?php echo $h($url_adm); ?>politica-privacidade">
-            <i class="fas fa-file-circle-check"></i>
-            Política de Privacidade de Dados
-        </a>
+        <?php foreach (($termos_publicos ?? []) as $termoPub): ?>
+            <?php
+            $slugPub = trim((string) ($termoPub['slug_publico'] ?? ''));
+            $tituloPub = trim((string) ($termoPub['titulo'] ?? ''));
+            if ($slugPub === '' || $tituloPub === '') {
+                continue;
+            }
+            $icon = str_contains(mb_strtolower($tituloPub), 'pol') ? 'fa-file-circle-check' : 'fa-scroll';
+            ?>
+            <a class="lgpd-pub-tile" href="<?php echo $h($base_url); ?>/<?php echo $h($slugPub); ?>">
+                <i class="fas <?php echo $icon; ?>"></i>
+                <?php echo $h($tituloPub); ?>
+            </a>
+        <?php endforeach; ?>
         <?php if (!empty($has_carta)): ?>
             <a class="lgpd-pub-tile" href="<?php echo $h($base_url); ?>/documento?tipo=carta">
                 <i class="fas fa-file-signature"></i>
@@ -105,9 +115,5 @@ $h = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, '
                 Cartilha
             </a>
         <?php endif; ?>
-        <a class="lgpd-pub-tile" href="<?php echo $h($url_adm); ?>termos-de-uso">
-            <i class="fas fa-scroll"></i>
-            Termos de Uso
-        </a>
     </div>
 </div>

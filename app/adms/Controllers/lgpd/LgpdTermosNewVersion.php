@@ -77,6 +77,17 @@ class LgpdTermosNewVersion
         $repo = new LgpdTermosRepository();
         $idAnterior = (int)($data['id'] ?? 0);
 
+        $data['publico_canal'] = !empty($data['publico_canal']) ? 1 : 0;
+        $canal = $repo->normalizePublicChannelFields($data, $idAnterior);
+        if ($canal['error'] !== null) {
+            $this->data['errors'][] = $canal['error'];
+            $this->viewForm();
+            return;
+        }
+        $data['publico_canal'] = $canal['publico_canal'];
+        $data['slug_publico'] = $canal['slug_publico'];
+        $this->data['form'] = array_merge($this->data['form'] ?? [], $data);
+
         $newId = $repo->createNewVersion($idAnterior, $data);
 
         if ($newId) {

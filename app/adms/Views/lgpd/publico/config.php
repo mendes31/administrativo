@@ -47,7 +47,8 @@ $envHint = static function (string $field, string $envKey) use ($config): ?strin
                     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
                     <p class="text-muted small">
-                        Dados exibidos em <code>/lgpd</code> sem login. As alterações aqui têm prioridade sobre o arquivo <code>.env</code>.
+                        Dados exibidos no canal público (<code>URL_LGPD</code>, ex.: <code>https://www.tiaraju.com.br/lgpd</code>) sem login.
+                        As alterações aqui têm prioridade sobre o arquivo <code>.env</code>.
                     </p>
 
                     <form method="post" action="<?= htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') ?>" class="mb-4" enctype="multipart/form-data">

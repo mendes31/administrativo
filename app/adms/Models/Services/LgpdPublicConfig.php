@@ -72,8 +72,18 @@ final class LgpdPublicConfig
         return self::repo()->getComiteMembros(true);
     }
 
+    /**
+     * URL pública do portal (preferência: raiz do site via gateway /lgpd).
+     * Com URL_LGPD no .env: https://www.tiaraju.com.br/lgpd
+     * Sem URL_LGPD: fallback {URL_ADM}/lgpd
+     */
     public static function baseUrl(): string
     {
+        $fromEnv = trim((string) ($_ENV['URL_LGPD'] ?? ''));
+        if ($fromEnv !== '') {
+            return rtrim($fromEnv, '/');
+        }
+
         return rtrim((string) ($_ENV['URL_ADM'] ?? '/'), '/') . '/lgpd';
     }
 

@@ -7,12 +7,14 @@ namespace App\adms\Controllers\lgpd;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SendEmailService;
 use App\adms\Models\Repository\LgpdSolicitacoesTitularesRepository;
+use App\adms\Models\Repository\LgpdTermosRepository;
 use App\adms\Models\Services\LgpdPublicCaptchaService;
 use App\adms\Models\Services\LgpdPublicConfig;
 use App\adms\Models\Services\LgpdTitularRights;
 
 /**
  * Portal público LGPD — sem login (landing, políticas, formulário Art. 18).
+ * URL interna: {URL_ADM}lgpd | URL pública: URL_LGPD ou /lgpd na raiz (deploy/lgpd).
  */
 final class LgpdPublico
 {
@@ -26,13 +28,47 @@ final class LgpdPublico
         }
     }
 
-    public function index(): void
+    public function index(?string $slug = null): void
     {
+        $slug = is_string($slug) ? trim($slug, '/') : '';
+        if ($slug !== '' && !str_contains($slug, '/')) {
+            $this->showPublicTerm($slug);
+
+            return;
+        }
+
         $docs = LgpdPublicConfig::documentPaths();
         $this->render('home', [
             'title' => 'LGPD — ' . LgpdPublicConfig::companyName(),
             'has_cartilha' => $docs['cartilha'] !== null,
             'has_carta' => $docs['carta'] !== null,
+            'termos_publicos' => (new LgpdTermosRepository())->listPublicosAtivos(),
+        ]);
+    }
+
+    private function showPublicTerm(string $slug): void
+    {
+        $repo = new LgpdTermosRepository();
+        $termo = $repo->getPublicoAtivoPorSlug($slug);
+        if ($termo === null) {
+            http_response_code(404);
+            $docs = LgpdPublicConfig::documentPaths();
+            $this->render('home', [
+                'title' => 'LGPD — ' . LgpdPublicConfig::companyName(),
+                'error' => 'Documento não disponível no canal público.',
+                'has_cartilha' => $docs['cartilha'] !== null,
+                'has_carta' => $docs['carta'] !== null,
+                'termos_publicos' => $repo->listPublicosAtivos(),
+            ]);
+
+            return;
+        }
+
+        $this->render('termo', [
+            'title' => (string) ($termo['titulo'] ?? 'Documento'),
+            'termo' => $termo,
+            'has_termo' => !empty($termo['conteudo']),
+            'empty_hint' => 'Documento sem conteúdo.',
         ]);
     }
 

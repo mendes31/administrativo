@@ -85,6 +85,7 @@ use App\adms\Helpers\FormatHelper;
                                 <th>Versão</th>
                                 <th class="col-descricao"><div>Título</div></th>
                                 <th>Tipo</th>
+                                <th>Público</th>
                                 <th>Início Vigência</th>
                                 <th>Status</th>
                                 <th>Ações</th>
@@ -99,6 +100,15 @@ use App\adms\Helpers\FormatHelper;
                                         <div><?= htmlspecialchars($termo['titulo']) ?></div>
                                     </td>
                                     <td><?= htmlspecialchars($termo['tipo']) ?></td>
+                                    <td>
+                                        <?php if (!empty($termo['publico_canal']) && !empty($termo['slug_publico'])): ?>
+                                            <span class="badge bg-primary" title="/lgpd/<?= htmlspecialchars((string) $termo['slug_publico'], ENT_QUOTES, 'UTF-8') ?>">
+                                                /<?= htmlspecialchars((string) $termo['slug_publico'], ENT_QUOTES, 'UTF-8') ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="text-muted">—</span>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= FormatHelper::formatDate($termo['data_inicio_vigencia'] ?? null, 'd/m/Y H:i') ?></td>
                                     <td>
                                         <?php if ($termo['status'] === 'Ativo'): ?>

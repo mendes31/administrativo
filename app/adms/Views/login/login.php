@@ -2,6 +2,7 @@
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\WhistleblowingPublicUrlHelper;
+use App\adms\Models\Services\LgpdPublicConfig;
 
 // Mantemos a leitura de msg/error apenas para exibir alertas, 
 // sem mais alterar o estado do botão.
@@ -191,7 +192,7 @@ use App\adms\Helpers\WhistleblowingPublicUrlHelper;
         </div>
 
         <div class="login-app-footer text-center pt-2">
-            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd" class="small text-decoration-none">
+            <a href="<?php echo htmlspecialchars(LgpdPublicConfig::url(), ENT_QUOTES, 'UTF-8'); ?>" class="small text-decoration-none">
                 <i class="fas fa-shield-halved me-1"></i>LGPD e privacidade
             </a>
         </div>

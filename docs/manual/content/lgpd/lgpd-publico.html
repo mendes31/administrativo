@@ -3,7 +3,7 @@
 <h2>Função no sistema</h2>
 <p>Página aberta, sem login, para divulgar políticas, contacto do encarregado (DPO) e o formulário de exercício dos direitos do titular (Art. 18 e Art. 20 da Lei 13.709/2018).</p>
 
-<p><strong>Quem acessa:</strong> qualquer visitante. A rota <em>LgpdPublico</em> é pública (<code>public_page=1</code>). Política e termos (<em>PoliticaPrivacidade</em>, <em>TermosDeUso</em>) também ficam públicos. O atendimento das requisições é interno (<em>LgpdSolicitacoesTitulares</em>).</p>
+<p><strong>Quem acessa:</strong> qualquer visitante. A rota <em>LgpdPublico</em> é pública (<code>public_page=1</code>). Documentos só aparecem se marcados como <em>Publicar no canal público</em> em Termos LGPD (URL <code>/lgpd/{slug}</code>). Política/Termos no rodapé autenticado usam <em>PoliticaPrivacidade</em> / <em>TermosDeUso</em> (login). O atendimento das requisições é interno (<em>LgpdSolicitacoesTitulares</em>).</p>
 
 <h2>O que significam os termos</h2>
 <dl>
@@ -17,13 +17,15 @@
 
 <h2>Fluxo principal</h2>
 <ol>
-<li>Abra <code>{URL_ADM}lgpd</code> (também no ecrã de login e no rodapé do portal).</li>
+<li>Abra a URL pública <code>URL_LGPD</code> (ex.: <code>https://www.tiaraju.com.br/lgpd</code>), via gateway na raiz do site. Sem <code>URL_LGPD</code>, o fallback é <code>{URL_ADM}lgpd</code>. Também no ecrã de login e no rodapé do portal.</li>
 <li>Leia a política/termos ou descarregue cartilha/carta se os PDFs existirem em <code>storage/lgpd/publico/</code>.</li>
 <li>No formulário, identifique o titular, assinale os direitos (pelo menos um Sim) e envie com a verificação de soma.</li>
     <li>Guarde o protocolo. O DPO recebe e-mail (se configurado em LGPD → Config. portal público ou <code>LGPD_DPO_EMAIL</code>) e trata em LGPD → Solicitações de titulares.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>URL_LGPD</strong> URL pública na raiz (ex.: <code>https://www.tiaraju.com.br/lgpd/</code>). Gateway: <code>deploy/lgpd/</code> → <code>www/lgpd/</code>.</div>
+<div class="help-field"><strong>Publicar no canal</strong> Em LGPD → Termos: marque <em>Publicar no canal público</em> e defina o <em>slug</em> (ex.: <code>politica</code> → <code>/lgpd/politica</code>). Sem a marca, o documento fica só interno (ex.: Termos de Uso do sistema).</div>
 <div class="help-field"><strong>LGPD_DPO_NOME / EMAIL / TELEFONE</strong> Fallback legado se não houver cadastro em LGPD → Config. portal público.</div>
 <div class="help-field"><strong>LGPD_EMPRESA_NOME</strong> Fallback legado. Padrão: APP_NAME.</div>
 <div class="help-field"><strong>PDFs</strong> Preferência: upload em LGPD → Config. portal público (<code>cartilha.pdf</code> / <code>carta-compromisso.pdf</code>). Cartões só aparecem se o ficheiro existir.</div>
@@ -34,6 +36,8 @@
 <dl>
     <dt>A página pede login</dt>
     <dd>Corra a migration <code>20260811180000_lgpd_public_portal_and_solicitacoes</code> para marcar <code>public_page=1</code>.</dd>
+    <dt>URL ainda é /administrativo/lgpd</dt>
+    <dd>Instale o gateway: <code>php scripts/install-lgpd-gateway.php</code> (cria <code>www/lgpd/</code>) e configure <code>URL_LGPD</code> no <code>.env</code> (ex.: <code>https://www.tiaraju.com.br/lgpd/</code>). Em produção, copie <code>deploy/lgpd/</code> para a raiz do site ao lado de <code>administrativo/</code>.</dd>
     <dt>Política vazia</dt>
     <dd>Cadastre um termo ativo tipo Site/Portal cujo título contenha «Política de Privacidade».</dd>
     <dt>Cartilha/carta não aparecem</dt>

@@ -225,6 +225,159 @@ class LgpdTermosRepository extends DbConnection
         }
     }
 
+    /**
+     * Slugs reservados por métodos do portal público (LgpdPublico).
+     *
+     * @return list<string>
+     */
+    public static function reservedPublicSlugs(): array
+    {
+        return ['requisicao', 'enviar', 'documento'];
+    }
+
+    public static function normalizeSlugPublico(string $raw): string
+    {
+        $raw = trim(mb_strtolower($raw, 'UTF-8'));
+        $map = [
+            'á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a', 'ä' => 'a',
+            'é' => 'e', 'ê' => 'e', 'è' => 'e', 'ë' => 'e',
+            'í' => 'i', 'ì' => 'i', 'î' => 'i', 'ï' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'õ' => 'o', 'ô' => 'o', 'ö' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'û' => 'u', 'ü' => 'u',
+            'ç' => 'c', 'ñ' => 'n',
+        ];
+        $raw = strtr($raw, $map);
+        $raw = preg_replace('/[^a-z0-9]+/', '-', $raw) ?? '';
+        return trim($raw, '-');
+    }
+
+    /**
+     * @return array{publico_canal:int, slug_publico:?string, error:?string}
+     */
+    public function normalizePublicChannelFields(array $data, ?int $ignoreId = null): array
+    {
+        $publico = !empty($data['publico_canal']) ? 1 : 0;
+        $slug = self::normalizeSlugPublico((string) ($data['slug_publico'] ?? ''));
+
+        if ($publico === 0) {
+            return ['publico_canal' => 0, 'slug_publico' => null, 'error' => null];
+        }
+
+        if ($slug === '') {
+            $slug = self::normalizeSlugPublico((string) ($data['titulo'] ?? ''));
+        }
+        if ($slug === '') {
+            return ['publico_canal' => 1, 'slug_publico' => null, 'error' => 'Informe o slug da URL pública (ex.: politica).'];
+        }
+        if (in_array($slug, self::reservedPublicSlugs(), true)) {
+            return [
+                'publico_canal' => 1,
+                'slug_publico' => $slug,
+                'error' => 'O slug "' . $slug . '" é reservado pelo canal público. Escolha outro (ex.: politica, termos).',
+            ];
+        }
+        if ($this->slugPublicoEmUso($slug, $ignoreId)) {
+            return [
+                'publico_canal' => 1,
+                'slug_publico' => $slug,
+                'error' => 'Já existe um termo com o slug público "' . $slug . '".',
+            ];
+        }
+
+        return ['publico_canal' => 1, 'slug_publico' => $slug, 'error' => null];
+    }
+
+    public function slugPublicoEmUso(string $slug, ?int $ignoreId = null): bool
+    {
+        $slug = self::normalizeSlugPublico($slug);
+        if ($slug === '') {
+            return false;
+        }
+        try {
+            $sql = 'SELECT id FROM lgpd_termos WHERE slug_publico = :slug';
+            if ($ignoreId !== null && $ignoreId > 0) {
+                $sql .= ' AND id <> :id';
+            }
+            $sql .= ' LIMIT 1';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':slug', $slug, PDO::PARAM_STR);
+            if ($ignoreId !== null && $ignoreId > 0) {
+                $stmt->bindValue(':id', $ignoreId, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+
+            return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (Exception $e) {
+            error_log('Erro ao verificar slug público LGPD: ' . $e->getMessage());
+
+            return true;
+        }
+    }
+
+    /**
+     * Termos ativos publicados no canal /lgpd.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function listPublicosAtivos(): array
+    {
+        try {
+            $sql = "SELECT id, titulo, versao, slug_publico, tipo, data_inicio_vigencia
+                    FROM lgpd_termos
+                    WHERE publico_canal = 1
+                      AND status = 'Ativo'
+                      AND slug_publico IS NOT NULL
+                      AND slug_publico <> ''
+                      AND data_inicio_vigencia <= NOW()
+                      AND (
+                            data_fim_vigencia IS NULL
+                            OR data_fim_vigencia = '0000-00-00 00:00:00'
+                            OR data_fim_vigencia >= NOW()
+                          )
+                    ORDER BY titulo ASC, id DESC";
+            $stmt = $this->getConnection()->query($sql);
+
+            return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        } catch (Exception $e) {
+            error_log('Erro ao listar termos públicos LGPD: ' . $e->getMessage());
+
+            return [];
+        }
+    }
+
+    public function getPublicoAtivoPorSlug(string $slug): ?array
+    {
+        $slug = self::normalizeSlugPublico($slug);
+        if ($slug === '' || in_array($slug, self::reservedPublicSlugs(), true)) {
+            return null;
+        }
+        try {
+            $sql = "SELECT *
+                    FROM lgpd_termos
+                    WHERE publico_canal = 1
+                      AND status = 'Ativo'
+                      AND slug_publico = :slug
+                      AND data_inicio_vigencia <= NOW()
+                      AND (
+                            data_fim_vigencia IS NULL
+                            OR data_fim_vigencia = '0000-00-00 00:00:00'
+                            OR data_fim_vigencia >= NOW()
+                          )
+                    ORDER BY data_inicio_vigencia DESC, id DESC
+                    LIMIT 1";
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':slug', $slug, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+            return $row ?: null;
+        } catch (Exception $e) {
+            error_log('Erro ao buscar termo público por slug: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
     public function create(array $data): bool|int
     {
         // Gerar identificador lógico do documento se não vier do formulário
@@ -233,10 +386,16 @@ class LgpdTermosRepository extends DbConnection
             $documentoCodigo = $this->generateDocumentoCodigo($data['tipo'] ?? 'geral', $data['titulo'] ?? '');
         }
 
+        $publicoCanal = !empty($data['publico_canal']) ? 1 : 0;
+        $slugPublico = $publicoCanal === 1 ? ($data['slug_publico'] ?? null) : null;
+        if ($slugPublico === '') {
+            $slugPublico = null;
+        }
+
         $sql = "INSERT INTO lgpd_termos 
-                    (versao, titulo, tipo, documento_codigo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, created_at) 
+                    (versao, titulo, tipo, documento_codigo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, publico_canal, slug_publico, created_at) 
                 VALUES 
-                    (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
+                    (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, :publico_canal, :slug_publico, NOW())";
 
         $stmt = $this->getConnection()->prepare($sql);
         $dataFimVigencia = $this->normalizeNullableDateTime($data['data_fim_vigencia'] ?? null);
@@ -248,6 +407,8 @@ class LgpdTermosRepository extends DbConnection
         $stmt->bindValue(':data_inicio_vigencia', $data['data_inicio_vigencia'], PDO::PARAM_STR);
         $stmt->bindValue(':data_fim_vigencia', $dataFimVigencia, $dataFimVigencia !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
+        $stmt->bindValue(':publico_canal', $publicoCanal, PDO::PARAM_INT);
+        $stmt->bindValue(':slug_publico', $slugPublico, $slugPublico !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
         $ok = $stmt->execute();
 
@@ -319,22 +480,33 @@ class LgpdTermosRepository extends DbConnection
                 $stmtUpdCodigo->execute();
             }
 
-            // Fechar vigência da versão anterior
+            // Fechar vigência da versão anterior (libera slug único para a nova)
             $dataFim = $dataNova['data_inicio_vigencia'] ?? date('Y-m-d H:i:s');
             $stmtClose = $conn->prepare(
                 "UPDATE lgpd_termos 
-                 SET data_fim_vigencia = :data_fim, status = 'Inativo', updated_at = NOW()
+                 SET data_fim_vigencia = :data_fim, status = 'Inativo',
+                     publico_canal = 0, slug_publico = NULL, updated_at = NOW()
                  WHERE id = :id"
             );
             $stmtClose->bindValue(':data_fim', $dataFim, PDO::PARAM_STR);
             $stmtClose->bindValue(':id', $idAnterior, PDO::PARAM_INT);
             $stmtClose->execute();
 
+            $publicoCanal = array_key_exists('publico_canal', $dataNova)
+                ? (!empty($dataNova['publico_canal']) ? 1 : 0)
+                : (int) ($termoAntigo['publico_canal'] ?? 0);
+            $slugPublico = $publicoCanal === 1
+                ? ($dataNova['slug_publico'] ?? $termoAntigo['slug_publico'] ?? null)
+                : null;
+            if ($slugPublico === '') {
+                $slugPublico = null;
+            }
+
             // Inserir nova versão
             $sqlInsert = "INSERT INTO lgpd_termos 
-                            (versao, titulo, tipo, documento_codigo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, created_at)
+                            (versao, titulo, tipo, documento_codigo, conteudo, data_inicio_vigencia, data_fim_vigencia, status, publico_canal, slug_publico, created_at)
                           VALUES
-                            (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, NOW())";
+                            (:versao, :titulo, :tipo, :documento_codigo, :conteudo, :data_inicio_vigencia, :data_fim_vigencia, :status, :publico_canal, :slug_publico, NOW())";
 
             $stmtNew = $conn->prepare($sqlInsert);
             $dataFimVigenciaNova = $this->normalizeNullableDateTime($dataNova['data_fim_vigencia'] ?? null);
@@ -346,6 +518,8 @@ class LgpdTermosRepository extends DbConnection
             $stmtNew->bindValue(':data_inicio_vigencia', $dataNova['data_inicio_vigencia'], PDO::PARAM_STR);
             $stmtNew->bindValue(':data_fim_vigencia', $dataFimVigenciaNova, $dataFimVigenciaNova !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmtNew->bindValue(':status', $dataNova['status'] ?? 'Ativo', PDO::PARAM_STR);
+            $stmtNew->bindValue(':publico_canal', $publicoCanal, PDO::PARAM_INT);
+            $stmtNew->bindValue(':slug_publico', $slugPublico, $slugPublico !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
             if (!$stmtNew->execute()) {
                 $conn->rollBack();
@@ -410,6 +584,12 @@ class LgpdTermosRepository extends DbConnection
 
     public function update(int $id, array $data): bool
     {
+        $publicoCanal = !empty($data['publico_canal']) ? 1 : 0;
+        $slugPublico = $publicoCanal === 1 ? ($data['slug_publico'] ?? null) : null;
+        if ($slugPublico === '') {
+            $slugPublico = null;
+        }
+
         $sql = "UPDATE lgpd_termos
                 SET versao = :versao,
                     titulo = :titulo,
@@ -418,6 +598,8 @@ class LgpdTermosRepository extends DbConnection
                     data_inicio_vigencia = :data_inicio_vigencia,
                     data_fim_vigencia = :data_fim_vigencia,
                     status = :status,
+                    publico_canal = :publico_canal,
+                    slug_publico = :slug_publico,
                     updated_at = NOW()
                 WHERE id = :id";
 
@@ -431,6 +613,8 @@ class LgpdTermosRepository extends DbConnection
         $stmt->bindValue(':data_inicio_vigencia', $data['data_inicio_vigencia'], PDO::PARAM_STR);
         $stmt->bindValue(':data_fim_vigencia', $dataFimVigencia, $dataFimVigencia !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
         $stmt->bindValue(':status', $data['status'] ?? 'Ativo', PDO::PARAM_STR);
+        $stmt->bindValue(':publico_canal', $publicoCanal, PDO::PARAM_INT);
+        $stmt->bindValue(':slug_publico', $slugPublico, $slugPublico !== null ? PDO::PARAM_STR : PDO::PARAM_NULL);
 
         return $stmt->execute();
     }

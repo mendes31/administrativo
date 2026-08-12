@@ -333,10 +333,15 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
                 <div class="container-fluid px-4">
                     <div class="d-flex align-items-center justify-content-between small adms-footer-row">
                         <div class="adms-footer-links small">
-                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd" class="text-decoration-none">LGPD</a>
+                            <a href="<?php echo htmlspecialchars(\App\adms\Models\Services\LgpdPublicConfig::url(), ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none">LGPD</a>
                             &middot;
-                            <a href="<?php echo $_ENV['URL_ADM']; ?>politica-privacidade" class="text-decoration-none">Políticas de Privacidade</a>
+                            <?php
+                            $politicaPublica = (new \App\adms\Models\Repository\LgpdTermosRepository())->getPublicoAtivoPorSlug('politica');
+                            if ($politicaPublica):
+                            ?>
+                            <a href="<?php echo htmlspecialchars(\App\adms\Models\Services\LgpdPublicConfig::url('politica'), ENT_QUOTES, 'UTF-8'); ?>" class="text-decoration-none">Políticas de Privacidade</a>
                             &middot;
+                            <?php endif; ?>
                             <a href="<?php echo $_ENV['URL_ADM']; ?>termos-de-uso" class="text-decoration-none">Termos de Uso</a>
                             <?php if (!empty($_SESSION['user_id'])): ?>
                             &middot;
