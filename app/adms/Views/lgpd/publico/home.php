@@ -1,5 +1,5 @@
 <?php
-/** @var string $empresa @var string $dpo_nome @var string $dpo_email @var string $dpo_telefone @var string $url_adm @var string $base_url */
+/** @var string $empresa @var string $dpo_nome @var string $dpo_email @var string $dpo_telefone @var string $url_adm @var string $base_url @var list<array<string,mixed>> $comite_membros @var string $comite_titulo @var string $comite_descricao */
 $h = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, 'UTF-8');
 ?>
 <div class="lgpd-pub-card">
@@ -48,6 +48,41 @@ $h = static fn (mixed $v): string => htmlspecialchars((string) $v, ENT_QUOTES, '
             </ul>
         <?php endif; ?>
     </div>
+
+    <?php if (!empty($comite_membros)): ?>
+    <div class="lgpd-comite mt-4">
+        <h2><?php echo $h($comite_titulo ?? 'Comitê de Privacidade e Proteção de Dados'); ?></h2>
+        <?php if (!empty($comite_descricao)): ?>
+            <p class="mb-3" style="color:#4b5563;"><?php echo nl2br($h($comite_descricao)); ?></p>
+        <?php endif; ?>
+        <div class="lgpd-comite-grid">
+            <?php foreach ($comite_membros as $membro): ?>
+                <?php
+                $nomeMembro = trim((string) ($membro['nome'] ?? ''));
+                if ($nomeMembro === '') {
+                    continue;
+                }
+                $cargoMembro = trim((string) ($membro['cargo'] ?? ''));
+                $emailMembro = filter_var((string) ($membro['email'] ?? ''), FILTER_SANITIZE_EMAIL);
+                $telMembro = trim((string) ($membro['telefone'] ?? ''));
+                $telDigitosMembro = preg_replace('/\D+/', '', $telMembro) ?? '';
+                ?>
+                <div class="lgpd-comite-card">
+                    <strong><?php echo $h($nomeMembro); ?></strong>
+                    <?php if ($cargoMembro !== ''): ?>
+                        <div class="lgpd-comite-cargo"><?php echo $h($cargoMembro); ?></div>
+                    <?php endif; ?>
+                    <?php if ($emailMembro !== ''): ?>
+                        <div><a href="mailto:<?php echo $h($emailMembro); ?>"><?php echo $h($emailMembro); ?></a></div>
+                    <?php endif; ?>
+                    <?php if ($telDigitosMembro !== ''): ?>
+                        <div><a href="tel:+<?php echo $h($telDigitosMembro); ?>"><?php echo $h($telMembro); ?></a></div>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <div class="lgpd-pub-cards">
         <a class="lgpd-pub-tile" href="<?php echo $h($url_adm); ?>politica-privacidade">

@@ -115,6 +115,39 @@ $show_hero = !empty($show_hero);
             pointer-events: auto;
         }
         .lgpd-dpo a:hover { color: #007a4a; }
+        .lgpd-comite {
+            background: #fff;
+            border: 1px solid #e6eee9;
+            border-radius: 8px;
+            padding: 1.25rem 1.2rem;
+        }
+        .lgpd-comite h2 {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--lgpd-green-dark);
+            margin: 0 0 0.75rem;
+        }
+        .lgpd-comite-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 0.85rem;
+        }
+        .lgpd-comite-card {
+            background: #f7fbf9;
+            border-radius: 8px;
+            padding: 0.9rem 1rem;
+            font-size: 0.95rem;
+        }
+        .lgpd-comite-cargo {
+            color: #6b7280;
+            font-size: 0.88rem;
+            margin: 0.15rem 0 0.35rem;
+        }
+        .lgpd-comite-card a {
+            color: #00995D;
+            text-decoration: underline;
+            font-weight: 600;
+        }
         .lgpd-pub-cards {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));

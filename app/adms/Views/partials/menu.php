@@ -1849,6 +1849,11 @@ $menus = [
                 'permission' => 'LgpdSolicitacoesTitulares'
             ],
             [
+                'label' => 'Config. portal público',
+                'url' => $_ENV['URL_ADM'] . 'lgpd-publico-config',
+                'permission' => 'LgpdPublicoConfig'
+            ],
+            [
                 'label' => 'Inventário',
                 'url' => $_ENV['URL_ADM'] . 'lgpd-inventory',
                 'permission' => 'LgpdInventory'

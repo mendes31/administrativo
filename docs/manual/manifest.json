@@ -2047,6 +2047,11 @@
                     "file": "lgpd/lgpd-publico.html"
                 },
                 {
+                    "id": "lgpd-publico-config",
+                    "title": "Configuração portal público LGPD",
+                    "file": "lgpd/lgpd-publico-config.html"
+                },
+                {
                     "id": "lgpd-solicitacoes-titulares",
                     "title": "Solicitações de titulares",
                     "file": "lgpd/lgpd-solicitacoes-titulares.html"

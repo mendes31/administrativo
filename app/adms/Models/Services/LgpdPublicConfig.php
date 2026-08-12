@@ -4,32 +4,41 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Models\Repository\LgpdPortalConfigRepository;
+
 /**
- * Configuração do canal público LGPD (DPO, empresa, PDFs).
+ * Configuração do canal público LGPD (DPO, empresa, PDFs, comitê).
+ * Prioridade: banco de dados → variáveis .env (legado).
  */
 final class LgpdPublicConfig
 {
-    public static function companyName(): string
+    private static ?LgpdPortalConfigRepository $repo = null;
+
+    private static function repo(): LgpdPortalConfigRepository
     {
-        $name = trim((string) ($_ENV['LGPD_EMPRESA_NOME'] ?? ''));
-        if ($name !== '') {
-            return $name;
+        if (self::$repo === null) {
+            self::$repo = new LgpdPortalConfigRepository();
         }
 
-        return trim((string) ($_ENV['APP_NAME'] ?? 'Tiaraju')) ?: 'Tiaraju';
+        return self::$repo;
+    }
+
+    public static function companyName(): string
+    {
+        return self::repo()->empresaNome();
     }
 
     public static function dpoNome(): string
     {
-        return trim((string) ($_ENV['LGPD_DPO_NOME'] ?? ''));
+        return self::repo()->dpoNome();
     }
 
     public static function dpoEmail(): string
     {
-        return trim((string) ($_ENV['LGPD_DPO_EMAIL'] ?? ''));
+        return self::repo()->dpoEmail();
     }
 
-    /** E-mail interno para avisar o DPO (não publicado se LGPD_DPO_EMAIL estiver vazio). */
+    /** E-mail interno para avisar o DPO (não publicado se vazio). */
     public static function notifyEmail(): string
     {
         $email = self::dpoEmail();
@@ -42,7 +51,25 @@ final class LgpdPublicConfig
 
     public static function dpoTelefone(): string
     {
-        return trim((string) ($_ENV['LGPD_DPO_TELEFONE'] ?? ''));
+        return self::repo()->dpoTelefone();
+    }
+
+    public static function comiteTitulo(): string
+    {
+        return self::repo()->comiteTitulo();
+    }
+
+    public static function comiteDescricao(): string
+    {
+        return self::repo()->comiteDescricao();
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public static function comiteMembrosAtivos(): array
+    {
+        return self::repo()->getComiteMembros(true);
     }
 
     public static function baseUrl(): string
@@ -64,12 +91,8 @@ final class LgpdPublicConfig
     public static function documentPaths(): array
     {
         return [
-            'cartilha' => self::resolvePdfPath(
-                (string) ($_ENV['LGPD_CARTILHA_PATH'] ?? 'storage/lgpd/publico/cartilha.pdf')
-            ),
-            'carta' => self::resolvePdfPath(
-                (string) ($_ENV['LGPD_CARTA_COMPROMISSO_PATH'] ?? 'storage/lgpd/publico/carta-compromisso.pdf')
-            ),
+            'cartilha' => self::resolvePdfPath(self::repo()->cartilhaPath()),
+            'carta' => self::resolvePdfPath(self::repo()->cartaCompromissoPath()),
         ];
     }
 

@@ -289,6 +289,9 @@ final class LgpdPublico
         $data['dpo_nome'] = LgpdPublicConfig::dpoNome();
         $data['dpo_email'] = LgpdPublicConfig::dpoEmail();
         $data['dpo_telefone'] = LgpdPublicConfig::dpoTelefone();
+        $data['comite_titulo'] = LgpdPublicConfig::comiteTitulo();
+        $data['comite_descricao'] = LgpdPublicConfig::comiteDescricao();
+        $data['comite_membros'] = LgpdPublicConfig::comiteMembrosAtivos();
         $data['title'] = (string) ($data['title'] ?? 'LGPD');
         $data['logged_in'] = !empty($_SESSION['user_id']);
         $data['show_hero'] = ($viewName === 'home');

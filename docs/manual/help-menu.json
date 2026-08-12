@@ -1693,6 +1693,11 @@
                 },
                 {
                     "type": "topic",
+                    "topic_id": "lgpd-publico-config",
+                    "title": "Config. portal público"
+                },
+                {
+                    "type": "topic",
                     "topic_id": "lgpd-solicitacoes-titulares",
                     "title": "Solicitações de titulares"
                 },

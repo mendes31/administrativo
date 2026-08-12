@@ -1,0 +1,41 @@
+<h1>Configuração do portal público LGPD</h1>
+
+<h2>Função no sistema</h2>
+<p>Tela interna para cadastrar o DPO/encarregado, o nome da empresa, caminhos de PDFs e o comitê de privacidade exibidos na página pública <code>/lgpd</code>, sem editar o arquivo <code>.env</code>.</p>
+
+<p><strong>Quem acessa:</strong> perfis com permissão em <em>LgpdPublicoConfig</em> (mesmos níveis do Dashboard LGPD, após a migration).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>DPO / Encarregado</dt>
+    <dd>Pessoa indicada no art. 41 da LGPD. Nome, e-mail e telefone aparecem na landing pública.</dd>
+    <dt>Comitê</dt>
+    <dd>Grupo opcional de membros (nome, cargo, contatos) publicado abaixo do bloco do DPO quando houver ao menos um membro ativo.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+<li>Abra LGPD → <strong>Config. portal público</strong> (ou o link no Dashboard LGPD).</li>
+<li>Preencha empresa, DPO e, se aplicável, caminhos dos PDFs (relativos à raiz do projeto).</li>
+<li>Salve. Os valores do banco têm prioridade sobre variáveis <code>LGPD_*</code> do <code>.env</code>.</li>
+<li>Para comitê: defina título/descrição e adicione membros com ordem e status ativo.</li>
+<li>Confira em <code>{URL_ADM}lgpd</code> (botão «Abrir página pública» na tela).</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Empresa</strong> Razão social nos textos da landing. Se vazio no banco, usa <code>LGPD_EMPRESA_NOME</code> ou <code>APP_NAME</code>.</div>
+<div class="help-field"><strong>DPO</strong> Nome, e-mail e telefone. E-mail também recebe aviso de novas requisições de titulares.</div>
+<div class="help-field"><strong>PDFs</strong> Caminhos relativos (ex.: <code>storage/lgpd/publico/cartilha.pdf</code>). Cartões só aparecem se o ficheiro existir.</div>
+<div class="help-field"><strong>Comitê</strong> Título, descrição opcional e lista de membros (ordem, ativo/inativo).</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu não aparece</dt>
+    <dd>Execute a migration <code>20260812100000_lgpd_portal_config_and_comite</code> e atualize permissões do perfil.</dd>
+    <dt>Ainda mostra dados antigos do .env</dt>
+    <dd>Salve os campos na tela — após gravar no banco, o .env deixa de ser usado para esses campos.</dd>
+    <dt>Comitê não aparece na página pública</dt>
+    <dd>Cadastre ao menos um membro com «Ativo» marcado.</dd>
+    <dt>E-mail do DPO inválido</dt>
+    <dd>O sistema não salva configuração com e-mail em formato incorreto.</dd>
+</dl>

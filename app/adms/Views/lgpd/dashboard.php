@@ -72,6 +72,7 @@ function getRiskColor($risco) {
         <a href="<?php echo htmlspecialchars((string) ($this->data['url_lgpd_publico'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
             <?php echo htmlspecialchars((string) ($this->data['url_lgpd_publico'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
         </a>
+        · <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd-publico-config">Configurar DPO e comitê</a>
     </p>
 
     <!-- Score de Compliance Geral -->
