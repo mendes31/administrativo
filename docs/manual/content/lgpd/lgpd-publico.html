@@ -1,0 +1,43 @@
+<h1>Portal público LGPD</h1>
+
+<h2>Função no sistema</h2>
+<p>Página aberta, sem login, para divulgar políticas, contacto do encarregado (DPO) e o formulário de exercício dos direitos do titular (Art. 18 e Art. 20 da Lei 13.709/2018).</p>
+
+<p><strong>Quem acessa:</strong> qualquer visitante. A rota <em>LgpdPublico</em> é pública (<code>public_page=1</code>). Política e termos (<em>PoliticaPrivacidade</em>, <em>TermosDeUso</em>) também ficam públicos. O atendimento das requisições é interno (<em>LgpdSolicitacoesTitulares</em>).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>DPO / Encarregado</dt>
+    <dd>Pessoa indicada no art. 41 da LGPD para receber comunicações dos titulares e da ANPD.</dd>
+    <dt>Titular</dt>
+    <dd>Pessoa natural a quem se referem os dados pessoais.</dd>
+    <dt>Protocolo</dt>
+    <dd>Número gerado no envio (ex.: LGPD-20260811-A1B2) para o DPO localizar o pedido. Prazo legal: 15 dias.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+<li>Abra <code>{URL_ADM}lgpd</code> (também no ecrã de login e no rodapé do portal).</li>
+<li>Leia a política/termos ou descarregue cartilha/carta se os PDFs existirem em <code>storage/lgpd/publico/</code>.</li>
+<li>No formulário, identifique o titular, assinale os direitos (pelo menos um Sim) e envie com a verificação de soma.</li>
+<li>Guarde o protocolo. O DPO recebe e-mail (se <code>LGPD_DPO_EMAIL</code> estiver configurado) e trata em LGPD → Solicitações de titulares.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>LGPD_DPO_NOME / EMAIL / TELEFONE</strong> Publicados na landing. Sem nome e e-mail, a página avisa que o DPO ainda não foi publicado.</div>
+<div class="help-field"><strong>LGPD_EMPRESA_NOME</strong> Razão social nos textos. Padrão: APP_NAME.</div>
+<div class="help-field"><strong>PDFs</strong> <code>cartilha.pdf</code> e <code>carta-compromisso.pdf</code> em <code>storage/lgpd/publico/</code> (ou caminhos no .env). Cartões só aparecem se o ficheiro existir.</div>
+<div class="help-field"><strong>Política e termos</strong> Continuam a vir de LGPD → Termos LGPD, tipo Site/Portal, título contendo a chave do .env.</div>
+<div class="help-field"><strong>Proteção do formulário</strong> CSRF, honeypot, CAPTCHA de soma e limite de envios por IP.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>A página pede login</dt>
+    <dd>Corra a migration <code>20260811180000_lgpd_public_portal_and_solicitacoes</code> para marcar <code>public_page=1</code>.</dd>
+    <dt>Política vazia</dt>
+    <dd>Cadastre um termo ativo tipo Site/Portal cujo título contenha «Política de Privacidade».</dd>
+    <dt>Cartilha/carta não aparecem</dt>
+    <dd>Coloque os PDFs na pasta indicada. Não há upload pela interface nesta versão.</dd>
+    <dt>E-mail do DPO não chega</dt>
+    <dd>Confirme SMTP em Configuração de E-mail e <code>LGPD_DPO_EMAIL</code>.</dd>
+</dl>

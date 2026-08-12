@@ -105,6 +105,8 @@ class PageLayoutService
             'LgpdConsentimentosDelete',
             'LgpdConsentimentosEdit',
             'LgpdConsentimentosView',
+            'LgpdSolicitacoesTitulares',
+            'LgpdSolicitacoesTitularesView',
             'LgpdDataMapping',
             'LgpdDataMappingCreate',
             'LgpdDataMappingCreateFromRopa',

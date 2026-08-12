@@ -190,6 +190,12 @@ use App\adms\Helpers\WhistleblowingPublicUrlHelper;
 
         </div>
 
+        <div class="login-app-footer text-center pt-2">
+            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd" class="small text-decoration-none">
+                <i class="fas fa-shield-halved me-1"></i>LGPD e privacidade
+            </a>
+        </div>
+
         <!-- DIV Atalho para o Canal de Denúncias (anônimo) -->
          <!--
         <div class="login-app-footer">

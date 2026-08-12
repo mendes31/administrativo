@@ -333,6 +333,8 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
                 <div class="container-fluid px-4">
                     <div class="d-flex align-items-center justify-content-between small adms-footer-row">
                         <div class="adms-footer-links small">
+                            <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd" class="text-decoration-none">LGPD</a>
+                            &middot;
                             <a href="<?php echo $_ENV['URL_ADM']; ?>politica-privacidade" class="text-decoration-none">Políticas de Privacidade</a>
                             &middot;
                             <a href="<?php echo $_ENV['URL_ADM']; ?>termos-de-uso" class="text-decoration-none">Termos de Uso</a>

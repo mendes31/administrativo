@@ -159,7 +159,9 @@
                 <p>
                     Este formulário coleta seu consentimento para o tratamento de dados pessoais. 
                     Você tem o direito de revogar este consentimento a qualquer momento. 
-                    Para mais informações, consulte nossa <a href="/politica-privacidade" target="_blank">Política de Privacidade</a>.
+                    Para mais informações, consulte nossa
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>politica-privacidade" target="_blank">Política de Privacidade</a>
+                    ou a <a href="<?php echo $_ENV['URL_ADM']; ?>lgpd" target="_blank">página pública LGPD</a>.
                 </p>
             </div>
             

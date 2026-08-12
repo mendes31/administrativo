@@ -46,6 +46,9 @@ storage/sst/attachments/**
 !storage/sst/attachments/.gitkeep
 storage/lgpd/consentimentos/**
 !storage/lgpd/consentimentos/.gitkeep
+storage/lgpd/publico/**
+!storage/lgpd/publico/.gitkeep
+!storage/lgpd/publico/README.md
 
 # qpdf portátil (opcional — binário grande; copiar manualmente em cada servidor)
 /bin/qpdf.exe

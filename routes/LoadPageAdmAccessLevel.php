@@ -508,7 +508,7 @@ class LoadPageAdmAccessLevel
             'accessLevels', 'accountsPlan', 'analytics', 'banks', 'branches', 'companyEvents',
             'costCenter', 'crm', 'customer', 'dashboard', 'dashboards', 'departments',
             'documents', 'errors', 'evaluations', 'financialReports', 'frequency',
-            'groupsPages', 'informativos', 'inventory', 'lgpd', 'login', 'logs',
+            'groupsPages', 'informativos', 'inventory', 'legal', 'lgpd', 'login', 'logs',
             'movement', 'notifications', 'packages', 'pages', 'pay', 'paymentMethod',
             'performance', 'permission', 'pdi', 'policies', 'portal', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',

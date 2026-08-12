@@ -2042,6 +2042,16 @@
                     "file": "lgpd/lgpd-visao-geral.html"
                 },
                 {
+                    "id": "lgpd-publico",
+                    "title": "Portal público LGPD",
+                    "file": "lgpd/lgpd-publico.html"
+                },
+                {
+                    "id": "lgpd-solicitacoes-titulares",
+                    "title": "Solicitações de titulares",
+                    "file": "lgpd/lgpd-solicitacoes-titulares.html"
+                },
+                {
                     "id": "lgpd-aipd",
                     "title": "AIPD, RIPD e TIA",
                     "file": "lgpd/lgpd-aipd.html"

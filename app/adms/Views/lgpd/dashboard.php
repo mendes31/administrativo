@@ -57,6 +57,23 @@ function getRiskColor($risco) {
         </div>
     </div>
 
+    <?php if ((int) ($this->data['solicitacoes_pendentes'] ?? 0) > 0): ?>
+    <div class="alert alert-warning d-flex justify-content-between align-items-center">
+        <span>
+            <i class="fas fa-user-shield me-1"></i>
+            <?php echo (int) $this->data['solicitacoes_pendentes']; ?>
+            requisição(ões) de titular pendente(s) ou em andamento (prazo 15 dias).
+        </span>
+        <a class="btn btn-sm btn-outline-dark" href="<?php echo $_ENV['URL_ADM']; ?>lgpd-solicitacoes-titulares">Abrir</a>
+    </div>
+    <?php endif; ?>
+    <p class="small text-muted mb-3">
+        Página pública (sem login):
+        <a href="<?php echo htmlspecialchars((string) ($this->data['url_lgpd_publico'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>" target="_blank" rel="noopener">
+            <?php echo htmlspecialchars((string) ($this->data['url_lgpd_publico'] ?? ''), ENT_QUOTES, 'UTF-8'); ?>
+        </a>
+    </p>
+
     <!-- Score de Compliance Geral -->
     <div class="row mb-4">
         <div class="col-12">

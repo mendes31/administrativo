@@ -1,0 +1,38 @@
+<h1>Solicitações de titulares LGPD</h1>
+
+<h2>Função no sistema</h2>
+<p>Fila interna do DPO para atender requisições de direitos enviadas pelo formulário público (confirmação, acesso, correção, eliminação, portabilidade, revogação, etc.).</p>
+
+<p><strong>Quem acessa:</strong> DPO/jurídico com <em>LgpdSolicitacoesTitulares</em> e <em>LgpdSolicitacoesTitularesView</em>. A ACL é copiada de <em>LgpdConsentimentos</em> na migration.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Status Pendente / Em andamento / Concluída / Vencida</dt>
+    <dd>Ciclo de atendimento. O prazo inicial é 15 dias a contar da entrada (Art. 18 §5º).</dd>
+    <dt>Nota interna</dt>
+    <dd>Registo do que foi feito ou da resposta a enviar ao titular. Não é publicada automaticamente.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+<li>O titular envia o formulário em <code>/lgpd/requisicao</code>.</li>
+<li>Abra LGPD → Solicitações de titulares (alerta no Dashboard se houver pendentes).</li>
+<li>Abra o protocolo, confirme identidade se necessário, execute o direito no sistema de origem.</li>
+<li>Atualize status, responsável e nota; ao concluir, a data de atendimento fica registada.</li>
+<li>Comunique o titular pelo meio pedido (em geral o e-mail do formulário).</li>
+</ol>
+
+<h2>Campos e telas</h2>
+<div class="help-field"><strong>Listagem</strong> Protocolo, titular, categoria, status, prazo e data de entrada.</div>
+<div class="help-field"><strong>Detalhe</strong> Dados do titular/procurador, direitos Sim/Não, IP de entrada e formulário de atendimento.</div>
+<div class="help-field"><strong>Página pública</strong> O endereço do canal aparece no topo da listagem para partilhar no site institucional.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu sem o item</dt>
+    <dd>O nível precisa da permissão <em>LgpdSolicitacoesTitulares</em>. Quem já tinha Consentimentos recebe a cópia na migration.</dd>
+    <dt>Tabela antiga sem protocolo</dt>
+    <dd>Aplique a migration que acrescenta as colunas (CPF, direitos JSON, procurador, etc.).</dd>
+    <dt>Pedido duplicado</dt>
+    <dd>Confira e-mail/CPF e o protocolo; não há bloqueio automático de duplicados.</dd>
+</dl>

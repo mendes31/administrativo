@@ -1688,6 +1688,16 @@
                 },
                 {
                     "type": "topic",
+                    "topic_id": "lgpd-publico",
+                    "title": "Portal público LGPD"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "lgpd-solicitacoes-titulares",
+                    "title": "Solicitações de titulares"
+                },
+                {
+                    "type": "topic",
                     "topic_id": "lgpd-dashboard",
                     "title": "Dashboard LGPD"
                 },

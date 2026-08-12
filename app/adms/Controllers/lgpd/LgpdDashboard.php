@@ -37,6 +37,8 @@ class LgpdDashboard
     {
         // Carregar todos os indicadores do dashboard
         $this->data['indicadores'] = $this->dashboardRepo->getIndicadores();
+        $this->data['solicitacoes_pendentes'] = (new \App\adms\Models\Repository\LgpdSolicitacoesTitularesRepository())->countPendentes();
+        $this->data['url_lgpd_publico'] = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/lgpd';
         
         // Configurar elementos da página
         $pageElements = [
