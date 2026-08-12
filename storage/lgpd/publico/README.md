@@ -1,8 +1,11 @@
 # Documentos públicos LGPD
 
-Coloque aqui os PDFs para os cartões da landing `/lgpd`:
+PDFs dos cartões da landing `/lgpd`:
 
 - `cartilha.pdf` — Cartilha
 - `carta-compromisso.pdf` — Carta de Compromisso
 
-Os cartões só aparecem se o ficheiro existir. Caminhos alternativos: `LGPD_CARTILHA_PATH` e `LGPD_CARTA_COMPROMISSO_PATH` no `.env`.
+Preferência: envie pela tela **LGPD → Config. portal público** (upload).  
+Também pode copiar os ficheiros manualmente para esta pasta.
+
+Os cartões só aparecem se o ficheiro existir. Política e Termos de Uso vêm do módulo Termos LGPD, não destes PDFs.

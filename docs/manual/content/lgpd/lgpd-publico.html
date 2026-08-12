@@ -26,7 +26,7 @@
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>LGPD_DPO_NOME / EMAIL / TELEFONE</strong> Fallback legado se não houver cadastro em LGPD → Config. portal público.</div>
 <div class="help-field"><strong>LGPD_EMPRESA_NOME</strong> Fallback legado. Padrão: APP_NAME.</div>
-<div class="help-field"><strong>PDFs</strong> <code>cartilha.pdf</code> e <code>carta-compromisso.pdf</code> em <code>storage/lgpd/publico/</code> (ou caminhos no .env). Cartões só aparecem se o ficheiro existir.</div>
+<div class="help-field"><strong>PDFs</strong> Preferência: upload em LGPD → Config. portal público (<code>cartilha.pdf</code> / <code>carta-compromisso.pdf</code>). Cartões só aparecem se o ficheiro existir.</div>
 <div class="help-field"><strong>Política e termos</strong> Continuam a vir de LGPD → Termos LGPD, tipo Site/Portal, título contendo a chave do .env.</div>
 <div class="help-field"><strong>Proteção do formulário</strong> CSRF, honeypot, CAPTCHA de soma e limite de envios por IP.</div>
 
@@ -37,7 +37,7 @@
     <dt>Política vazia</dt>
     <dd>Cadastre um termo ativo tipo Site/Portal cujo título contenha «Política de Privacidade».</dd>
     <dt>Cartilha/carta não aparecem</dt>
-    <dd>Coloque os PDFs na pasta indicada. Não há upload pela interface nesta versão.</dd>
+    <dd>Faça upload em LGPD → Config. portal público ou coloque os PDFs em <code>storage/lgpd/publico/</code>.</dd>
     <dt>E-mail do DPO não chega</dt>
     <dd>Confirme SMTP em Configuração de E-mail e o e-mail do DPO em LGPD → Config. portal público.</dd>
 </dl>

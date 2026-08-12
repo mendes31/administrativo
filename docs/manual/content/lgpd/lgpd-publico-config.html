@@ -16,7 +16,7 @@
 <h2>Fluxo principal</h2>
 <ol>
 <li>Abra LGPD → <strong>Config. portal público</strong> (ou o link no Dashboard LGPD).</li>
-<li>Preencha empresa, DPO e, se aplicável, caminhos dos PDFs (relativos à raiz do projeto).</li>
+<li>Preencha empresa e DPO. Se quiser cartilha/carta, faça upload dos PDFs (máx. 20&nbsp;MB) na mesma tela.</li>
 <li>Salve. Os valores do banco têm prioridade sobre variáveis <code>LGPD_*</code> do <code>.env</code>.</li>
 <li>Para comitê: defina título/descrição e adicione membros com ordem e status ativo.</li>
 <li>Confira em <code>{URL_ADM}lgpd</code> (botão «Abrir página pública» na tela).</li>
@@ -25,7 +25,7 @@
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Empresa</strong> Razão social nos textos da landing. Se vazio no banco, usa <code>LGPD_EMPRESA_NOME</code> ou <code>APP_NAME</code>.</div>
 <div class="help-field"><strong>DPO</strong> Nome, e-mail e telefone. E-mail também recebe aviso de novas requisições de titulares.</div>
-<div class="help-field"><strong>PDFs</strong> Caminhos relativos (ex.: <code>storage/lgpd/publico/cartilha.pdf</code>). Cartões só aparecem se o ficheiro existir.</div>
+<div class="help-field"><strong>PDFs</strong> Upload de cartilha e carta de compromisso (gravados em <code>storage/lgpd/publico/</code>). Cartões só aparecem se o ficheiro existir. Botão Remover retira o PDF da página pública.</div>
 <div class="help-field"><strong>Comitê</strong> Título, descrição opcional e lista de membros (ordem, ativo/inativo).</div>
 
 <h2>Problemas comuns</h2>
@@ -36,6 +36,8 @@
     <dd>Salve os campos na tela — após gravar no banco, o .env deixa de ser usado para esses campos.</dd>
     <dt>Comitê não aparece na página pública</dt>
     <dd>Cadastre ao menos um membro com «Ativo» marcado.</dd>
+    <dt>Cartilha/carta não aparecem</dt>
+    <dd>Faça upload na tela de configuração ou coloque os PDFs em <code>storage/lgpd/publico/</code>. Confirme permissão de escrita na pasta.</dd>
     <dt>E-mail do DPO inválido</dt>
     <dd>O sistema não salva configuração com e-mail em formato incorreto.</dd>
 </dl>

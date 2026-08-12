@@ -9,10 +9,14 @@ $config = is_array($this->data['config'] ?? null) ? $this->data['config'] : [];
 $effective = is_array($this->data['effective'] ?? null) ? $this->data['effective'] : [];
 $membros = is_array($this->data['comite_membros'] ?? null) ? $this->data['comite_membros'] : [];
 $editMembro = is_array($this->data['edit_membro'] ?? null) ? $this->data['edit_membro'] : null;
+$docsStatus = is_array($this->data['docs_status'] ?? null) ? $this->data['docs_status'] : [];
+$hasCartilha = !empty($docsStatus['cartilha']);
+$hasCarta = !empty($docsStatus['carta']);
 $portalUrl = (string) ($this->data['portal_url'] ?? '');
 $csrf = (string) ($this->data['csrf_token'] ?? '');
 $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
 $actionUrl = $urlAdm . '/lgpd-publico-config';
+$portalDocUrl = rtrim($portalUrl, '/') . '/documento?tipo=';
 
 $val = static function (string $field) use ($config, $effective): string {
     $fromDb = trim((string) ($config[$field] ?? ''));
@@ -46,9 +50,11 @@ $envHint = static function (string $field, string $envKey) use ($config): ?strin
                         Dados exibidos em <code>/lgpd</code> sem login. As alterações aqui têm prioridade sobre o arquivo <code>.env</code>.
                     </p>
 
-                    <form method="post" action="<?= htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') ?>" class="mb-4">
+                    <form method="post" action="<?= htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') ?>" class="mb-4" enctype="multipart/form-data">
                         <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
                         <input type="hidden" name="action" value="save_config">
+                        <input type="hidden" name="cartilha_path" value="<?= htmlspecialchars($val('cartilha_path'), ENT_QUOTES, 'UTF-8') ?>">
+                        <input type="hidden" name="carta_compromisso_path" value="<?= htmlspecialchars($val('carta_compromisso_path'), ENT_QUOTES, 'UTF-8') ?>">
 
                         <h5 class="border-bottom pb-2 mb-3">Empresa e DPO / Encarregado</h5>
                         <div class="row g-3">
@@ -88,19 +94,39 @@ $envHint = static function (string $field, string $envKey) use ($config): ?strin
                         </div>
 
                         <h5 class="border-bottom pb-2 mb-3 mt-4">Documentos PDF (opcional)</h5>
+                        <p class="text-muted small mb-3">
+                            Faça upload dos PDFs (máx. 20&nbsp;MB) e clique em <strong>Salvar configuração</strong>.
+                            Os cartões só aparecem na página pública se o ficheiro existir.
+                            Política e Termos de Uso continuam a vir do cadastro em Termos LGPD.
+                        </p>
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label" for="cartilha_path">Caminho da cartilha</label>
-                                <input type="text" name="cartilha_path" id="cartilha_path" class="form-control"
-                                       value="<?= htmlspecialchars($val('cartilha_path'), ENT_QUOTES, 'UTF-8') ?>"
-                                       placeholder="storage/lgpd/publico/cartilha.pdf">
-                                <div class="form-text">Relativo à raiz do projeto. O cartão só aparece se o PDF existir.</div>
+                                <label class="form-label" for="cartilha_file">Cartilha (PDF)</label>
+                                <input type="file" name="cartilha_file" id="cartilha_file" class="form-control" accept="application/pdf,.pdf">
+                                <div class="form-text mt-1">
+                                    <?php if ($hasCartilha): ?>
+                                        <span class="badge bg-success me-1">Publicada</span>
+                                        <a href="<?= htmlspecialchars($portalDocUrl . 'cartilha', ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">Ver na página pública</a>
+                                        <span class="text-muted"> · <?= htmlspecialchars($val('cartilha_path') ?: 'storage/lgpd/publico/cartilha.pdf', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary me-1">Não publicada</span>
+                                        Envie um PDF ou coloque o ficheiro em <code>storage/lgpd/publico/cartilha.pdf</code>.
+                                    <?php endif; ?>
+                                </div>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label" for="carta_compromisso_path">Caminho da carta de compromisso</label>
-                                <input type="text" name="carta_compromisso_path" id="carta_compromisso_path" class="form-control"
-                                       value="<?= htmlspecialchars($val('carta_compromisso_path'), ENT_QUOTES, 'UTF-8') ?>"
-                                       placeholder="storage/lgpd/publico/carta-compromisso.pdf">
+                                <label class="form-label" for="carta_file">Carta de compromisso (PDF)</label>
+                                <input type="file" name="carta_file" id="carta_file" class="form-control" accept="application/pdf,.pdf">
+                                <div class="form-text mt-1">
+                                    <?php if ($hasCarta): ?>
+                                        <span class="badge bg-success me-1">Publicada</span>
+                                        <a href="<?= htmlspecialchars($portalDocUrl . 'carta', ENT_QUOTES, 'UTF-8') ?>" target="_blank" rel="noopener">Ver na página pública</a>
+                                        <span class="text-muted"> · <?= htmlspecialchars($val('carta_compromisso_path') ?: 'storage/lgpd/publico/carta-compromisso.pdf', ENT_QUOTES, 'UTF-8') ?></span>
+                                    <?php else: ?>
+                                        <span class="badge bg-secondary me-1">Não publicada</span>
+                                        Envie um PDF ou coloque o ficheiro em <code>storage/lgpd/publico/carta-compromisso.pdf</code>.
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
 
@@ -128,6 +154,33 @@ $envHint = static function (string $field, string $envKey) use ($config): ?strin
                             </a>
                         </div>
                     </form>
+
+                    <?php if ($hasCartilha || $hasCarta): ?>
+                    <div class="d-flex flex-wrap gap-2 mb-4">
+                        <?php if ($hasCartilha): ?>
+                        <form method="post" action="<?= htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') ?>"
+                              onsubmit="return confirm('Remover a cartilha da página pública?');">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="action" value="delete_pdf">
+                            <input type="hidden" name="pdf_tipo" value="cartilha">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash me-1"></i>Remover cartilha
+                            </button>
+                        </form>
+                        <?php endif; ?>
+                        <?php if ($hasCarta): ?>
+                        <form method="post" action="<?= htmlspecialchars($actionUrl, ENT_QUOTES, 'UTF-8') ?>"
+                              onsubmit="return confirm('Remover a carta de compromisso da página pública?');">
+                            <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf, ENT_QUOTES, 'UTF-8') ?>">
+                            <input type="hidden" name="action" value="delete_pdf">
+                            <input type="hidden" name="pdf_tipo" value="carta">
+                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                <i class="fas fa-trash me-1"></i>Remover carta
+                            </button>
+                        </form>
+                        <?php endif; ?>
+                    </div>
+                    <?php endif; ?>
 
                     <h5 class="border-bottom pb-2 mb-3">Membros do comitê</h5>
                     <p class="text-muted small">
