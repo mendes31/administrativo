@@ -114,7 +114,7 @@ Chegada → cadastro → escolhe anfitrião
 | R7 | Porteiro com login próprio; sem usuário genérico para atestação. |
 | R8 | Texto do termo em `lgpd_termos`; aceite em Portaria; não assinar a cada entrada. |
 | R9 | Validade do aceite: padrão **1 ano**, **configurável**. |
-| R10 | Não agendado: notificar anfitrião (push/WhatsApp); sem resposta → porteiro liga e registra. |
+| R10 | Não agendado: notificar anfitrião (push/WhatsApp) com links públicos Autorizar/Recusar (sem login); sem resposta → porteiro liga e registra. |
 | R11 | Lista de visitantes com auditoria de termos/aceites. |
 | R12 | Controle por filial/área e adendo de termo por zona: pós-MVP. |
 

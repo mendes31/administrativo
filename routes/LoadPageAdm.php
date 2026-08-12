@@ -47,6 +47,7 @@ class LoadPageAdm
     private array $listPgPublic = [
         "Login", "Error403", "NewUser", "ForgotPassword", "ResetPassword", "LgpdConsentimentoLogin",
         "MeetingBookingRsvp",
+        "PortariaAutorizacaoDecisao",
         "RhVagasPublicas",
         // Servidor de arquivos foi tornado público para evitar problemas
         // de permissão com avatares e imagens em dashboards, mantendo ainda

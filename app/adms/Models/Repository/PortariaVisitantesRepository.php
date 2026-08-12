@@ -18,8 +18,14 @@ final class PortariaVisitantesRepository extends DbConnection
         $params = [];
         $busca = trim((string) ($filters['busca'] ?? ''));
         if ($busca !== '') {
-            $where[] = '(v.nome LIKE :busca OR v.documento LIKE :busca OR v.empresa LIKE :busca OR v.telefone LIKE :busca)';
+            $docDigits = preg_replace('/\D+/', '', $busca) ?? '';
+            $conds = ['v.nome LIKE :busca', 'v.documento LIKE :busca', 'v.empresa LIKE :busca', 'v.telefone LIKE :busca'];
             $params[':busca'] = '%' . $busca . '%';
+            if ($docDigits !== '') {
+                $conds[] = 'REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(v.documento,\'\'), \'.\', \'\'), \'-\', \'\'), \'/\', \'\'), \' \', \'\') LIKE :busca_doc';
+                $params[':busca_doc'] = '%' . $docDigits . '%';
+            }
+            $where[] = '(' . implode(' OR ', $conds) . ')';
         }
         if (($filters['ativo'] ?? '') !== '') {
             $where[] = 'v.ativo = :ativo';
@@ -62,6 +68,32 @@ final class PortariaVisitantesRepository extends DbConnection
             return $row;
         } catch (Throwable $e) {
             GenerateLog::generateLog('error', 'PortariaVisitantesRepository::getById', ['error' => $e->getMessage()]);
+            return null;
+        }
+    }
+
+    /** @return array<string, mixed>|null */
+    public function findByDocumento(string $documento): ?array
+    {
+        $documento = preg_replace('/\D+/', '', $documento) ?? trim($documento);
+        $documento = trim($documento);
+        if ($documento === '') {
+            return null;
+        }
+        try {
+            $stmt = $this->getConnection()->prepare(
+                "SELECT * FROM portaria_visitantes
+                 WHERE REPLACE(REPLACE(REPLACE(REPLACE(COALESCE(documento,''), '.', ''), '-', ''), '/', ''), ' ', '') = :doc
+                    OR documento = :doc_raw
+                 ORDER BY id DESC LIMIT 1"
+            );
+            $stmt->bindValue(':doc', $documento, PDO::PARAM_STR);
+            $stmt->bindValue(':doc_raw', $documento, PDO::PARAM_STR);
+            $stmt->execute();
+            $row = $stmt->fetch(PDO::FETCH_ASSOC);
+            return $row ?: null;
+        } catch (Throwable $e) {
+            GenerateLog::generateLog('error', 'PortariaVisitantesRepository::findByDocumento', ['error' => $e->getMessage()]);
             return null;
         }
     }

@@ -1,14 +1,33 @@
 <h1>Movimentações da Portaria</h1>
 <h2>Função no sistema</h2>
-<p>Registra entradas e saídas append-only no perímetro do complexo, identifica quem está presente e permite corrigir uma saída esquecida sem apagar o histórico.</p>
-<p><strong>Quem acessa:</strong> permissão <em>PortariaMovimentacoes</em> no Controller. Cada porteiro deve usar credencial própria para preservar a autoria.</p>
+<p>Localiza a agenda/autorização pelo documento ou nome do visitante, registra entradas e saídas no perímetro do complexo e exige assinatura do termo quando não houver aceite vigente.</p>
+<p><strong>Quem acessa:</strong> permissão <em>PortariaMovimentacoes</em>. Cada porteiro deve usar credencial própria.</p>
 <h2>Fluxo principal</h2>
-<ol><li>Acesse <em>Portaria → Movimentações</em>.</li><li>Selecione visitante, autorização quando aplicável e ponto de controle.</li><li>Clique em <strong>Registrar entrada</strong> ou <strong>Registrar saída</strong>.</li><li>Se uma entrada já estiver aberta, confira o alerta.</li><li>Informe o motivo e use <strong>Regularizar saída e entrar</strong>; o sistema grava uma saída regularizada e a nova entrada.</li><li>Confira a lista de presentes.</li></ol>
+<ol>
+<li>Acesse <em>Portaria → Movimentações</em>.</li>
+<li>Busque pelo <strong>documento</strong> ou <strong>nome</strong> do visitante para achar a agenda/autorização do dia.</li>
+<li>Selecione o resultado (ou o visitante cadastrado) e informe o ponto de controle.</li>
+<li>Se não houver <strong>termo vigente</strong>, o sistema solicita a assinatura primeiro (leitura do termo + aceite + conferência de identidade).</li>
+<li>Use <em>Assinar termo e registrar entrada</em> ou assine e depois registre a entrada.</li>
+<li>Se já existir entrada aberta, regularize a saída faltante antes de nova entrada.</li>
+<li>A saída nunca é bloqueada por termo ou autorização vencida.</li>
+</ol>
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Visitante</strong> Pessoa externa ativa vinculada ao movimento.</div>
-<div class="help-field"><strong>Autorização</strong> Protocolo aprovado relacionado à visita; a saída não é bloqueada se estiver vencido.</div>
-<div class="help-field"><strong>Ponto</strong> Local físico onde o evento ocorreu.</div>
-<div class="help-field"><strong>Motivo da regularização</strong> Justificativa obrigatória para encerrar a entrada anterior esquecida.</div>
-<div class="help-field"><strong>Permanência excedida</strong> Alerta gravado na saída quando ultrapassa o fim autorizado.</div>
+<div class="help-field"><strong>Busca</strong> Documento (com ou sem máscara) ou nome do visitante.</div>
+<div class="help-field"><strong>Autorização / agenda</strong> Protocolos do visitante vigentes hoje; a saída não é bloqueada se estiver vencido.</div>
+<div class="help-field"><strong>Ponto</strong> Local físico do evento.</div>
+<div class="help-field"><strong>Assinatura do termo</strong> Exibe o texto LGPD tipo <code>acesso_dependencias</code>; exige aceite do visitante e conferência de identidade. Validade padrão 12 meses.</div>
+<div class="help-field"><strong>Motivo da regularização</strong> Obrigatório para encerrar entrada esquecida.</div>
 <h2>Problemas comuns</h2>
-<dl><dt>Visitante já está dentro</dt><dd>Não crie entrada duplicada. Use a opção de regularização com justificativa.</dd><dt>Saída com autorização vencida</dt><dd>Registre normalmente; saída é sempre permitida e pode gerar alerta de permanência excedida.</dd><dt>Autorização não aparece</dt><dd>Somente autorizações aprovadas aparecem no formulário.</dd><dt>Ponto não aparece</dt><dd>Ative o ponto em <em>Portaria → Pontos</em>.</dd><dt>Usuário compartilhado</dt><dd>Não utilize credencial genérica; a movimentação registra o porteiro autenticado.</dd></dl>
+<dl>
+<dt>Busca não acha a agenda</dt>
+<dd>Confira documento/nome e se a autorização cobre a data de hoje. Ainda assim você pode selecionar o visitante cadastrado e registrar a movimentação.</dd>
+<dt>Entrada bloqueada por termo</dt>
+<dd>Assine o termo na própria tela ou cadastre o termo ativo em LGPD → Termos (tipo Acesso às Dependências).</dd>
+<dt>Visitante já está dentro</dt>
+<dd>Use regularização com justificativa; não crie entrada duplicada.</dd>
+<dt>Saída com autorização vencida</dt>
+<dd>Registre normalmente; pode gerar alerta de permanência excedida.</dd>
+<dt>Usuário compartilhado</dt>
+<dd>Não use credencial genérica; a movimentação grava o porteiro autenticado.</dd>
+</dl>

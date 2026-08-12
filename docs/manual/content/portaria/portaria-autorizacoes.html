@@ -1,15 +1,35 @@
 <h1>Autorizações de Visita</h1>
 <h2>Função no sistema</h2>
-<p>Registra visitas agendadas e não programadas, o anfitrião responsável, período permitido, decisão e tentativas de contato por push, WhatsApp ou ligação.</p>
-<p><strong>Quem acessa:</strong> permissões <em>PortariaAutorizacoes</em>, <em>PortariaAutorizacoesCreate</em> e <em>PortariaAutorizacoesView</em> nos respectivos Controllers.</p>
+<p>Agenda visitas previstas e registra liberações não programadas (chegada sem aviso), com anfitrião, período, decisão e contatos (push, WhatsApp ou ligação).</p>
+<p><strong>Quem acessa:</strong> permissões <em>PortariaAutorizacoes</em>, <em>PortariaAutorizacoesCreate</em> e <em>PortariaAutorizacoesView</em>.</p>
 <h2>Fluxo principal</h2>
-<ol><li>Acesse <em>Portaria → Autorizações</em>.</li><li>Crie a autorização escolhendo visitante e anfitrião.</li><li>Informe período, horários, destino, origem e motivo.</li><li>Em visita não programada, registre cada contato com o anfitrião.</li><li>Na ficha, autorize ou recuse enquanto o status estiver aguardando.</li><li>A autorização aprovada pode ser vinculada à entrada.</li></ol>
+<ol>
+<li>Acesse <em>Portaria → Autorizações</em>. Use a busca por <strong>documento</strong> ou <strong>nome</strong> do visitante para achar agenda e autorização.</li>
+<li><strong>Agendar visita</strong> — visita prevista: pode escolher visitante já cadastrado ou cadastrar na hora.</li>
+<li><strong>Liberação rápida</strong> — não programado: nome/documento do visitante + anfitrião + motivo na mesma tela (não precisa ir antes em Visitantes).</li>
+<li>Se o documento já existir, o sistema reutiliza o cadastro do visitante.</li>
+<li>Na ficha, notifique o anfitrião (push/WhatsApp com links <strong>Autorizar</strong> e <strong>Recusar</strong> sem login) e registre contatos; ou autorize/recuse no portal enquanto estiver aguardando.</li>
+<li>Com autorização liberada, registre a entrada em Movimentações.</li>
+</ol>
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Protocolo</strong> Gerado automaticamente no padrão <code>PORT-AAAAMMDD-XXXX</code>.</div>
-<div class="help-field"><strong>Origem</strong> Agendada ou não programada.</div>
+<div class="help-field"><strong>Busca</strong> Documento ou nome do visitante (também encontra pelo protocolo).</div>
+<div class="help-field"><strong>Visitante — Cadastrar agora</strong> Nome (obrigatório), documento, telefone e empresa na própria autorização.</div>
+<div class="help-field"><strong>Visitante — Já cadastrado</strong> Seleção na lista de Visitantes.</div>
+<div class="help-field"><strong>Protocolo</strong> Gerado automaticamente (<code>PORT-AAAAMMDD-XXXX</code>).</div>
+<div class="help-field"><strong>Origem</strong> Agendada ou não programada (liberação rápida).</div>
 <div class="help-field"><strong>Período e horários</strong> Janela autorizada para acesso.</div>
-<div class="help-field"><strong>Dias permitidos</strong> Lista numérica para autorizações recorrentes, por exemplo <code>1,2,3,4,5</code>.</div>
+<div class="help-field"><strong>Dias permitidos</strong> Só no agendamento; ex.: <code>1,2,3,4,5</code> (seg–sex).</div>
 <div class="help-field"><strong>Status</strong> Aguardando, autorizada, recusada ou cancelada.</div>
-<div class="help-field"><strong>Canal de contato</strong> Push, WhatsApp ou ligação, com resultado e observações.</div>
+<div class="help-field"><strong>Canal de contato</strong> Push, WhatsApp, ligação ou decisão por link público.</div>
+<div class="help-field"><strong>Links Autorizar / Recusar</strong> Enviados no WhatsApp; abrem página pública sem login (`portaria-autorizacao-decisao/{token}`).</div>
 <h2>Problemas comuns</h2>
-<dl><dt>Anfitrião não respondeu</dt><dd>Registre push/WhatsApp e depois a ligação. O MVP não aprova automaticamente.</dd><dt>Não aparecem visitantes</dt><dd>Cadastre ou reative o visitante.</dd><dt>Botões de decisão não aparecem</dt><dd>Eles são exibidos somente quando a autorização está aguardando.</dd><dt>Protocolo repetido</dt><dd>Tente novamente; o sufixo é aleatório e o banco impede duplicidade.</dd></dl>
+<dl>
+<dt>Preciso cadastrar visitante antes?</dt>
+<dd>Não obrigatoriamente: use <em>Cadastrar agora</em> na autorização ou <em>Liberação rápida</em>.</dd>
+<dt>Anfitrião não respondeu</dt>
+<dd>Reenvie push/WhatsApp (com links Autorizar/Recusar) e depois registre a ligação. O MVP não aprova automaticamente.</dd>
+<dt>Link do WhatsApp pede login</dt>
+<dd>Use os links novos <em>Autorizar</em> / <em>Recusar</em> (sem login). O link antigo da ficha interna exige autenticação.</dd>
+<dt>No celular o histórico parece cortado</dt>
+<dd>Nas telas do módulo, tabelas viram cards no mobile. Atualize a página (Ctrl+F5) se ainda vir a tabela antiga.</dd>
+</dl>

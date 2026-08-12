@@ -44,9 +44,10 @@ liberação em uma, pode circular no complexo; a presença no MVP é por períod
    - não é assinado a cada entrada; formalização presencial no MVP;
    - link/OTP/QR na Fase 2; adendo por área: fora do MVP.
 9. **Não agendado — notificação e SLA:** o sistema oferece o anfitrião via
-   **push e/ou WhatsApp**; se não houver resposta, o **porteiro realiza ligação
-   telefônica** ao anfitrião e registra o contato no histórico da autorização
-   (não há autoaprovação silenciosa no MVP).
+   **push e/ou WhatsApp** com **links públicos Autorizar/Recusar** (token
+   `decisao_token`, sem login); se não houver resposta, o **porteiro realiza
+   ligação telefônica** ao anfitrião e registra o contato no histórico da
+   autorização (não há autoaprovação silenciosa no MVP).
 10. **Autenticação do porteiro:** credencial própria (`adms_users`); proibido
    usuário genérico “portaria” para atestação de conferência de identidade.
 11. **Auditoria de visitantes:** listagem de visitantes com status do termo

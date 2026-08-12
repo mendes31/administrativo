@@ -7,6 +7,7 @@ namespace App\adms\Controllers\portaria;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\PortariaAutorizacoesRepository;
+use App\adms\Models\Services\PortariaNotificacaoAnfitriaoService;
 use App\adms\Views\Services\LoadViewService;
 
 final class PortariaAutorizacoesView
@@ -22,13 +23,30 @@ final class PortariaAutorizacoesView
             && CSRFHelper::validateCSRFToken('form_portaria_autorizacao_view_' . $autorizacaoId, (string) $post['csrf_token'])) {
             $actorId = (int) ($_SESSION['user_id'] ?? 0);
             $acao = (string) ($post['acao'] ?? '');
-            $ok = match ($acao) {
-                'autorizar' => $repo->updateStatus($autorizacaoId, 'autorizada', $actorId),
-                'recusar' => $repo->updateStatus($autorizacaoId, 'recusada', $actorId),
-                'contato' => $repo->registrarContato($autorizacaoId, $post, $actorId),
-                default => false,
-            };
-            $_SESSION['msg'] = $ok ? 'Operação registrada com sucesso.' : 'Não foi possível registrar a operação.';
+            $ok = false;
+            $msg = 'Não foi possível registrar a operação.';
+            if ($acao === 'autorizar') {
+                $ok = $repo->updateStatus($autorizacaoId, 'autorizada', $actorId);
+                $msg = $ok ? 'Autorização liberada.' : $msg;
+            } elseif ($acao === 'recusar') {
+                $ok = $repo->updateStatus($autorizacaoId, 'recusada', $actorId);
+                $msg = $ok ? 'Autorização recusada.' : $msg;
+            } elseif ($acao === 'contato') {
+                $canal = (string) ($post['canal'] ?? '');
+                if ($canal === 'push' || $canal === 'whatsapp') {
+                    $notif = (new PortariaNotificacaoAnfitriaoService())
+                        ->notificarSolicitacao($autorizacaoId, $actorId, [$canal]);
+                    $ok = ($canal === 'push' && $notif['push']) || ($canal === 'whatsapp' && $notif['whatsapp']);
+                    $msg = implode(' ', $notif['mensagens']) ?: $msg;
+                } elseif ($canal === 'ligacao') {
+                    $ok = $repo->registrarContato($autorizacaoId, $post, $actorId);
+                    $msg = $ok ? 'Ligação registrada.' : $msg;
+                } else {
+                    $ok = $repo->registrarContato($autorizacaoId, $post, $actorId);
+                    $msg = $ok ? 'Contato registrado.' : $msg;
+                }
+            }
+            $_SESSION['msg'] = $msg;
             $_SESSION['msg_type'] = $ok ? 'success' : 'danger';
             header('Location: ' . ($_ENV['URL_ADM'] ?? '') . 'portaria-autorizacoes-view/' . $autorizacaoId);
             return;
