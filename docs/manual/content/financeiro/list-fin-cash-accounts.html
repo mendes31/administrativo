@@ -1,0 +1,46 @@
+<h1>Contas Financeiras SAP</h1>
+
+<h2>Função no sistema</h2>
+<p>Parametriza quais contas contábeis do SAP entram no Dashboard de Fluxo de Caixa: tipo (banco, caixa, aplicação, trânsito), inclusão no fluxo e na disponibilidade, e limite de crédito. A importação lê o cadastro bancário (<code>DSC1</code>) e contas financeiras (<code>OACT</code>) pela API SAP já configurada.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Tipo Banco / Caixa</dt>
+    <dd>Entram no saldo financeiro do fluxo de caixa.</dd>
+    <dt>Tipo Aplicação</dt>
+    <dd>Saldo apresentado à parte, somado à disponibilidade própria, sem misturar com conta corrente.</dd>
+    <dt>Tipo Trânsito</dt>
+    <dd>Conta de passagem; por padrão não deve inflar receita/despesa consolidada.</dd>
+    <dt>Limite bancário</dt>
+    <dd>Crédito disponível informado manualmente (o SAP padrão não tem fonte homologada). Entra só na disponibilidade ampliada.</dd>
+    <dt>Tipo travado</dt>
+    <dd>Após editar a conta, a próxima importação atualiza banco/agência, mas não sobrescreve o tipo nem a descrição.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ListFinCashAccounts</em>. A edição exige <em>UpdateFinCashAccount</em>. A importação usa <em>FinCashFlowDashboardSync</em> no modo contas.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <strong>Financeiro → Contas Financeiras SAP</strong>.</li>
+    <li>Clique em <strong>Importar contas do SAP</strong> na primeira configuração ou quando houver conta nova no ERP.</li>
+    <li>Abra cada conta relevante e ajuste tipo, limite e os indicadores “No fluxo” / “Na disponibilidade”.</li>
+    <li>Marque como aplicação as contas de CDB/investimento; desmarque do fluxo contas transitórias que não devem aparecer.</li>
+    <li>Volte ao dashboard e sincronize os movimentos.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Conta SAP</strong> Código da conta contábil (<code>GLAccount</code> / <code>AcctCode</code>), somente leitura.</div>
+<div class="help-field"><strong>Descrição</strong> Nome exibido no dashboard e nos filtros.</div>
+<div class="help-field"><strong>Tipo</strong> Banco, caixa, aplicação, trânsito ou outra.</div>
+<div class="help-field"><strong>Limite bancário</strong> Valor em reais do crédito disponível da conta.</div>
+<div class="help-field"><strong>Ativa / No fluxo / Na disponibilidade</strong> Controlam se a conta entra nos cálculos.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Importação não retorna contas</dt>
+    <dd>Confira a Configuração SAP API e se <code>DSC1</code>/<code>OACT</code> estão acessíveis na API de query.</dd>
+    <dt>Conta de aplicação misturada no saldo financeiro</dt>
+    <dd>Altere o tipo para Aplicação e salve. O tipo passa a ser travado contra o próximo sync.</dd>
+    <dt>Limite continua zero</dt>
+    <dd>Não há fonte SAP homologada; informe o limite nesta tela.</dd>
+</dl>

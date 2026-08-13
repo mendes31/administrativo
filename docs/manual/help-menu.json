@@ -947,6 +947,21 @@
                 },
                 {
                     "type": "topic",
+                    "topic_id": "fin-cash-flow-dashboard",
+                    "title": "Dashboard Fluxo de Caixa SAP"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-fin-cash-accounts",
+                    "title": "Contas Financeiras SAP"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "list-fin-cash-investments",
+                    "title": "Aplicações Financeiras"
+                },
+                {
+                    "type": "topic",
                     "topic_id": "flow-cash-competence",
                     "title": "Pagina Resumo Financeiro Regime de Caixa e Competência"
                 }

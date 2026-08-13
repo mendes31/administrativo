@@ -1,0 +1,68 @@
+<h1>Dashboard Fluxo de Caixa SAP</h1>
+
+<h2>Função no sistema</h2>
+<p>Painel de tesouraria com fluxo de caixa <strong>diário</strong> e <strong>mensal</strong>, comparando valores <strong>efetivos</strong> (já lançados no SAP) e <strong>previstos</strong> (títulos em aberto por vencimento). Os dados vêm de um <strong>cache MySQL</strong> sincronizado pela API SAP B1 já parametrizada em Configuração SAP API — a tela não consulta o HANA a cada filtro.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Efetivo / realizado</dt>
+    <dd>Movimentações que já alteraram caixa/bancos no SAP (lançamentos em <code>JDT1</code>), na data contábil (<code>RefDate</code>).</dd>
+    <dt>Previsto</dt>
+    <dd>Parcelas ainda em aberto de contas a receber (<code>OINV/INV6</code>) e a pagar (<code>OPCH/PCH6</code>), agrupadas pela data de vencimento. Usa o <strong>saldo aberto</strong> (parcela menos valor já pago), não o total original.</dd>
+    <dt>Saldo inicial</dt>
+    <dd>Posição das contas financeiras imediatamente antes do primeiro dia do período.</dd>
+    <dt>Saldo financeiro</dt>
+    <dd>Saldo inicial + entradas efetivas − saídas efetivas, nas contas classificadas como caixa/banco.</dd>
+    <dt>Aplicações</dt>
+    <dd>Recursos aplicados, separados do saldo em conta corrente. Somam contas SAP do tipo Aplicação e os lançamentos locais (aplicação, resgate e rendimento).</dd>
+    <dt>Disponibilidade própria</dt>
+    <dd>Saldo financeiro + aplicações, sem incluir limite de crédito bancário.</dd>
+    <dt>Disponibilidade ampliada</dt>
+    <dd>Disponibilidade própria + limites cadastrados nas contas financeiras.</dd>
+    <dt>Necessidade de caixa</dt>
+    <dd>A receber menos a pagar no horizonte escolhido. Valor negativo indica pressão de caixa.</dd>
+    <dt>Transferência interna</dt>
+    <dd>Movimento entre duas contas financeiras do mesmo lançamento. No consolidado o impacto é zero; na visão por conta continua visível.</dd>
+    <dt>Cache / sincronização</dt>
+    <dd>Cópia local dos movimentos e títulos. O painel lê só o cache. O botão <strong>Sincronizar SAP</strong> atualiza de forma incremental; a carga completa é via CLI.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>FinCashFlowDashboard</em>. Os dados JSON exigem <em>FinCashFlowDashboardData</em>; o botão de sync exige <em>FinCashFlowDashboardSync</em>. Atalhos para contas e aplicações exigem <em>ListFinCashAccounts</em> e <em>ListFinCashInvestments</em>. A migration copia a ACL a partir de <em>CashFlow</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Execute a migration: <code>vendor/bin/phinx migrate</code>.</li>
+    <li>Na primeira vez, sincronize as contas em <strong>Financeiro → Contas Financeiras SAP</strong> (Importar contas do SAP) e classifique aplicações, trânsito e limites.</li>
+    <li>Rode a carga completa no servidor: <code>php scripts/sync_fin_cash_flow_sap.php --full</code>.</li>
+    <li>Acesse <strong>Financeiro → Dashboard Fluxo de Caixa SAP</strong>.</li>
+    <li>Escolha mês/ano, filial, conta, cenário (efetivo + previsto, só efetivo ou só previsto) e horizonte (7 a 90 dias).</li>
+    <li>Analise os KPIs, o fluxo diário (painéis efetivo/previsto e tabela combinada), o mensal, bancos e aplicações.</li>
+    <li>Clique em um valor da tabela diária para abrir o detalhamento dos documentos.</li>
+    <li>Lance aplicações, resgates e rendimentos em <strong>Aplicações Financeiras</strong> — esses valores entram no KPI de aplicações e na aba Aplicações.</li>
+    <li>Para atualizar no meio do dia, use <strong>Sincronizar SAP</strong> (incremental). O primeiro acesso do dia já tenta sincronizar sozinho.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período</strong> Mês/ano da visão diária e do destaque na tabela mensal.</div>
+<div class="help-field"><strong>Filial</strong> Filtra movimentos e títulos pelo <code>BPLId</code> do SAP, quando houver.</div>
+<div class="help-field"><strong>Banco / Conta</strong> Conta contábil parametrizada em Contas Financeiras SAP.</div>
+<div class="help-field"><strong>Cenário</strong> Mostra colunas efetivas, previstas ou ambas na visão combinada.</div>
+<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) dos KPIs a receber, a pagar e necessidade de caixa.</div>
+<div class="help-field"><strong>Sincronizar SAP</strong> Incremental na web (janela desde a última sync com overlap de 7 dias). Full somente via CLI <code>--full</code>.</div>
+<div class="help-field"><strong>CLI</strong> <code>php scripts/sync_fin_cash_flow_sap.php</code> (incremental), <code>--full</code>, <code>--today</code>, <code>--accounts</code>.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>Permissão <em>FinCashFlowDashboard</em> ausente. Após a migration, a ACL é copiada de <em>CashFlow</em>; confira o nível de acesso.</dd>
+    <dt>Cache vazio / valores zerados</dt>
+    <dd>Rode <code>php scripts/sync_fin_cash_flow_sap.php --full</code> e confirme a Configuração SAP API (URL, token, integração ativa).</dd>
+    <dt>Saldo inicial diferente do razão</dt>
+    <dd>Revise quais contas estão marcadas “No fluxo”. Contas de aplicação e trânsito não devem inflar o saldo financeiro.</dd>
+    <dt>Receita e despesa infladas</dt>
+    <dd>Transferências internas devem ser neutralizadas no consolidado. Se o aviso de sync indicar falha nessa etapa, as queries de transferência precisam ser validadas no HANA.</dd>
+    <dt>Aplicações não batem com a planilha</dt>
+    <dd>O SAP em geral só traz rendimentos. Lance aplicações e resgates em <em>ListFinCashInvestments</em> e classifique as contas SAP do tipo Aplicação.</dd>
+    <dt>Sync automático falhou</dt>
+    <dd>O painel continua com o cache anterior e exibe o aviso. Use Sincronizar SAP ou o CLI; verifique timeout e logs da API.</dd>
+</dl>

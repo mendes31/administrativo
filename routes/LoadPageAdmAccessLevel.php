@@ -506,7 +506,7 @@ class LoadPageAdmAccessLevel
 
         static $knownOnDisk = [
             'accessLevels', 'accountsPlan', 'analytics', 'banks', 'branches', 'companyEvents',
-            'costCenter', 'crm', 'customer', 'dashboard', 'dashboards', 'departments',
+            'cashFlow', 'costCenter', 'crm', 'customer', 'dashboard', 'dashboards', 'departments',
             'documents', 'errors', 'evaluations', 'financialReports', 'frequency',
             'groupsPages', 'informativos', 'inventory', 'legal', 'lgpd', 'login', 'logs',
             'movement', 'notifications', 'packages', 'pages', 'pay', 'paymentMethod',

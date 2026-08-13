@@ -107,6 +107,15 @@ function buildManualAggregateTopicMap(): array
     $add([
         'cost-center-summary', 'movements', 'cash-flow', 'flow-cash-competence',
     ], 'fin-relatorios');
+    $add([
+        'fin-cash-flow-dashboard', 'fin-cash-flow-dashboard-data', 'fin-cash-flow-dashboard-sync',
+    ], 'fin-cash-flow-dashboard');
+    $add([
+        'list-fin-cash-accounts', 'update-fin-cash-account',
+    ], 'list-fin-cash-accounts');
+    $add([
+        'list-fin-cash-investments', 'create-fin-cash-investment', 'update-fin-cash-investment', 'delete-fin-cash-investment',
+    ], 'list-fin-cash-investments');
 
     $add([
         'list-customers', 'create-customer', 'update-customer', 'view-customer',
@@ -238,8 +247,11 @@ function manualTopicToContentDir(): array
         'crm-oportunidades' => 'crm', 'crm-atividades' => 'crm', 'crm-configuracoes' => 'crm',
         'est-visao-geral' => 'estoque', 'est-cadastros' => 'estoque', 'est-movimentacoes' => 'estoque',
         'est-custeio' => 'estoque', 'est-relatorios' => 'estoque',
-        'fin-visao-geral' => 'financeiro', 'fin-cadastros' => 'financeiro', 'fin-pagar-receber' => 'financeiro',
+        'fin-visao-geral' => 'financeiro',         'fin-cadastros' => 'financeiro', 'fin-pagar-receber' => 'financeiro',
         'fin-relatorios' => 'financeiro',
+        'fin-cash-flow-dashboard' => 'financeiro',
+        'list-fin-cash-accounts' => 'financeiro',
+        'list-fin-cash-investments' => 'financeiro',
         'parceiros-negocio' => 'parceiros', 'qualidade-documentos' => 'qualidade',
         'rh-trein-visao-geral' => 'rh_treinamentos', 'rh-trein-catalogo' => 'rh_treinamentos',
         'rh-trein-dashboards' => 'rh_treinamentos', 'rh-trein-matrizes' => 'rh_treinamentos',
@@ -288,6 +300,9 @@ function manualAggregateTopicLabels(): array
         'fin-cadastros' => 'Cadastros financeiros',
         'fin-pagar-receber' => 'Contas a pagar e receber',
         'fin-relatorios' => 'Relatórios financeiros',
+        'fin-cash-flow-dashboard' => 'Dashboard Fluxo de Caixa SAP',
+        'list-fin-cash-accounts' => 'Contas Financeiras SAP',
+        'list-fin-cash-investments' => 'Aplicações Financeiras',
         'parceiros-negocio' => 'Clientes e fornecedores',
         'qualidade-documentos' => 'Documentos (qualidade)',
         'rh-trein-catalogo' => 'Catálogo de treinamentos',

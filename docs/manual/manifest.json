@@ -1003,6 +1003,21 @@
                     "file": "financeiro/cash-flow.html"
                 },
                 {
+                    "id": "fin-cash-flow-dashboard",
+                    "title": "Dashboard Fluxo de Caixa SAP",
+                    "file": "financeiro/fin-cash-flow-dashboard.html"
+                },
+                {
+                    "id": "list-fin-cash-accounts",
+                    "title": "Contas Financeiras SAP",
+                    "file": "financeiro/list-fin-cash-accounts.html"
+                },
+                {
+                    "id": "list-fin-cash-investments",
+                    "title": "Aplicações Financeiras",
+                    "file": "financeiro/list-fin-cash-investments.html"
+                },
+                {
                     "id": "list-payment-methods",
                     "title": "Listar Formas de Pagamento",
                     "file": "financeiro/list-payment-methods.html"

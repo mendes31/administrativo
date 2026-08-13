@@ -697,6 +697,21 @@ $menus = [
                 'permission' => 'Movements'
             ],
             [
+                'label' => 'Dashboard Fluxo de Caixa SAP',
+                'url' => $_ENV['URL_ADM'] . 'fin-cash-flow-dashboard',
+                'permission' => 'FinCashFlowDashboard'
+            ],
+            [
+                'label' => 'Aplicações Financeiras',
+                'url' => $_ENV['URL_ADM'] . 'list-fin-cash-investments',
+                'permission' => 'ListFinCashInvestments'
+            ],
+            [
+                'label' => 'Contas Financeiras SAP',
+                'url' => $_ENV['URL_ADM'] . 'list-fin-cash-accounts',
+                'permission' => 'ListFinCashAccounts'
+            ],
+            [
                 'label' => 'Rel Fluxo de Caixa Diário',
                 'url' => $_ENV['URL_ADM'] . 'cash-flow',
                 'permission' => 'CashFlow'

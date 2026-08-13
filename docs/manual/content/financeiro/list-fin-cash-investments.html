@@ -1,0 +1,53 @@
+<h1>Aplicações Financeiras</h1>
+
+<h2>Função no sistema</h2>
+<p>Registra no próprio sistema as movimentações de aplicação financeira (aplicação, resgate e rendimento) que o SAP não cobre no dia a dia. Hoje o ERP costuma receber só o rendimento mensal; aplicações e resgates entram aqui e alimentam o saldo de aplicações do Dashboard de Fluxo de Caixa SAP, no mesmo recorte por banco da planilha de tesouraria.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Aplicação</dt>
+    <dd>Saída de recurso da conta corrente para um investimento. Aumenta o saldo de aplicações.</dd>
+    <dt>Resgate</dt>
+    <dd>Retorno do investimento para o caixa/banco. Diminui o saldo de aplicações.</dd>
+    <dt>Rendimento</dt>
+    <dd>Juros/atualização creditados na aplicação, sem necessariamente movimentar a conta corrente no mesmo valor.</dd>
+    <dt>Categoria padrão</dt>
+    <dd>Aplicações livres (equivalente à tabela principal da planilha).</dd>
+    <dt>Categoria garantia</dt>
+    <dd>Aplicações vinculadas a garantia (linhas “banco (garantia)” da planilha).</dd>
+    <dt>Banco / conta</dt>
+    <dd>Rótulo livre (ex.: Banco ABC, Safra (garantia)) usado para agrupar a visão mensal.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ListFinCashInvestments</em>. Cadastrar exige <em>CreateFinCashInvestment</em>; editar <em>UpdateFinCashInvestment</em>; excluir <em>DeleteFinCashInvestment</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <strong>Financeiro → Aplicações Financeiras</strong> (ou o atalho no dashboard).</li>
+    <li>Clique em <strong>Cadastrar</strong>.</li>
+    <li>Escolha o tipo (aplicação, resgate ou rendimento), a categoria (padrão ou garantia), a data, o banco e o valor.</li>
+    <li>Opcionalmente vincule a uma conta SAP classificada como aplicação.</li>
+    <li>Salve. O saldo mensal do banco é o acumulado de aplicações + rendimentos − resgates até o fim de cada mês.</li>
+    <li>Confira o resultado na aba <strong>Aplicações</strong> do Dashboard Fluxo de Caixa SAP.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Tipo</strong> Aplicação, resgate ou rendimento.</div>
+<div class="help-field"><strong>Categoria</strong> Padrão ou garantia — separa as duas tabelas mensais.</div>
+<div class="help-field"><strong>Data</strong> Data do lançamento, usada no saldo acumulado até o mês.</div>
+<div class="help-field"><strong>Banco / conta</strong> Nome de agrupamento; sugestões vêm de lançamentos anteriores.</div>
+<div class="help-field"><strong>Valor</strong> Em reais (aceita 1234,56 ou 1.234,56).</div>
+<div class="help-field"><strong>Conta SAP</strong> Vínculo opcional com a parametrização de contas financeiras.</div>
+<div class="help-field"><strong>Descrição</strong> Observação livre (número de aplicação, competência do rendimento, etc.).</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Saldo do dashboard não mudou</dt>
+    <dd>Confirme a data do lançamento no mês/ano filtrado e se o status está ativo. Recarregue o dashboard (não depende do sync SAP).</dd>
+    <dt>Banco duplicado na tabela mensal</dt>
+    <dd>Use exatamente o mesmo rótulo (maiúsculas/acentos contam). Prefira as sugestões do campo Banco.</dd>
+    <dt>Rendimento já lançado no SAP</dt>
+    <dd>Se a conta SAP já está como Aplicação, o saldo contábil entra pelo sync. Evite lançar o mesmo rendimento localmente para não duplicar.</dd>
+    <dt>Não vejo o botão Cadastrar</dt>
+    <dd>Falta a permissão <em>CreateFinCashInvestment</em> no nível de acesso.</dd>
+</dl>
