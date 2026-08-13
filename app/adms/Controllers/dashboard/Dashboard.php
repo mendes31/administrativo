@@ -254,6 +254,7 @@ class Dashboard
         $this->data['show_my_calendar_card'] = in_array('DashboardCardMyCalendar', $menuPermission, true);
         $this->data['show_gamification_quizzes_card'] = in_array('DashboardCardGamificationQuizzes', $menuPermission, true);
         $this->data['show_room_booking_card'] = in_array('DashboardCardRoomBooking', $menuPermission, true);
+        $this->data['show_portaria_card'] = in_array('DashboardCardPortaria', $menuPermission, true);
 
         if (!empty($this->data['show_informativos_card'])) {
             $this->loadInformativosDashboardData($userId);

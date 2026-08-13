@@ -1,12 +1,28 @@
 <h1>Painel da Portaria</h1>
 <h2>Função no sistema</h2>
-<p>Apresenta a situação operacional do complexo: quantidade de visitantes presentes, autorizações aguardando resposta e a lista de entradas ainda sem saída.</p>
-<p><strong>Quem acessa:</strong> usuários com permissão <em>PortariaPainel</em> no Controller. Os atalhos dependem também das permissões <em>PortariaVisitantes</em>, <em>PortariaAutorizacoes</em> e <em>PortariaMovimentacoes</em>.</p>
+<p>Hub operacional da Portaria: cards de navegação (úteis no celular no lugar do menu), indicadores de presentes/aguardando e lista de visitantes dentro do complexo.</p>
+<p><strong>Quem acessa:</strong> permissão <em>PortariaPainel</em>. O card no Dashboard exige também <em>DashboardCardPortaria</em>. Os cards internos dependem de <em>PortariaMovimentacoes</em>, <em>PortariaAutorizacoes</em>, <em>PortariaAutorizacoesCreate</em>, <em>PortariaVisitantes</em> e <em>PortariaPontos</em>.</p>
 <h2>Fluxo principal</h2>
-<ol><li>Acesse <em>Portaria → Painel</em>.</li><li>Confira visitantes presentes e autorizações pendentes.</li><li>Use os atalhos para registrar movimentação ou consultar autorizações.</li><li>Ao final da visita, confirme que a saída foi registrada.</li></ol>
+<ol>
+<li>No Dashboard, toque no card <strong>Portaria</strong> (ou acesse <em>Portaria → Painel</em>).</li>
+<li>Escolha o card da operação: Movimentações, Autorizações, Liberação rápida, Visitantes ou Pontos.</li>
+<li>Confira os indicadores de presentes e autorizações aguardando.</li>
+<li>Na lista, veja quem está dentro do complexo; ao final da visita, registre a saída.</li>
+</ol>
 <h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Card Portaria (Dashboard)</strong> Controlado por <em>DashboardCardPortaria</em>; leva ao painel.</div>
+<div class="help-field"><strong>Cards de navegação</strong> Atalhos grandes para as telas do módulo (especialmente no mobile).</div>
 <div class="help-field"><strong>Presentes agora</strong> Entradas sem uma saída posterior no complexo.</div>
-<div class="help-field"><strong>Autorizações aguardando</strong> Solicitações ainda não autorizadas nem recusadas.</div>
+<div class="help-field"><strong>Aguardando</strong> Autorizações ainda não autorizadas nem recusadas.</div>
 <div class="help-field"><strong>Ponto</strong> Local físico em que a entrada foi registrada.</div>
 <h2>Problemas comuns</h2>
-<dl><dt>Visitante continua presente após sair</dt><dd>Registre a saída em Movimentações. Se a saída anterior foi esquecida, use a regularização no próximo ingresso.</dd><dt>Menu não aparece</dt><dd>Solicite a permissão <em>PortariaPainel</em>; as páginas não recebem concessão automática.</dd><dt>Contagem inesperada</dt><dd>Verifique se há entradas duplicadas ou saídas registradas para outro visitante.</dd></dl>
+<dl>
+<dt>Card Portaria não aparece no Dashboard</dt>
+<dd>Conceda <em>DashboardCardPortaria</em> (e <em>PortariaPainel</em>) ao nível do porteiro. Depois faça logout/login para renovar o cache de permissões.</dd>
+<dt>Cards internos faltando</dt>
+<dd>Cada card exige a permissão da tela correspondente (ex.: Movimentações → <em>PortariaMovimentacoes</em>).</dd>
+<dt>Visitante continua presente após sair</dt>
+<dd>Registre a saída em Movimentações. Se a saída anterior foi esquecida, use a regularização no próximo ingresso.</dd>
+<dt>Menu lateral no celular</dt>
+<dd>Prefira os cards do painel; o menu continua disponível, mas os cards facilitam o uso com uma mão.</dd>
+</dl>

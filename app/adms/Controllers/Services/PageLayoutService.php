@@ -239,6 +239,7 @@ class PageLayoutService
             'DashboardCardMyCalendar',
             'DashboardCardGamificationQuizzes',
             'DashboardCardRoomBooking',
+            'DashboardCardPortaria',
             'ListPolicies',
             'ListMovBetweenAccounts',
             'ListPages',

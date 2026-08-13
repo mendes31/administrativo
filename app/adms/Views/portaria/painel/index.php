@@ -1,36 +1,124 @@
 <?php
 $url = (string) ($_ENV['URL_ADM'] ?? '');
 $presentes = $this->data['presentes'] ?? [];
+$perms = $this->data['buttonPermission'] ?? [];
+$totalPresentes = (int) ($this->data['total_presentes'] ?? 0);
+$totalAguardando = (int) ($this->data['total_aguardando'] ?? 0);
 ?>
 <div class="container-fluid px-4">
-    <h1 class="h3 mt-4 mb-3">Painel da Portaria</h1>
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mt-4 mb-3">
+        <h1 class="h3 mb-0">Painel da Portaria</h1>
+        <a class="btn btn-outline-secondary btn-sm" href="<?= $url ?>dashboard">Voltar ao Dashboard</a>
+    </div>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+    <p class="text-muted small mb-3">
+        Use os cards abaixo para navegar (especialmente no celular). O menu lateral continua disponível no desktop.
+    </p>
+
     <div class="row g-3 mb-4">
-        <div class="col-12 col-md-4">
+        <?php if (in_array('PortariaMovimentacoes', $perms, true)): ?>
+            <div class="col-12 col-md-6 col-xl-3 d-flex">
+                <a href="<?= $url ?>portaria-movimentacoes" class="text-decoration-none flex-fill">
+                    <div class="card shadow-sm h-100 border-success">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-exchange-alt fa-3x text-success mb-3"></i>
+                            <h2 class="h5 mb-1">Movimentações</h2>
+                            <p class="text-muted small mb-0">Entrada, saída e termo</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <?php if (in_array('PortariaAutorizacoes', $perms, true)): ?>
+            <div class="col-12 col-md-6 col-xl-3 d-flex">
+                <a href="<?= $url ?>portaria-autorizacoes" class="text-decoration-none flex-fill">
+                    <div class="card shadow-sm h-100 border-warning">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-clipboard-check fa-3x text-warning mb-3"></i>
+                            <h2 class="h5 mb-1">Autorizações</h2>
+                            <p class="text-muted small mb-1">Agenda e liberações</p>
+                            <?php if ($totalAguardando > 0): ?>
+                                <span class="badge bg-warning text-dark"><?= $totalAguardando ?> aguardando</span>
+                            <?php endif; ?>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <?php if (in_array('PortariaAutorizacoesCreate', $perms, true)): ?>
+            <div class="col-12 col-md-6 col-xl-3 d-flex">
+                <a href="<?= $url ?>portaria-autorizacoes-create?modo=rapido" class="text-decoration-none flex-fill">
+                    <div class="card shadow-sm h-100 border-primary">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-bolt fa-3x text-primary mb-3"></i>
+                            <h2 class="h5 mb-1">Liberação rápida</h2>
+                            <p class="text-muted small mb-0">Chegada sem aviso</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <?php if (in_array('PortariaVisitantes', $perms, true)): ?>
+            <div class="col-12 col-md-6 col-xl-3 d-flex">
+                <a href="<?= $url ?>portaria-visitantes" class="text-decoration-none flex-fill">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-user-friends fa-3x text-secondary mb-3"></i>
+                            <h2 class="h5 mb-1">Visitantes</h2>
+                            <p class="text-muted small mb-0">Cadastro e termos</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <?php endif; ?>
+
+        <?php if (in_array('PortariaPontos', $perms, true)): ?>
+            <div class="col-12 col-md-6 col-xl-3 d-flex">
+                <a href="<?= $url ?>portaria-pontos" class="text-decoration-none flex-fill">
+                    <div class="card shadow-sm h-100">
+                        <div class="card-body text-center py-4">
+                            <i class="fas fa-map-marker-alt fa-3x text-danger mb-3"></i>
+                            <h2 class="h5 mb-1">Pontos de controle</h2>
+                            <p class="text-muted small mb-0">Locais de E/S</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <?php endif; ?>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-4">
             <div class="card border-primary shadow-sm h-100">
                 <div class="card-body">
-                    <h2 class="h6">Presentes agora</h2>
-                    <strong class="display-6"><?= (int) ($this->data['total_presentes'] ?? 0) ?></strong>
+                    <h2 class="h6 text-muted mb-1">Presentes agora</h2>
+                    <strong class="display-6"><?= $totalPresentes ?></strong>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
+        <div class="col-6 col-md-4">
             <div class="card border-warning shadow-sm h-100">
                 <div class="card-body">
-                    <h2 class="h6">Autorizações aguardando</h2>
-                    <strong class="display-6"><?= (int) ($this->data['total_aguardando'] ?? 0) ?></strong>
+                    <h2 class="h6 text-muted mb-1">Aguardando</h2>
+                    <strong class="display-6"><?= $totalAguardando ?></strong>
                 </div>
             </div>
         </div>
-        <div class="col-12 col-md-4">
-            <div class="card shadow-sm h-100">
-                <div class="card-body d-grid gap-2">
-                    <a class="btn btn-primary" href="<?= $url ?>portaria-movimentacoes">Registrar movimentação</a>
-                    <a class="btn btn-outline-primary" href="<?= $url ?>portaria-autorizacoes">Ver autorizações</a>
+        <?php if (in_array('PortariaMovimentacoes', $perms, true)): ?>
+            <div class="col-12 col-md-4">
+                <div class="card shadow-sm h-100">
+                    <div class="card-body d-grid">
+                        <a class="btn btn-success" href="<?= $url ?>portaria-movimentacoes">
+                            <i class="fas fa-sign-in-alt me-1"></i>Registrar entrada/saída
+                        </a>
+                    </div>
                 </div>
             </div>
-        </div>
+        <?php endif; ?>
     </div>
 
     <div class="card shadow-sm">

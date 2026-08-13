@@ -251,6 +251,22 @@
                     </a>
                 </div>
                 <?php endif; ?>
+                <?php if (!empty($this->data['show_portaria_card'])): ?>
+                <div class="col-12 col-md-3 d-flex align-items-stretch">
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>portaria-painel" class="text-decoration-none flex-fill h-100">
+                        <div class="card card-main dashboard-card d-flex flex-column align-items-center justify-content-center p-4 h-100" style="background: linear-gradient(135deg, #eef6ff 0%, #fff 100%);">
+                            <div class="icon-main mb-2 d-flex align-items-center justify-content-center" style="width: 60px; height: 60px;">
+                                <i class="fas fa-shield-alt fa-3x text-primary"></i>
+                            </div>
+                            <h5 class="fw-bold mb-1 text-center group-title">Portaria</h5>
+                            <div class="text-muted mb-1 text-center" style="font-size: 1.05rem;">
+                                Entradas, saídas e autorizações
+                            </div>
+                            <div class="text-primary text-center small fw-semibold">Abrir painel</div>
+                        </div>
+                    </a>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>

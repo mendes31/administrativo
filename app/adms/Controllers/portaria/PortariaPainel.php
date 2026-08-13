@@ -23,7 +23,15 @@ final class PortariaPainel
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements([
             'title_head' => 'Painel da Portaria',
             'menu' => 'portaria-painel',
-            'buttonPermission' => ['PortariaVisitantes', 'PortariaAutorizacoes', 'PortariaMovimentacoes'],
+            'buttonPermission' => [
+                'PortariaVisitantes',
+                'PortariaVisitantesCreate',
+                'PortariaAutorizacoes',
+                'PortariaAutorizacoesCreate',
+                'PortariaAutorizacoesView',
+                'PortariaPontos',
+                'PortariaMovimentacoes',
+            ],
         ]));
         (new LoadViewService('adms/Views/portaria/painel/index', $this->data))->loadView();
     }

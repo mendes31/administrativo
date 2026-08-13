@@ -306,6 +306,7 @@
     "ti-acessos-update": "ti-acessos",
     "ti-acessos-revoke": "ti-acessos",
     "portaria-painel": "portaria-painel",
+    "dashboard-card-portaria": "portaria-painel",
     "portaria-visitantes": "portaria-visitantes",
     "portaria-visitantes-create": "portaria-visitantes",
     "portaria-visitantes-view": "portaria-visitantes",
