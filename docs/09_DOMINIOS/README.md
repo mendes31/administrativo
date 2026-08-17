@@ -16,7 +16,7 @@ Cada domínio utiliza os seis artefatos padronizados definidos em
 | Custos | Pendente | Pendente |
 | Produção | Pendente | Pendente |
 | Qualidade | Pendente | Pendente |
-| Financeiro | Pendente | Pendente |
+| Financeiro | Em construção (Fluxo de Caixa SAP) | V1.0 em homologação |
 | Patrimônio | Pendente | Pendente |
 | Comunicação | Pendente | Pendente |
 | Canal de Denúncias | Pendente | Pendente |

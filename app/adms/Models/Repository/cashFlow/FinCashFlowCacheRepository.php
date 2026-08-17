@@ -260,18 +260,24 @@ class FinCashFlowCacheRepository extends DbConnection
             return 0;
         }
         $now = date('Y-m-d H:i:s');
-        $stmt = $pdo->prepare(
-            'INSERT INTO adms_fin_cash_forecasts
+        $hasDocCols = $this->forecastHasDocColumns();
+        $sql = $hasDocCols
+            ? 'INSERT INTO adms_fin_cash_forecasts
+                (source_type, due_date, sap_bpl_id, card_code, card_name, doc_entry, doc_num,
+                 nf_serial, title_num, installment_id, original_amount, paid_amount, open_amount, synced_at)
+               VALUES
+                (:src, :due, :bpl, :code, :name, :entry, :num, :nf, :title, :inst, :orig, :paid, :open, :now)'
+            : 'INSERT INTO adms_fin_cash_forecasts
                 (source_type, due_date, sap_bpl_id, card_code, card_name, doc_entry, doc_num,
                  installment_id, original_amount, paid_amount, open_amount, synced_at)
-             VALUES
-                (:src, :due, :bpl, :code, :name, :entry, :num, :inst, :orig, :paid, :open, :now)'
-        );
+               VALUES
+                (:src, :due, :bpl, :code, :name, :entry, :num, :inst, :orig, :paid, :open, :now)';
+        $stmt = $pdo->prepare($sql);
         $count = 0;
         $pdo->beginTransaction();
         try {
             foreach ($rows as $row) {
-                $stmt->execute([
+                $params = [
                     ':src' => $row['source_type'],
                     ':due' => $row['due_date'],
                     ':bpl' => (int) ($row['sap_bpl_id'] ?? 0),
@@ -284,7 +290,12 @@ class FinCashFlowCacheRepository extends DbConnection
                     ':paid' => (float) ($row['paid_amount'] ?? 0),
                     ':open' => (float) ($row['open_amount'] ?? 0),
                     ':now' => $now,
-                ]);
+                ];
+                if ($hasDocCols) {
+                    $params[':nf'] = (string) ($row['nf_serial'] ?? '');
+                    $params[':title'] = (string) ($row['title_num'] ?? '');
+                }
+                $stmt->execute($params);
                 $count++;
             }
             $pdo->commit();
@@ -293,6 +304,21 @@ class FinCashFlowCacheRepository extends DbConnection
             throw $e;
         }
         return $count;
+    }
+
+    private function forecastHasDocColumns(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        try {
+            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM adms_fin_cash_forecasts LIKE 'nf_serial'");
+            $has = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $has = false;
+        }
+        return $has;
     }
 
     /**

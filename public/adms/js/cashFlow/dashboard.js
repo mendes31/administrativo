@@ -125,8 +125,9 @@
     return d.toLocaleString('pt-BR');
   }
 
-  function kpiCard(label, value, hint, kind) {
-    return '<div class="fcf-kpi ' + (kind || '') + '"><div class="kt">' + label + '</div>'
+  function kpiCard(label, value, hint, kind, jump) {
+    const extra = jump ? ' data-jump="' + jump + '"' : '';
+    return '<div class="fcf-kpi ' + (kind || '') + '"' + extra + '><div class="kt">' + label + '</div>'
       + '<div class="kv ' + cls(value) + '">' + fmt(value, true) + '</div>'
       + '<div class="kh">' + (hint || '') + '</div></div>';
   }
@@ -141,8 +142,8 @@
       kpiCard('Limites disponíveis', k.limites, 'Crédito bancário cadastrado'),
     ].join('');
     $('kpiRow2').innerHTML = [
-      kpiCard('A receber · horizonte', k.a_receber, 'Títulos em aberto por vencimento', 'pos'),
-      kpiCard('A pagar · horizonte', k.a_pagar, 'Títulos em aberto por vencimento', 'neg'),
+      kpiCard('A receber · horizonte', k.a_receber, 'Clique para ver os títulos', 'pos', 'AR'),
+      kpiCard('A pagar · horizonte', k.a_pagar, 'Clique para ver os títulos', 'neg', 'AP'),
       kpiCard('Disponibilidade própria', k.disponibilidade_propria, 'Saldo financeiro + aplicações', 'pos'),
       kpiCard('Necessidade de caixa', k.necessidade_caixa, 'Receber × pagar no horizonte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
       kpiCard('Menor saldo projetado', k.menor_saldo_projetado, k.menor_saldo_data ? ('Em ' + k.menor_saldo_data.split('-').reverse().join('/')) : '', 'warn'),
@@ -311,15 +312,139 @@
     }).join('');
   }
 
+  function addDaysYmd(ymd, days) {
+    const p = String(ymd || '').split('-').map(Number);
+    if (p.length < 3 || !p[0]) return ymd;
+    const dt = new Date(Date.UTC(p[0], p[1] - 1, p[2] + Number(days || 0)));
+    return dt.toISOString().slice(0, 10);
+  }
+
+  function dueStatus(row, today) {
+    const open = Number(row.open_amount || 0);
+    if (Math.abs(open) < 0.005) return { cls: 'liquidado', label: 'Liquidado' };
+    const st = row.status || '';
+    if (st === 'liquidado') return { cls: 'liquidado', label: 'Liquidado' };
+    if (st === 'vencido') return { cls: 'vencido', label: 'Vencido' };
+    if (st === 'hoje') return { cls: 'hoje', label: 'Hoje' };
+    if (st === 'prazo') return { cls: 'prazo', label: 'No prazo' };
+    const due = String(row.due_date || '');
+    if (due && due < today) return { cls: 'vencido', label: 'Vencido' };
+    if (due === today) return { cls: 'hoje', label: 'Hoje' };
+    return { cls: 'prazo', label: 'No prazo' };
+  }
+
+  function filteredDocuments(data) {
+    const f = data.filters || {};
+    const today = f.today || new Date().toISOString().slice(0, 10);
+    const horizonEnd = f.horizon_end || addDaysYmd(today, Number(f.horizon || 30));
+    const monthStart = f.month_start || (String(f.year) + '-' + String(f.month).padStart(2, '0') + '-01');
+    const monthEnd = f.month_end || '';
+    const recorte = ($('dRecorte')?.value) || 'horizon';
+    const tipo = ($('dTipo')?.value) || '';
+    const q = String($('dBusca')?.value || '').trim().toLowerCase();
+    return (data.forecast_documents || []).filter(function (r) {
+      const open = Number(r.open_amount || 0);
+      if (Math.abs(open) < 0.005 || r.status === 'liquidado') return false;
+      if (tipo && r.source_type !== tipo) return false;
+      const due = String(r.due_date || '');
+      const vencido = due !== '' && due < today;
+      if (recorte === 'horizon' && due > horizonEnd) return false;
+      if (recorte === 'month' && (due < monthStart || (monthEnd && due > monthEnd))) return false;
+      if (recorte === 'overdue' && !vencido) return false;
+      if (q) {
+        const hay = [r.nf_serial, r.title_num, r.doc_num, r.card_code, r.card_name, r.doc_entry].join(' ').toLowerCase();
+        if (hay.indexOf(q) < 0) return false;
+      }
+      return true;
+    }).sort(function (a, b) {
+      const da = String(a.due_date || '');
+      const db = String(b.due_date || '');
+      if (da !== db) return da < db ? -1 : 1;
+      const ta = a.source_type === 'AR' ? 0 : 1;
+      const tb = b.source_type === 'AR' ? 0 : 1;
+      if (ta !== tb) return ta - tb;
+      const na = Number(a.doc_num || 0);
+      const nb = Number(b.doc_num || 0);
+      if (na !== nb) return na - nb;
+      return Number(a.installment || 0) - Number(b.installment || 0);
+    });
+  }
+
   function renderDetail(data) {
-    const rows = data.forecast_period || [];
-    $('tblDetail').innerHTML = rows.map(function (r) {
+    const body = $('tblDetail');
+    const foot = $('footDetail');
+    const sums = $('dSums');
+    const hint = $('dHint');
+    const countEl = $('dCount');
+    if (!body) return;
+    const f = data.filters || {};
+    const today = f.today || new Date().toISOString().slice(0, 10);
+    const recorte = ($('dRecorte')?.value) || 'horizon';
+    const rows = filteredDocuments(data);
+    let totAr = 0;
+    let totAp = 0;
+    let orig = 0;
+    let paid = 0;
+    let open = 0;
+    let nAr = 0;
+    let nAp = 0;
+    rows.forEach(function (r) {
+      const amt = Number(r.open_amount || 0);
+      orig += Number(r.original_amount || 0);
+      paid += Number(r.paid_amount || 0);
+      open += amt;
+      if (r.source_type === 'AR') { totAr += amt; nAr += 1; }
+      else { totAp += amt; nAp += 1; }
+    });
+    if (hint) {
+      const recorteLabel = {
+        horizon: 'horizonte dos KPIs (hoje até ' + (f.horizon || 30) + ' dias, incluindo vencidos)',
+        month: 'mês filtrado',
+        overdue: 'somente títulos vencidos',
+        all: 'todos os títulos em aberto no cache',
+      };
+      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. Nº Doc SAP é o documento da NFS (Nota Fiscal de Saída, a receber) ou da NFE (Nota Fiscal de Entrada, a pagar) — não procure esse número na tela de títulos/boletos. Filial aplicada; o filtro Banco/Conta não vale para títulos.';
+      if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
+        txt += ' A soma de A receber / A pagar desta lista deve coincidir com os KPIs.';
+      }
+      hint.textContent = txt;
+    }
+    if (sums) {
+      sums.innerHTML = [
+        kpiCard('A receber', totAr, nAr + ' título(s)', 'pos'),
+        kpiCard('A pagar', totAp, nAp + ' título(s)', 'neg'),
+        kpiCard('Líquido (receber − pagar)', totAr - totAp, rows.length + ' documento(s)', totAr - totAp < 0 ? 'neg' : 'pos'),
+      ].join('');
+    }
+    if (countEl) countEl.textContent = rows.length + ' documento(s)';
+    body.innerHTML = rows.map(function (r) {
       const tipo = r.source_type === 'AR' ? 'A receber' : 'A pagar';
       const due = String(r.due_date || '').split('-').reverse().join('/');
-      return '<tr><td>' + due + '</td><td>' + tipo + '</td><td>' + (r.document || '') + '</td>'
-        + '<td>' + (r.partner || '') + '</td><td>' + (r.installment || '') + '</td>'
-        + '<td class="' + cls(r.open_amount) + '">' + fmt(r.open_amount) + '</td></tr>';
-    }).join('') || '<tr><td colspan="6">Sem títulos previstos no mês. Clique em um valor da tabela diária para o detalhe por documento.</td></tr>';
+      const st = dueStatus(r, today);
+      const bpl = Number(r.sap_bpl_id || 0) > 0 ? r.sap_bpl_id : '—';
+      const nf = r.nf_serial || '—';
+      const titulo = r.title_num || '—';
+      const docObj = r.source_type === 'AR' ? 'NFS' : 'NFE';
+      const doc = r.doc_num ? (docObj + ' ' + r.doc_num) : '—';
+      return '<tr><td>' + due + '</td>'
+        + '<td><span class="badge ' + st.cls + '">' + st.label + '</span></td>'
+        + '<td>' + tipo + '</td>'
+        + '<td>' + doc + '</td>'
+        + '<td>' + nf + '</td>'
+        + '<td>' + titulo + '</td>'
+        + '<td class="tl">' + (r.card_code || '') + '</td>'
+        + '<td class="tl">' + (r.card_name || '') + '</td>'
+        + '<td>' + (r.installment || '') + '</td>'
+        + '<td>' + fmt(r.original_amount) + '</td>'
+        + '<td>' + fmt(r.paid_amount) + '</td>'
+        + '<td class="' + cls(r.open_amount) + '">' + fmt(r.open_amount) + '</td>'
+        + '<td>' + bpl + '</td></tr>';
+    }).join('') || '<tr><td colspan="13">Nenhum título em aberto neste recorte. Ajuste o filtro ou sincronize o SAP.</td></tr>';
+    if (foot) {
+      foot.innerHTML = rows.length
+        ? '<tr><td colspan="9">Totais</td><td>' + fmt(orig) + '</td><td>' + fmt(paid) + '</td><td class="' + cls(open) + '">' + fmt(open) + '</td><td></td></tr>'
+        : '';
+    }
   }
 
   async function openDrill(date, kind) {
@@ -344,11 +469,11 @@
       const rows = json.rows || [];
       const isPrev = kind.indexOf('prev') >= 0;
       $('drillHead').innerHTML = isPrev
-        ? '<tr><th>Documento</th><th>Parceiro</th><th>Parcela</th><th>Vencimento</th><th>Original</th><th>Pago</th><th>Saldo</th></tr>'
+        ? '<tr><th>NF</th><th>Título</th><th>Parceiro</th><th>Parcela</th><th>Vencimento</th><th>Original</th><th>Pago</th><th>Saldo</th></tr>'
         : '<tr><th>Documento</th><th>Parceiro / origem</th><th>Conta</th><th>Histórico</th><th>Valor</th></tr>';
       $('drillBody').innerHTML = rows.map(function (r) {
         if (isPrev) {
-          return '<tr><td>' + (r.document || '') + '</td><td>' + (r.partner || '') + '</td><td>' + (r.installment || '') + '</td>'
+          return '<tr><td>' + (r.nf || r.document || '') + '</td><td>' + (r.title || '—') + '</td><td>' + (r.partner || '') + '</td><td>' + (r.installment || '') + '</td>'
             + '<td>' + (r.due_date || '') + '</td><td>' + fmt(r.original) + '</td><td>' + fmt(r.paid) + '</td>'
             + '<td class="' + cls(r.amount) + '">' + fmt(r.amount) + '</td></tr>';
         }
@@ -379,22 +504,42 @@
     }
   }
 
-  document.querySelectorAll('.tab').forEach(function (tab) {
+  function showTab(id) {
+    root.querySelectorAll('.tab').forEach(function (t) {
+      t.classList.toggle('active', t.dataset.tab === id);
+    });
+    ['daily', 'monthly', 'accounts', 'investments', 'detail'].forEach(function (tabId) {
+      const el = document.getElementById('tab-' + tabId);
+      if (el) el.classList.toggle('hidden', tabId !== id);
+    });
+  }
+
+  root.querySelectorAll('.tab').forEach(function (tab) {
     tab.addEventListener('click', function () {
-      document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
-      tab.classList.add('active');
-      ['daily', 'monthly', 'accounts', 'investments', 'detail'].forEach(function (id) {
-        const el = document.getElementById('tab-' + id);
-        if (el) el.classList.toggle('hidden', id !== tab.dataset.tab);
-      });
+      showTab(tab.dataset.tab);
     });
   });
 
   root.addEventListener('click', function (ev) {
+    const jump = ev.target.closest('[data-jump]');
+    if (jump && jump.dataset.jump) {
+      if ($('dTipo')) $('dTipo').value = jump.dataset.jump;
+      if ($('dRecorte')) $('dRecorte').value = 'horizon';
+      showTab('detail');
+      if (payload) renderDetail(payload);
+      return;
+    }
     const t = ev.target.closest('.drill');
     if (!t) return;
     openDrill(t.dataset.date, t.dataset.kind);
   });
+
+  function refreshDetail() {
+    if (payload) renderDetail(payload);
+  }
+  $('dRecorte')?.addEventListener('change', refreshDetail);
+  $('dTipo')?.addEventListener('change', refreshDetail);
+  $('dBusca')?.addEventListener('input', refreshDetail);
 
   $('btnAplicar')?.addEventListener('click', function () { load(true); });
   $('btnSync')?.addEventListener('click', syncNow);

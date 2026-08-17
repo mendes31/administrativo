@@ -36,5 +36,6 @@ outro ADR e referencia o anterior.
 | [ADR-0007](ADR-0007_WORKFLOW_SOLICITACOES.md) | Workflow de solicitações (delegação/escalação) | Aprovado |
 | [ADR-0008](ADR-0008_DOMINIO_TI_ACESSOS.md) | Domínio TI / Acessos (mapa sistemas↔colaborador) | Aprovado |
 | [ADR-0009](ADR-0009_DOMINIO_PORTARIA.md) | Domínio Portaria / Controle de Acesso Físico | Aprovado |
+| [ADR-0010](ADR-0010_FLUXO_CAIXA_SAP.md) | Fluxo de Caixa SAP: um módulo, cache local e fronteiras do previsto | Aprovado |
 
 Use [TEMPLATE.md](TEMPLATE.md) para novos registros.

@@ -8,7 +8,11 @@
     <dt>Efetivo / realizado</dt>
     <dd>Movimentações que já alteraram caixa/bancos no SAP (lançamentos em <code>JDT1</code>), na data contábil (<code>RefDate</code>).</dd>
     <dt>Previsto</dt>
-    <dd>Parcelas ainda em aberto de contas a receber (<code>OINV/INV6</code>) e a pagar (<code>OPCH/PCH6</code>), agrupadas pela data de vencimento. Usa o <strong>saldo aberto</strong> (parcela menos valor já pago), não o total original.</dd>
+    <dd>Parcelas ainda em aberto de contas a receber (<strong>NFS</strong> — Nota Fiscal de Saída) e a pagar (<strong>NFE</strong> — Nota Fiscal de Entrada), agrupadas pela data de vencimento. Usa o <strong>saldo aberto</strong> (parcela menos valor já pago), não o total original. Parcela liquidada não entra.</dd>
+    <dt>Nº Doc SAP × NF × Título</dt>
+    <dd><strong>Nº Doc SAP</strong> é o número interno da <strong>NFS</strong> (Nota Fiscal de Saída, a receber) ou da <strong>NFE</strong> (Nota Fiscal de Entrada, a pagar). <strong>NF</strong> é o Serial da nota fiscal. <strong>Título</strong> é o boleto quando existir. Não use o Nº Doc SAP na tela de títulos.</dd>
+    <dt>Vencido</dt>
+    <dd>Saldo ainda aberto e data de vencimento anterior a hoje. Título já liquidado não é classificado como vencido e não aparece na lista.</dd>
     <dt>Saldo inicial</dt>
     <dd>Posição das contas financeiras imediatamente antes do primeiro dia do período.</dd>
     <dt>Saldo financeiro</dt>
@@ -36,8 +40,9 @@
     <li>Rode a carga completa no servidor: <code>php scripts/sync_fin_cash_flow_sap.php --full</code>.</li>
     <li>Acesse <strong>Financeiro → Dashboard Fluxo de Caixa SAP</strong>.</li>
     <li>Escolha mês/ano, filial, conta, cenário (efetivo + previsto, só efetivo ou só previsto) e horizonte (7 a 90 dias).</li>
-    <li>Analise os KPIs, o fluxo diário (painéis efetivo/previsto e tabela combinada), o mensal, bancos e aplicações.</li>
-    <li>Clique em um valor da tabela diária para abrir o detalhamento dos documentos.</li>
+    <li>Analise os KPIs, o fluxo diário (painéis efetivo/previsto e tabela combinada), o mensal, bancos e aplicações. As abas não se perdem: o filtro vale para todas.</li>
+    <li>Use a aba <strong>Detalhes</strong> para conferir, documento a documento, o que compõe <strong>A receber</strong> e <strong>A pagar</strong>. O recorte padrão é o mesmo horizonte dos KPIs (incluindo vencidos). Dá para filtrar pelo mês, só vencidos ou todos os abertos, e buscar por NF/parceiro. Clique no KPI A receber ou A pagar para abrir essa lista já filtrada.</li>
+    <li>Clique em um valor da tabela diária para abrir o detalhamento daquele dia (drawer), sem sair da visão diária.</li>
     <li>Lance aplicações, resgates e rendimentos em <strong>Aplicações Financeiras</strong> — esses valores entram no KPI de aplicações e na aba Aplicações.</li>
     <li>Para atualizar no meio do dia, use <strong>Sincronizar SAP</strong> (incremental). O primeiro acesso do dia já tenta sincronizar sozinho.</li>
 </ol>
@@ -47,7 +52,14 @@
 <div class="help-field"><strong>Filial</strong> Filtra movimentos e títulos pelo <code>BPLId</code> do SAP, quando houver.</div>
 <div class="help-field"><strong>Banco / Conta</strong> Conta contábil parametrizada em Contas Financeiras SAP.</div>
 <div class="help-field"><strong>Cenário</strong> Mostra colunas efetivas, previstas ou ambas na visão combinada.</div>
-<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) dos KPIs a receber, a pagar e necessidade de caixa.</div>
+<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) dos KPIs a receber, a pagar e necessidade de caixa. Na aba Detalhes, o recorte “Horizonte dos KPIs” usa a mesma janela (vencimento até hoje + N dias, incluindo títulos já vencidos).</div>
+<div class="help-field"><strong>Aba Detalhes</strong> Lista as parcelas em aberto de contas a receber (<strong>NFS</strong>) e a pagar (<strong>NFE</strong>). Uma nota pode ter vários títulos (parcelas). Pedidos de venda/compra não entram.</div>
+<div class="help-field"><strong>NF</strong> Número da nota fiscal (<code>Serial</code> do SAP; se vazio, tenta <code>FolioNum</code>). Não é o número interno do documento.</div>
+<div class="help-field"><strong>Título</strong> Número do boleto (<code>OBOE.BoeNum</code>) quando o SAP tiver título/boleto vinculado à parcela. Se não houver boleto, a coluna fica em branco.</div>
+<div class="help-field"><strong>Nº Doc SAP</strong> Número interno da nota no SAP, exibido antes da NF. <em>A receber</em> = <strong>NFS</strong> (Nota Fiscal de Saída). <em>A pagar</em> = <strong>NFE</strong> (Nota Fiscal de Entrada). Não use esse número na tela de títulos/boletos.</div>
+<div class="help-field"><strong>Status</strong> Calculado na tela: <em>Vencido</em> só se o saldo ainda está aberto e a data de vencimento já passou. Parcela liquidada (<code>INV6/PCH6.Status = C</code> ou saldo zero) não entra na lista. <em>Hoje</em> = vence hoje e ainda aberto. <em>No prazo</em> = vence no futuro e ainda aberto.</div>
+<div class="help-field"><strong>Recorte (Detalhes)</strong> Horizonte dos KPIs (padrão, para bater com A receber/A pagar), mês do filtro, somente vencidos ou todos os abertos no cache.</div>
+<div class="help-field"><strong>Tipo / Buscar (Detalhes)</strong> Restringe a A receber, A pagar ou ambos; busca por número da NF, código ou nome do parceiro.</div>
 <div class="help-field"><strong>Sincronizar SAP</strong> Incremental na web (janela desde a última sync com overlap de 7 dias). Full somente via CLI <code>--full</code>.</div>
 <div class="help-field"><strong>CLI</strong> <code>php scripts/sync_fin_cash_flow_sap.php</code> (incremental), <code>--full</code>, <code>--today</code>, <code>--accounts</code>.</div>
 
@@ -63,6 +75,10 @@
     <dd>Transferências internas devem ser neutralizadas no consolidado. Se o aviso de sync indicar falha nessa etapa, as queries de transferência precisam ser validadas no HANA.</dd>
     <dt>Aplicações não batem com a planilha</dt>
     <dd>O SAP em geral só traz rendimentos. Lance aplicações e resgates em <em>ListFinCashInvestments</em> e classifique as contas SAP do tipo Aplicação.</dd>
+    <dt>Totais da aba Detalhes diferentes dos KPIs</dt>
+    <dd>No recorte <strong>Horizonte dos KPIs</strong>, sem filtro de tipo nem busca, A receber e A pagar da lista devem coincidir com os KPIs. Outros recortes (mês, vencidos, todos) usam outro conjunto de títulos. O filtro Banco/Conta não se aplica a títulos — eles não têm conta financeira até o pagamento. Filial sim.</dd>
+    <dt>Não acho um documento na lista</dt>
+    <dd>A lista só tem saldo aberto. Título liquidado some após a sincronização. Pedido não entra. Confira vencimento × recorte e se a filial do filtro é a do documento. <strong>Nº Doc SAP</strong> é o documento da <strong>NFS</strong> (saída) ou da <strong>NFE</strong> (entrada) — não da tela de títulos. A coluna NF é o Serial da nota. Título (boleto) só aparece quando existir.</dd>
     <dt>Sync automático falhou</dt>
     <dd>O painel continua com o cache anterior e exibe o aviso. Use Sincronizar SAP ou o CLI; verifique timeout e logs da API.</dd>
 </dl>

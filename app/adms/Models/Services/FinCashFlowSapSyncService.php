@@ -394,6 +394,10 @@ class FinCashFlowSapSyncService
             }
             $orig = $this->num($row, ['InsTotal', 'ValorOriginal']);
             $paid = $this->num($row, ['PaidToDate', 'ValorPago']);
+            $nf = $this->normalizeNf($this->col($row, ['NFe', 'Serial']));
+            if ($nf === '') {
+                $nf = $this->normalizeNf($this->col($row, ['FolioNum']));
+            }
             $out[] = [
                 'source_type' => $sourceType,
                 'due_date' => $due,
@@ -402,13 +406,15 @@ class FinCashFlowSapSyncService
                 'card_name' => $this->col($row, ['CardName']),
                 'doc_entry' => (int) $this->num($row, ['DocEntry']),
                 'doc_num' => (int) $this->num($row, ['DocNum']),
+                'nf_serial' => $nf,
+                'title_num' => $this->normalizeNf($this->col($row, ['Titulo', 'BoeNum'])),
                 'installment_id' => (int) ($this->num($row, ['Parcela', 'InstlmntID']) ?: 1),
                 'original_amount' => $orig,
                 'paid_amount' => $paid,
                 'open_amount' => $open,
             ];
         }
-        return $out;
+        return $this->attachBoeNumbers($out, $sourceType);
     }
 
     /**
@@ -528,6 +534,8 @@ class FinCashFlowSapSyncService
             T0."CardName" AS "CardName",
             T0."DocEntry" AS "DocEntry",
             T0."DocNum" AS "DocNum",
+            T0."Serial" AS "NFe",
+            T0."FolioNum" AS "FolioNum",
             T1."InstlmntID" AS "Parcela",
             T1."InsTotal" AS "InsTotal",
             T1."PaidToDate" AS "PaidToDate",
@@ -535,6 +543,7 @@ class FinCashFlowSapSyncService
         FROM OINV T0
         INNER JOIN INV6 T1 ON T1."DocEntry" = T0."DocEntry"
         WHERE T0."CANCELED" = \'N\'
+          AND IFNULL(T1."Status", \'O\') = \'O\'
           AND (T1."InsTotal" - T1."PaidToDate") <> 0';
     }
 
@@ -547,6 +556,8 @@ class FinCashFlowSapSyncService
             T0."CardName" AS "CardName",
             T0."DocEntry" AS "DocEntry",
             T0."DocNum" AS "DocNum",
+            T0."Serial" AS "NFe",
+            T0."FolioNum" AS "FolioNum",
             T1."InstlmntID" AS "Parcela",
             T1."InsTotal" AS "InsTotal",
             T1."PaidToDate" AS "PaidToDate",
@@ -554,6 +565,7 @@ class FinCashFlowSapSyncService
         FROM OPCH T0
         INNER JOIN PCH6 T1 ON T1."DocEntry" = T0."DocEntry"
         WHERE T0."CANCELED" = \'N\'
+          AND IFNULL(T1."Status", \'O\') = \'O\'
           AND (T1."InsTotal" - T1."PaidToDate") <> 0';
     }
 
@@ -584,6 +596,81 @@ class FinCashFlowSapSyncService
           AND ' . $this->financialAccountFilter('T1')
           . $glFilter . '
         ORDER BY T1."TransId"';
+    }
+
+    /**
+     * Preenche o número do boleto (OBOE) quando o SAP tiver título vinculado à parcela.
+     * Se a empresa não usar Bill of Exchange, a coluna permanece vazia.
+     *
+     * @param list<array<string, mixed>> $forecasts
+     * @return list<array<string, mixed>>
+     */
+    private function attachBoeNumbers(array $forecasts, string $sourceType): array
+    {
+        if ($forecasts === []) {
+            return $forecasts;
+        }
+        try {
+            $sql = $sourceType === 'AR' ? $this->sqlBoeReceivable() : $this->sqlBoePayable();
+            $map = [];
+            foreach ($this->querySql($sql) as $row) {
+                $entry = (int) $this->num($row, ['DocEntry']);
+                $inst = (int) ($this->num($row, ['Parcela', 'InstId']) ?: 1);
+                $boe = $this->normalizeNf($this->col($row, ['BoeNum', 'Titulo']));
+                if ($entry <= 0 || $boe === '') {
+                    continue;
+                }
+                $map[$entry . '|' . $inst] = $boe;
+            }
+            foreach ($forecasts as &$row) {
+                if (($row['title_num'] ?? '') !== '') {
+                    continue;
+                }
+                $key = ((int) $row['doc_entry']) . '|' . ((int) $row['installment_id']);
+                if (isset($map[$key])) {
+                    $row['title_num'] = $map[$key];
+                }
+            }
+            unset($row);
+        } catch (Throwable $e) {
+            error_log('Fluxo de caixa: boleto (OBOE) indisponível — ' . $e->getMessage());
+        }
+        return $forecasts;
+    }
+
+    private function sqlBoeReceivable(): string
+    {
+        return 'SELECT
+            R2."DocEntry" AS "DocEntry",
+            IFNULL(R2."InstId", 1) AS "Parcela",
+            B."BoeNum" AS "BoeNum"
+        FROM RCT2 R2
+        INNER JOIN ORCT R0 ON R0."DocEntry" = R2."DocNum" AND IFNULL(R0."Canceled", \'N\') = \'N\'
+        INNER JOIN OBOE B ON B."PmntNum" = R0."DocEntry"
+        WHERE R2."InvType" = 13
+          AND B."BoeStatus" NOT IN (\'C\', \'L\')';
+    }
+
+    private function sqlBoePayable(): string
+    {
+        return 'SELECT
+            V2."DocEntry" AS "DocEntry",
+            IFNULL(V2."InstId", 1) AS "Parcela",
+            B."BoeNum" AS "BoeNum"
+        FROM VPM2 V2
+        INNER JOIN OVPM V0 ON V0."DocEntry" = V2."DocNum" AND IFNULL(V0."Canceled", \'N\') = \'N\'
+        INNER JOIN OBOE B ON B."PmntNum" = V0."DocEntry"
+        WHERE V2."InvType" = 18
+          AND B."BoeStatus" NOT IN (\'C\', \'L\')';
+    }
+
+    private function normalizeNf(string $value): string
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '0' || $value === '0.0') {
+            return '';
+        }
+        return $value;
     }
 
     /**

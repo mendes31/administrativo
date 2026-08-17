@@ -160,22 +160,6 @@ class FinCashFlowDashboardService
             $accountGl
         );
 
-        $forecastPeriod = [];
-        foreach ($forecasts as $fc) {
-            $due = (string) ($fc['due_date'] ?? '');
-            if ($due < $monthStart->format('Y-m-d') || $due > $monthEnd->format('Y-m-d')) {
-                continue;
-            }
-            $forecastPeriod[] = [
-                'due_date' => $due,
-                'source_type' => $fc['source_type'] ?? '',
-                'document' => 'NF ' . ($fc['doc_num'] ?? ''),
-                'partner' => $fc['card_name'] ?? '',
-                'installment' => $fc['installment_id'] ?? 1,
-                'open_amount' => (float) ($fc['open_amount'] ?? 0),
-            ];
-        }
-
         return [
             'success' => true,
             'filters' => [
@@ -185,13 +169,17 @@ class FinCashFlowDashboardService
                 'scenario' => $scenario,
                 'branch_id' => $branchId,
                 'account' => $accountGl,
+                'today' => $today->format('Y-m-d'),
+                'month_start' => $monthStart->format('Y-m-d'),
+                'month_end' => $monthEnd->format('Y-m-d'),
+                'horizon_end' => $today->add(new DateInterval('P' . $horizon . 'D'))->format('Y-m-d'),
             ],
             'sync' => $this->cache->getSyncState(),
             'kpis' => $kpis,
             'daily' => $daily,
             'monthly' => $monthly,
             'accounts' => $accountsView,
-            'forecast_period' => $forecastPeriod,
+            'forecast_documents' => $this->mapForecastDocuments($forecasts, $today->format('Y-m-d')),
             'investments_monthly' => $this->buildInvestmentTables($investByMonth, $year),
             'account_options' => array_map(static function (array $a): array {
                 return [
@@ -224,17 +212,24 @@ class FinCashFlowDashboardService
         if (in_array($kind, ['receita_prev', 'despesa_prev'], true)) {
             $source = $kind === 'receita_prev' ? 'AR' : 'AP';
             $rows = $this->cache->getForecasts($date, $date, $source, $branchId);
+            $today = (new DateTimeImmutable('today'))->format('Y-m-d');
             $out = [];
             foreach ($rows as $row) {
+                $open = (float) ($row['open_amount'] ?? 0);
+                if (abs($open) < 0.005) {
+                    continue;
+                }
                 $out[] = [
-                    'document' => 'NF ' . ($row['doc_num'] ?? ''),
+                    'document' => $this->formatForecastLabel($row),
+                    'nf' => (string) ($row['nf_serial'] ?? ''),
+                    'title' => (string) ($row['title_num'] ?? ''),
                     'partner' => $row['card_name'] ?? '',
                     'installment' => $row['installment_id'] ?? 1,
                     'due_date' => $row['due_date'] ?? $date,
                     'original' => (float) ($row['original_amount'] ?? 0),
                     'paid' => (float) ($row['paid_amount'] ?? 0),
-                    'amount' => (float) ($row['open_amount'] ?? 0),
-                    'status' => 'Aberto',
+                    'amount' => $open,
+                    'status' => $this->forecastStatus((string) ($row['due_date'] ?? ''), $open, $today),
                     'origin' => $source === 'AR' ? 'OINV/INV6' : 'OPCH/PCH6',
                 ];
             }
@@ -273,6 +268,95 @@ class FinCashFlowDashboardService
             $out[$d]['internal_out'] += (float) $row['internal_out'];
         }
         return $out;
+    }
+
+    /**
+     * Lista os títulos em aberto (A/R e A/P) para a aba Detalhes.
+     *
+     * @param list<array<string, mixed>> $forecasts
+     * @return list<array<string, mixed>>
+     */
+    private function mapForecastDocuments(array $forecasts, string $today): array
+    {
+        $out = [];
+        foreach ($forecasts as $fc) {
+            $open = (float) ($fc['open_amount'] ?? 0);
+            $due = (string) ($fc['due_date'] ?? '');
+            $status = $this->forecastStatus($due, $open, $today);
+            if ($status === 'liquidado') {
+                continue;
+            }
+            $out[] = [
+                'due_date' => $due,
+                'source_type' => (string) ($fc['source_type'] ?? ''),
+                'doc_num' => (int) ($fc['doc_num'] ?? 0),
+                'doc_entry' => (int) ($fc['doc_entry'] ?? 0),
+                'nf_serial' => (string) ($fc['nf_serial'] ?? ''),
+                'title_num' => (string) ($fc['title_num'] ?? ''),
+                'card_code' => (string) ($fc['card_code'] ?? ''),
+                'card_name' => (string) ($fc['card_name'] ?? ''),
+                'installment' => (int) ($fc['installment_id'] ?? 1),
+                'original_amount' => (float) ($fc['original_amount'] ?? 0),
+                'paid_amount' => (float) ($fc['paid_amount'] ?? 0),
+                'open_amount' => $open,
+                'sap_bpl_id' => (int) ($fc['sap_bpl_id'] ?? 0),
+                'status' => $status,
+            ];
+        }
+        usort($out, static function (array $a, array $b): int {
+            $byDue = strcmp((string) $a['due_date'], (string) $b['due_date']);
+            if ($byDue !== 0) {
+                return $byDue;
+            }
+            $byType = strcmp((string) $a['source_type'], (string) $b['source_type']);
+            if ($byType !== 0) {
+                return $byType;
+            }
+            $byDoc = ((int) $a['doc_num']) <=> ((int) $b['doc_num']);
+            if ($byDoc !== 0) {
+                return $byDoc;
+            }
+            return ((int) $a['installment']) <=> ((int) $b['installment']);
+        });
+        return $out;
+    }
+
+    /**
+     * Vencido só se ainda houver saldo aberto e a data de vencimento já passou.
+     */
+    private function forecastStatus(string $due, float $open, string $today): string
+    {
+        if (abs($open) < 0.005) {
+            return 'liquidado';
+        }
+        if ($due !== '' && $due < $today) {
+            return 'vencido';
+        }
+        if ($due === $today) {
+            return 'hoje';
+        }
+        return 'prazo';
+    }
+
+    /**
+     * @param array<string, mixed> $row
+     */
+    private function formatForecastLabel(array $row): string
+    {
+        $nf = trim((string) ($row['nf_serial'] ?? ''));
+        $title = trim((string) ($row['title_num'] ?? ''));
+        $doc = (string) ($row['doc_num'] ?? '');
+        $parts = [];
+        if ($nf !== '') {
+            $parts[] = 'NF ' . $nf;
+        }
+        if ($title !== '') {
+            $parts[] = 'Tít. ' . $title;
+        }
+        if ($parts === [] && $doc !== '' && $doc !== '0') {
+            $parts[] = 'Doc ' . $doc;
+        }
+        return implode(' · ', $parts);
     }
 
     /**

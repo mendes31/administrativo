@@ -107,6 +107,28 @@ $month = (int) date('n');
 .fcf-dash .badge.caixa{background:#FFF3DC; color:#9A6B00;}
 .fcf-dash .badge.aplic{background:var(--fcf-green-tint); color:var(--fcf-green);}
 .fcf-dash .hidden{display:none;}
+.fcf-dash .fcf-detail-bar{
+  background:var(--fcf-surface); border:1px solid var(--fcf-line); border-radius:var(--fcf-radius);
+  box-shadow:var(--fcf-shadow); padding:12px 16px; display:grid;
+  grid-template-columns:1.2fr 1fr 1.6fr; gap:12px; align-items:end; margin-bottom:12px;
+}
+.fcf-dash .fcf-detail-bar label{
+  display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:600;
+  color:var(--fcf-ink-mute); text-transform:uppercase; letter-spacing:.03em; margin:0;
+}
+.fcf-dash .fcf-detail-bar select,.fcf-dash .fcf-detail-bar input{
+  font-family:inherit; font-size:13px; color:var(--fcf-ink); border:1px solid var(--fcf-line);
+  background:var(--fcf-bg); border-radius:8px; padding:8px 10px; outline:none; min-width:0;
+}
+.fcf-dash .fcf-detail-sum{grid-template-columns:repeat(3,1fr); margin-bottom:12px;}
+.fcf-dash .tbl-sticky thead th{position:sticky; top:0; z-index:1; background:#FAFBFD;}
+.fcf-dash td.tl,.fcf-dash th.tl{text-align:left; font-weight:500; white-space:normal; max-width:280px;}
+.fcf-dash .badge.vencido{background:var(--fcf-red-tint); color:var(--fcf-red);}
+.fcf-dash .badge.hoje{background:var(--fcf-orange-tint); color:var(--fcf-orange);}
+.fcf-dash .badge.prazo{background:var(--fcf-green-tint); color:var(--fcf-green);}
+.fcf-dash .badge.liquidado{background:#EEF1F5; color:var(--fcf-ink-mute);}
+.fcf-dash .fcf-kpi[data-jump]{cursor:pointer;}
+.fcf-dash .fcf-kpi[data-jump]:hover{box-shadow:0 2px 10px rgba(18,30,22,0.12);}
 .fcf-dash .note{font-size:12px; color:var(--fcf-ink-mute); background:var(--fcf-surface); border:1px dashed var(--fcf-line); border-radius:8px; padding:13px 15px; margin-top:8px;}
 .fcf-dash .fcf-error,.fcf-dash .fcf-warn{
   border-radius:var(--fcf-radius); padding:12px 14px; margin-bottom:12px; display:none;
@@ -134,8 +156,8 @@ $month = (int) date('n');
 .fcf-drawerbox{position:absolute; right:0; top:0; height:100%; width:min(640px,95vw); background:#fff; padding:20px; overflow:auto; box-shadow:-8px 0 24px rgba(0,0,0,.12);}
 .fcf-drawerbox h2{margin-top:0;}
 @media(max-width:1200px){.fcf-dash .fcf-kpis{grid-template-columns:repeat(3,1fr);} .fcf-dash .fcf-toolbar{grid-template-columns:repeat(3,1fr);}}
-@media(max-width:900px){.fcf-dash .regimes,.fcf-dash .grid2{grid-template-columns:1fr;} .fcf-dash .fcf-kpis{grid-template-columns:repeat(2,1fr);}}
-@media(max-width:650px){.fcf-dash .fcf-kpis,.fcf-dash .fcf-toolbar{grid-template-columns:1fr;}}
+@media(max-width:900px){.fcf-dash .regimes,.fcf-dash .grid2{grid-template-columns:1fr;} .fcf-dash .fcf-kpis{grid-template-columns:repeat(2,1fr);} .fcf-dash .fcf-detail-bar{grid-template-columns:1fr 1fr;}}
+@media(max-width:650px){.fcf-dash .fcf-kpis,.fcf-dash .fcf-toolbar,.fcf-dash .fcf-detail-bar{grid-template-columns:1fr;}}
 </style>
 
 <div class="container-fluid px-2 px-md-3">
@@ -213,7 +235,7 @@ $month = (int) date('n');
       <div class="tab" data-tab="monthly">Fluxo Mensal</div>
       <div class="tab" data-tab="accounts">Bancos / Contas</div>
       <div class="tab" data-tab="investments">Aplicações</div>
-      <div class="tab" data-tab="detail">Detalhamento</div>
+      <div class="tab" data-tab="detail">Detalhes</div>
     </div>
 
     <section id="tab-daily">
@@ -267,13 +289,59 @@ $month = (int) date('n');
     </section>
 
     <section id="tab-detail" class="hidden">
+      <div class="fcf-detail-bar">
+        <label>Recorte
+          <select id="dRecorte">
+            <option value="horizon">Horizonte dos KPIs</option>
+            <option value="month">Mês do filtro</option>
+            <option value="overdue">Somente vencidos</option>
+            <option value="all">Todos os abertos</option>
+          </select>
+        </label>
+        <label>Tipo
+          <select id="dTipo">
+            <option value="">A receber e a pagar</option>
+            <option value="AR">A receber</option>
+            <option value="AP">A pagar</option>
+          </select>
+        </label>
+        <label>Buscar
+          <input type="search" id="dBusca" placeholder="NF, título, parceiro ou código" autocomplete="off">
+        </label>
+      </div>
+      <p class="kh" id="dHint" style="margin:0 0 10px;"></p>
+      <div class="fcf-kpis fcf-detail-sum" id="dSums"></div>
       <div class="card">
-        <div class="cardh">Títulos previstos em aberto no período</div>
-        <div style="overflow:auto;max-height:480px;"><table><thead><tr><th>Vencimento</th><th>Tipo</th><th>Documento</th><th>Parceiro</th><th>Parcela</th><th>Saldo aberto</th></tr></thead><tbody id="tblDetail"></tbody></table></div>
+        <div class="cardh">Documentos que compõem a receber e a pagar
+          <span class="kh" id="dCount"></span>
+        </div>
+        <div style="overflow:auto;max-height:560px;">
+          <table class="tbl-sticky">
+            <thead>
+              <tr>
+                <th>Vencimento</th>
+                <th>Status</th>
+                <th>Tipo</th>
+                <th title="Número interno da NFS (Nota Fiscal de Saída, a receber) ou da NFE (Nota Fiscal de Entrada, a pagar). Não é o título/boleto.">Nº Doc SAP</th>
+                <th>NF</th>
+                <th>Título</th>
+                <th class="tl">Código</th>
+                <th class="tl">Parceiro</th>
+                <th>Parcela</th>
+                <th>Original</th>
+                <th>Pago</th>
+                <th>Saldo aberto</th>
+                <th>Filial</th>
+              </tr>
+            </thead>
+            <tbody id="tblDetail"></tbody>
+            <tfoot id="footDetail"></tfoot>
+          </table>
+        </div>
       </div>
     </section>
 
-    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Transferências entre contas financeiras são neutralizadas no consolidado. Aplicações, resgates e rendimentos são lançados neste sistema — o SAP hoje registra principalmente os rendimentos mensais.</div>
+    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Transferências entre contas financeiras são neutralizadas no consolidado. Aplicações, resgates e rendimentos são lançados neste sistema — o SAP hoje registra principalmente os rendimentos mensais. A aba Detalhes lista os títulos em aberto que compõem os KPIs: Nº Doc SAP é o documento da NFS (saída) ou da NFE (entrada); NF é o Serial da nota; Título é o boleto quando existir. Pedidos de venda/compra não entram.</div>
   </div>
 </div>
 
@@ -287,4 +355,4 @@ $month = (int) date('n');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=1"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=7"></script>
