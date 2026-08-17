@@ -20,7 +20,7 @@
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Abas do formulário</strong> Usuário (conta/acesso ao Portal), Dados Pessoais, Endereço, Dados Contratuais (empresa contratante alinhada às Filiais/nome fantasia; matrícula, vínculo e desligamento), Formações, Acessos (mapa TI) e Permissões (níveis ACL, com <em>UpdateUserAccessLevels</em>). O botão <strong>Salvar</strong> funciona em qualquer aba. Após salvar ou atualizar a página (F5), a tela permanece na mesma aba em que você estava.</div>
+<div class="help-field"><strong>Cargo</strong> Lista o nome completo cadastrado em Cargos, incluindo senioridade (JR / PL / SR). Não usa o nome resumido de outras telas. O valor gravado é o <code>id</code> do cargo.</div>
 <div class="help-field"><strong>Aba ativa</strong> A URL acompanha a aba selecionada com <em>?tab=</em>. Ao atualizar o navegador, a edição permanece na mesma aba. A faixa de abas fica fixa no topo do formulário enquanto você rola o conteúdo.</div>
 <div class="help-field"><strong>Formações</strong> Aceita vários cursos, graduações, pós-graduações, MBAs, mestrados e doutorados para o mesmo usuário. O campo geral <em>Escolaridade</em> continua representando o maior grau de instrução.</div>
 <div class="help-field"><strong>Acessos (TI)</strong> Lista vínculos do colaborador com sistemas do catálogo <em>TI / Acessos</em> (incluindo embarcados). Não confundir com níveis de acesso/páginas deste Portal.</div>
@@ -36,6 +36,8 @@
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Cargo aparece sem JR/PL/SR</dt>
+    <dd>Na edição e no cadastro o combo mostra o nome completo do cargo. Se ainda estiver resumido, atualize a página. Outras telas (perfil, listagens) podem continuar com o nome curto só para leitura.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>UpdateUser</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
     <dt>Erro 004 ao executar ação</dt>

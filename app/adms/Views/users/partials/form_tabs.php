@@ -104,10 +104,10 @@ $form = $this->data['form'] ?? [];
                         <?php foreach ($this->data['listPositions'] as $listPosition): ?>
                             <?php
                             $posId = (int)($listPosition['id'] ?? 0);
-                            $posName = \App\adms\Helpers\PositionDisplayHelper::formatForDisplay((string)($listPosition['name'] ?? ''));
+                            $posName = (string)($listPosition['name'] ?? '');
                             $selected = !empty($form['user_position_id']) && (int)$form['user_position_id'] === $posId ? 'selected' : '';
                             ?>
-                            <option value="<?php echo $posId; ?>" <?php echo $selected; ?>><?php echo htmlspecialchars($posName, ENT_QUOTES, 'UTF-8'); ?></option>
+                            <option value="<?php echo $posId; ?>" <?php echo $selected; ?> title="<?php echo htmlspecialchars($posName, ENT_QUOTES, 'UTF-8'); ?>"><?php echo htmlspecialchars($posName, ENT_QUOTES, 'UTF-8'); ?></option>
                         <?php endforeach; ?>
                     <?php endif; ?>
                 </select>
