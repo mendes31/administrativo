@@ -71,6 +71,19 @@ final class LgpdPublicoConfig
 
     private function handlePost(): void
     {
+        if (empty($_POST) && empty($_FILES) && isset($_SERVER['CONTENT_LENGTH']) && (int) $_SERVER['CONTENT_LENGTH'] > 0) {
+            $maxUpload = ini_get('upload_max_filesize') ?: '?';
+            $maxPost = ini_get('post_max_size') ?: '?';
+            $this->flash(
+                "O ficheiro excede o limite do servidor (upload_max_filesize={$maxUpload}, post_max_size={$maxPost}). "
+                . 'Reduza o tamanho do PDF ou peça ao administrador para aumentar o limite no php.ini.',
+                'danger'
+            );
+            $this->redirect();
+
+            return;
+        }
+
         if (!CSRFHelper::validateCSRFToken(self::CSRF, (string) ($_POST['csrf_token'] ?? ''))) {
             $this->flash('Token de segurança inválido. Tente novamente.', 'danger');
             $this->redirect();

@@ -71,7 +71,7 @@ $canSync = !empty($this->data['can_sync']);
 .prd-dash .prd-grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
 .prd-dash .prd-panel{
   background:var(--prd-surface); border:1px solid var(--prd-line); border-radius:var(--prd-radius);
-  padding:16px 18px; box-shadow:var(--prd-shadow);
+  padding:16px 18px; box-shadow:var(--prd-shadow); overflow:visible;
 }
 .prd-dash .prd-panel h2{font-size:15px; font-weight:700; margin:0 0 2px;}
 .prd-dash .prd-panel .panel-sub{font-size:12px; color:var(--prd-ink-mute); margin:0 0 10px;}
@@ -96,14 +96,24 @@ $canSync = !empty($this->data['can_sync']);
 .prd-dash .prd-pill.running{color:var(--prd-blue); background:var(--prd-blue-tint);}
 .prd-dash .prd-pill.late{color:var(--prd-red); background:var(--prd-red-tint);}
 .prd-dash .prd-pill.done{color:var(--prd-green); background:var(--prd-green-tint);}
-.prd-dash table{width:100%; border-collapse:collapse; font-size:13px;}
+.prd-dash table{width:100%; border-collapse:collapse; font-size:13px; table-layout:auto;}
 .prd-dash thead th{
   text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em;
   color:var(--prd-ink-mute); font-weight:700; padding:0 8px 8px; border-bottom:1px solid var(--prd-line);
 }
-.prd-dash tbody td{padding:9px 8px; border-bottom:1px solid var(--prd-bg); color:var(--prd-ink-soft);}
-.prd-dash tbody td.num{text-align:right; color:var(--prd-ink); font-weight:600;}
-.prd-dash .table-scroll{max-height:320px; overflow-y:auto;}
+.prd-dash tbody td{padding:9px 8px; border-bottom:1px solid var(--prd-bg); color:var(--prd-ink-soft); vertical-align:top;}
+.prd-dash tbody td.num{text-align:right; color:var(--prd-ink); font-weight:600; white-space:nowrap;}
+.prd-dash tbody td.wrap{white-space:normal; word-break:break-word; line-height:1.35;}
+.prd-dash tbody td.compact{white-space:nowrap; font-size:12px;}
+.prd-dash .table-scroll{
+  max-height:320px; overflow-y:auto; overflow-x:auto; -webkit-overflow-scrolling:touch;
+  width:100%; max-width:100%;
+}
+.prd-dash .table-scroll table.prd-table-orders{min-width:640px; width:max-content;}
+.prd-dash .prd-table-skus col.col-sku{width:28%;}
+.prd-dash .prd-table-skus col.col-item{width:52%;}
+.prd-dash .prd-table-skus col.col-vol{width:20%;}
+.prd-dash tbody td.nowrap{white-space:nowrap;}
 .prd-dash .prd-note{margin-top:18px; font-size:11.5px; color:var(--prd-ink-mute); border-top:1px solid var(--prd-line); padding-top:12px;}
 .prd-dash .prd-empty{
   display:flex; align-items:center; justify-content:center; min-height:120px;
@@ -137,8 +147,64 @@ $canSync = !empty($this->data['can_sync']);
   .prd-dash .prd-grid,.prd-dash .prd-grid-2{grid-template-columns:1fr;}
   .prd-dash .prd-kpi-row{grid-template-columns:1fr 1fr;}
 }
+@media (max-width:768px){
+  .prd-dash{padding:4px 0 28px;}
+  .prd-dash .prd-banner{padding:14px 16px; flex-direction:column; align-items:flex-start;}
+  .prd-dash .prd-banner h1{font-size:1.15rem;}
+  .prd-dash .prd-banner p{font-size:12px; line-height:1.45;}
+  .prd-dash .prd-periodo-tag{align-self:stretch; text-align:center; white-space:normal;}
+  .prd-dash .prd-toolbar{flex-direction:column; align-items:stretch; gap:10px;}
+  .prd-dash .prd-toolbar label{width:100%;}
+  .prd-dash .prd-toolbar select,
+  .prd-dash .prd-toolbar input[type="date"]{min-width:0; width:100%; box-sizing:border-box;}
+  .prd-dash .prd-toolbar button{width:100%;}
+  .prd-dash .prd-custom-dates.is-visible{width:100%;}
+  .prd-dash .prd-custom-dates.is-visible label{flex:1; min-width:0;}
+  .prd-dash .prd-panel{padding:14px 12px;}
+  .prd-dash .prd-panel .panel-sub{line-height:1.45;}
+  .prd-dash .prd-chart{height:220px;}
+  .prd-dash .table-scroll{margin:0; padding-bottom:4px; overflow-x:auto;}
+  .prd-dash .table-scroll table.prd-table-orders{min-width:0; width:100%;}
+  .prd-dash .prd-table-mobile-stack thead{display:none;}
+  .prd-dash .prd-table-mobile-stack tbody tr{
+    display:block; border:1px solid var(--prd-line); border-radius:10px;
+    margin-bottom:8px; padding:6px 8px; background:var(--prd-bg);
+  }
+  .prd-dash .prd-table-mobile-stack tbody td{
+    display:flex; justify-content:space-between; align-items:flex-start; gap:8px;
+    padding:5px 0; border-bottom:0; font-size:11px; text-align:right;
+  }
+  .prd-dash .prd-table-mobile-stack tbody td::before{
+    content:attr(data-label); font-weight:700; font-size:10px;
+    text-transform:uppercase; letter-spacing:.02em; color:var(--prd-ink-mute);
+    flex:0 0 38%; max-width:38%; text-align:left;
+  }
+  .prd-dash .prd-table-mobile-stack tbody td.num{font-weight:700;}
+  .prd-dash .prd-table-mobile-stack .table-scroll{overflow-x:visible;}
+  .prd-dash .prd-table-skus{table-layout:fixed; width:100%;}
+  .prd-dash .prd-table-skus thead th,
+  .prd-dash .prd-table-skus tbody td{padding:6px 4px; font-size:10.5px; line-height:1.35;}
+  .prd-dash .prd-table-skus thead th:nth-child(1),
+  .prd-dash .prd-table-skus tbody td:nth-child(1){width:26%;}
+  .prd-dash .prd-table-skus thead th:nth-child(2),
+  .prd-dash .prd-table-skus tbody td:nth-child(2){width:54%;}
+  .prd-dash .prd-table-skus thead th:nth-child(3),
+  .prd-dash .prd-table-skus tbody td:nth-child(3){width:20%;}
+  .prd-dash .prd-pill{font-size:9px; padding:2px 5px;}
+  .prd-dash .prd-meter{flex-wrap:wrap; gap:6px;}
+  .prd-dash .prd-gauge{width:130px;}
+  .prd-dash .prd-gauge::before{width:94px;}
+  .prd-dash .prd-gauge-value strong{font-size:24px;}
+}
 @media (max-width:560px){
   .prd-dash .prd-kpi-row{grid-template-columns:1fr;}
+  .prd-dash .prd-kpi .value{font-size:1.2rem;}
+  .prd-dash .prd-kpi .delta{font-size:11px;}
+  .prd-dash .prd-chart{height:200px;}
+  .prd-dash .prd-table-mobile-stack tbody td{font-size:10.5px;}
+  .prd-dash .prd-table-skus thead th,
+  .prd-dash .prd-table-skus tbody td{font-size:10px; padding:5px 3px;}
+  .prd-dash .prd-legend{gap:8px; font-size:11px;}
 }
 </style>
 
@@ -282,7 +348,7 @@ $canSync = !empty($this->data['can_sync']);
         <h2>Ordens em aberto</h2>
         <p class="panel-sub">Em produção e atrasadas (snapshot)</p>
         <div class="table-scroll">
-          <table>
+          <table class="prd-table-orders prd-table-mobile-stack">
             <thead><tr><th>Ordem</th><th>SKU</th><th>Linha</th><th>Prazo</th><th>Progresso</th><th>Status</th></tr></thead>
             <tbody id="tblOrdens"></tbody>
           </table>
@@ -292,7 +358,12 @@ $canSync = !empty($this->data['can_sync']);
         <h2>Ranking de SKUs</h2>
         <p class="panel-sub">Maior volume concluído no período</p>
         <div class="table-scroll">
-          <table>
+          <table class="prd-table-skus">
+            <colgroup>
+              <col class="col-sku">
+              <col class="col-item">
+              <col class="col-vol">
+            </colgroup>
             <thead><tr><th>SKU</th><th>Item</th><th style="text-align:right;">Volume</th></tr></thead>
             <tbody id="tblSkus"></tbody>
           </table>
@@ -332,4 +403,4 @@ $canSync = !empty($this->data['can_sync']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/production/dashboard.js?v=2"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/production/dashboard.js?v=4"></script>

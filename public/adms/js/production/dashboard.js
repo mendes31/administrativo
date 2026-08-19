@@ -16,6 +16,7 @@
 
   let filtro = { periodo: '30', date_from: '', date_to: '', linha: null };
   let charts = {};
+  let lastChartData = null;
   let abortCtrl = null;
 
   const fmtInt = (v) => (v === null || v === undefined) ? '—' : Number(v).toLocaleString('pt-BR');
@@ -81,14 +82,37 @@
     charts = {};
   }
 
+  function isMobileView() {
+    return window.matchMedia('(max-width: 768px)').matches;
+  }
+
   function chartOpts() {
+    const mobile = isMobileView();
     return {
       responsive: true,
       maintainAspectRatio: false,
       plugins: { legend: { display: false } },
       scales: {
-        x: { grid: { display: false }, ticks: { color: '#8A9189', font: { size: 11 } } },
-        y: { beginAtZero: true, grid: { color: '#E2E6E0' }, ticks: { color: '#8A9189', font: { size: 11 } } }
+        x: {
+          grid: { display: false },
+          ticks: {
+            color: '#8A9189',
+            font: { size: mobile ? 9 : 11 },
+            maxRotation: mobile ? 45 : 0,
+            minRotation: mobile ? 45 : 0,
+            autoSkip: true,
+            maxTicksLimit: mobile ? 6 : undefined
+          }
+        },
+        y: {
+          beginAtZero: true,
+          grid: { color: '#E2E6E0' },
+          ticks: {
+            color: '#8A9189',
+            font: { size: mobile ? 9 : 11 },
+            maxTicksLimit: mobile ? 5 : undefined
+          }
+        }
       }
     };
   }
@@ -98,38 +122,41 @@
       showError('Chart.js não carregou. Verifique o vendor chartjs.');
       return;
     }
+    lastChartData = data;
     destruirCharts();
     const s = data.series || {};
     const labels = s.labels || [];
 
     const optsSkus = chartOpts();
-    optsSkus.scales.y.title = { display: true, text: 'Unidades', color: '#8A9189', font: { size: 10 } };
+    const mobile = isMobileView();
+    optsSkus.scales.y.title = { display: !mobile, text: 'Unidades', color: '#8A9189', font: { size: 10 } };
     optsSkus.scales.y2 = {
       beginAtZero: true,
       position: 'right',
       grid: { drawOnChartArea: false },
-      ticks: { color: '#8A9189', font: { size: 11 } },
-      title: { display: true, text: 'Produtos', color: '#8A9189', font: { size: 10 } }
+      ticks: { color: '#8A9189', font: { size: mobile ? 9 : 11 }, maxTicksLimit: mobile ? 5 : undefined },
+      title: { display: !mobile, text: 'Produtos', color: '#8A9189', font: { size: 10 } }
     };
     charts.skus = new Chart($('chartSkus'), {
       type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: 'SKUs (unidades)', data: s.skus || [], backgroundColor: COR_SKU, borderRadius: 3, maxBarThickness: 22, yAxisID: 'y' },
-          { label: 'Produtos', data: s.produtos || [], backgroundColor: COR_PROD, borderRadius: 3, maxBarThickness: 22, yAxisID: 'y2' }
+          { label: 'SKUs (unidades)', data: s.skus || [], backgroundColor: COR_SKU, borderRadius: 3, maxBarThickness: mobile ? 16 : 22, yAxisID: 'y' },
+          { label: 'Produtos', data: s.produtos || [], backgroundColor: COR_PROD, borderRadius: 3, maxBarThickness: mobile ? 16 : 22, yAxisID: 'y2' }
         ]
       },
       options: optsSkus
     });
 
+    const barThickness = mobile ? 16 : 22;
     charts.volume = new Chart($('chartVolume'), {
       type: 'bar',
       data: {
         labels,
         datasets: [
-          { label: 'Realizado', data: s.volume || [], backgroundColor: COR_REAL, borderRadius: 3, maxBarThickness: 22 },
-          { label: 'Planejado', data: s.planejado || [], backgroundColor: COR_PLAN, borderRadius: 3, maxBarThickness: 22 }
+          { label: 'Realizado', data: s.volume || [], backgroundColor: COR_REAL, borderRadius: 3, maxBarThickness: barThickness },
+          { label: 'Planejado', data: s.planejado || [], backgroundColor: COR_PLAN, borderRadius: 3, maxBarThickness: barThickness }
         ]
       },
       options: chartOpts()
@@ -142,11 +169,11 @@
         datasets: [
           {
             label: 'Iniciadas', data: s.iniciadas || [], borderColor: COR_INI, backgroundColor: COR_INI,
-            tension: 0.25, fill: false, pointRadius: 4, pointHoverRadius: 5
+            tension: 0.25, fill: false, pointRadius: mobile ? 3 : 4, pointHoverRadius: mobile ? 4 : 5
           },
           {
             label: 'Concluídas', data: s.concluidas || [], borderColor: COR_CONC, backgroundColor: COR_CONC,
-            tension: 0.25, fill: false, pointRadius: 4, pointHoverRadius: 5
+            tension: 0.25, fill: false, pointRadius: mobile ? 3 : 4, pointHoverRadius: mobile ? 4 : 5
           }
         ]
       },
@@ -189,12 +216,15 @@
     }
     tb.innerHTML = rows.map((o) => {
       const pill = o.status === 'late' ? 'late' : 'running';
-      return '<tr><td><strong>OP-' + escapeHtml(o.op) + '</strong></td>'
-        + '<td>' + escapeHtml(o.sku) + '</td>'
-        + '<td>' + escapeHtml(o.linha) + '</td>'
-        + '<td>' + fmtDate(o.prazo) + '</td>'
-        + '<td class="num">' + fmtNum(o.progresso, 0) + '%</td>'
-        + '<td><span class="prd-pill ' + pill + '">' + escapeHtml(o.status_label) + '</span></td></tr>';
+      const op = '<strong>OP-' + escapeHtml(o.op) + '</strong>';
+      const status = '<span class="prd-pill ' + pill + '">' + escapeHtml(o.status_label) + '</span>';
+      return '<tr>'
+        + '<td data-label="Ordem">' + op + '</td>'
+        + '<td data-label="SKU" class="compact">' + escapeHtml(o.sku) + '</td>'
+        + '<td data-label="Linha">' + escapeHtml(o.linha) + '</td>'
+        + '<td data-label="Prazo" class="compact">' + fmtDate(o.prazo) + '</td>'
+        + '<td data-label="Progresso" class="num">' + fmtNum(o.progresso, 0) + '%</td>'
+        + '<td data-label="Status">' + status + '</td></tr>';
     }).join('');
   }
 
@@ -205,7 +235,8 @@
       return;
     }
     tb.innerHTML = rows.map((r) =>
-      '<tr><td>' + escapeHtml(r.sku) + '</td><td>' + escapeHtml(r.item) + '</td>'
+      '<tr><td class="compact">' + escapeHtml(r.sku) + '</td>'
+      + '<td class="wrap">' + escapeHtml(r.item) + '</td>'
       + '<td class="num">' + fmtNum(r.volume, 2) + '</td></tr>'
     ).join('');
   }
@@ -356,4 +387,13 @@
 
   toggleCustomDates();
   load(false);
+
+  let resizeTimer;
+  window.addEventListener('resize', function () {
+    if (!lastChartData) return;
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function () {
+      renderCharts(lastChartData);
+    }, 200);
+  });
 })();
