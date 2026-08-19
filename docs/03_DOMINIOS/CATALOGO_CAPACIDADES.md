@@ -82,7 +82,13 @@ Classificar, ratear, custear, simular e analisar variações.
 
 ### Produção
 
-Planejar, ordenar, apontar, consumir, produzir e medir perdas.
+| Capacidade | Classificação | Estado |
+|---|---|---|
+| Dashboard de produção (BEAS/SAP, cache local) | Essencial | Em implementação (V1.0) |
+| Sincronizar ordens SAP/BEAS → cache | Essencial | Em implementação (V1.0) |
+| Medir SKUs, produtos, volume e OPs do período | Essencial | Em implementação (V1.0) |
+| OEE / paradas / consumo MP | Recomendada | Planejada (V1.1) |
+| Custo unitário de produção | Recomendada | Fora deste módulo (Custos) |
 
 ### Qualidade
 

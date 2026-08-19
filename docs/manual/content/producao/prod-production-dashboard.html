@@ -1,0 +1,71 @@
+<h1>Dashboard de Produção</h1>
+
+<h2>Função no sistema</h2>
+<p>Painel gerencial da produção fabril com unidades produzidas (SKUs), produtos distintos, ordens e aderência ao plano. A fonte operacional é o <strong>BEAS</strong> (manufatura no SAP Business One) mais as entradas de estoque <code>OIGN</code>. O painel lê um <strong>cache MySQL</strong> sincronizado pela API SAP já parametrizada — não consulta o HANA a cada filtro. É independente do custeio fabril (Estoque/Custos).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>SKU produzido</dt>
+    <dd>Unidades recebidas em estoque no período (soma de <code>IGN1.Quantity</code> das entradas <code>OIGN</code> ligadas ao BEAS). Não é contagem de códigos.</dd>
+    <dt>Produto produzido</dt>
+    <dd>Quantidade de <code>ItemCode</code> distintos recebidos no período (acabados com código <code>4%</code>).</dd>
+    <dt>Volume produzido</dt>
+    <dd>A mesma soma de unidades do card SKUs; alimenta o gráfico realizado × planejado.</dd>
+    <dt>Ordem iniciada</dt>
+    <dd>Ordem cujo <strong>primeiro</strong> apontamento no BEAS (<code>MIN(BEAS_ARBZEIT.ANFZEIT)</code>) cai no período filtrado.</dd>
+    <dt>Ordem concluída</dt>
+    <dd>Posição principal encerrada no BEAS (<code>ABGKZ = J</code>) com data de encerramento no período.</dd>
+    <dt>Aderência ao plano</dt>
+    <dd>Quantidade recebida no período dividida pela quantidade planejada (<code>BEAS_FTPOS.MENGE</code>) das posições com data da ordem no período.</dd>
+    <dt>Depósito / linha</dt>
+    <dd>Filtro <code>TJQP</code> (químicos/softgel) ou <code>APQP</code>. “Ambos” equivale ao parâmetro AMBOS das queries do PCP. Só entram posições principais (<code>STUFE = 0</code>).</dd>
+    <dt>OEE</dt>
+    <dd>Eficiência global do equipamento (disponibilidade × performance × qualidade). Indicador da V1.1: a tela mostra “—” até existir apontamento de parada/ciclo no cache.</dd>
+    <dt>Cache MySQL</dt>
+    <dd>Entradas em <code>adms_prod_receipt_fact</code>, ordens em <code>adms_prod_wo_fact</code>, refugo diário em <code>adms_prod_scrap_day</code>. O painel lê só este cache.</dd>
+    <dt>Atualizar agora (incremental)</dt>
+    <dd>Botão que dispara sync incremental (HANA → MySQL, overlap de 7 dias). A carga completa (24 meses + OPs abertas) é só via CLI <code>--full</code>.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ProdProductionDashboard</em> (dados via <em>ProdProductionDashboardData</em>; sync via <em>ProdProductionDashboardSync</em>). Super administrador vê o menu automaticamente; demais níveis recebem a permissão no cadastro de acesso. Grupo ACL: <em>Produção</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Execute a migration: <code>vendor/bin/phinx migrate</code>.</li>
+    <li>Na primeira vez, rode a carga completa: <code>php scripts/sync_prod_production_sap.php --full</code>.</li>
+    <li>Acesse <strong>Produção → Dashboard de Produção</strong> no menu lateral.</li>
+    <li>Escolha o período (7/30/90 dias, mês atual/anterior, ano atual ou personalizado).</li>
+    <li>Opcionalmente filtre por depósito (<code>TJQP</code>, <code>APQP</code> ou ambos).</li>
+    <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
+    <li>Para forçar atualização no meio do dia, use <strong>Atualizar agora (incremental)</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
+    <li>Confira no rodapé a fonte do sync (<code>BEAS</code>) e as tabelas detectadas no probe.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período</strong> Presets: últimos 7/30/90 dias, mês atual, mês anterior, ano atual (YTD) ou personalizado. Padrão: últimos 30 dias. Comparações “vs. período anterior” usam o mesmo número de dias imediatamente antes.</div>
+<div class="help-field"><strong>Data início / Data fim</strong> Visíveis só no período personalizado; aplicadas ao clicar em <strong>Atualizar</strong>.</div>
+<div class="help-field"><strong>Depósito</strong> <code>TJQP</code>, <code>APQP</code> ou ambos. Só acabados <code>4%</code> e posição principal (<code>STUFE = 0</code>).</div>
+<div class="help-field"><strong>KPIs</strong> SKUs (unidades), produtos (códigos distintos), volume, ordens iniciadas/concluídas, em andamento, em atraso e aderência ao plano.</div>
+<div class="help-field"><strong>Gráficos</strong> SKUs e produtos por mês; realizado × planejado; iniciadas vs. concluídas; aderência por linha.</div>
+<div class="help-field"><strong>Tabelas</strong> Ordens em aberto (snapshot) e ranking de SKUs por volume.</div>
+<div class="help-field"><strong>API dados</strong> Endpoint <code>prod-production-dashboard-data</code> agrega só no MySQL.</div>
+<div class="help-field"><strong>API sync</strong> Endpoint <code>prod-production-dashboard-sync</code> — somente incremental na web. Full sync apenas via CLI.</div>
+<div class="help-field"><strong>CLI / cron</strong> <code>php scripts/sync_prod_production_sap.php</code> (incremental), <code>--full</code> (24 meses). Cron opcional se não quiser depender do 1º acesso do dia.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>O item fica em <strong>Produção → Dashboard de Produção</strong> (<code>app/adms/Views/partials/menu.php</code>). Recarregue a página (o cache de permissão de menu é invalidado pela migration). Confirme permissão <em>ProdProductionDashboard</em> no nível de acesso — Super administrador já vê todas as páginas ativas.</dd>
+    <dt>Cache vazio / aviso de sincronização</dt>
+    <dd>Rode <code>php scripts/sync_prod_production_sap.php --full</code> uma vez. Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
+    <dt>Números zerados com sync “OK”</dt>
+    <dd>Confirme se a API SAP alcança <code>OIGN</code>/<code>IGN1</code> e <code>U_beas_belnrid</code>. Sem entradas de produção no recorte (item <code>4%</code>, TJQP/APQP) o cache de produzido fica vazio mesmo com OPs no BEAS.</dd>
+    <dt>OEE, paradas e ciclo mostram “—”</dt>
+    <dd>Esperado na V1. Esses indicadores entram na V1.1. A taxa de refugo usa apontamento <code>BEAS_ARBZEIT</code> quando houver cache diário.</dd>
+    <dt>SKU e volume com o mesmo valor</dt>
+    <dd>Esperado: no glossário do PCP, SKUs produzidos são unidades; o card de volume repete essa soma para o gráfico realizado × planejado. Produtos são os códigos distintos.</dd>
+    <dt>Erro da API SAP / timeout no sync</dt>
+    <dd>Confirme a Configuração SAP API. O painel continua lendo o cache anterior.</dd>
+    <dt>Confundi com Recursos de Produção do Estoque</dt>
+    <dd>Cadastros de recurso/MO no Estoque servem ao custeio fabril. Este dashboard trata ordens reais do BEAS/SAP.</dd>
+</dl>

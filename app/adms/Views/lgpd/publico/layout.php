@@ -3,7 +3,6 @@
 $url_adm = rtrim((string) ($url_adm ?? ($_ENV['URL_ADM'] ?? '')), '/') . '/';
 $base_url = rtrim((string) ($base_url ?? $url_adm . 'lgpd'), '/');
 $empresa = (string) ($empresa ?? 'Tiaraju');
-$logged_in = !empty($logged_in);
 $show_hero = !empty($show_hero);
 ?>
 <!DOCTYPE html>
@@ -33,22 +32,14 @@ $show_hero = !empty($show_hero);
             background: #fff;
             border-bottom: 3px solid var(--lgpd-green);
             padding: 0.7rem 1.25rem;
+        }
+        .lgpd-pub-top-inner {
+            max-width: 1100px;
+            margin: 0 auto;
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 1rem;
         }
         .lgpd-pub-top img { height: 40px; }
-        .lgpd-pub-top a.lgpd-login {
-            background: var(--lgpd-green);
-            color: #fff !important;
-            text-decoration: none;
-            font-weight: 600;
-            padding: 0.4rem 1rem;
-            border-radius: 6px;
-            font-size: 0.9rem;
-        }
-        .lgpd-pub-top a.lgpd-login:hover { background: var(--lgpd-green-dark); }
         .lgpd-hero {
             background:
                 linear-gradient(105deg, rgba(0,153,93,0.92) 0%, rgba(0,122,74,0.88) 48%, rgba(10,91,48,0.9) 100%),
@@ -219,14 +210,11 @@ $show_hero = !empty($show_hero);
 </head>
 <body class="lgpd-pub-body">
     <header class="lgpd-pub-top">
-        <a href="<?php echo htmlspecialchars($base_url, ENT_QUOTES, 'UTF-8'); ?>">
-            <img src="<?php echo htmlspecialchars($url_adm, ENT_QUOTES, 'UTF-8'); ?>public/adms/image/logo/Logo-Tiaraju.png" alt="<?php echo htmlspecialchars($empresa, ENT_QUOTES, 'UTF-8'); ?>">
-        </a>
-        <?php if ($logged_in): ?>
-            <a class="lgpd-login" href="<?php echo htmlspecialchars($url_adm, ENT_QUOTES, 'UTF-8'); ?>dashboard">Portal</a>
-        <?php else: ?>
-            <a class="lgpd-login" href="<?php echo htmlspecialchars($url_adm, ENT_QUOTES, 'UTF-8'); ?>login">Login</a>
-        <?php endif; ?>
+        <div class="lgpd-pub-top-inner">
+            <a href="<?php echo htmlspecialchars($base_url, ENT_QUOTES, 'UTF-8'); ?>">
+                <img src="<?php echo htmlspecialchars($url_adm, ENT_QUOTES, 'UTF-8'); ?>public/adms/image/logo/Logo-Tiaraju.png" alt="<?php echo htmlspecialchars($empresa, ENT_QUOTES, 'UTF-8'); ?>">
+            </a>
+        </div>
     </header>
     <?php if ($show_hero): ?>
         <section class="lgpd-hero">

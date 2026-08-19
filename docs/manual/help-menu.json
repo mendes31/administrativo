@@ -770,6 +770,17 @@
             ]
         },
         {
+            "id": "producao",
+            "title": "Produção",
+            "children": [
+                {
+                    "type": "topic",
+                    "topic_id": "prod-production-dashboard",
+                    "title": "Dashboard de Produção"
+                }
+            ]
+        },
+        {
             "id": "financeiro",
             "title": "Financeiro",
             "children": [

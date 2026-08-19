@@ -3,8 +3,14 @@
 declare(strict_types=1);
 
 /**
- * @var array<string, mixed> $this->data
+ * @var array<string, mixed>  $config
+ * @var array<string, mixed>  $effective
+ * @var array<int, array<string, mixed>> $membros
+ * @var array<string, mixed>|null $editMembro
+ * @var array<string, mixed>  $docsStatus
  */
+
+/** @var object $this */
 $config = is_array($this->data['config'] ?? null) ? $this->data['config'] : [];
 $effective = is_array($this->data['effective'] ?? null) ? $this->data['effective'] : [];
 $membros = is_array($this->data['comite_membros'] ?? null) ? $this->data['comite_membros'] : [];
@@ -96,7 +102,7 @@ $envHint = static function (string $field, string $envKey) use ($config): ?strin
 
                         <h5 class="border-bottom pb-2 mb-3 mt-4">Documentos PDF (opcional)</h5>
                         <p class="text-muted small mb-3">
-                            Faça upload dos PDFs (máx. 20&nbsp;MB) e clique em <strong>Salvar configuração</strong>.
+                            Faça upload dos PDFs (máx. 50&nbsp;MB) e clique em <strong>Salvar configuração</strong>.
                             Os cartões só aparecem na página pública se o ficheiro existir.
                             Política e Termos de Uso continuam a vir do cadastro em Termos LGPD.
                         </p>

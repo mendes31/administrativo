@@ -14,7 +14,7 @@ Cada domínio utiliza os seis artefatos padronizados definidos em
 | Estoque | Pendente | Pendente |
 | Compras | Pendente | Pendente |
 | Custos | Pendente | Pendente |
-| Produção | Pendente | Pendente |
+| [Produção](Producao/DASHBOARD_PRODUCAO_BEAS.md) | Em construção (Dashboard BEAS/SAP) | V1.0 (dashboard + cache) |
 | Qualidade | Pendente | Pendente |
 | Financeiro | Em construção (Fluxo de Caixa SAP) | V1.0 em homologação |
 | Patrimônio | Pendente | Pendente |

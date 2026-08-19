@@ -37,6 +37,7 @@ class AddAdmsPages extends BaseSeed
             ['name' => 'Reserva de Salas', 'obs' => 'Módulo de agendamento e reserva de salas de reunião'],
             ['name' => 'Comunicação Social', 'obs' => 'Timeline interna e eventos corporativos'],
             ['name' => 'Configurações', 'obs' => 'Configurações gerais do sistema'],
+            ['name' => 'Produção', 'obs' => 'Dashboard de produção SAP/BEAS (ADR-0011)'],
         ];
         foreach ($groupsToEnsure as $g) {
             $exists = $this->query('SELECT id FROM adms_groups_pages WHERE name = :name', ['name' => $g['name']])->fetch();
@@ -1126,6 +1127,11 @@ class AddAdmsPages extends BaseSeed
             ['name'=> 'Visualizar PPP SST', 'controller' => 'SstViewPpp', 'controller_url' => 'sst-view-ppp', 'directory' => 'sst', 'obs' => 'Detalhe do PPP gerado.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
             ['name'=> 'Gerar PPP SST', 'controller' => 'SstGeneratePpp', 'controller_url' => 'sst-generate-ppp', 'directory' => 'sst', 'obs' => 'Gera snapshot PPP do colaborador.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
             ['name'=> 'Exportar PPP PDF SST', 'controller' => 'SstExportPppPdf', 'controller_url' => 'sst-export-ppp-pdf', 'directory' => 'sst', 'obs' => 'Download PDF do PPP.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 41],
+
+            // ===== GRUPO 42: PRODUÇÃO =====
+            ['name'=> 'Dashboard de Produção', 'controller' => 'ProdProductionDashboard', 'controller_url' => 'prod-production-dashboard', 'directory' => 'production', 'obs' => 'Dashboard de produção (SKUs, produtos, ordens) com cache SAP/BEAS.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 42],
+            ['name'=> 'API Dashboard de Produção', 'controller' => 'ProdProductionDashboardData', 'controller_url' => 'prod-production-dashboard-data', 'directory' => 'production', 'obs' => 'Endpoint JSON agregado (KPIs/gráficos) do Dashboard de Produção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 42],
+            ['name'=> 'Sync Dashboard de Produção', 'controller' => 'ProdProductionDashboardSync', 'controller_url' => 'prod-production-dashboard-sync', 'directory' => 'production', 'obs' => 'Dispara sincronização SAP/BEAS → cache MySQL do dashboard de produção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 42],
         ];
 
         // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
@@ -1172,6 +1178,9 @@ class AddAdmsPages extends BaseSeed
         }
         $sstGroupId = (int)$sstGroup['id'];
 
+        $producaoGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Produção'");
+        $producaoGroupId = $producaoGroup ? (int)$producaoGroup['id'] : 42;
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -1203,6 +1212,8 @@ class AddAdmsPages extends BaseSeed
                     $groupId = $sacGroupId;
                 } elseif ($groupId == 41) {
                     $groupId = $sstGroupId;
+                } elseif ($groupId == 42) {
+                    $groupId = $producaoGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
                     // Páginas de Dashboards KPI adicionadas nesta seed usam 0 como placeholder
                     $groupId = $dashboardsKpiGroupId;

@@ -37,5 +37,6 @@ outro ADR e referencia o anterior.
 | [ADR-0008](ADR-0008_DOMINIO_TI_ACESSOS.md) | Domínio TI / Acessos (mapa sistemas↔colaborador) | Aprovado |
 | [ADR-0009](ADR-0009_DOMINIO_PORTARIA.md) | Domínio Portaria / Controle de Acesso Físico | Aprovado |
 | [ADR-0010](ADR-0010_FLUXO_CAIXA_SAP.md) | Fluxo de Caixa SAP: um módulo, cache local e fronteiras do previsto | Aprovado |
+| [ADR-0011](ADR-0011_MODULO_PRODUCAO_BEAS.md) | Módulo Produção: um dashboard, cache local e fonte BEAS/SAP | Aprovado |
 
 Use [TEMPLATE.md](TEMPLATE.md) para novos registros.

@@ -215,6 +215,15 @@ class LoadPageAdmAccessLevel
             }
         }
 
+        // URI pública na raiz: /lgpd (gateway fora de /administrativo/)
+        if (!$this->page && preg_match('#/lgpd(?:/|\\?|$)#i', (string)($_SERVER['REQUEST_URI'] ?? ''))) {
+            $this->page = $accessLevelPage->getPageByControllerUrl('lgpd')
+                ?: $accessLevelPage->getPage('LgpdPublico');
+            if ($this->page) {
+                $this->urlController = 'LgpdPublico';
+            }
+        }
+
         // 1) Página não encontrada no cadastro de rotas/páginas
         if (!$this->page) {
             GenerateLog::generateLog("error", "Página/rota não encontrada em pages_routes.", [

@@ -94,6 +94,10 @@ function buildManualAggregateTopicMap(): array
     $add(['report-inventory-balance', 'report-inventory-history'], 'est-relatorios');
 
     $add([
+        'prod-production-dashboard', 'prod-production-dashboard-data', 'prod-production-dashboard-sync',
+    ], 'prod-production-dashboard');
+
+    $add([
         'list-banks', 'create-bank', 'update-bank',
         'list-frequencies', 'create-frequency', 'update-frequency',
         'list-payment-methods', 'create-payment-method', 'update-payment-method',
@@ -247,6 +251,7 @@ function manualTopicToContentDir(): array
         'crm-oportunidades' => 'crm', 'crm-atividades' => 'crm', 'crm-configuracoes' => 'crm',
         'est-visao-geral' => 'estoque', 'est-cadastros' => 'estoque', 'est-movimentacoes' => 'estoque',
         'est-custeio' => 'estoque', 'est-relatorios' => 'estoque',
+        'prod-production-dashboard' => 'producao',
         'fin-visao-geral' => 'financeiro',         'fin-cadastros' => 'financeiro', 'fin-pagar-receber' => 'financeiro',
         'fin-relatorios' => 'financeiro',
         'fin-cash-flow-dashboard' => 'financeiro',
@@ -297,6 +302,7 @@ function manualAggregateTopicLabels(): array
         'est-movimentacoes' => 'Movimentações de estoque',
         'est-custeio' => 'Custeio',
         'est-relatorios' => 'Relatórios de estoque',
+        'prod-production-dashboard' => 'Dashboard de Produção',
         'fin-cadastros' => 'Cadastros financeiros',
         'fin-pagar-receber' => 'Contas a pagar e receber',
         'fin-relatorios' => 'Relatórios financeiros',

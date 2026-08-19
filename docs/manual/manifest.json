@@ -884,6 +884,17 @@
             ]
         },
         {
+            "id": "producao",
+            "title": "Produção",
+            "topics": [
+                {
+                    "id": "prod-production-dashboard",
+                    "title": "Dashboard de Produção",
+                    "file": "producao/prod-production-dashboard.html"
+                }
+            ]
+        },
+        {
             "id": "financeiro",
             "title": "Financeiro",
             "topics": [

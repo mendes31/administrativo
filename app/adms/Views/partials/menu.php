@@ -647,6 +647,24 @@ $menus = [
         ]
     ],
     [
+        'id' => 'producao',
+        'icon' => 'fa-solid fa-industry',
+        'label' => 'Produção',
+        'submenu' => [
+            [
+                'label' => 'Dashboard de Produção',
+                'url' => $_ENV['URL_ADM'] . 'prod-production-dashboard',
+                'permission' => 'ProdProductionDashboard',
+                'icon' => 'fas fa-gauge-high',
+                'related_routes' => [
+                    'prod-production-dashboard',
+                    'prod-production-dashboard-data',
+                    'prod-production-dashboard-sync',
+                ],
+            ],
+        ],
+    ],
+    [
         'id' => 'financeiro',
         'icon' => 'fa-solid fa-coins',
         'label' => 'Financeiro',

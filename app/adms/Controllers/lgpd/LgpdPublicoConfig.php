@@ -16,7 +16,7 @@ use App\adms\Views\Services\LoadViewService;
 final class LgpdPublicoConfig
 {
     private const CSRF = 'form_lgpd_publico_config';
-    private const MAX_PDF_BYTES = 20 * 1024 * 1024;
+    private const MAX_PDF_BYTES = 50 * 1024 * 1024;
     private const REL_DIR = 'storage/lgpd/publico';
 
     private array $data = [];
@@ -243,7 +243,7 @@ final class LgpdPublicoConfig
         }
 
         if ((int) ($file['size'] ?? 0) > self::MAX_PDF_BYTES) {
-            return ['path' => null, 'error' => 'O PDF não pode ultrapassar 20 MB.'];
+            return ['path' => null, 'error' => 'O PDF não pode ultrapassar 50 MB.'];
         }
 
         $originalName = (string) ($file['name'] ?? '');

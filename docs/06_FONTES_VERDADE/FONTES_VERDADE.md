@@ -62,4 +62,5 @@ tabela. Não usar `adms_jobs` como sinônimo de Cargo sem decisão formal.
 - treinamento corporativo versus regulatório;
 - solicitações do Portal versus Reserva de Salas;
 - parceiros em CRM, Compras, Financeiro e SAC;
-- indicadores calculados somente sobre estado atual.
+- indicadores calculados somente sobre estado atual;
+- ordens de produção: fonte BEAS/SAP; produzido = `OIGN`/`IGN1`; cache `adms_prod_receipt_fact` + `adms_prod_wo_fact` (ADR-0011).
