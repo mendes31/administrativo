@@ -643,12 +643,15 @@
                                     
                                     <!-- Seção: Conteúdo do Informativo -->
                                     <section class="informativo-secao-conteudo">
-                                        <div class="informativo-texto">
-                                            <?php 
-                                            // Preservar formatação original
-                                            $conteudo = trim($info['conteudo']);
-                                            $conteudo = str_replace(["\r\n", "\r"], "\n", $conteudo);
-                                            echo nl2br(htmlspecialchars($conteudo)); 
+                                        <div class="informativo-texto adms-view-rich-content">
+                                            <?php
+                                            $conteudo = trim((string) ($info['conteudo'] ?? ''));
+                                            if (preg_match('/<[^>]+>/', $conteudo)) {
+                                                echo \App\adms\Helpers\AdmsHtmlLinkHelper::absolutizeAppLinks($conteudo);
+                                            } else {
+                                                $conteudo = str_replace(["\r\n", "\r"], "\n", $conteudo);
+                                                echo nl2br(htmlspecialchars($conteudo, ENT_QUOTES, 'UTF-8'));
+                                            }
                                             ?>
                                         </div>
                                     </section>

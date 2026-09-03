@@ -463,7 +463,7 @@ tinymce.init({
     height: 420,
     language: 'pt_BR',
     language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
-    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }'
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; } a { color: #0d6efd; text-decoration: underline; font-weight: 600; } a * { color: inherit; }'
 });
 
 document.querySelector('form')?.addEventListener('submit', function () {

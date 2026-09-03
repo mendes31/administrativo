@@ -1510,3 +1510,31 @@ select.input-search:focus{
         font-weight: 500;
     }
 }
+
+/*
+ * Links em conteúdo rico (informativos, políticas, modal do dashboard).
+ * reset.css força a { color: inherit; text-decoration: none } — sem isto
+ * hiperlinks do TinyMCE ficam visualmente iguais ao texto corrido.
+ */
+.adms-view-rich-content a[href],
+.informativo-texto a[href],
+.wysiwyg-editor a[href] {
+    color: #0d6efd !important;
+    text-decoration: underline !important;
+    font-weight: 600;
+    word-break: break-word;
+}
+.adms-view-rich-content a[href]:hover,
+.adms-view-rich-content a[href]:focus,
+.informativo-texto a[href]:hover,
+.informativo-texto a[href]:focus,
+.wysiwyg-editor a[href]:hover,
+.wysiwyg-editor a[href]:focus {
+    color: #0a58ca !important;
+}
+.adms-view-rich-content a[href] *,
+.informativo-texto a[href] *,
+.wysiwyg-editor a[href] * {
+    color: inherit !important;
+    text-decoration: inherit !important;
+}

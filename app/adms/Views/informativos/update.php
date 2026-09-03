@@ -362,6 +362,11 @@ document.getElementById('categoria_id')?.addEventListener('change', function(){
     padding: 0.9rem; overflow: auto;
 }
 .wysiwyg-editor:focus { outline: none; border-color: #198754; }
+.wysiwyg-editor a[href] {
+    color: #0d6efd;
+    text-decoration: underline;
+    font-weight: 600;
+}
 </style>
 
 <script>
@@ -569,7 +574,7 @@ tinymce.init({
     height: 420,
     language: 'pt_BR',
     language_url: "<?php echo $_ENV['URL_ADM']; ?>public/js/tinymce/langs/pt_BR.js",
-    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; }',
+    content_style: 'body { font-family: Arial, sans-serif; font-size: 14px; } a { color: #0d6efd; text-decoration: underline; font-weight: 600; } a * { color: inherit; }',
     // Evita href relativo (ex.: vagas-internas/1) que quebra em /view-informativo/{id}
     relative_urls: false,
     remove_script_host: false,

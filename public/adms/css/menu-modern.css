@@ -1136,7 +1136,7 @@
 }
 
 /* RESET TOTAL em todos os elementos filhos */
-.informativo-texto *,
+.informativo-texto *:not(a):not(a *),
 .informativo-texto::before,
 .informativo-texto::after {
     text-align: inherit;
