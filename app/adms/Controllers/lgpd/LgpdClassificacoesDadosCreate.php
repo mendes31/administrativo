@@ -71,7 +71,7 @@ class LgpdClassificacoesDadosCreate
 
         $pageElements = [
             'title_head' => 'Cadastrar Classificação de Dados LGPD',
-            'menu' => 'CreateLgpdClassificacoesDados',
+            'menu' => 'lgpd-classificacoes-dados',
             'buttonPermission' => ['CreateLgpdClassificacoesDados'],
         ];
         $pageLayoutService = new PageLayoutService();

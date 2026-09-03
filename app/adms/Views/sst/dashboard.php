@@ -8,6 +8,54 @@
         </ol>
     </div>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php
+    $golive = $this->data['golive'] ?? null;
+    $permsDash = $this->data['buttonPermission'] ?? [];
+    $showGolive = is_array($golive) && empty($golive['complete']);
+    ?>
+    <?php if ($showGolive): ?>
+    <div class="card border-primary mb-4" data-adms-help-section="secao-piloto">
+        <div class="card-header d-flex flex-wrap align-items-center gap-2">
+            <span><i class="fas fa-flag-checkered me-1"></i> Primeiros passos — piloto SST</span>
+            <span class="badge text-bg-primary ms-auto">
+                <?= (int) ($golive['required_done'] ?? 0) ?>/<?= (int) ($golive['required_total'] ?? 0) ?> obrigatórios
+            </span>
+        </div>
+        <div class="card-body py-2">
+            <p class="small text-muted mb-2">Complete a base abaixo para as pendências nascerem. Itens opcionais (equipamentos e alertas) podem andar em paralelo.</p>
+            <ul class="list-group list-group-flush">
+                <?php foreach ($golive['items'] ?? [] as $step): ?>
+                    <?php
+                    $done = !empty($step['done']);
+                    $permOk = in_array($step['permission'] ?? '', $permsDash, true)
+                        || ($step['permission'] ?? '') === 'SstDashboard';
+                    $href = $permOk && !empty($step['url']) ? ($_ENV['URL_ADM'] . $step['url']) : '';
+                    ?>
+                    <li class="list-group-item d-flex flex-wrap align-items-start gap-2 px-0">
+                        <span class="badge <?= $done ? 'text-bg-success' : ($step['required'] ? 'text-bg-warning' : 'text-bg-secondary') ?>">
+                            <?= $done ? 'Ok' : ($step['required'] ? 'Falta' : 'Opcional') ?>
+                        </span>
+                        <div class="flex-grow-1">
+                            <div>
+                                <?php if ($href !== '' && !$done): ?>
+                                    <a href="<?= htmlspecialchars($href) ?>"><?= htmlspecialchars((string) $step['label']) ?></a>
+                                <?php else: ?>
+                                    <?= htmlspecialchars((string) $step['label']) ?>
+                                <?php endif; ?>
+                                <?php if (($step['count'] ?? 0) > 0): ?>
+                                    <span class="text-muted small">(<?= (int) $step['count'] ?>)</span>
+                                <?php endif; ?>
+                            </div>
+                            <?php if (!$done && ($step['hint'] ?? '') !== ''): ?>
+                                <div class="small text-muted"><?= htmlspecialchars((string) $step['hint']) ?></div>
+                            <?php endif; ?>
+                        </div>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        </div>
+    </div>
+    <?php endif; ?>
     <?php $asosAguardando = (int) ($this->data['asos_aguardando_count'] ?? 0); ?>
     <div data-adms-help-section="secao-indicadores">
     <?php if ($asosAguardando > 0): ?>

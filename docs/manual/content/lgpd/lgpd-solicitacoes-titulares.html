@@ -1,16 +1,18 @@
 <h1>Solicitações de titulares LGPD</h1>
 
 <h2>Função no sistema</h2>
-<p>Fila interna do DPO para atender requisições de direitos enviadas pelo formulário público (confirmação, acesso, correção, eliminação, portabilidade, revogação, etc.).</p>
+<p>Fila interna do DPO para atender requisições de direitos enviadas pelo formulário público (confirmação, acesso, correção, eliminação, portabilidade, revogação, etc.). Permite guardar o andamento e enviar e-mails ao titular (ou procurador) até a conclusão.</p>
 
 <p><strong>Quem acessa:</strong> DPO/jurídico com <em>LgpdSolicitacoesTitulares</em> e <em>LgpdSolicitacoesTitularesView</em>. A ACL é copiada de <em>LgpdConsentimentos</em> na migration.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
-    <dt>Status Pendente / Em andamento / Concluída / Vencida</dt>
-    <dd>Ciclo de atendimento. O prazo inicial é 15 dias a contar da entrada (Art. 18 §5º).</dd>
+    <dt>Status Pendente / Em andamento / Aguardando titular / Concluída / Vencida</dt>
+    <dd>Ciclo de atendimento. O prazo inicial é 15 dias a contar da entrada (Art. 18 §5º). «Aguardando titular» é usado quando se pedem mais informações.</dd>
     <dt>Nota interna</dt>
-    <dd>Registo do que foi feito ou da resposta a enviar ao titular. Não é publicada automaticamente.</dd>
+    <dd>Registo do andamento. Não é publicada automaticamente; envios de e-mail acrescentam uma linha de log nesta nota.</dd>
+    <dt>Histórico de comunicações</dt>
+    <dd>Registo de cada e-mail enviado pela tela (assunto, mensagem, destinatário, sucesso/falha).</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
@@ -18,21 +20,31 @@
 <li>O titular envia o formulário em <code>/lgpd/requisicao</code>.</li>
 <li>Abra LGPD → Solicitações de titulares (alerta no Dashboard se houver pendentes).</li>
 <li>Abra o protocolo, confirme identidade se necessário, execute o direito no sistema de origem.</li>
-<li>Atualize status, responsável e nota; ao concluir, a data de atendimento fica registada.</li>
-<li>Comunique o titular pelo meio pedido (em geral o e-mail do formulário).</li>
+<li>Na ficha, use as ações conforme o momento:
+    <ul>
+        <li><strong>Guardar só atendimento</strong> — atualiza status/prioridade/responsável/nota sem e-mail.</li>
+        <li><strong>Contatar</strong> — confirmação de recebimento; status passa a «Em andamento».</li>
+        <li><strong>Solicitar mais informações</strong> — pede dados ao titular; status «Aguardando titular».</li>
+        <li><strong>Responder</strong> — resposta intermediária/parcial; mantém «Em andamento».</li>
+        <li><strong>Finalizar e enviar resposta</strong> — resposta final; status «Concluída» e data de atendimento.</li>
+    </ul>
+</li>
+<li>O destinatário é o e-mail do titular ou, se houver, do procurador. O remetente é sempre o e-mail do encarregado (DPO), tipicamente <code>encarregado@tiaraju.com.br</code> (configurado em Config. portal público). É necessária Configuração de E-mail (SMTP) ativa; o servidor SMTP deve autorizar o envio com esse From (SPF/aliases).</li>
 </ol>
 
 <h2>Campos e telas</h2>
 <div class="help-field"><strong>Listagem</strong> Protocolo, titular, categoria, status, prazo e data de entrada.</div>
-<div class="help-field"><strong>Detalhe</strong> Dados do titular/procurador, direitos Sim/Não, IP de entrada e formulário de atendimento.</div>
+<div class="help-field"><strong>Detalhe</strong> Dados do titular/procurador, direitos Sim/Não, IP de entrada, formulário de atendimento, mensagem de e-mail e histórico de comunicações.</div>
 <div class="help-field"><strong>Página pública</strong> O endereço do canal aparece no topo da listagem para partilhar no site institucional.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Menu sem o item</dt>
     <dd>O nível precisa da permissão <em>LgpdSolicitacoesTitulares</em>. Quem já tinha Consentimentos recebe a cópia na migration.</dd>
-    <dt>Tabela antiga sem protocolo</dt>
-    <dd>Aplique a migration que acrescenta as colunas (CPF, direitos JSON, procurador, etc.).</dd>
+    <dt>Tabela antiga sem protocolo / histórico</dt>
+    <dd>Aplique as migrations do portal público e <code>20260831140000_lgpd_solicitacoes_comunicacoes</code>.</dd>
+    <dt>E-mail não sai</dt>
+    <dd>Verifique Administração → Configuração de E-mail (SMTP). O atendimento continua gravado; a falha aparece no histórico.</dd>
     <dt>Pedido duplicado</dt>
     <dd>Confira e-mail/CPF e o protocolo; não há bloqueio automático de duplicados.</dd>
 </dl>

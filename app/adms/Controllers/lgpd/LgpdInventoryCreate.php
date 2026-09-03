@@ -50,7 +50,7 @@ class LgpdInventoryCreate
 
         $pageElements = [
             'title_head' => 'Cadastrar Inventário',
-            'menu' => 'ListLgpdInventory',
+            'menu' => 'lgpd-inventory',
             'buttonPermission' => ['ListLgpdInventory'],
         ];
         $pageLayoutService = new PageLayoutService();

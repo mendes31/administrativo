@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Models\Repository\SstPlanosAcaoRepository;
 use App\adms\Models\Services\SstDashboardService;
+use App\adms\Models\Services\SstGoLiveReadinessService;
 use App\adms\Models\Services\SstPendenciasService;
 use App\adms\Views\Services\LoadViewService;
 
@@ -40,6 +41,7 @@ class SstDashboard
         $this->data['afastamentos_ativos'] = $service->listAfastamentosAtivos(5);
         $this->data['treinamentos_pendentes'] = $service->getTreinamentosPendentes(5);
         $this->data['asos_aguardando_count'] = (new \App\adms\Models\Repository\SstAsosRepository())->countAguardando();
+        $this->data['golive'] = (new SstGoLiveReadinessService())->getChecklist();
 
         $pageElements = [
             'title_head' => 'Dashboard - SST',
@@ -52,6 +54,9 @@ class SstDashboard
                 'SstListEpiNecessidade', 'SstListExameNecessidade', 'SstListRiscoCargo',
                 'SstListTreinamentos', 'SstListTreinamentoNecessidade', 'SstMatrizTreinamentoCargo', 'SstListTreinamentoVinculos', 'SstListGhe',
                 'SstListAsos', 'SstListAfastamentos', 'SstListEpiEntregas', 'SstListAcidentes',
+                'SstListEquipamentos', 'SstListEquipamentoTipos', 'SstEquipamentoSettings',
+                'SstListEpiFichas', 'SstEncaminhamentoAso',
+                'ListUsers', 'NotificationSettings',
             ],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));

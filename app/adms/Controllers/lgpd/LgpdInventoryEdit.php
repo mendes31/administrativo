@@ -66,7 +66,7 @@ class LgpdInventoryEdit
 
         $pageElements = [
             'title_head' => 'Editar Inventário',
-            'menu' => 'ListLgpdInventory',
+            'menu' => 'lgpd-inventory',
             'buttonPermission' => ['ListLgpdInventory', 'EditLgpdInventory'],
         ];
         $pageLayoutService = new PageLayoutService();

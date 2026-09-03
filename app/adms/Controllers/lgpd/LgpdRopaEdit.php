@@ -37,7 +37,7 @@ class LgpdRopaEdit
 
         $pageElements = [
             'title_head' => 'Editar ROPA',
-            'menu' => 'ListLgpdRopa',
+            'menu' => 'lgpd-ropa',
             'buttonPermission' => ['ListLgpdRopa', 'EditLgpdRopa'],
         ];
         $pageLayoutService = new PageLayoutService();

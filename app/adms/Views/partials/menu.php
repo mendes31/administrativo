@@ -2346,6 +2346,32 @@ if (!function_exists('admsMenuItemRouteSlugs')) {
 }
 
 /** Item folha ativo: prioriza URL/rota; permission só com rota compatível. */
+if (!function_exists('admsMenuIsCrudChildRoute')) {
+    /**
+     * Rota CRUD/filha do item (ex.: lgpd-ropa-create), sem confundir com irmãos de menu
+     * (ex.: lgpd-aipd-suggest, lgpd-aipd-template-rh).
+     */
+    function admsMenuIsCrudChildRoute(string $slug, string $currentFirstSeg): bool
+    {
+        if ($slug === '' || $currentFirstSeg === '') {
+            return false;
+        }
+        if ($currentFirstSeg === $slug) {
+            return true;
+        }
+        if (!str_starts_with($currentFirstSeg, $slug . '-')) {
+            return false;
+        }
+        $rest = substr($currentFirstSeg, strlen($slug) + 1);
+        // Produtos/telas irmãs no menu (não são create/edit/view do mesmo item)
+        if (preg_match('/^(suggest|templates|dashboard|template-.+)$/i', $rest) === 1) {
+            return false;
+        }
+
+        return true;
+    }
+}
+
 if (!function_exists('admsMenuItemMatchesCurrentRequest')) {
     /**
      * @param array<string, mixed> $item
@@ -2358,9 +2384,14 @@ if (!function_exists('admsMenuItemMatchesCurrentRequest')) {
 
         $ctx = admsMenuPathContext();
         $slugs = admsMenuItemRouteSlugs($item);
+        $first = $ctx['currentFirstSeg'];
 
-        if ($ctx['currentFirstSeg'] !== '' && in_array($ctx['currentFirstSeg'], $slugs, true)) {
-            return true;
+        if ($first !== '') {
+            foreach ($slugs as $slug) {
+                if (admsMenuIsCrudChildRoute($slug, $first)) {
+                    return true;
+                }
+            }
         }
 
         $path = parse_url((string)$item['url'], PHP_URL_PATH);
@@ -2381,16 +2412,12 @@ if (!function_exists('admsMenuItemMatchesCurrentRequest')) {
             is_string($override) && $override !== ''
             && admsMenuSessionOverrideApplies($menuAtivo)
             && menuEntryMatchesAtivo($item, $override)
-            && ($ctx['currentFirstSeg'] === '' || in_array($ctx['currentFirstSeg'], $slugs, true))
         ) {
             return true;
         }
 
-        if (!menuEntryMatchesAtivo($item, $menuAtivo)) {
-            return false;
-        }
-
-        return $ctx['currentFirstSeg'] === '' || in_array($ctx['currentFirstSeg'], $slugs, true);
+        // Controller/`menu` explícito (ex.: lgpd-tia-dashboard → lgpd-tia)
+        return menuEntryMatchesAtivo($item, $menuAtivo);
     }
 }
 

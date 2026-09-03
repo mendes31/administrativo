@@ -84,7 +84,7 @@ class LgpdRopaCreateFromInventory
 
         $pageElements = [
             'title_head' => 'Criar ROPA a partir do Inventário',
-            'menu' => 'ListLgpdRopa',
+            'menu' => 'lgpd-ropa',
             'buttonPermission' => ['ListLgpdRopa'],
         ];
         $pageLayoutService = new PageLayoutService();

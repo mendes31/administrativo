@@ -10,7 +10,6 @@ use App\adms\Models\Repository\SstTreinamentoAplicacoesRepository;
 use App\adms\Models\Repository\SstTreinamentosRepository;
 use App\adms\Models\Repository\SstTreinamentoVinculosRepository;
 use App\adms\Models\Services\SstPendenciasService;
-use App\adms\Models\Services\SstEsocialPayloadService;
 use App\adms\Models\Services\SstTreinamentoCertificadoPdfService;
 use App\adms\Models\Services\SstTreinamentoStatusService;
 use App\adms\Models\Repository\UsersRepository;
@@ -120,18 +119,6 @@ class SstApplyTreinamento
                 SstPendenciasService::invalidateDashboardCache();
                 header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-treinamento-vinculo/' . $vinculoId);
                 exit;
-            }
-
-            if (is_int($aplicacaoId) && $aplicacaoId > 0) {
-                try {
-                    (new SstEsocialPayloadService())->gerarOuAtualizar(
-                        SstEsocialPayloadService::EVENTO_TREINAMENTO,
-                        'adms_sst_treinamento_aplicacoes',
-                        $aplicacaoId
-                    );
-                } catch (\Throwable) {
-                    // CPF ausente ou dados incompletos — evento pode ser gerado depois na fila eSocial.
-                }
             }
         }
 

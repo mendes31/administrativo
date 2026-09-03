@@ -58,7 +58,7 @@ class LgpdBasesLegaisCreate
     {
         $pageElements = [
             'title_head' => 'Cadastrar Base Legal LGPD',
-            'menu' => 'CreateLgpdBasesLegais',
+            'menu' => 'lgpd-bases-legais',
             'buttonPermission' => ['CreateLgpdBasesLegais'],
         ];
         $pageLayoutService = new PageLayoutService();

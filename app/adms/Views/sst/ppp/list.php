@@ -5,12 +5,14 @@ $perms = $this->data['buttonPermission'] ?? [];
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3"><i class="fas fa-file-alt me-2"></i>PPP — Perfil Profissiográfico</h2>
+        <span class="badge text-bg-warning">Não oficial</span>
         <ol class="breadcrumb mb-3 ms-auto">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
             <li class="breadcrumb-item">PPP</li>
         </ol>
     </div>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php $sstRascunhoKind = 'ppp'; include __DIR__ . '/../partials/sst_rascunho_oficial_alert.php'; ?>
     <div class="card mb-3 border-light shadow">
         <div class="card-header">Documentos gerados</div>
         <div class="card-body">

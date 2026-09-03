@@ -23,7 +23,7 @@ class LgpdFontesColeta
         
         $pageElements = [
             'title_head' => 'Fontes de Coleta LGPD',
-            'menu' => 'ListLgpdFontesColeta',
+            'menu' => 'lgpd-inventory',
             'buttonPermission' => ['ListLgpdFontesColeta', 'LgpdFontesColetaCreate', 'LgpdFontesColetaEdit', 'LgpdFontesColetaDelete'],
         ];
         $pageLayoutService = new PageLayoutService();
@@ -37,7 +37,7 @@ class LgpdFontesColeta
     {
         $pageElements = [
             'title_head' => 'Criar Fonte de Coleta',
-            'menu' => 'ListLgpdFontesColeta',
+            'menu' => 'lgpd-inventory',
             'buttonPermission' => ['ListLgpdFontesColeta', 'LgpdFontesColetaCreate'],
         ];
         $pageLayoutService = new PageLayoutService();
@@ -92,7 +92,7 @@ class LgpdFontesColeta
         
         $pageElements = [
             'title_head' => 'Editar Fonte de Coleta',
-            'menu' => 'ListLgpdFontesColeta',
+            'menu' => 'lgpd-inventory',
             'buttonPermission' => ['ListLgpdFontesColeta', 'LgpdFontesColetaEdit'],
         ];
         $pageLayoutService = new PageLayoutService();

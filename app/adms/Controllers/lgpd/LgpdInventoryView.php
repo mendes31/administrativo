@@ -30,7 +30,7 @@ class LgpdInventoryView
 
         $pageElements = [
             'title_head' => 'Visualizar Inventário',
-            'menu' => 'ListLgpdInventory',
+            'menu' => 'lgpd-inventory',
             'buttonPermission' => ['ListLgpdInventory', 'EditLgpdInventory', 'DeleteLgpdInventory', 'LgpdRopaCreate'],
         ];
         $pageLayoutService = new PageLayoutService();

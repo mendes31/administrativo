@@ -131,7 +131,8 @@ class SstPppService
                 'usuario_id' => (int) ($_SESSION['user_id'] ?? 0),
                 'data' => date('Y-m-d H:i:s'),
             ],
-            'observacao_legal' => 'Documento gerado automaticamente a partir dos registros SST. Revisar e complementar dados exigidos pelo INSS antes de uso oficial.',
+            'oficial' => false,
+            'observacao_legal' => SstEsocialPolicy::observacaoPpp(),
         ];
     }
 

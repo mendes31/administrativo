@@ -147,7 +147,7 @@ function buildManualAggregateTopicMap(): array
         'list-policies', 'create-policy', 'update-policy', 'view-policy',
         'list-policy-categories', 'create-policy-category', 'update-policy-category',
     ], 'gp-politicas');
-    $add(['employee-portal', 'my-payroll-documents', 'my-epi-deliveries', 'my-sst-treinamentos'], 'gp-portal');
+    $add(['employee-portal', 'my-payroll-documents', 'my-epi-deliveries', 'sign-epi-ficha', 'view-epi-ficha-pdf', 'my-sst-treinamentos', 'view-sst-treinamento-certificado-pdf'], 'gp-portal');
     $add([
         'import-payroll-documents', 'list-payroll-signing-pendencies', 'payroll-cron-config',
         'list-payroll-document-types', 'create-payroll-document-type', 'update-payroll-document-type',

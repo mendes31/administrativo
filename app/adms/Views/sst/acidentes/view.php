@@ -52,7 +52,7 @@ $statusBadge = match ($item['status'] ?? '') {
                         <input type="hidden" name="origem_tabela" value="adms_sst_acidentes">
                         <input type="hidden" name="origem_id" value="<?= (int)$item['id'] ?>">
                         <input type="hidden" name="redirect" value="<?= $_ENV['URL_ADM']; ?>sst-view-acidente/<?= (int)$item['id'] ?>">
-                        <button type="submit" class="btn btn-outline-info btn-sm"><i class="fas fa-cloud"></i> eSocial S-2210</button>
+                        <button type="submit" class="btn btn-outline-info btn-sm"><i class="fas fa-cloud"></i> Rascunho S-2210</button>
                     </form>
                 <?php endif; ?>
                 <?php if (in_array('SstUpdateAcidente', $perms, true)): ?>

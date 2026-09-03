@@ -30,7 +30,7 @@ class LgpdRopaCreate
 
         $pageElements = [
             'title_head' => 'Cadastrar ROPA',
-            'menu' => 'ListLgpdRopa',
+            'menu' => 'lgpd-ropa',
             'buttonPermission' => ['ListLgpdRopa'],
         ];
         $pageLayoutService = new PageLayoutService();

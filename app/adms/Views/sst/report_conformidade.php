@@ -3,10 +3,12 @@ $resumo = $this->data['resumo'] ?? [];
 $perms = $this->data['buttonPermission'] ?? [];
 $csrf = $this->data['csrf_esocial'] ?? '';
 $semEvento = $resumo['origens_sem_evento'] ?? [];
+$sstRascunhoKind = 'esocial';
 ?>
 <div class="container-fluid px-4">
     <h2 class="mt-3"><i class="fas fa-balance-scale me-2"></i>Conformidade SST</h2>
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php include __DIR__ . '/partials/sst_rascunho_oficial_alert.php'; ?>
     <?php if (!empty($_SESSION['esocial_sync_erros'])): ?>
         <div class="alert alert-warning small">
             <strong>Detalhes da sincronização:</strong>
@@ -28,14 +30,14 @@ $semEvento = $resumo['origens_sem_evento'] ?? [];
         </div>
         <div class="col-md-3 mb-2">
             <div class="card border-0 shadow-sm h-100"><div class="card-body py-2 text-center">
-                <div class="text-muted small">eSocial gerados</div>
+                <div class="text-muted small">Rascunhos eSocial gerados</div>
                 <div class="fs-4 fw-bold"><?= (int)($resumo['esocial_gerados'] ?? 0) ?></div>
             </div></div>
         </div>
         <div class="col-md-3 mb-2">
             <div class="card border-0 shadow-sm h-100"><div class="card-body py-2 text-center">
-                <div class="text-muted small">eSocial enviados</div>
-                <div class="fs-4 fw-bold text-success"><?= (int)($resumo['esocial_enviados'] ?? 0) ?></div>
+                <div class="text-muted small">Conferências internas</div>
+                <div class="fs-4 fw-bold"><?= (int)($resumo['esocial_enviados'] ?? 0) ?></div>
             </div></div>
         </div>
     </div>
@@ -61,18 +63,17 @@ $semEvento = $resumo['origens_sem_evento'] ?? [];
         </div>
         <div class="col-lg-6">
             <div class="card shadow-sm h-100">
-                <div class="card-header">Registros sem evento eSocial</div>
+                <div class="card-header">Rascunhos S-2210/S-2220 ainda não gerados</div>
                 <div class="card-body">
+                    <p class="small text-muted">Não inclui EPI nem treinamento — S-2240 e S-2245 estão bloqueados. Estes números não são obrigação legal de transmissão.</p>
                     <ul class="mb-3">
                         <li>Acidentes (S-2210): <strong><?= (int)($semEvento['acidentes'] ?? 0) ?></strong></li>
                         <li>ASOs (S-2220): <strong><?= (int)($semEvento['asos'] ?? 0) ?></strong></li>
-                        <li>Entregas EPI (S-2240): <strong><?= (int)($semEvento['epi_entregas'] ?? 0) ?></strong></li>
-                        <li>Treinamentos (S-2245): <strong><?= (int)($semEvento['treinamentos'] ?? 0) ?></strong></li>
                     </ul>
                     <?php if (in_array('SstSyncEsocialPendentes', $perms, true)): ?>
-                        <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-sync-esocial-pendentes">
+                        <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-sync-esocial-pendentes" onsubmit="return confirm('Gera apenas rascunhos S-2210 e S-2220. Não transmite ao governo. Continuar?');">
                             <input type="hidden" name="csrf_token" value="<?= $csrf ?>">
-                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-sync"></i> Gerar eventos pendentes</button>
+                            <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-sync"></i> Gerar rascunhos pendentes</button>
                         </form>
                     <?php endif; ?>
                     <?php if (in_array('SstListEsocialEventos', $perms, true)): ?>

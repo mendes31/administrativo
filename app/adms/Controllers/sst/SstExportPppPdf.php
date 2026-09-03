@@ -45,7 +45,10 @@ class SstExportPppPdf
                 'margin_top' => 14,
                 'margin_bottom' => 14,
             ]);
-            $mpdf->SetTitle("PPP - {$nome} v{$versao}");
+            $mpdf->SetTitle("PPP rascunho (nao oficial) - {$nome} v{$versao}");
+            $mpdf->SetWatermarkText('NÃO OFICIAL');
+            $mpdf->showWatermarkText = true;
+            $mpdf->watermarkTextAlpha = 0.08;
             $mpdf->WriteHTML($html);
             $filename = 'PPP_' . preg_replace('/\W+/', '_', $nome) . '_v' . $versao . '.pdf';
             $mpdf->Output($filename, 'I');
@@ -98,7 +101,7 @@ class SstExportPppPdf
         $depto = $esc($trab['departamento_atual'] ?? null);
         $adm = $esc($trab['data_admissao'] ?? null);
         $nasc = $esc($trab['data_nascimento'] ?? null);
-        $legal = $esc($payload['observacao_legal'] ?? 'Documento gerado automaticamente. Revisar antes de uso oficial.');
+        $legal = $esc($payload['observacao_legal'] ?? \App\adms\Models\Services\SstEsocialPolicy::observacaoPpp());
 
         return <<<HTML
 <style>
@@ -110,8 +113,8 @@ th,td{border:1px solid #bbb;padding:4px 6px;text-align:left}
 th{background:#f0f0f0}
 .small{font-size:8pt;color:#555}
 </style>
-<h1>PPP — Perfil Profissiográfico Previdenciário</h1>
-<p class="small">Versão {$versao} · Gerado em {$gerado} · Referência: IN 85/PRES/INSS (estrutura simplificada)</p>
+<h1>PPP — rascunho interno (não oficial)</h1>
+<p class="small" style="color:#b45309;font-weight:bold">NÃO UTILIZAR para INSS, eSocial ou perícia. Versão {$versao} · Gerado em {$gerado}</p>
 <h2>Identificação do trabalhador</h2>
 <table>
 <tr><th>Nome</th><td>{$nomeTrab}</td><th>CPF</th><td>{$cpf}</td></tr>

@@ -116,11 +116,11 @@ if (!empty($ultimoAso['data_validade'])) {
 
                 <?php if (in_array('SstGeneratePpp', $perms, true)): ?>
 
-                    <form action="<?= $_ENV['URL_ADM']; ?>sst-generate-ppp" method="POST" class="d-inline" onsubmit="return confirm('Gerar nova versão do PPP com os dados atuais?');">
+                    <form action="<?= $_ENV['URL_ADM']; ?>sst-generate-ppp" method="POST" class="d-inline" onsubmit="return confirm('Este PPP é rascunho interno, não oficial para INSS/eSocial. Gerar mesmo assim?');">
                         <input type="hidden" name="csrf_token" value="<?= $csrfPpp ?>">
                         <input type="hidden" name="adms_user_id" value="<?= $uid ?>">
                         <input type="hidden" name="redirect" value="<?= $_ENV['URL_ADM']; ?>sst-employee-profile/<?= $uid ?>">
-                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-file-alt"></i> Gerar PPP</button>
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="fas fa-file-alt"></i> Gerar PPP (não oficial)</button>
                     </form>
 
                 <?php endif; ?>
@@ -874,11 +874,11 @@ if (!empty($ultimoAso['data_validade'])) {
 
         <div class="tab-pane fade" id="tab-ppp">
 
-            <p class="text-muted small">Histórico de PPP gerados automaticamente a partir dos registros SST.</p>
+            <p class="text-muted small">Histórico de PPP gerados automaticamente. Documento <strong>não oficial</strong> — não serve para INSS, eSocial ou perícia.</p>
 
             <?php if (in_array('SstGeneratePpp', $perms, true)): ?>
 
-                <form action="<?= $_ENV['URL_ADM']; ?>sst-generate-ppp" method="POST" class="mb-3" onsubmit="return confirm('Gerar nova versão do PPP?');">
+                <form action="<?= $_ENV['URL_ADM']; ?>sst-generate-ppp" method="POST" class="mb-3" onsubmit="return confirm('Este PPP é rascunho interno, não oficial para INSS/eSocial. Gerar mesmo assim?');">
                     <input type="hidden" name="csrf_token" value="<?= $csrfPpp ?>">
                     <input type="hidden" name="adms_user_id" value="<?= $uid ?>">
                     <input type="hidden" name="redirect" value="<?= $_ENV['URL_ADM']; ?>sst-employee-profile/<?= $uid ?>#tab-ppp">

@@ -52,7 +52,7 @@
 <div class="help-field"><strong>Gerar vistorias automaticamente</strong> Se marcado, o cron / rotina cria as competências. Se desmarcado, a geração automática não inclui este equipamento.</div>
 <div class="help-field"><strong>Observações</strong> Anotações livres (histórico, restrições de acesso, etc.).</div>
 
-<p class="help-note">Padrões globais (dia padrão, regras do cron) ficam em <strong>Configurações de vistorias</strong>.</p>
+<p class="help-note">Padrões globais (dia padrão, regras do cron) ficam em <strong>Configurações de vistorias</strong>. A geração das competências também dispara no <strong>login</strong> (no máximo 1 vez por dia), além do script <code>scripts/cron_sst_equipamento_vistorias.php</code>.</p>
 
 <h2>Código automático (resumo)</h2>
 <ol>
@@ -126,7 +126,7 @@
 <dt>QR não abre vistoria</dt><dd>Equipamento inativo/baixado, você não é o responsável, ou vistoria já concluída no período. O painel ainda mostra os dados e o status de recarga.</dd>
 <dt>PDF da vistoria sem fotos</dt><dd>Anexe as imagens na tela de execução (câmera/galeria) e clique em Salvar fotos antes ou ao concluir. O PDF só lista fotos já gravadas.</dd>
 <dt>Vistoria Não conforme — o que fazer?</dt><dd>Não abra outra vistoria da mesma competência. Trate pela NC gerada + ação corretiva e encerre a NC. A vistoria continua Não conforme no histórico.</dd>
-<dt>Vistoria vencida no dashboard</dt><dd>Execute a vistoria ou reassigne o responsável.</dd>
+<dt>Vistoria não foi gerada no dia</dt><dd>Confirme se o equipamento está Ativo, com “gerar automaticamente” e periodicidade. Faça login (a rotina roda 1×/dia) ou execute <code>php scripts/cron_sst_equipamento_vistorias.php</code>.</dd>
 <dt>Checklist vazio</dt><dd>Inclua itens no cadastro do tipo de equipamento.</dd>
 <dt>Não conforme sem ação</dt><dd>Abra plano de correção com prazo.</dd>
 </dl>

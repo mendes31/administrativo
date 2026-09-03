@@ -30,7 +30,7 @@ class SstGenerateEsocialEvento
 
         try {
             $result = (new SstEsocialPayloadService())->gerarOuAtualizar($tipo, $origemTabela, $origemId);
-            $_SESSION['msg'] = 'Evento ' . $result['acao'] . ' com sucesso (#' . $result['id'] . ').';
+            $_SESSION['msg'] = 'Rascunho eSocial ' . $result['acao'] . ' (#' . $result['id'] . '). Não transmite ao governo.';
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-esocial-evento/' . $result['id']);
             exit;

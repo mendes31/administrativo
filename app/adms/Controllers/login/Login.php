@@ -18,6 +18,7 @@ use App\adms\Models\Services\PayrollDocumentRemindersService;
 use App\adms\Models\Services\InformativosStatusUpdaterService;
 use App\adms\Models\Services\TrainingLntDigestService;
 use App\adms\Models\Services\WhistleblowingRetentionService;
+use App\adms\Models\Services\SstMaintenanceService;
 
 /**
  * Controller login
@@ -197,12 +198,14 @@ class Login
             // - Lembretes de ciência em documentos de folha (RH), no máximo 1× por 24 h
             // - Retenção LGPD do Canal de Denúncias (máx. 1× por 24 h)
             // - Relatório LNT por e-mail (eventos de RH do dia anterior, máx. 1× por dia civil)
+            // - SST: gerar vistorias de equipamentos e digest de pendências (máx. 1× por 24 h)
             TrainingStatusUpdaterService::ensureUpdated(false);
             CandidateRetentionService::ensureUpdated(false);
             PayrollDocumentRemindersService::ensureUpdated(false);
             InformativosStatusUpdaterService::ensureUpdated(false);
             WhistleblowingRetentionService::ensureUpdated(false);
             TrainingLntDigestService::ensureUpdated(false);
+            SstMaintenanceService::ensureUpdated(false);
 
             // Verificar consentimento LGPD antes de liberar acesso
             // Exceções:

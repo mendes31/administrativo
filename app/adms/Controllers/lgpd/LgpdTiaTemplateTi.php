@@ -44,7 +44,7 @@ class LgpdTiaTemplateTi
             // Configurar elementos da página
             $pageElements = [
                 'title_head' => 'Template TIA - Tecnologia da Informação',
-                'menu' => 'LgpdTiaTemplate',
+                'menu' => 'lgpd-tia',
                 'menuPermission' => ['LgpdTia', 'LgpdTiaCreate'],
             ];
             

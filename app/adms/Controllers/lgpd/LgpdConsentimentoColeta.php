@@ -44,7 +44,7 @@ class LgpdConsentimentoColeta {
         // Para páginas públicas, não usar PageLayoutService
         $this->data = [
             'title_head' => 'Coleta de Consentimento - LGPD',
-            'menu' => 'LgpdConsentimentoColeta',
+            'menu' => 'lgpd-consentimentos',
             'buttonPermission' => [],
             'menuPermission' => [],
             'dados_preenchidos' => $dadosPreenchidos,

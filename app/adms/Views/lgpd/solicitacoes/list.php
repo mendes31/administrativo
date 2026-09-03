@@ -49,6 +49,7 @@ $rows = $this->data['solicitacoes'] ?? [];
                     $badge = match ($st) {
                         'Pendente' => 'warning',
                         'Em andamento' => 'info',
+                        'Aguardando titular' => 'secondary',
                         'Concluída' => 'success',
                         'Vencida' => 'danger',
                         default => 'secondary',

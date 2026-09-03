@@ -78,6 +78,8 @@
   "sst-apply-treinamento": "sst-treinamentos",
   "sst-sync-treinamento-vinculos": "sst-treinamentos",
   "sst-list-epi-fichas": "sst-epi-fichas",
+  "sign-epi-ficha": "sst-epi-fichas",
+  "view-epi-ficha-pdf": "sst-epi-fichas",
   "sst-create-epi-ficha": "sst-epi-fichas",
   "sst-view-epi-ficha": "sst-epi-fichas",
   "sst-list-epi-movimentos": "sst-epi-fichas",
@@ -94,8 +96,14 @@
   "sst-view-programa": "sst-conformidade",
   "sst-list-esocial-eventos": "sst-esocial-ppp",
   "sst-view-esocial-evento": "sst-esocial-ppp",
+  "sst-generate-esocial-evento": "sst-esocial-ppp",
+  "sst-sync-esocial-pendentes": "sst-esocial-ppp",
+  "sst-export-esocial-json": "sst-esocial-ppp",
+  "sst-mark-esocial-enviado": "sst-esocial-ppp",
   "sst-list-ppp": "sst-esocial-ppp",
   "sst-view-ppp": "sst-esocial-ppp",
+  "sst-generate-ppp": "sst-esocial-ppp",
+  "sst-export-ppp-pdf": "sst-esocial-ppp",
   "sst-report-pendencias": "sst-report-pendencias",
   "sst-report-epis": "sst-relatorios",
   "sst-report-exames": "sst-relatorios",
@@ -103,5 +111,8 @@
   "sst-report-afastamentos": "sst-relatorios",
   "sst-report-cids": "sst-relatorios",
   "my-sst-treinamentos": "sst-treinamentos",
-  "my-epi-deliveries": "sst-epi-fichas"
+  "view-sst-treinamento-certificado-pdf": "sst-treinamentos",
+  "my-epi-deliveries": "sst-epi-fichas",
+  "sign-epi-ficha": "sst-epi-fichas",
+  "view-epi-ficha-pdf": "sst-epi-fichas"
 }

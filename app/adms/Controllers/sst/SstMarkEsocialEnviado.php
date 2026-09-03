@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\SstEsocialEventosRepository;
+use App\adms\Models\Services\SstEsocialPolicy;
 
 class SstMarkEsocialEnviado
 {
@@ -38,6 +39,14 @@ class SstMarkEsocialEnviado
             exit;
         }
 
+        $tipo = (string) ($item['tipo_evento'] ?? '');
+        if (SstEsocialPolicy::isGeracaoBloqueada($tipo)) {
+            $_SESSION['msg'] = SstEsocialPolicy::mensagemBloqueio($tipo);
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-esocial-evento/' . $id);
+            exit;
+        }
+
         $ok = $repo->update($id, [
             'payload_json' => $item['payload_json'],
             'status' => 'Enviado',
@@ -47,7 +56,9 @@ class SstMarkEsocialEnviado
             'data_envio' => date('Y-m-d H:i:s'),
         ]);
 
-        $_SESSION['msg'] = $ok ? 'Evento marcado como enviado.' : 'Não foi possível atualizar o evento.';
+        $_SESSION['msg'] = $ok
+            ? 'Conferência interna registrada. Isto não transmite o evento ao governo.'
+            : 'Não foi possível atualizar o evento.';
         $_SESSION['msg_type'] = $ok ? 'success' : 'danger';
         header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-esocial-evento/' . $id);
         exit;

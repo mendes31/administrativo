@@ -39,7 +39,7 @@ class LgpdRipdDashboard
             // Configurar elementos da página
             $pageElements = [
                 'title_head' => 'Dashboard RIPD - Relatórios de Impacto à Proteção de Dados',
-                'menu' => 'LgpdRipdDashboard',
+                'menu' => 'lgpd-ripd',
                 'buttonPermission' => ['LgpdRipd', 'LgpdRipdCreate', 'LgpdRipdEdit', 'LgpdRipdView', 'LgpdRipdDelete'],
             ];
             

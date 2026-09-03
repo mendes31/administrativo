@@ -27,7 +27,7 @@ class LgpdConsentimentoEmail {
         // Configurar elementos da página
         $pageElements = [
             'title_head' => 'Enviar Formulário de Consentimento - LGPD',
-            'menu' => 'LgpdConsentimentoEmail',
+            'menu' => 'lgpd-consentimentos',
             'buttonPermission' => ['LgpdConsentimentoEmail'],
         ];
         

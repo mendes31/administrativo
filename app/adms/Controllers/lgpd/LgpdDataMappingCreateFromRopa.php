@@ -75,7 +75,7 @@ class LgpdDataMappingCreateFromRopa
         
         $pageElements = [
             'title_head' => 'Criar Data Mapping a partir da ROPA',
-            'menu' => 'ListLgpdDataMapping',
+            'menu' => 'lgpd-data-mapping',
             'buttonPermission' => ['ListLgpdDataMapping'],
         ];
         $pageLayoutService = new PageLayoutService();

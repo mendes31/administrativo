@@ -27,8 +27,9 @@ class LgpdSolicitacoesTitularesRepository extends DbConnection
                         CASE status
                             WHEN 'Pendente' THEN 1
                             WHEN 'Em andamento' THEN 2
-                            WHEN 'Vencida' THEN 3
-                            ELSE 4
+                            WHEN 'Aguardando titular' THEN 3
+                            WHEN 'Vencida' THEN 4
+                            ELSE 5
                         END,
                         created_at DESC
                     LIMIT {$limit}";
@@ -64,7 +65,7 @@ class LgpdSolicitacoesTitularesRepository extends DbConnection
     {
         try {
             $sql = "SELECT COUNT(*) FROM lgpd_solicitacoes_titulares
-                    WHERE status IN ('Pendente', 'Em andamento', 'Vencida')";
+                    WHERE status IN ('Pendente', 'Em andamento', 'Aguardando titular', 'Vencida')";
             $val = $this->getConnection()->query($sql)?->fetchColumn();
 
             return (int) $val;
@@ -151,7 +152,7 @@ class LgpdSolicitacoesTitularesRepository extends DbConnection
         }
 
         $status = (string) ($data['status'] ?? $atual['status']);
-        $allowed = ['Pendente', 'Em andamento', 'Concluída', 'Vencida'];
+        $allowed = ['Pendente', 'Em andamento', 'Aguardando titular', 'Concluída', 'Vencida'];
         if (!in_array($status, $allowed, true)) {
             $status = (string) $atual['status'];
         }
@@ -204,6 +205,92 @@ class LgpdSolicitacoesTitularesRepository extends DbConnection
         } catch (Exception $e) {
             error_log('Erro ao atualizar solicitação LGPD: ' . $e->getMessage());
 
+            return false;
+        }
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listComunicacoes(int $solicitacaoId): array
+    {
+        try {
+            if (!$this->tableExists('lgpd_solicitacoes_comunicacoes')) {
+                return [];
+            }
+            $stmt = $this->getConnection()->prepare(
+                'SELECT c.*, u.name AS user_nome
+                 FROM lgpd_solicitacoes_comunicacoes c
+                 LEFT JOIN adms_users u ON u.id = c.user_id
+                 WHERE c.solicitacao_id = :id
+                 ORDER BY c.created_at DESC, c.id DESC'
+            );
+            $stmt->bindValue(':id', $solicitacaoId, PDO::PARAM_INT);
+            $stmt->execute();
+
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (Exception $e) {
+            error_log('Erro ao listar comunicações LGPD: ' . $e->getMessage());
+
+            return [];
+        }
+    }
+
+    /**
+     * @param array{
+     *   tipo:string,
+     *   assunto:string,
+     *   mensagem:string,
+     *   destinatario_email:?string,
+     *   destinatario_nome:?string,
+     *   enviado:bool,
+     *   erro_envio:?string,
+     *   user_id:int
+     * } $data
+     */
+    public function addComunicacao(int $solicitacaoId, array $data): ?int
+    {
+        try {
+            if (!$this->tableExists('lgpd_solicitacoes_comunicacoes')) {
+                return null;
+            }
+            $stmt = $this->getConnection()->prepare(
+                'INSERT INTO lgpd_solicitacoes_comunicacoes
+                    (solicitacao_id, tipo, assunto, mensagem, destinatario_email, destinatario_nome,
+                     enviado, erro_envio, user_id, created_at)
+                 VALUES
+                    (:solicitacao_id, :tipo, :assunto, :mensagem, :destinatario_email, :destinatario_nome,
+                     :enviado, :erro_envio, :user_id, NOW())'
+            );
+            $ok = $stmt->execute([
+                ':solicitacao_id' => $solicitacaoId,
+                ':tipo' => mb_substr((string) $data['tipo'], 0, 40),
+                ':assunto' => mb_substr((string) $data['assunto'], 0, 255),
+                ':mensagem' => (string) $data['mensagem'],
+                ':destinatario_email' => $data['destinatario_email'] ?: null,
+                ':destinatario_nome' => $data['destinatario_nome'] ?: null,
+                ':enviado' => !empty($data['enviado']) ? 1 : 0,
+                ':erro_envio' => $data['erro_envio'] !== null
+                    ? mb_substr((string) $data['erro_envio'], 0, 255)
+                    : null,
+                ':user_id' => $data['user_id'] > 0 ? $data['user_id'] : null,
+            ]);
+
+            return $ok ? (int) $this->getConnection()->lastInsertId() : null;
+        } catch (Exception $e) {
+            error_log('Erro ao gravar comunicação LGPD: ' . $e->getMessage());
+
+            return null;
+        }
+    }
+
+    private function tableExists(string $table): bool
+    {
+        try {
+            $stmt = $this->getConnection()->query('SHOW TABLES LIKE ' . $this->getConnection()->quote($table));
+
+            return (bool) ($stmt && $stmt->fetchColumn());
+        } catch (Exception) {
             return false;
         }
     }

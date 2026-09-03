@@ -84,7 +84,7 @@ $csrfToken = $this->data['csrf_token'] ?? '';
                             <li class="mb-2">Esta tela controla <strong>apenas</strong> alertas automáticos de <strong>SST</strong> (cron) e <strong>Treinamentos</strong> (cron/vínculo obrigatório).</li>
                             <li class="mb-2"><strong>Não afeta</strong> informativos, políticas internas, SAC, folha, avaliações, projetos nem outros push do portal — esses módulos seguem com a lógica própria de publicação.</li>
                             <li class="mb-2">Para cada tipo, você pode ligar só <strong>e-mail</strong>, só <strong>notificação interna / push</strong>, ou ambos.</li>
-                            <li class="mb-2">O cron SST (<code>scripts/cron_sst_pendencias.php</code>) respeita estas configurações.</li>
+                            <li class="mb-2">O digest SST roda no <strong>login</strong> (no máximo 1 vez por dia) e também pelo script <code>scripts/cron_sst_pendencias.php</code>. Vistorias de equipamentos usam o mesmo disparo no login (<code>cron_sst_equipamento_vistorias.php</code> continua válido no agendador).</li>
                             <li>Recomendado manter tudo desligado durante homologação e ativar gradualmente.</li>
                         </ul>
                     </div>

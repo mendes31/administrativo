@@ -46,7 +46,7 @@ class LgpdAipdQuestionnaire
 
         $pageElements = [
             'title_head' => 'Questionário AIPD',
-            'menu' => 'LgpdAipdQuestionnaire',
+            'menu' => 'lgpd-aipd',
             'buttonPermission' => ['LgpdAipdQuestionnaire'],
         ];
         $pageLayoutService = new PageLayoutService();

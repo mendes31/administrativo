@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Cron: gera vistorias no dia previsto de cada equipamento (recupera se perdeu o dia).
  *
+ * Também disparado no login via SstMaintenanceService (máx. 1× / 24 h).
  * Ex.: php scripts/cron_sst_equipamento_vistorias.php
  * Ex. simular data: php scripts/cron_sst_equipamento_vistorias.php 2026-07-01
  */

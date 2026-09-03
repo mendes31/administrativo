@@ -29,7 +29,7 @@ class LgpdRopaView
         $this->data['log_resumo'] = LogResumoService::getResumo('lgpd_ropa', (int) $id, $returnUrl);
         $pageElements = [
             'title_head' => 'Visualizar ROPA',
-            'menu' => 'ListLgpdRopa',
+            'menu' => 'lgpd-ropa',
             'buttonPermission' => ['ListLgpdRopa', 'EditLgpdRopa', 'DeleteLgpdRopa', 'LgpdDataMappingCreate'],
         ];
         $pageLayoutService = new PageLayoutService();

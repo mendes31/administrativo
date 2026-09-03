@@ -5,6 +5,7 @@ declare(strict_types=1);
 /**
  * Cron: alertas de pendências SST (e-mail + notificação in-app).
  *
+ * Também disparado no login via SstMaintenanceService (máx. 1× / 24 h).
  * Ex.: php scripts/cron_sst_pendencias.php
  */
 

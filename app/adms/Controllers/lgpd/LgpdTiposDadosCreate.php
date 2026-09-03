@@ -57,7 +57,7 @@ class LgpdTiposDadosCreate
     {
         $pageElements = [
             'title_head' => 'Cadastrar Tipo de Dados LGPD',
-            'menu' => 'CreateLgpdTiposDados',
+            'menu' => 'lgpd-tipos-dados',
             'buttonPermission' => ['CreateLgpdTiposDados'],
         ];
         $pageLayoutService = new PageLayoutService();

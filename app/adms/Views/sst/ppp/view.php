@@ -7,8 +7,10 @@ $id = (int)($item['id'] ?? 0);
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
+    <?php $sstRascunhoKind = 'ppp'; include __DIR__ . '/../partials/sst_rascunho_oficial_alert.php'; ?>
     <div class="mb-1 hstack gap-2 flex-wrap">
         <h2 class="mt-3"><i class="fas fa-file-alt me-2"></i>PPP — <?= htmlspecialchars($trab['nome'] ?? $item['colaborador_nome'] ?? '') ?></h2>
+        <span class="badge text-bg-warning">Não oficial</span>
         <ol class="breadcrumb mb-3 ms-auto">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-list-ppp">PPP</a></li>
             <li class="breadcrumb-item active">Versão <?= (int)($item['versao'] ?? 1) ?></li>
@@ -25,7 +27,7 @@ $id = (int)($item['id'] ?? 0);
             </span>
         </div>
         <div class="card-body">
-            <div class="alert alert-warning small"><?= htmlspecialchars($payload['observacao_legal'] ?? 'Revisar dados antes de uso oficial.') ?></div>
+            <div class="alert alert-warning small"><?= htmlspecialchars($payload['observacao_legal'] ?? \App\adms\Models\Services\SstEsocialPolicy::observacaoPpp()) ?></div>
             <div class="row mb-3">
                 <div class="col-md-3"><strong>CPF:</strong> <?= htmlspecialchars($trab['cpf'] ?? $item['colaborador_cpf'] ?? '-') ?></div>
                 <div class="col-md-3"><strong>Cargo:</strong> <?= htmlspecialchars($trab['cargo_atual'] ?? '-') ?></div>

@@ -10,7 +10,7 @@
     <dt>ASO</dt>
     <dd>Atestado de Saúde Ocupacional emitido após exame médico do trabalho (admissional, periódico, etc.).</dd>
     <dt>PPP</dt>
-    <dd>Perfil Profissiográfico Previdenciário: histórico de exposições e atividades para fins previdenciários/eSocial.</dd>
+    <dd>Perfil Profissiográfico Previdenciário. O gerado neste sistema é rascunho interno, não documento oficial.</dd>
 </dl>
 
 
@@ -59,8 +59,8 @@
     <li>Vincule ao <strong>risco</strong>, <strong>matriz cargo × treinamento</strong> ou <strong>necessidade de treinamento</strong>.</li>
     <li>Execute <strong>Sincronizar vínculos</strong> em Status treinamentos SST (após mudanças de regras).</li>
     <li>Realize o treinamento e use <strong>Aplicar treinamento</strong> (data, instrutor, validade).</li>
-    <li>Colaborador acessa certificado em <strong>Meus treinamentos SST</strong>.</li>
-    <li>Se aplicável, confira evento <strong>eSocial S-2245</strong> na fila.</li>
+    <li>Colaborador baixa certificado em <strong>Meus treinamentos SST</strong>.</li>
+    <li>Não há geração de evento eSocial S-2245 — a fila SST não transmite treinamentos ao governo.</li>
 </ol>
 
 <h2>Menu do módulo</h2>
@@ -68,7 +68,7 @@
     <li><strong>Dashboard</strong> - indicadores e pendências críticas.</li>
     <li><strong>Cadastros e vínculos</strong> - catálogos e regras de necessidade.</li>
     <li><strong>Registros</strong> - ASO, EPI, treinamento, acidentes (dia a dia).</li>
-    <li><strong>Conformidade</strong> - programas, eSocial, PPP.</li>
+    <li><strong>Conformidade</strong> - programas; fila eSocial e PPP são rascunho interno (não oficiais).</li>
     <li><strong>Relatórios</strong> - exportação e análise.</li>
 </ul>
 
@@ -82,6 +82,8 @@
 <dl>
     <dt>Menu SST incompleto após Autorizar Grupo</dt>
     <dd>Na matriz de permissões, use os grupos <em>SST - EPI</em>, <em>SST - Equipamentos / Vistoria</em>, <em>SST - Medicina / ASO / Exames</em>, etc. O grupo legado <em>Segurança e Medicina</em> pode estar vazio após a cisão. Relogue o usuário após salvar.</dd>
+    <dt>Colaborador não vê Meus EPIs / Meus treinamentos SST</dt>
+    <dd>Essas telas são páginas padrão do sistema (como Perfil). Após a migration de go-live, todo nível autenticado recebe a permissão. Relogue. Se o ambiente ainda não rodou a migration, libere <em>MyEpiDeliveries</em>, <em>SignEpiFicha</em>, <em>MySstTreinamentos</em> no nível do colaborador.</dd>
     <dt>Pendência não aparece para o colaborador</dt>
     <dd>Verifique cargo/setor ativos, risco vinculado ao cargo, item marcado como <em>obrigatório</em> e treinamento/EPI <em>ativo</em>. Execute sincronização de vínculos (treinamentos).</dd>
     <dt>F1 abre “Documentação em desenvolvimento”</dt>

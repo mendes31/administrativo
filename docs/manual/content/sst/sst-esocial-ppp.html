@@ -1,48 +1,56 @@
 <h1>eSocial e PPP</h1>
 
 <h2>Função no sistema</h2>
-<p>Fila de eventos eSocial gerados pelo sistema e emissão do Perfil Profissiográfico Previdenciário.</p>
+<p>Fila de <strong>rascunhos internos</strong> de eventos eSocial (JSON de conferência) e geração de PPP <strong>não oficial</strong> a partir dos registros SST. Nenhuma destas telas transmite ao governo nem substitui documento previdenciário.</p>
 
-
-<p><strong>Quem acessa:</strong> SST com <em>SstListEsocialEventos</em>, <em>SstListPpp</em>.</p>
+<p><strong>Quem acessa:</strong> SST com <em>SstListEsocialEventos</em>, <em>SstViewEsocialEvento</em>, <em>SstGenerateEsocialEvento</em>, <em>SstSyncEsocialPendentes</em>, <em>SstExportEsocialJson</em>, <em>SstMarkEsocialEnviado</em>, <em>SstListPpp</em>, <em>SstViewPpp</em>, <em>SstGeneratePpp</em>, <em>SstExportPppPdf</em>.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
-    <dt>EPI</dt>
-    <dd>Equipamento de Proteção Individual exigido para controlar riscos ocupacionais; no SST inclui fichas e entregas.</dd>
+    <dt>eSocial</dt>
+    <dd>Sistema de escrituração digital do governo. Eventos SST oficiais atuais: S-2210, S-2220, S-2221 e S-2240 (condições ambientais / Tabela 24). Este sistema <strong>não</strong> envia esses eventos.</dd>
+    <dt>S-2240</dt>
+    <dd>Condições ambientais do trabalho e agentes nocivos. <strong>Não</strong> é gerado a partir de entrega de EPI; EPI é só evidência.</dd>
+    <dt>S-2245</dt>
+    <dd>Evento antigo de treinamentos, fora do desenho oficial atual. A geração está bloqueada.</dd>
     <dt>PPP</dt>
-    <dd>Perfil Profissiográfico Previdenciário: histórico de exposições e atividades para fins previdenciários/eSocial.</dd>
+    <dd>Perfil Profissiográfico Previdenciário. O PDF daqui é rascunho interno, não documento para INSS, eSocial ou perícia.</dd>
 </dl>
 
-
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-<li>Registre treinamentos/acidentes que geram eventos eSocial.</li>
-<li>Em <strong>Fila eSocial</strong>, gere evento ou sincronize pendentes.</li>
-<li>Exporte JSON e transmita ao eSocial; marque enviado com protocolo.</li>
-<li>Para PPP, selecione colaborador e <strong>Gerar PPP</strong>.</li>
-<li>Exporte PDF para entrega ao trabalhador ou INSS.</li>
+    <li>Use o módulo SST no dia a dia (acidente, ASO, EPI, treinamento). Isso é a fonte operacional.</li>
+    <li>Na <strong>Fila eSocial</strong>, gere só rascunhos <strong>S-2210</strong> (CAT) e <strong>S-2220</strong> (ASO) para conferir JSON. Não há transmissão.</li>
+    <li>Exporte JSON se precisar arquivar a conferência. “Registrar conferência” anota protocolo interno — não envia ao governo.</li>
+    <li>Para PPP, no perfil SST do colaborador use <strong>Gerar PPP (não oficial)</strong>.</li>
+    <li>O PDF sai com marca d’água “NÃO OFICIAL”. Não entregue como PPP previdenciário.</li>
 </ol>
+
 <h2>Fila eSocial</h2>
 <ul>
-<li><strong>Gerar evento</strong> — monta JSON conforme layout.</li>
-<li><strong>Exportar JSON</strong> — download para transmissão.</li>
-<li><strong>Marcar enviado</strong> — registra protocolo.</li>
-<li><strong>Sincronizar pendentes</strong> — geração em lote.</li>
+    <li><strong>Gerar rascunhos S-2210/S-2220</strong> — JSON simplificado (layout S-1.2). Layout alvo futuro: S-1.3.</li>
+    <li><strong>S-2240 e S-2245</strong> — geração bloqueada. Eventos antigos na fila aparecem como legado, sem regenerar.</li>
+    <li><strong>Exportar JSON</strong> — download do rascunho.</li>
+    <li><strong>Registrar conferência</strong> — observação interna; não é envio ao eSocial.</li>
 </ul>
+
 <h2>PPP</h2>
-<div class="help-field"><strong>Gerar PPP</strong> Snapshot de exposições e histórico ocupacional.</div>
-<div class="help-field"><strong>Exportar PDF</strong> Documento oficial.</div>
+<div class="help-field"><strong>Gerar PPP (não oficial)</strong> Snapshot interno de exposições, ASOs e EPIs. Campos como eficácia de EPI são placeholders.</div>
+<div class="help-field"><strong>Exportar PDF</strong> Documento com aviso e marca d’água; não é o PPP oficial.</div>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
-<div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
-<div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
+<div class="help-field"><strong>Mapa do módulo</strong> Fila eSocial, detalhe do evento, listagem e visão do PPP, geração no perfil SST.</div>
+<div class="help-field"><strong>Permissões</strong> Cada ação exige a página correspondente no nível de acesso (listadas em “Quem acessa”).</div>
+<div class="help-field"><strong>Ajuda contextual (F1)</strong> Nestas telas o F1 abre este tópico.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Evento S-2245 não gera</dt><dd>Treinamento sem dados obrigatórios eSocial.</dd>
-<dt>JSON rejeitado</dt><dd>Valide layout versão; campos CPF/matricula inconsistentes.</dd>
-<dt>PPP incompleto</dt><dd>Faltam riscos/EPIs históricos no cadastro.</dd>
-<dt>Duplicidade de evento</dt><dd>Verifique se já marcado enviado antes de regerar.</dd>
+    <dt>Botão S-2245 sumiu / geração recusada</dt>
+    <dd>Esperado. Treinamento não gera evento eSocial neste módulo. O certificado continua no portal.</dd>
+    <dt>S-2240 a partir de EPI recusado</dt>
+    <dd>Esperado. S-2240 oficial é condição ambiental, não ficha de entrega.</dd>
+    <dt>JSON não é aceito no transmissor</dt>
+    <dd>Não use este JSON para envio. Falta XML/XSD, mensageria e layout S-1.3.</dd>
+    <dt>PPP incompleto ou recusado no INSS</dt>
+    <dd>Este PPP não deve ser enviado ao INSS. Complete avaliações ambientais fora deste rascunho.</dd>
 </dl>

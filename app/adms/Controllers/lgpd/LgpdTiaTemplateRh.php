@@ -44,7 +44,7 @@ class LgpdTiaTemplateRh
             // Configurar elementos da página
             $pageElements = [
                 'title_head' => 'Template TIA - Recursos Humanos',
-                'menu' => 'LgpdTiaTemplate',
+                'menu' => 'lgpd-tia',
                 'menuPermission' => ['LgpdTia', 'LgpdTiaCreate'],
             ];
             

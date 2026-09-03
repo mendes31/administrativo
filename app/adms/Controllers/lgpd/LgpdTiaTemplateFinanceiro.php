@@ -44,7 +44,7 @@ class LgpdTiaTemplateFinanceiro
             // Configurar elementos da página
             $pageElements = [
                 'title_head' => 'Template TIA - Financeiro',
-                'menu' => 'LgpdTiaTemplate',
+                'menu' => 'lgpd-tia',
                 'menuPermission' => ['LgpdTia', 'LgpdTiaCreate'],
             ];
             
