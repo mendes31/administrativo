@@ -63,6 +63,8 @@
     padding: 0;
     box-sizing: border-box;
     font-family: "Ubuntu", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+}
+*:not(a):not(a *) {
     text-decoration: none;
 }
 
@@ -1512,29 +1514,67 @@ select.input-search:focus{
 }
 
 /*
- * Links em conteúdo rico (informativos, políticas, modal do dashboard).
- * reset.css força a { color: inherit; text-decoration: none } — sem isto
- * hiperlinks do TinyMCE ficam visualmente iguais ao texto corrido.
+ * Links em conteúdo rico e hiperlinks de texto.
+ * Também cobre PWA/mobile (CSS em cache antigo): regras no fim + !important.
+ * Chrome de UI (btn, nav, etc.) mantém o próprio estilo.
  */
+a.adms-rich-link,
 .adms-view-rich-content a[href],
 .informativo-texto a[href],
-.wysiwyg-editor a[href] {
+.wysiwyg-editor a[href],
+#layoutSidenav_content .adms-view-rich-content a[href],
+#layoutSidenav_content .informativo-texto a[href],
+#layoutSidenav_content a.adms-rich-link {
     color: #0d6efd !important;
     text-decoration: underline !important;
     font-weight: 600;
     word-break: break-word;
+    -webkit-text-fill-color: #0d6efd;
 }
+a.adms-rich-link:hover,
+a.adms-rich-link:focus,
 .adms-view-rich-content a[href]:hover,
 .adms-view-rich-content a[href]:focus,
 .informativo-texto a[href]:hover,
 .informativo-texto a[href]:focus,
 .wysiwyg-editor a[href]:hover,
-.wysiwyg-editor a[href]:focus {
+.wysiwyg-editor a[href]:focus,
+#layoutSidenav_content .adms-view-rich-content a[href]:hover,
+#layoutSidenav_content .adms-view-rich-content a[href]:focus,
+#layoutSidenav_content a.adms-rich-link:hover,
+#layoutSidenav_content a.adms-rich-link:focus {
     color: #0a58ca !important;
+    -webkit-text-fill-color: #0a58ca;
 }
+a.adms-rich-link *,
 .adms-view-rich-content a[href] *,
 .informativo-texto a[href] *,
-.wysiwyg-editor a[href] * {
+.wysiwyg-editor a[href] *,
+#layoutSidenav_content .adms-view-rich-content a[href] *,
+#layoutSidenav_content a.adms-rich-link * {
     color: inherit !important;
+    -webkit-text-fill-color: inherit;
     text-decoration: inherit !important;
+}
+
+/* UI chrome: não aplicar "look de hiperlink" em botões/menu/paginação */
+a.btn,
+a.nav-link,
+a.dropdown-item,
+a.page-link,
+a.navbar-brand,
+a.list-group-item,
+a.badge,
+a.card,
+a.card-link,
+.sb-sidenav a,
+.breadcrumb a,
+.pagination a,
+.dropdown-menu a,
+.navbar a:not(.adms-rich-link),
+.btn-group > a,
+a.logo-link {
+    text-decoration: none !important;
+    font-weight: inherit;
+    -webkit-text-fill-color: unset;
 }

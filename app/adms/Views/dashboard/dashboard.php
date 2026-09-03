@@ -647,7 +647,7 @@
                                             <?php
                                             $conteudo = trim((string) ($info['conteudo'] ?? ''));
                                             if (preg_match('/<[^>]+>/', $conteudo)) {
-                                                echo \App\adms\Helpers\AdmsHtmlLinkHelper::absolutizeAppLinks($conteudo);
+                                                echo \App\adms\Helpers\AdmsHtmlLinkHelper::prepareRichHtml($conteudo);
                                             } else {
                                                 $conteudo = str_replace(["\r\n", "\r"], "\n", $conteudo);
                                                 echo nl2br(htmlspecialchars($conteudo, ENT_QUOTES, 'UTF-8'));

@@ -1,6 +1,25 @@
 <?php
 $informativo = $this->data['informativo'];
 ?>
+<style>
+/* Inline: garante destaque no mobile/PWA mesmo com CSS em cache antigo */
+#layoutSidenav_content .adms-view-rich-content a[href],
+#layoutSidenav_content .adms-view-rich-content a.adms-rich-link,
+.adms-view-rich-content a[href],
+.adms-view-rich-content a.adms-rich-link {
+    color: #0d6efd !important;
+    -webkit-text-fill-color: #0d6efd !important;
+    text-decoration: underline !important;
+    font-weight: 600 !important;
+    word-break: break-word;
+}
+#layoutSidenav_content .adms-view-rich-content a[href] *,
+.adms-view-rich-content a[href] * {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+    text-decoration: inherit !important;
+}
+</style>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
         <h2 class="mt-3 mobile-hide-page-title">Visualizar Informativo</h2>
@@ -172,7 +191,7 @@ $informativo = $this->data['informativo'];
                             // Compatibilidade: se vier HTML (ex.: TinyMCE), renderiza como HTML.
                             // Se vier texto puro/Markdown sem HTML, mantém escape e quebra de linha.
                             if (preg_match('/<[^>]+>/', $conteudo)) {
-                                echo \App\adms\Helpers\AdmsHtmlLinkHelper::absolutizeAppLinks($conteudo);
+                                echo \App\adms\Helpers\AdmsHtmlLinkHelper::prepareRichHtml($conteudo);
                             } else {
                                 echo nl2br(htmlspecialchars($conteudo));
                             }

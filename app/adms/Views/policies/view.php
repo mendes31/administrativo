@@ -190,7 +190,7 @@ $policy = $this->data['policy'] ?? [];
                                 $conteudo = $policy['conteudo'] ?? '';
                                 // Compatibilidade: se vier HTML (ex.: TinyMCE), renderiza como HTML; senão mantém escape e quebras de linha.
                                 if (preg_match('/<[^>]+>/', $conteudo)) {
-                                    echo $conteudo;
+                                    echo \App\adms\Helpers\AdmsHtmlLinkHelper::prepareRichHtml($conteudo);
                                 } else {
                                     echo nl2br(htmlspecialchars($conteudo));
                                 }

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tiaraju-pwa-root-v5';
+const CACHE_NAME = 'tiaraju-pwa-root-v6';
 const URL_PREFIX = '/administrativo/';
 
 // Rotas e assets principais para cache inicial (escopo raiz /administrativo/)

@@ -1616,3 +1616,18 @@
     box-shadow: inset 3px 0 0 var(--menu-accent);
 }
 
+/* Links de conteúdo: última folha CSS (vence cache parcial / ordem no mobile) */
+#layoutSidenav_content .adms-view-rich-content a[href],
+#layoutSidenav_content a.adms-rich-link {
+    color: #0d6efd !important;
+    -webkit-text-fill-color: #0d6efd !important;
+    text-decoration: underline !important;
+    font-weight: 600 !important;
+}
+#layoutSidenav_content .adms-view-rich-content a[href] *,
+#layoutSidenav_content a.adms-rich-link * {
+    color: inherit !important;
+    -webkit-text-fill-color: inherit !important;
+    text-decoration: inherit !important;
+}
+
