@@ -234,6 +234,11 @@
                             "title": "Mandatory Training"
                         }
                     ]
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "import-center",
+                    "title": "Central de Importações"
                 }
             ]
         },

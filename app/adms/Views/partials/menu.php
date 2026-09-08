@@ -252,6 +252,16 @@ $menus = [
                     'url' => $_ENV['URL_ADM'] . 'list-mandatory-trainings',
                     'permission' => 'ListMandatoryTrainings'
                 ],
+                [
+                    'label' => 'Importações',
+                    'url' => $_ENV['URL_ADM'] . 'import-center',
+                    'permission' => 'ImportCenter',
+                    'icon' => 'fa-solid fa-file-import',
+                    'related_routes' => [
+                        'import-center', 'import-center-create', 'import-center-map',
+                        'import-center-view', 'import-center-template',
+                    ],
+                ],
             ];
             return $submenu;
         })(),

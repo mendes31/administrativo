@@ -37,6 +37,7 @@ class AddAdmsPages extends BaseSeed
             ['name' => 'Reserva de Salas', 'obs' => 'Módulo de agendamento e reserva de salas de reunião'],
             ['name' => 'Comunicação Social', 'obs' => 'Timeline interna e eventos corporativos'],
             ['name' => 'Configurações', 'obs' => 'Configurações gerais do sistema'],
+            ['name' => 'Administração - Importações', 'obs' => 'Central de importações por perfil (não substitui ImportUsers)'],
             ['name' => 'Produção', 'obs' => 'Dashboard de produção SAP/BEAS (ADR-0011)'],
         ];
         foreach ($groupsToEnsure as $g) {
@@ -1132,6 +1133,17 @@ class AddAdmsPages extends BaseSeed
             ['name'=> 'Dashboard de Produção', 'controller' => 'ProdProductionDashboard', 'controller_url' => 'prod-production-dashboard', 'directory' => 'production', 'obs' => 'Dashboard de produção (SKUs, produtos, ordens) com cache SAP/BEAS.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 42],
             ['name'=> 'API Dashboard de Produção', 'controller' => 'ProdProductionDashboardData', 'controller_url' => 'prod-production-dashboard-data', 'directory' => 'production', 'obs' => 'Endpoint JSON agregado (KPIs/gráficos) do Dashboard de Produção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 42],
             ['name'=> 'Sync Dashboard de Produção', 'controller' => 'ProdProductionDashboardSync', 'controller_url' => 'prod-production-dashboard-sync', 'directory' => 'production', 'obs' => 'Dispara sincronização SAP/BEAS → cache MySQL do dashboard de produção.', 'public_page' => 0, 'page_status' => 1, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 42],
+
+            // ===== GRUPO 43: ADMINISTRAÇÃO - IMPORTAÇÕES =====
+            ['name'=> 'Central de Importações', 'controller' => 'ImportCenter', 'controller_url' => 'import-center', 'directory' => 'imports', 'obs' => 'Hub de importações por perfil declarado (usuários, departamentos, cargos).', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Enviar importação (Central)', 'controller' => 'ImportCenterCreate', 'controller_url' => 'import-center-create', 'directory' => 'imports', 'obs' => 'Upload da planilha e definição da operação (inserir / atualizar / upsert / simulação).', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Mapear colunas da importação', 'controller' => 'ImportCenterMap', 'controller_url' => 'import-center-map', 'directory' => 'imports', 'obs' => 'Associação campo do sistema × coluna do arquivo e execução do job.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Resultado da importação', 'controller' => 'ImportCenterView', 'controller_url' => 'import-center-view', 'directory' => 'imports', 'obs' => 'Resumo e relatório por linha do job de importação.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Modelo CSV da importação', 'controller' => 'ImportCenterTemplate', 'controller_url' => 'import-center-template', 'directory' => 'imports', 'obs' => 'Download do CSV modelo do perfil selecionado.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Importar usuários (Central)', 'controller' => 'ImportCenterUsers', 'controller_url' => 'import-center-users', 'directory' => 'imports', 'obs' => 'Permissão do tipo Usuários / colaboradores na Central de Importações.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Importar departamentos (Central)', 'controller' => 'ImportCenterDepartments', 'controller_url' => 'import-center-departments', 'directory' => 'imports', 'obs' => 'Permissão do tipo Departamentos / setores na Central de Importações.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Importar cargos (Central)', 'controller' => 'ImportCenterPositions', 'controller_url' => 'import-center-positions', 'directory' => 'imports', 'obs' => 'Permissão do tipo Cargos na Central de Importações.', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
+            ['name'=> 'Importar SST (Central)', 'controller' => 'ImportCenterSst', 'controller_url' => 'import-center-sst', 'directory' => 'imports', 'obs' => 'Permissão única dos tipos de importação do módulo Segurança e Medicina (catálogos e matrizes).', 'public_page' => 0, 'page_status' => 1, 'default_page' => 0, 'adms_packages_page_id' => 1, 'adms_groups_page_id' => 43],
         ];
 
         // Buscar IDs reais dos grupos pelo nome (pode ter ID diferente do esperado)
@@ -1181,6 +1193,9 @@ class AddAdmsPages extends BaseSeed
         $producaoGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Produção'");
         $producaoGroupId = $producaoGroup ? (int)$producaoGroup['id'] : 42;
 
+        $importacoesGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Administração - Importações'");
+        $importacoesGroupId = $importacoesGroup ? (int)$importacoesGroup['id'] : 43;
+
         // Descobrir o ID real do grupo "Dashboards KPI" (criado em seeds específicas ou manualmente)
         $dashboardsKpiGroup = $this->fetchRow("SELECT id FROM adms_groups_pages WHERE name = 'Dashboards KPI'");
         $dashboardsKpiGroupId = $dashboardsKpiGroup ? (int)$dashboardsKpiGroup['id'] : null;
@@ -1214,6 +1229,8 @@ class AddAdmsPages extends BaseSeed
                     $groupId = $sstGroupId;
                 } elseif ($groupId == 42) {
                     $groupId = $producaoGroupId;
+                } elseif ($groupId == 43) {
+                    $groupId = $importacoesGroupId;
                 } elseif ($groupId == 0 && $dashboardsKpiGroupId !== null && str_contains($page['directory'], 'dashboard')) {
                     // Páginas de Dashboards KPI adicionadas nesta seed usam 0 como placeholder
                     $groupId = $dashboardsKpiGroupId;
@@ -1381,6 +1398,31 @@ class AddAdmsPages extends BaseSeed
                             WHERE keep_acl.adms_page_id = p.id
                        )"
                 );
+
+                if ($importacoesGroupId > 0) {
+                    $this->execute(
+                        "UPDATE adms_pages
+                         SET default_page = 0, updated_at = NOW()
+                         WHERE adms_groups_page_id = {$importacoesGroupId}"
+                    );
+                    $this->execute(
+                        "UPDATE adms_access_levels_pages alp
+                         INNER JOIN adms_pages p ON p.id = alp.adms_page_id
+                         SET alp.permission = 0,
+                             alp.updated_at = NOW()
+                         WHERE p.adms_groups_page_id = {$importacoesGroupId}
+                           AND p.public_page = 0
+                           AND NOT EXISTS (
+                                SELECT 1
+                                FROM (
+                                    SELECT adms_page_id
+                                    FROM adms_access_levels_pages
+                                    WHERE permission = 1
+                                ) keep_acl
+                                WHERE keep_acl.adms_page_id = p.id
+                           )"
+                    );
+                }
             }
         } else {
             echo "ℹ️ AddAdmsPages: sem novas páginas, hardening de ACL/default não executado.\n";
@@ -1444,6 +1486,45 @@ class AddAdmsPages extends BaseSeed
                      SET adms_groups_page_id = {$mcpGroupId}, updated_at = NOW()
                      WHERE controller = '{$c}'"
                 );
+            }
+        }
+
+        if ($importacoesGroupId > 0) {
+            $importControllers = [
+                'ImportCenter',
+                'ImportCenterCreate',
+                'ImportCenterMap',
+                'ImportCenterView',
+                'ImportCenterTemplate',
+                'ImportCenterUsers',
+                'ImportCenterDepartments',
+                'ImportCenterPositions',
+                'ImportCenterSst',
+            ];
+            foreach ($importControllers as $ctrl) {
+                $c = str_replace("'", "''", $ctrl);
+                $this->execute(
+                    "UPDATE adms_pages
+                     SET adms_groups_page_id = {$importacoesGroupId}, public_page = 0, default_page = 0, updated_at = NOW()
+                     WHERE controller = '{$c}'"
+                );
+            }
+            if ($this->hasTable('adms_access_levels_pages')) {
+                foreach ($importControllers as $ctrl) {
+                    $row = $this->query(
+                        'SELECT id FROM adms_pages WHERE controller = :c LIMIT 1',
+                        ['c' => $ctrl]
+                    )->fetch();
+                    $pid = (int) ($row['id'] ?? 0);
+                    if ($pid <= 0) {
+                        continue;
+                    }
+                    $this->execute(
+                        "INSERT IGNORE INTO adms_access_levels_pages (permission, adms_access_level_id, adms_page_id, created_at, updated_at)
+                         SELECT 0, al.id, {$pid}, NOW(), NOW()
+                         FROM adms_access_levels al"
+                    );
+                }
             }
         }
     }

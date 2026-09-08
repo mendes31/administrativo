@@ -241,6 +241,11 @@
                     "id": "view-branch",
                     "title": "Visualizar Filial",
                     "file": "administracao/view-branch.html"
+                },
+                {
+                    "id": "import-center",
+                    "title": "Central de Importações",
+                    "file": "administracao/import-center.html"
                 }
             ]
         },

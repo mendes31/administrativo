@@ -1,0 +1,62 @@
+<h1>Central de Importações</h1>
+
+<h2>Função no sistema</h2>
+<p>Importa cadastros a partir de Excel (<code>.xlsx</code>) ou CSV, com <strong>perfis declarados</strong> (usuários, departamentos, cargos e catálogos/matrizes do SST). Cada tipo de cadastro geral tem permissão própria; todos os tipos de Segurança e Medicina usam a permissão <em>ImportCenterSst</em>. Serve para popular homologação e testes, sem substituir a tela clássica <em>Importar Usuários</em>.</p>
+
+<p><strong>Quem acessa:</strong> <em>Super Administrador</em> (nível id 1) e <em>Super usuário</em> (flag no cadastro) entram de imediato, por acesso total — não dependem da matriz ACL. Demais níveis nascem <strong>sem permissão</strong> (<code>public_page = 0</code>, <code>default_page = 0</code>, <code>permission = 0</code>). Só passam a ver o menu e os tipos depois que o administrador liberar, no nível de acesso, as páginas <em>ImportCenter</em> (hub) e, por tipo, <em>ImportCenterUsers</em>, <em>ImportCenterDepartments</em>, <em>ImportCenterPositions</em> ou <em>ImportCenterSst</em>, além de <em>ImportCenterCreate</em>, <em>ImportCenterMap</em>, <em>ImportCenterView</em> e <em>ImportCenterTemplate</em>.</p>
+<p><strong>Onde fica:</strong> menu <em>Administração → Importações</em>.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Perfil declarado</dt>
+    <dd>Conjunto de campos do sistema (não as colunas cruas da tabela). Você mapeia cada campo a uma coluna do arquivo.</dd>
+    <dt>Chave única</dt>
+    <dd>Campo que localiza o registro: em usuários, CPF, login ou ID; em departamentos e cargos, nome ou ID; em catálogos SST, código, nome, CRM ou ID.</dd>
+    <dt>Upsert</dt>
+    <dd>Cria se a chave não existir; atualiza se existir.</dd>
+    <dt>Simulação (dry run)</dt>
+    <dd>Processa as linhas e mostra o que aconteceria, sem gravar no banco.</dd>
+    <dt>Skip / clear</dt>
+    <dd>Célula vazia: <em>skip</em> mantém o valor atual; <em>clear</em> limpa o campo no cadastro (atualização).</dd>
+    <dt>Matriz SST</dt>
+    <dd>Vínculo entre cadastros (risco × cargo, risco × EPI, necessidade de exame, etc.). As referências entram pelo <strong>nome ou código</strong>, não pelo ID obrigatório.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra a Central, escolha o tipo na caixa <strong>Tipo de importação</strong> (agrupado em cadastro geral, catálogos SST e matrizes SST) e clique em <strong>Continuar</strong> (ou baixe o modelo CSV do tipo selecionado).</li>
+    <li>Baixe o modelo CSV se quiser, ou use sua planilha com cabeçalho na primeira linha.</li>
+    <li>Escolha a operação (só inserir, só atualizar ou upsert), a política de vazios e, de preferência, marque <strong>Somente simular</strong>.</li>
+    <li>Envie o arquivo. Na tela seguinte, associe cada campo do sistema a uma coluna. A chave precisa estar mapeada.</li>
+    <li>Execute. Revise o relatório por linha. Se a simulação estiver correta, envie de novo <strong>sem</strong> a opção de simular.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Tipo de importação</strong> Caixa de seleção na Central. Só os tipos liberados no seu nível aparecem. Depois de escolher, use <em>Continuar</em> para enviar o arquivo ou <em>Modelo CSV</em> para baixar o modelo daquele tipo.</div>
+<div class="help-field"><strong>Usuários</strong> Chaves: CPF, usuário/login ou ID. Para criar: nome, e-mail, login, departamento e cargo (nome ou ID). Senha aleatória. Não cria já desligado. Departamento e cargo são resolvidos pelo nome — cadastre-os antes (ou importe-os nesta Central).</div>
+<div class="help-field"><strong>Departamentos / cargos</strong> Chaves: nome ou ID. Criação exige o nome.</div>
+<div class="help-field"><strong>SST — catálogos</strong> Riscos, EPIs, exames, treinamentos, CIDs, médicos e GHE/ambientes. Chave típica: código (ou CRM no médico, nome no EPI). Referências a departamento no GHE usam nome ou ID.</div>
+<div class="help-field"><strong>SST — matrizes</strong> Risco × cargo/setor, risco × EPI, risco × exame, risco × treinamento, e necessidades de EPI, exame e treinamento. Cargo, setor, risco e item entram por nome/código. Em risco × cargo informe cargo e/ou departamento.</div>
+<div class="help-field"><strong>Ordem recomendada (SST)</strong> 1) departamentos e cargos; 2) usuários, se precisar; 3) catálogos SST; 4) matrizes e necessidades. Sem o cadastro base, a linha da matriz falha com “não encontrado”.</div>
+<div class="help-field"><strong>O que esta Central não importa (SST)</strong> ASO, entregas/fichas de EPI, movimentos de estoque, acidentes, afastamentos, vistorias, PPP, eSocial, histórico de aplicação de treinamento, equipamentos físicos, programas PGR/PCMSO, GHE × colaboradores e checklists de tipo. Esses fluxos continuam nas telas operacionais do módulo.</div>
+<div class="help-field"><strong>Operação</strong> Só inserir ignora quem já existe; só atualizar ignora quem não existe; upsert faz os dois.</div>
+<div class="help-field"><strong>Jobs</strong> Cada envio vira um job persistente (arquivo em pasta privada). O relatório lista no máximo 500 linhas.</div>
+<div class="help-field"><strong>Importar Usuários (clássico)</strong> A rota <code>import-users</code> permanece para formações e template oficial. Use a Central para testes cadastrais e carga de setores/cargos por nome.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu Importações</dt>
+    <dd>Se você não é Super Administrador nem Super usuário, falta liberar <em>ImportCenter</em> no nível de acesso. Quem tem acesso total vê o item mesmo com ACL 0.</dd>
+    <dt>Vejo a Central, mas nenhum tipo</dt>
+    <dd>Falta liberar o tipo no nível (<em>ImportCenterUsers</em>, <em>ImportCenterDepartments</em>, <em>ImportCenterPositions</em> ou <em>ImportCenterSst</em>). Super Administrador e Super usuário veem todos os tipos sem essa liberação.</dd>
+    <dt>Não vejo os tipos SST</dt>
+    <dd>Libere <em>ImportCenterSst</em> no nível de acesso (página <em>Importar SST (Central)</em>). Depois relogue para atualizar o cache de permissões.</dd>
+    <dt>Erro 006 ao abrir o hub</dt>
+    <dd>A migration das páginas/jobs ainda não rodou, ou o diretório <code>imports</code> não está no roteador. Rode o Phinx e peça um novo login (cache de menu).</dd>
+    <dt>Departamento/cargo/risco não encontrado</dt>
+    <dd>O nome ou código precisa coincidir com o cadastro (espaços extras são normalizados). Importe a base na ordem recomendada, ou use o ID.</dd>
+    <dt>A simulação criaria, mas a gravação falha</dt>
+    <dd>A simulação não valida unicidade de e-mail/login no banco da mesma forma que o insert. Corrija duplicatas e tente de novo.</dd>
+    <dt>Campo mapeado duas vezes</dt>
+    <dd>Cada coluna do arquivo só pode ir para um campo do sistema.</dd>
+</dl>
