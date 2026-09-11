@@ -450,6 +450,11 @@
                     "file": "comunicacao/timeline-members.html"
                 },
                 {
+                    "id": "notificacoes",
+                    "title": "Minhas Notificações",
+                    "file": "comunicacao/notificacoes.html"
+                },
+                {
                     "id": "com-gamificacao",
                     "title": "Gamificação",
                     "file": "comunicacao/com-gamificacao.html"

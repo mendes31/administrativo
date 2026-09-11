@@ -542,6 +542,11 @@
                     "type": "topic",
                     "topic_id": "timeline-members",
                     "title": "Membros (Timeline)"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "notificacoes",
+                    "title": "Minhas Notificações"
                 }
             ]
         },

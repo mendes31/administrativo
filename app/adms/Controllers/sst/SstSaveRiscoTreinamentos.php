@@ -43,7 +43,7 @@ class SstSaveRiscoTreinamentos
 
         (new SstRiscoTreinamentoRepository())->syncTreinamentosForRisco($riscoId, $treinamentoMap);
 
-        $_SESSION['msg'] = 'Treinamentos vinculados salvos com sucesso.';
+        $_SESSION['msg'] = 'Treinamentos vinculados salvos. A matriz por cargo já considera esses vínculos.';
         $_SESSION['msg_type'] = 'success';
         header('Location: ' . $redirect . '#tab-treinamentos');
         exit;

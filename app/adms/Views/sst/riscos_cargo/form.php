@@ -32,15 +32,18 @@ $action = $isEdit ? 'sst-update-risco-cargo/' . (int)$item['id'] : 'sst-create-r
                 <input type="hidden" name="return_risco_id" value="<?= $returnRiscoId ?>">
                 <?php endif; ?>
                 <div class="row">
+                    <div class="col-12 mb-2">
+                        <p class="small text-muted mb-0">Informe cargo, departamento ou ambos. Só cargo vale para todos desse cargo; só departamento, para todos do setor; os dois, somente para colaboradores com essa associação.</p>
+                    </div>
                     <div class="col-md-6 mb-3">
 <label class="form-label" for="adms_position_id">Cargo</label>
-<select name="adms_position_id" id="adms_position_id" class="form-select"><option value="">Selecione...</option>
+<select name="adms_position_id" id="adms_position_id" class="form-select"><option value="">Todos os cargos</option>
 <?php foreach ($this->data['positions'] ?? [] as $p): ?><option value="<?= (int)$p['id'] ?>" <?= ((int)($item['adms_position_id'] ?? 0) === (int)$p['id']) ? 'selected' : '' ?>><?= htmlspecialchars($p['name'] ?? '') ?></option><?php endforeach; ?>
 </select>
 </div>
 <div class="col-md-6 mb-3">
 <label class="form-label" for="adms_department_id">Departamento</label>
-<select name="adms_department_id" id="adms_department_id" class="form-select"><option value="">Selecione...</option>
+<select name="adms_department_id" id="adms_department_id" class="form-select"><option value="">Todos os departamentos</option>
 <?php foreach ($this->data['departments'] ?? [] as $d): ?><option value="<?= (int)$d['id'] ?>" <?= ((int)($item['adms_department_id'] ?? 0) === (int)$d['id']) ? 'selected' : '' ?>><?= htmlspecialchars($d['name'] ?? '') ?></option><?php endforeach; ?>
 </select>
 </div>

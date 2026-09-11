@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
+use App\adms\Models\Services\SstPendenciasService;
 use PDO;
 
 class SstRiscoCargoRepository extends DbConnection
@@ -62,8 +64,7 @@ class SstRiscoCargoRepository extends DbConnection
     {
         $sql = "SELECT t.*, p.name AS cargo_nome, d.name AS departamento_nome, r.nome AS risco_nome, r.tipo AS risco_tipo
                 FROM adms_users u
-                INNER JOIN adms_sst_riscos_cargo t ON (t.adms_position_id IS NULL OR t.adms_position_id = u.user_position_id)
-                    AND (t.adms_department_id IS NULL OR t.adms_department_id = u.user_department_id)
+                INNER JOIN adms_sst_riscos_cargo t ON " . SstRiscoCargoMatch::sqlUsuario('t', 'u') . "
                 LEFT JOIN adms_positions p ON p.id = t.adms_position_id
                 LEFT JOIN adms_departments d ON d.id = t.adms_department_id
                 LEFT JOIN adms_sst_riscos r ON r.id = t.adms_sst_risco_id
@@ -79,6 +80,10 @@ class SstRiscoCargoRepository extends DbConnection
 
     public function create(array $data): int|false
     {
+        $data = $this->normalizeScope($data);
+        if (!SstRiscoCargoMatch::hasScope($data['adms_position_id'], $data['adms_department_id'])) {
+            return false;
+        }
         $sql = "INSERT INTO adms_sst_riscos_cargo (adms_position_id, adms_department_id, adms_sst_risco_id, nivel, observacoes, created_by, updated_by, created_at, updated_at)
                 VALUES (:adms_position_id, :adms_department_id, :adms_sst_risco_id, :nivel, :observacoes, :created_by, :updated_by, NOW(), NOW())";
         $stmt = $this->getConnection()->prepare($sql);
@@ -100,11 +105,18 @@ class SstRiscoCargoRepository extends DbConnection
                 LogAlteracaoService::registrarAlteracao('adms_sst_riscos_cargo', $newId, $uid, 'INSERT', [], $newData);
             }
         }
+        if ($newId > 0) {
+            SstPendenciasService::invalidateDashboardCache();
+        }
         return $newId;
     }
 
     public function update(int $id, array $data): bool
     {
+        $data = $this->normalizeScope($data);
+        if (!SstRiscoCargoMatch::hasScope($data['adms_position_id'], $data['adms_department_id'])) {
+            return false;
+        }
         $oldData = $this->getById($id);
         $sql = "UPDATE adms_sst_riscos_cargo SET adms_position_id = :adms_position_id, adms_department_id = :adms_department_id, adms_sst_risco_id = :adms_sst_risco_id, nivel = :nivel, observacoes = :observacoes, updated_by = :updated_by, updated_at = NOW() WHERE id = :id";
         $stmt = $this->getConnection()->prepare($sql);
@@ -123,6 +135,9 @@ class SstRiscoCargoRepository extends DbConnection
                 LogAlteracaoService::registrarAlteracao('adms_sst_riscos_cargo', $id, $uid, 'UPDATE', $oldData, $newData);
             }
         }
+        if ($ok) {
+            SstPendenciasService::invalidateDashboardCache();
+        }
         return $ok;
     }
 
@@ -138,6 +153,9 @@ class SstRiscoCargoRepository extends DbConnection
             $uid = (int) ($_SESSION['user_id'] ?? 1);
             LogAlteracaoService::registrarAlteracao('adms_sst_riscos_cargo', $id, $uid, 'DELETE', $oldData, []);
         }
+        if ($deleted) {
+            SstPendenciasService::invalidateDashboardCache();
+        }
         return $deleted;
     }
 
@@ -149,6 +167,31 @@ class SstRiscoCargoRepository extends DbConnection
         }
 
         return $this->getAll(1, 500, ['adms_sst_risco_id' => $riscoId]);
+    }
+
+    /**
+     * Cargos com colaborador ativo no departamento (para vínculo só de setor).
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public function getCargosAtivosNoDepartamento(int $departmentId): array
+    {
+        if ($departmentId <= 0) {
+            return [];
+        }
+
+        $sql = "SELECT DISTINCT p.id, p.name
+                FROM adms_users u
+                INNER JOIN adms_positions p ON p.id = u.user_position_id
+                WHERE u.user_department_id = :dep
+                  AND u.status = 'Ativo'
+                  AND u.data_desligamento IS NULL
+                ORDER BY p.name";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':dep', $departmentId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     private function buildWhere(array $filters): array
@@ -173,6 +216,15 @@ class SstRiscoCargoRepository extends DbConnection
         }
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
         return [$whereClause, $params];
+    }
+
+    /** @param array<string, mixed> $data */
+    private function normalizeScope(array $data): array
+    {
+        $data['adms_position_id'] = SstRiscoCargoMatch::normalizeId($data['adms_position_id'] ?? null);
+        $data['adms_department_id'] = SstRiscoCargoMatch::normalizeId($data['adms_department_id'] ?? null);
+
+        return $data;
     }
 
     private function bindField(\PDOStatement $stmt, string $param, mixed $value): void

@@ -2,6 +2,7 @@
 use App\adms\Helpers\CSRFHelper;
 $notifications = $this->data['notifications'] ?? [];
 $csrf_token = $this->data['csrf_token'] ?? '';
+$hasUnreadSocial = !empty($this->data['has_unread_social']);
 
 $urlAdm = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 
@@ -290,11 +291,12 @@ foreach ($notifications as $n) {
                 </ol>
             </nav>
         </div>
-        <?php if (array_filter($notifications, fn($n) => empty($n['read_at']))): ?>
+        <?php if ($hasUnreadSocial): ?>
         <form method="post" class="d-inline">
             <input type="hidden" name="csrf_token" value="<?= htmlspecialchars($csrf_token); ?>">
             <input type="hidden" name="mark_all_read" value="1">
-            <button type="submit" class="btn btn-outline-primary btn-sm">
+            <button type="submit" class="btn btn-outline-primary btn-sm"
+                    title="Zera curtidas, comentários, menções e compartilhamentos da Timeline. Comunicados, políticas e avisos com ciência não são alterados.">
                 <i class="fas fa-check-double me-1"></i> Marcar todas como lidas
             </button>
         </form>

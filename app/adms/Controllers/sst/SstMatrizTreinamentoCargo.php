@@ -19,6 +19,7 @@ class SstMatrizTreinamentoCargo
     public function index(string|int|null $positionId = null): void
     {
         $repo = new SstTreinamentoNecessidadeRepository();
+        (new \App\adms\Models\Repository\SstGheTreinamentosRepository())->promoverVinculosSemFlagParaObrigatorio();
         $resolver = new SstTreinamentosObrigatoriosResolver();
         $positionId = (int) ($positionId ?: ($_GET['adms_position_id'] ?? 0));
         $departmentId = (int) ($_GET['adms_department_id'] ?? 0) ?: null;

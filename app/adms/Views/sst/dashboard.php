@@ -103,7 +103,7 @@
                         <h3 class="mb-0 fw-bold"><?= (int)($this->data['treinamentos_pendentes_count'] ?? 0) ?></h3>
                         <span class="small text-muted"><?= (int)($this->data['treinamentos_vencidos_count'] ?? 0) ?> vencido(s)</span>
                         <?php if (in_array('SstReportTreinamentos', $this->data['buttonPermission'] ?? [], true)): ?>
-                        <div><a href="<?= $_ENV['URL_ADM']; ?>sst-report-treinamentos?status_vencimento=vencido" class="small">Ver relatório</a></div>
+                        <div><a href="<?= $_ENV['URL_ADM']; ?>sst-report-treinamentos?status_vencimento=pendente" class="small">Ver relatório</a></div>
                         <?php endif; ?>
                     </div>
                 </div>
@@ -248,18 +248,24 @@
                 <?php endforeach; endif; ?>
             </div></div>
         </div>
-        <?php if (!empty($this->data['pendencias_treinamento_amostra'])): ?>
+        <?php
+        $pendTreinAmostra = $this->data['pendencias_treinamento_amostra'] ?? [];
+        ?>
         <div class="col-lg-3 mb-3">
-            <div class="card shadow-sm"><div class="card-header">Pendências por vínculo (Treinamento)</div><div class="card-body p-0">
-                <?php foreach ($this->data['pendencias_treinamento_amostra'] as $r): ?>
+            <div class="card shadow-sm"><div class="card-header">Pendências de treinamento (matriz)</div><div class="card-body p-0">
+                <?php if (empty($pendTreinAmostra)): ?>
+                    <p class="p-3 text-muted mb-0">Nenhuma.</p>
+                <?php else: foreach ($pendTreinAmostra as $r): ?>
                     <div class="px-3 py-2 border-bottom small">
                         <?= htmlspecialchars($r['colaborador_nome'] ?? '') ?> — <?= htmlspecialchars($r['treinamento_nome'] ?? '') ?>
                         <span class="badge bg-<?= htmlspecialchars($r['situacao_badge'] ?? 'secondary') ?> ms-1"><?= htmlspecialchars($r['situacao_label'] ?? '') ?></span>
+                        <?php if (!empty($r['data_validade'])): ?>
+                            <span class="text-muted"> · val. <?= date('d/m/Y', strtotime((string) $r['data_validade'])) ?></span>
+                        <?php endif; ?>
                     </div>
-                <?php endforeach; ?>
+                <?php endforeach; endif; ?>
             </div></div>
         </div>
-        <?php endif; ?>
         <div class="col-lg-3 mb-3">
             <div class="card shadow-sm"><div class="card-header">Acidentes abertos</div><div class="card-body p-0">
                 <?php if (empty($this->data['open_accidents'])): ?><p class="p-3 text-muted mb-0">Nenhum.</p>

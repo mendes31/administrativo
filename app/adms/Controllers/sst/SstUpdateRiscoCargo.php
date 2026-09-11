@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Helpers\SstRiscoNavigationHelper;
 use App\adms\Models\Repository\SstRiscoCargoRepository;
 use App\adms\Models\Repository\DepartmentsRepository;
@@ -135,16 +136,23 @@ class SstUpdateRiscoCargo
             exit;
         }
         $data = [];
-        $data['adms_position_id'] = $_POST['adms_position_id'] ?? null;
-        $data['adms_department_id'] = $_POST['adms_department_id'] ?? null;
+        $data['adms_position_id'] = SstRiscoCargoMatch::normalizeId($_POST['adms_position_id'] ?? null);
+        $data['adms_department_id'] = SstRiscoCargoMatch::normalizeId($_POST['adms_department_id'] ?? null);
         $data['adms_sst_risco_id'] = $_POST['adms_sst_risco_id'] ?? null;
         $data['nivel'] = $_POST['nivel'] ?? null;
         $data['observacoes'] = $_POST['observacoes'] ?? null;
 
-        $repo = new SstRiscoCargoRepository();
         $riscoId = (int) ($data['adms_sst_risco_id'] ?? SstRiscoNavigationHelper::riscoIdFromRequest());
+        if (!SstRiscoCargoMatch::hasScope($data['adms_position_id'], $data['adms_department_id'])) {
+            $_SESSION['msg'] = 'Informe cargo, departamento ou ambos. Só cargo vale para todos desse cargo; só departamento, para todos do setor; os dois, só para essa combinação.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-risco-cargo/' . $id . ($riscoId > 0 ? '?return_risco_id=' . $riscoId : ''));
+            exit;
+        }
+
+        $repo = new SstRiscoCargoRepository();
         if ($repo->update($id, $data)) {
-            $_SESSION['msg'] = 'Registro salvo com sucesso.';
+            $_SESSION['msg'] = 'Vínculo cargo/setor salvo. A matriz de treinamentos por cargo já considera este vínculo.';
             $_SESSION['msg_type'] = 'success';
             SstRiscoNavigationHelper::redirectAfterMutation($riscoId, 'cargos', 'sst-list-risco-cargo');
         }

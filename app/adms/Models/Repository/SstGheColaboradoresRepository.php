@@ -100,4 +100,73 @@ class SstGheColaboradoresRepository extends DbConnection
         $stmt->bindValue(':ub', $uid, PDO::PARAM_INT);
         $stmt->execute();
     }
+
+    /**
+     * @param array{adms_sst_ghe_id: int, adms_user_id: int, data_inicio?: string|null, observacoes?: string|null} $data
+     */
+    public function create(array $data): int|false
+    {
+        $gheId = (int) ($data['adms_sst_ghe_id'] ?? 0);
+        $userId = (int) ($data['adms_user_id'] ?? 0);
+        if ($gheId <= 0 || $userId <= 0) {
+            return false;
+        }
+        $uid = (int) ($_SESSION['user_id'] ?? 1);
+        $inicio = trim((string) ($data['data_inicio'] ?? ''));
+        if ($inicio === '') {
+            $inicio = date('Y-m-d');
+        }
+        $this->encerrarGheAtivoDoUsuario($userId, $uid);
+        $sql = 'INSERT INTO adms_sst_ghe_colaboradores (
+                    adms_sst_ghe_id, adms_user_id, data_inicio, data_fim, observacoes,
+                    created_by, updated_by, created_at, updated_at
+                ) VALUES (
+                    :gid, :uid, :inicio, NULL, :obs,
+                    :created_by, :updated_by, NOW(), NOW()
+                )';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':gid', $gheId, PDO::PARAM_INT);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':inicio', $inicio);
+        $stmt->bindValue(':obs', $data['observacoes'] ?? null);
+        $stmt->bindValue(':created_by', $uid, PDO::PARAM_INT);
+        $stmt->bindValue(':updated_by', $uid, PDO::PARAM_INT);
+        if (!$stmt->execute()) {
+            return false;
+        }
+        $newId = (int) $this->getConnection()->lastInsertId();
+        if ($newId > 0) {
+            LogAlteracaoService::registrarAlteracao('adms_sst_ghe_colaboradores', $newId, $uid, 'INSERT', [], [
+                'adms_sst_ghe_id' => $gheId,
+                'adms_user_id' => $userId,
+                'data_inicio' => $inicio,
+            ]);
+            SstPendenciasService::invalidateDashboardCache();
+        }
+
+        return $newId;
+    }
+
+    public function update(int $id, array $data): bool
+    {
+        if ($id <= 0) {
+            return false;
+        }
+        $uid = (int) ($_SESSION['user_id'] ?? 1);
+        $sql = 'UPDATE adms_sst_ghe_colaboradores SET
+                    data_inicio = :inicio, observacoes = :obs,
+                    updated_by = :ub, updated_at = NOW()
+                WHERE id = :id';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->bindValue(':inicio', $data['data_inicio'] ?? date('Y-m-d'));
+        $stmt->bindValue(':obs', $data['observacoes'] ?? null);
+        $stmt->bindValue(':ub', $uid, PDO::PARAM_INT);
+        $ok = $stmt->execute();
+        if ($ok) {
+            SstPendenciasService::invalidateDashboardCache();
+        }
+
+        return $ok;
+    }
 }

@@ -87,19 +87,16 @@ php scripts/test_local_rh_chat.php "ativos em Produção"
 
 Não precisa de n8n: o Portal chama a API diretamente.
 
-Prioridade com `INTERNAL_CHAT_LLM=auto`: **OpenAI** → **Anthropic** → **Ollama**.
+Cadastre as chaves em **Administração → Assistente MCP** (aba Conexão, bloco Motor de IA). O `.env` só entra se o campo da tela estiver vazio.
 
-### OpenAI (ou compatível: Groq, Azure, etc.)
+Prioridade com motor **Automático**: **Groq** → **Gemini** → **OpenAI** → **Anthropic** → **Ollama**.
 
-```env
-INTERNAL_CHAT_LLM=auto
-OPENAI_API_KEY=sk-...
-OPENAI_BASE_URL=https://api.openai.com/v1
-OPENAI_MODEL=gpt-4o-mini
-INTERNAL_CHAT_ANALYZE=1
-```
+### Groq / Gemini / OpenAI (tela)
 
-### Anthropic Claude
+1. Crie a conta e a chave (Groq: https://console.groq.com/keys — Gemini: https://aistudio.google.com/apikey).
+2. Cole na tela, escolha **Usar agora**, clique em **Testar IA** e **Salvar**.
+
+### Anthropic Claude (tela ou .env)
 
 ```env
 INTERNAL_CHAT_LLM=anthropic
@@ -110,15 +107,8 @@ ANTHROPIC_MODEL=claude-sonnet-4-20250514
 ### Ollama (opcional, gratuito no PC)
 
 1. Instale: https://ollama.com  
-2. `ollama pull llama3.2`  
-3. No `.env`:
-
-```env
-OLLAMA_URL=http://127.0.0.1:11434
-OLLAMA_MODEL=llama3.2
-```
-
-Perguntas fora das regras locais são roteadas pelo LLM; a execução continua tipada (tools PHP).
+2. `ollama pull qwen2.5:14b` (melhor que `llama3.2` para interpretar perguntas)
+3. Informe a URL `http://127.0.0.1:11434` na tela (ou no `.env` `OLLAMA_URL`) e escolha o modelo.
 
 ### Permissões (ACL do nível)
 

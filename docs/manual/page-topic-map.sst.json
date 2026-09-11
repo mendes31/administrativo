@@ -2,6 +2,7 @@
   "sst-dashboard": "sst-dashboard",
   "sst-employee-profile": "sst-perfil-colaborador",
   "sst-list-cids": "sst-cids",
+  "sst-search-cids": "sst-cids",
   "sst-create-cid": "sst-cids",
   "sst-update-cid": "sst-cids",
   "sst-list-epis": "sst-epis",

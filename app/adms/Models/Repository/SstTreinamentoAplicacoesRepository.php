@@ -116,6 +116,29 @@ class SstTreinamentoAplicacoesRepository extends DbConnection
         return $ok;
     }
 
+    /** Última aplicação concluída do colaborador neste treinamento (independe de vínculo materializado). */
+    public function getUltimaConcluidaPorUsuarioETreinamento(int $userId, int $treinamentoId): ?array
+    {
+        if ($userId <= 0 || $treinamentoId <= 0) {
+            return null;
+        }
+        $sql = "SELECT a.*
+                FROM adms_sst_treinamento_aplicacoes a
+                WHERE a.adms_user_id = :uid
+                  AND a.adms_sst_treinamento_id = :tid
+                  AND a.data_realizacao IS NOT NULL
+                  AND (a.status IS NULL OR a.status IN ('concluido', 'Concluído'))
+                ORDER BY a.data_realizacao DESC, a.id DESC
+                LIMIT 1";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':tid', $treinamentoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $row ?: null;
+    }
+
     private function bindFields(\PDOStatement $stmt, array $data): void
     {
         $this->bindField($stmt, ':adms_sst_treinamento_vinculo_id', $data['adms_sst_treinamento_vinculo_id'] ?? null);

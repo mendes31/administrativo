@@ -1,0 +1,49 @@
+<h1>Minhas Notificações</h1>
+
+<h2>Função no sistema</h2>
+<p>Central de avisos internos do colaborador: interações da Timeline (curtidas, comentários, menções e compartilhamentos) e demais alertas gravados no sino (atribuições, folha, SST, projetos, etc.). O botão <strong>Marcar todas como lidas</strong> zera só as notificações sociais da Timeline; comunicados, políticas e avisos que exigem ciência continuam pendentes até a ação correspondente.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Comunicação interna — visão geral</em> (<code>com-visao-geral</code>) e <em>Informativos</em> (<code>com-informativos</code>).</p>
+
+<p><strong>Quem acessa:</strong> usuários autenticados com permissão <em>Notificacoes</em> (rota <code>notificacoes</code>; a URL legada <code>list-notifications</code> abre a mesma tela via <em>ListNotifications</em>).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Notificação social</dt>
+    <dd>Aviso gerado por interação na Timeline: curtida/reação, comentário, menção (@) ou compartilhamento.</dd>
+    <dt>Ciência</dt>
+    <dd>Confirmação obrigatória de leitura (informativo ou política com “exige ciência”, documento de folha, ficha de EPI, etc.). Não é dispensada pelo botão em lote.</dd>
+    <dt>Comunicado / informativo</dt>
+    <dd>Publicação oficial no módulo de Informativos. O sino de comunicados usa o status de leitura do informativo, independente das notificações sociais.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <strong>Minhas Notificações</strong> pelo sino (Ver todas as notificações) ou pela rota <code>notificacoes</code>.</li>
+    <li>Itens de hoje aparecem em <strong>Hoje</strong>; os demais em <strong>Anteriores</strong>. Não lidos têm ponto azul à esquerda.</li>
+    <li>Use <strong>Abrir</strong> para ir ao destino (a notificação é marcada como lida na abertura, quando aplicável).</li>
+    <li>Use <strong>Marcar como lida</strong> em um item específico (vale para qualquer tipo).</li>
+    <li>Use <strong>Marcar todas como lidas</strong> para zerar de uma vez curtidas, comentários, menções e compartilhamentos. Comunicados, políticas e avisos de ciência permanecem na lista e no contador do sino.</li>
+    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada elemento afeta no sistema.</p>
+<div class="help-field"><strong>Marcar todas como lidas</strong> Aparece só se houver notificações sociais não lidas. Não altera comunicados, políticas, documentos de folha, SST, avaliações nem outros avisos oficiais.</div>
+<div class="help-field"><strong>Abrir</strong> Navega para o link da notificação e, em geral, marca aquele item como lido.</div>
+<div class="help-field"><strong>Marcar como lida</strong> Marca somente o item clicado, de qualquer tipo.</div>
+<div class="help-field"><strong>Lida</strong> Indica que o item já foi lido; o ponto azul some.</div>
+<div class="help-field"><strong>Selo Menção</strong> Destaque visual para @menções na Timeline.</div>
+<div class="help-field"><strong>Sino do topo</strong> Soma comunicados não lidos + políticas não lidas + avisos internos. Após marcar as sociais como lidas, o número cai só na parcela social.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Cliquei em Marcar todas como lidas e o número do sino não zerou</dt>
+    <dd>Esperado. O botão não marca comunicados, políticas nem avisos que exigem ciência. Abra o comunicado/política e confirme a ciência, ou trate o aviso oficial individualmente.</dd>
+    <dt>O botão Marcar todas como lidas não aparece</dt>
+    <dd>Só é exibido quando há notificações sociais não lidas. Se restam só informativos ou ciência, use o sino (Comunicados) ou o link Abrir de cada aviso.</dd>
+    <dt>Marquei um item como lido e ele ainda aparece</dt>
+    <dd>Itens lidos continuam na lista recente, sem o ponto azul e com o texto «Lida». O contador do sino considera só os não lidos.</dd>
+    <dt>Não vejo o menu desta tela</dt>
+    <dd>Permissão <em>Notificacoes</em> ausente no nível de acesso. Solicite inclusão no pacote correto.</dd>
+</dl>

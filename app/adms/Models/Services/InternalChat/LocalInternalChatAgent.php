@@ -3,10 +3,8 @@
 namespace App\adms\Models\Services\InternalChat;
 
 /**
- * Agente local de piloto: interpreta perguntas simples de RH sem LLM pago.
- * Opcionalmente usa Ollama (gratuito/local) se OLLAMA_URL estiver configurado.
- *
- * Retorno no formato esperado pelo chat do Portal: JSON com chave "resposta".
+ * Agente do Tiarajuzinho: com IA configurada interpreta texto livre (Groq/Gemini/etc.);
+ * o PHP só executa a consulta. Sem IA, cai no piloto por regras locais.
  */
 class LocalInternalChatAgent
 {
@@ -31,7 +29,11 @@ class LocalInternalChatAgent
         'rh' => 'Recursos Humanos',
         'recursos humanos' => 'Recursos Humanos',
         'cq' => 'Controle de Qualidade',
+        'controle de qualidade' => 'Controle de Qualidade',
+        'controle qualidade' => 'Controle de Qualidade',
         'gq' => 'Garantia da Qualidade',
+        'garantia da qualidade' => 'Garantia da Qualidade',
+        'garantia qualidade' => 'Garantia da Qualidade',
     ];
 
     /** @var array<string, int> */
@@ -99,23 +101,48 @@ class LocalInternalChatAgent
             return $this->buildGreetingReply($message);
         }
 
-        $intent = $this->detectIntent($message);
-        if ($intent === null) {
-            $didYouMean = $this->replyDidYouMean($message);
-            if ($didYouMean !== null) {
-                $this->rememberFromResult($didYouMean);
-                return $didYouMean;
-            }
+        // Com IA configurada o texto livre vai ao modelo. Frases/regex só em
+        // follow-up de sessão ou se a IA falhar/não mapear.
+        $followUp = $this->detectSessionFollowUp($message);
+        if ($followUp !== null) {
+            return $this->finishIntent($followUp, $message);
+        }
+
+        if ($this->llm->isAnyConfigured()) {
             $llm = $this->tryLlmInterpret($message);
-            if ($llm !== null) {
+            if ($llm !== null && ($llm['tool'] ?? '') !== 'chat.help') {
                 $llm = $this->maybeEnrichWithAnalysis($llm);
                 $this->rememberFromResult($llm);
                 return $llm;
+            }
+            if ($llm !== null && ($llm['provider'] ?? '') === 'llm-error') {
+                $this->rememberFromResult($llm);
+                return $llm;
+            }
+        }
+
+        $intent = $this->detectIntent($message);
+        if ($intent === null) {
+            if (!$this->llm->isAnyConfigured()) {
+                $didYouMean = $this->replyDidYouMean($message);
+                if ($didYouMean !== null) {
+                    $this->rememberFromResult($didYouMean);
+                    return $didYouMean;
+                }
             }
 
             return $this->buildUnknownHelpReply(null, $message);
         }
 
+        return $this->finishIntent($intent, $message);
+    }
+
+    /**
+     * @param array{name: string, department?: string|null} $intent
+     * @return array{resposta: string, tool?: string, data?: mixed, provider?: string}
+     */
+    private function finishIntent(array $intent, string $message): array
+    {
         $denied = $this->denyIfUnauthorizedIntent((string) ($intent['name'] ?? ''));
         if ($denied !== null) {
             return $denied;
@@ -246,7 +273,13 @@ class LocalInternalChatAgent
     {
         $lines = [];
         if ($this->perms->canUseTool('rh.count_active')) {
-            $lines[] = '• quantos colaboradores ativos? / ativos na TI';
+            $lines[] = '• quantos colaboradores ativos? / ativos na TI / quantos no Financeiro';
+        }
+        if ($this->perms->canUseTool('rh.list_active')) {
+            $lines[] = '• nomes dos usuários do Compras / quem é da TI';
+        }
+        if ($this->perms->canUseTool('rh.list_active_by_age')) {
+            $lines[] = '• usuários maiores de 30 anos / ativos da TI com mais de 30 anos';
         }
         if ($this->perms->canUseTool('rh.count_inactive') || $this->perms->canUseTool('rh.count_terminated_in_month')) {
             $lines[] = '• quantos inativos? / inativos em janeiro / desligados 2025';
@@ -470,10 +503,16 @@ class LocalInternalChatAgent
     {
         return [
             [
-                'label' => 'Colaboradores ativos',
-                'tool' => 'rh.count_active',
-                'phrases' => ['ativos', 'colaboradores ativos', 'quantos ativos', 'headcount'],
-                'intent' => ['name' => 'active'],
+                'label' => 'Ativos por idade',
+                'tool' => 'rh.list_active_by_age',
+                'phrases' => [
+                    'maiores de 30 anos',
+                    'usuarios maiores de 30 anos',
+                    'usuários maiores de 30 anos',
+                    'mais de 30 anos',
+                    'acima de 30 anos',
+                ],
+                'intent' => ['name' => 'active_by_age', 'min_age' => 30],
             ],
             [
                 'label' => 'Inativos / desligados',
@@ -545,6 +584,92 @@ class LocalInternalChatAgent
     }
 
     /**
+     * Follow-ups de sessão (não são texto livre): limpar, 1/2/3, código do relatório, etc.
+     *
+     * @return array<string, mixed>|null
+     */
+    private function detectSessionFollowUp(string $message): ?array
+    {
+        $m = mb_strtolower(trim($message));
+        $m = preg_replace('/[?!.]+$/u', '', $m) ?? $m;
+        $m = trim($m);
+
+        if (!$this->mentionsHiring($m)) {
+            $listFollowUp = $this->detectTerminatedListFollowUp($m, $message);
+            if ($listFollowUp !== null) {
+                return $listFollowUp;
+            }
+        }
+
+        if (preg_match('/^(limpar|nova\s+consulta|esqueci|esquecer|outra\s+pessoa|reiniciar)(\s+contexto)?$/iu', $m)) {
+            if (session_status() === PHP_SESSION_ACTIVE) {
+                unset(
+                    $_SESSION['internal_chat_person_candidates'],
+                    $_SESSION['internal_chat_last_terminated'],
+                    $_SESSION['internal_chat_last_hired'],
+                    $_SESSION['internal_chat_last_status'],
+                    $_SESSION['internal_chat_last_report'],
+                    $_SESSION['internal_chat_suggestions']
+                );
+            }
+
+            return ['name' => 'clear_context'];
+        }
+
+        $reportMonth = $this->detectReportMonthFollowUp($message);
+        if ($reportMonth !== null) {
+            return $reportMonth;
+        }
+
+        $reportCode = $this->detectReportCodeFollowUp($message, $m);
+        if ($reportCode !== null) {
+            return $reportCode;
+        }
+
+        $personRefine = $this->detectPersonCandidateRefine($message);
+        if ($personRefine !== null) {
+            return $personRefine;
+        }
+
+        $suggestPick = $this->detectSuggestionPick($message);
+        if ($suggestPick !== null) {
+            return $suggestPick;
+        }
+
+        $byMonthFollowUp = $this->extractByMonthFollowUp($m);
+        if ($byMonthFollowUp !== null) {
+            return $byMonthFollowUp;
+        }
+
+        $bareYear = $this->extractYearOnly($m);
+        if ($bareYear !== null && preg_match('/^(em\s+|de\s+|s[oó]\s+(os\s+(de\s+)?)?)?20\d{2}$/u', $m)) {
+            $lastTerm = (session_status() === PHP_SESSION_ACTIVE)
+                ? ($_SESSION['internal_chat_last_terminated'] ?? null)
+                : null;
+            if (is_array($lastTerm)) {
+                return [
+                    'name' => 'terminated_list',
+                    'month' => null,
+                    'year' => $bareYear,
+                    'department' => isset($lastTerm['department']) && $lastTerm['department'] !== ''
+                        ? (string) $lastTerm['department']
+                        : null,
+                ];
+            }
+            if ($this->getLastStatusIntent() === 'inactive') {
+                return ['name' => 'terminated_by_month', 'year' => $bareYear];
+            }
+        }
+
+        $bareDept = $this->matchBareDepartmentName($m);
+        if ($bareDept !== null) {
+            return ['name' => $this->getLastStatusIntent(), 'department' => $bareDept];
+        }
+
+        return null;
+    }
+
+    /**
      * @return array{name: string, department?: string|null}|null
      */
     private function detectIntent(string $message): ?array
@@ -564,6 +689,11 @@ class LocalInternalChatAgent
         $hireIntent = $this->detectHireIntent($m, $message);
         if ($hireIntent !== null) {
             return $hireIntent;
+        }
+
+        $ageIntent = $this->detectAgeIntent($m, $message);
+        if ($ageIntent !== null) {
+            return $ageIntent;
         }
 
         if (preg_match('/^(limpar|nova\s+consulta|esqueci|esquecer|outra\s+pessoa|reiniciar)(\s+contexto)?$/iu', $m)) {
@@ -796,6 +926,10 @@ class LocalInternalChatAgent
         }
 
         if (preg_match('/\b(quantos|qtd|quantidade|headcount|pessoas)\b|\bativos?\b|\bcolaboradores?\b|\bfuncionarios?\b|\busuarios?\b/u', $m)) {
+            if ($this->messageWantsPersonList($message) && !$this->messageWantsHeadcount($message)) {
+                return ['name' => 'active_list', 'department' => $dept];
+            }
+
             return ['name' => 'active', 'department' => $dept];
         }
 
@@ -1098,7 +1232,8 @@ class LocalInternalChatAgent
                 'year' => isset($data['year']) ? (int) $data['year'] : null,
                 'department' => isset($data['department']) ? (string) $data['department'] : null,
             ];
-        } elseif ($tool === 'rh.count_active' || $tool === 'rh.count_active_by_department') {
+        } elseif ($tool === 'rh.count_active' || $tool === 'rh.count_active_by_department'
+            || $tool === 'rh.list_active' || $tool === 'rh.list_active_by_age') {
             $_SESSION['internal_chat_last_status'] = 'active';
             unset(
                 $_SESSION['internal_chat_person_candidates'],
@@ -1458,6 +1593,189 @@ class LocalInternalChatAgent
     }
 
     /**
+     * Faixa etária no texto (fallback se a IA omitir o parâmetro).
+     *
+     * @return array{name: string, min_age?: int, max_age?: int, department?: string|null}|null
+     */
+    private function detectAgeIntent(string $normalizedMessage, string $message): ?array
+    {
+        if (preg_match('/anos?\s+de\s+empresa|tempo\s+de\s+empresa/u', $normalizedMessage)) {
+            return null;
+        }
+
+        $bounds = $this->extractAgeBoundsFromMessage($message);
+        if ($bounds === []) {
+            return null;
+        }
+
+        return array_merge(
+            ['name' => 'active_by_age', 'department' => $this->canonicalDepartment(null, $message)],
+            $bounds
+        );
+    }
+
+    /**
+     * @return array{min_age?: int, max_age?: int}
+     */
+    private function extractAgeBoundsFromMessage(string $message): array
+    {
+        $n = mb_strtolower($message);
+        $out = [];
+        if (preg_match('/entre\s+(\d{1,2})\s+e\s+(\d{1,2})(\s+anos)?/u', $n, $mm)) {
+            $a = (int) $mm[1];
+            $b = (int) $mm[2];
+            if ($a > $b) {
+                [$a, $b] = [$b, $a];
+            }
+            $out['min_age'] = $a;
+            $out['max_age'] = $b + 1;
+
+            return $out;
+        }
+        if (preg_match('/(?:menos|menor(?:es)?|abaixo)\s+de\s+(\d{1,2})(\s+anos)?/u', $n, $mm)) {
+            $out['max_age'] = (int) $mm[1];
+        }
+        if (preg_match('/(?:mais|maior(?:es)?|acima)\s+de\s+(\d{1,2})(\s+anos)?/u', $n, $mm)) {
+            $out['min_age'] = (int) $mm[1];
+        }
+        if ($out === [] && preg_match('/\b(\d{1,2})\s+anos\b/u', $n, $mm)) {
+            $nAge = (int) $mm[1];
+            if ($nAge >= 16 && $nAge <= 90) {
+                $out['min_age'] = $nAge;
+            }
+        }
+
+        foreach (['min_age', 'max_age'] as $k) {
+            if (isset($out[$k]) && ((int) $out[$k] < 16 || (int) $out[$k] > 91)) {
+                unset($out[$k]);
+            }
+        }
+
+        return $out;
+    }
+
+    private function canonicalDepartment(?string $raw, string $message): ?string
+    {
+        $names = $this->rh->listDepartmentNames();
+        $fromText = ChatDepartmentMention::match($message, $names, self::DEPARTMENT_ALIASES);
+        if ($fromText !== null) {
+            return $fromText;
+        }
+        if ($raw === null || trim($raw) === '') {
+            return null;
+        }
+        $fromRaw = ChatDepartmentMention::match($raw, $names, self::DEPARTMENT_ALIASES);
+        if ($fromRaw !== null) {
+            return $fromRaw;
+        }
+        $aliased = $this->resolveDepartmentAlias($raw);
+        if ($aliased === null) {
+            return null;
+        }
+        foreach ($names as $name) {
+            if (ChatDepartmentMention::fold($name) === ChatDepartmentMention::fold($aliased)) {
+                return $name;
+            }
+        }
+
+        return $aliased;
+    }
+
+    private function mergeCombinedRhFilters(array $intent, string $message): array
+    {
+        $name = (string) ($intent['name'] ?? '');
+        if ($name === 'lookup_person' || str_starts_with($name, 'rooms_') || str_starts_with($name, 'report_')) {
+            return $intent;
+        }
+
+        $dept = $this->canonicalDepartment(
+            isset($intent['department']) ? (string) $intent['department'] : null,
+            $message
+        );
+        if ($dept !== null) {
+            $intent['department'] = $dept;
+        }
+
+        if (!preg_match('/anos?\s+de\s+empresa|tempo\s+de\s+empresa/u', mb_strtolower($message))) {
+            foreach ($this->extractAgeBoundsFromMessage($message) as $key => $value) {
+                if (!isset($intent[$key])) {
+                    $intent[$key] = $value;
+                }
+            }
+        }
+
+        if (
+            in_array($name, ['active', 'by_department', 'unknown', 'active_list'], true)
+            && (!empty($intent['min_age']) || !empty($intent['max_age']))
+        ) {
+            $intent['name'] = 'active_by_age';
+        } elseif (
+            in_array($name, ['active', 'by_department', 'unknown'], true)
+            && $this->messageWantsPersonList($message)
+            && !$this->messageWantsHeadcount($message)
+        ) {
+            $intent['name'] = 'active_list';
+        }
+
+        return $intent;
+    }
+
+    private function messageWantsPersonList(string $message): bool
+    {
+        return (bool) preg_match(
+            '/\b(nomes?|lista|listar|quem\s+(s[aã]o|est[aá]|trabalha)|quais\s+(s[aã]o|os|as)|nominativ)\b/u',
+            mb_strtolower($message)
+        );
+    }
+
+    private function messageWantsHeadcount(string $message): bool
+    {
+        return (bool) preg_match(
+            '/\b(quantos|quantas|qtd|quantidade|headcount)\b/u',
+            mb_strtolower($message)
+        );
+    }
+
+    private function formatAgeFilterLabel(?int $minAge, ?int $maxAge): string
+    {
+        if ($minAge !== null && $maxAge !== null) {
+            return sprintf('com %d anos ou mais e menos de %d anos', $minAge, $maxAge);
+        }
+        if ($maxAge !== null) {
+            return sprintf('com menos de %d anos', $maxAge);
+        }
+        if ($minAge !== null) {
+            return sprintf('com %d anos ou mais', $minAge);
+        }
+
+        return '';
+    }
+
+    /**
+     * Une {"filters":{...}} ao JSON de topo (a IA pode mandar os critérios nos dois formatos).
+     *
+     * @param array<string, mixed> $intentJson
+     * @return array<string, mixed>
+     */
+    private function flattenLlmFilterBag(array $intentJson): array
+    {
+        $bag = $intentJson['filters'] ?? null;
+        if (!is_array($bag)) {
+            return $intentJson;
+        }
+        foreach ($bag as $key => $value) {
+            if (!is_string($key) || $key === 'intent' || $key === 'filters') {
+                continue;
+            }
+            if (!array_key_exists($key, $intentJson) || $intentJson[$key] === null || $intentJson[$key] === '') {
+                $intentJson[$key] = $value;
+            }
+        }
+
+        return $intentJson;
+    }
+
+    /**
      * @return array{name: string, month?: ?int, year?: ?int, department?: ?string}|null
      */
     private function detectHireIntent(string $normalizedMessage, string $message): ?array
@@ -1743,7 +2061,7 @@ class LocalInternalChatAgent
         }
 
         return [
-            'resposta' => $this->formatPersonCard($matches[0]),
+            'resposta' => $this->formatPersonCard($matches[0], (string) ($data['focus'] ?? 'card')),
             'tool' => 'rh.lookup_person',
             'data' => array_merge($data, [
                 'match_count' => 1,
@@ -1915,8 +2233,9 @@ class LocalInternalChatAgent
     /**
      * @param array<string, mixed> $p
      */
-    private function formatPersonCard(array $p): string
+    private function formatPersonCard(array $p, string $focus = 'card'): string
     {
+        $name = (string) ($p['name'] ?? '');
         $blockedLabel = !empty($p['blocked']) ? 'sim' : 'não';
         $termLabel = !empty($p['termination_date'])
             ? ('desligado em ' . $this->formatBrDate((string) $p['termination_date']))
@@ -1924,26 +2243,83 @@ class LocalInternalChatAgent
         $admLabel = !empty($p['admission_date'])
             ? $this->formatBrDate((string) $p['admission_date'])
             : 'não informada';
+        $age = isset($p['age']) && $p['age'] !== null && $p['age'] !== '' ? (int) $p['age'] : null;
+        $birthLabel = !empty($p['birth_date']) ? $this->formatBrDate((string) $p['birth_date']) : null;
+        $ageBullet = $age !== null
+            ? ($age . ' anos' . ($birthLabel !== null ? ' (nasc. ' . $birthLabel . ')' : ''))
+            : 'não informada no cadastro';
 
-        return sprintf(
+        $lead = null;
+        if ($focus === 'age') {
+            $lead = $age !== null
+                ? sprintf('%s tem %d anos%s.', $name, $age, $birthLabel !== null ? ' (nasc. ' . $birthLabel . ')' : '')
+                : sprintf('%s não tem data de nascimento no cadastro.', $name);
+        } elseif ($focus === 'tenure') {
+            $lead = sprintf('%s está há %s na empresa.', $name, (string) ($p['tenure_label'] ?? '—'));
+        } elseif ($focus === 'department') {
+            $lead = sprintf('%s está no departamento %s.', $name, (string) ($p['department'] ?? '—'));
+        } elseif ($focus === 'blocked') {
+            $lead = sprintf('%s %s bloqueado.', $name, !empty($p['blocked']) ? 'está' : 'não está');
+        } elseif ($focus === 'status') {
+            $lead = sprintf('%s está com status %s.', $name, (string) ($p['status'] ?? '—'));
+        } elseif ($focus === 'position') {
+            $lead = sprintf('%s: cargo %s.', $name, (string) ($p['position'] ?? '—'));
+        }
+
+        $card = sprintf(
             "%s (@%s)\n"
             . "• Departamento: %s\n"
             . "• Cargo: %s\n"
+            . "• Idade: %s\n"
             . "• Status: %s\n"
             . "• Bloqueado: %s\n"
             . "• Admissão: %s\n"
             . "• Tempo de empresa: %s\n"
             . "• Desligamento: %s",
-            (string) ($p['name'] ?? ''),
+            $name,
             ($p['username'] ?? '') !== '' ? $p['username'] : '—',
             (string) ($p['department'] ?? '—'),
             (string) ($p['position'] ?? '—'),
+            $ageBullet,
             ($p['status'] ?? '') !== '' ? $p['status'] : '—',
             $blockedLabel,
             $admLabel,
             (string) ($p['tenure_label'] ?? '—'),
             $termLabel
         );
+
+        return $lead !== null ? $lead . "\n\n" . $card : $card;
+    }
+
+    private function resolvePersonFocus(string $message, ?string $fromLlm): string
+    {
+        $allowed = ['age', 'tenure', 'status', 'department', 'blocked', 'position', 'card'];
+        $fromLlm = $fromLlm !== null ? mb_strtolower(trim($fromLlm)) : '';
+        if (in_array($fromLlm, $allowed, true) && $fromLlm !== 'card') {
+            return $fromLlm;
+        }
+
+        $m = mb_strtolower($message);
+        if (preg_match('/anos?\s+de\s+empresa|tempo\s+de\s+empresa/u', $m)) {
+            return 'tenure';
+        }
+        if (preg_match('/\bidade\b|quantos\s+anos\s+tem|data\s+de\s+nascimento|quando\s+nasceu/u', $m)) {
+            return 'age';
+        }
+        if (preg_match('/bloquead/u', $m)) {
+            return 'blocked';
+        }
+        if (preg_match('/\bcargo\b|\bfun[cç][aã]o\b/u', $m)) {
+            return 'position';
+        }
+        if (preg_match('/\bdepartamento\b|\bsetor\b/u', $m)) {
+            return 'department';
+        }
+        if (preg_match('/\bstatus\b|\bsitua[cç][aã]o\b/u', $m)) {
+            return 'status';
+        }
+
+        return 'card';
     }
 
     private function formatBrDate(string $ymd): string
@@ -2161,6 +2537,8 @@ class LocalInternalChatAgent
         if ($intent['name'] === 'rooms_wizard_start') {
             return $this->roomsWizard->start($this->userId);
         }
+
+        $intent = $this->mergeCombinedRhFilters($intent, $message);
 
         if ($intent['name'] === 'rooms_list') {
             $run = $this->rooms->listRooms(null);
@@ -2480,6 +2858,7 @@ class LocalInternalChatAgent
             }
 
             $data = $this->rh->lookupPerson($query);
+            $data['focus'] = $this->resolvePersonFocus($message, isset($intent['focus']) ? (string) $intent['focus'] : null);
 
             return $this->buildLookupPersonResult($data);
         }
@@ -2846,6 +3225,116 @@ class LocalInternalChatAgent
             ];
         }
 
+        if ($intent['name'] === 'active_list') {
+            $intent = $this->mergeCombinedRhFilters($intent, $message);
+            if (($intent['name'] ?? '') === 'active_by_age') {
+                // cai no bloco seguinte após reatribuir — trata abaixo
+            } else {
+                $department = $this->canonicalDepartment(
+                    isset($intent['department']) ? (string) $intent['department'] : null,
+                    $message
+                );
+                $data = $this->rh->listActive($department, 200);
+                $deptLabel = $department ? (' da ' . $department) : '';
+                $shown = count($data['rows']);
+                $lines = [
+                    sprintf('Usuários ativos%s: %d.', $deptLabel, $data['total']),
+                ];
+                if ($shown < 1) {
+                    $lines[] = 'Nenhum cadastro atende ao filtro.';
+                } else {
+                    $lines[] = sprintf(
+                        'Tabela com %d nome(s). Use Baixar Excel/CSV para exportar%s.',
+                        $shown,
+                        !empty($data['truncated']) ? ' (lista truncada; refine o filtro)' : ''
+                    );
+                }
+                $displayRows = [];
+                foreach ($data['rows'] as $row) {
+                    $displayRows[] = [
+                        'Nome' => (string) ($row['nome'] ?? ''),
+                        'Depto' => (string) ($row['departamento'] ?? ''),
+                        'Cargo' => (string) ($row['cargo'] ?? ''),
+                    ];
+                }
+                $data['rows'] = $displayRows;
+                $data['name'] = 'Ativos' . $deptLabel;
+                $data['ui'] = ['compact_table' => true];
+
+                return [
+                    'resposta' => implode("\n", $lines),
+                    'tool' => 'rh.list_active',
+                    'data' => $data,
+                    'provider' => 'local-rules',
+                ];
+            }
+        }
+
+        if ($intent['name'] === 'active_by_age') {
+            $intent = $this->mergeCombinedRhFilters($intent, $message);
+            $minAge = isset($intent['min_age']) ? (int) $intent['min_age'] : null;
+            $maxAge = isset($intent['max_age']) ? (int) $intent['max_age'] : null;
+            if ($minAge !== null && ($minAge < 16 || $minAge > 90)) {
+                $minAge = null;
+            }
+            if ($maxAge !== null && ($maxAge < 17 || $maxAge > 91)) {
+                $maxAge = null;
+            }
+            if ($minAge === null && $maxAge === null) {
+                return [
+                    'resposta' => 'Informe a faixa de idade (ex.: maiores de 30, menores de 40, entre 25 e 40).',
+                    'tool' => 'rh.list_active_by_age',
+                    'data' => null,
+                    'provider' => 'local-rules',
+                ];
+            }
+            $department = $this->canonicalDepartment(
+                isset($intent['department']) ? (string) $intent['department'] : null,
+                $message
+            );
+            $data = $this->rh->listActiveByAge($minAge, $maxAge, $department, 200);
+            $deptLabel = $department ? (' da ' . $department) : '';
+            $ageLabel = $this->formatAgeFilterLabel($minAge, $maxAge);
+            $shown = count($data['rows']);
+            $lines = [
+                sprintf('Usuários ativos%s %s: %d.', $deptLabel, $ageLabel, $data['total']),
+            ];
+            if ($shown < 1) {
+                $lines[] = 'Nenhum cadastro com data de nascimento atende ao filtro.';
+            } else {
+                $lines[] = sprintf(
+                    'Tabela com %d nome(s). Use Baixar Excel/CSV para exportar%s.',
+                    $shown,
+                    !empty($data['truncated']) ? ' (lista truncada; refine o filtro)' : ''
+                );
+            }
+            if (!empty($data['without_birthdate'])) {
+                $lines[] = sprintf(
+                    '%d ativo(s) sem data de nascimento no cadastro não entram nesta lista.',
+                    (int) $data['without_birthdate']
+                );
+            }
+
+            $displayRows = [];
+            foreach ($data['rows'] as $row) {
+                $displayRows[] = [
+                    'Nome' => (string) ($row['nome'] ?? ''),
+                    'Idade' => (int) ($row['idade'] ?? 0),
+                    'Depto' => (string) ($row['departamento'] ?? ''),
+                ];
+            }
+            $data['rows'] = $displayRows;
+            $data['name'] = 'Ativos' . $deptLabel . ' ' . $ageLabel;
+            $data['ui'] = ['compact_table' => true];
+
+            return [
+                'resposta' => implode("\n", $lines),
+                'tool' => 'rh.list_active_by_age',
+                'data' => $data,
+                'provider' => 'local-rules',
+            ];
+        }
+
         if ($intent['name'] === 'inactive') {
             $dept = isset($intent['department']) ? $this->resolveDepartmentAlias($intent['department']) : null;
             $data = $this->rh->countInactiveEmployees($dept);
@@ -2887,7 +3376,10 @@ class LocalInternalChatAgent
             ];
         }
 
-        $dept = isset($intent['department']) ? $this->resolveDepartmentAlias($intent['department']) : null;
+        $dept = $this->canonicalDepartment(
+            isset($intent['department']) ? (string) $intent['department'] : null,
+            $message
+        );
         $data = $this->rh->countActiveEmployees($dept);
         if ($dept) {
             $mode = ($data['match_mode'] ?? '') === 'exact' ? 'igual a' : 'que contém';
@@ -2917,22 +3409,49 @@ class LocalInternalChatAgent
     }
 
     /**
-     * System prompt do roteador LLM (data do dia injetada no PHP).
+     * System prompt do roteador LLM (data do dia e departamentos do cadastro).
      */
-    private function buildLlmRouterSystemPrompt(): string
+    private function buildLlmRouterSystemPrompt(string $departmentCatalog): string
     {
         $today = date('Y-m-d');
         $tomorrow = date('Y-m-d', strtotime('+1 day') ?: time());
         $thisMonth = (int) date('n');
         $thisYear = (int) date('Y');
 
-        return "Você é um roteador de intenções para RH e relatórios do Portal.\n"
-            . "Responda SOMENTE com um objeto JSON válido — sem markdown, sem texto antes/depois, sem comentários.\n\n"
+        return "Você interpreta perguntas em português livre sobre RH, salas e relatórios do Portal.\n"
+            . "O usuário fala como quiser. Sua única tarefa é identificar TODOS os filtros da solicitação "
+            . "e devolvê-los no mesmo JSON. O PHP executa a consulta — você não inventa SQL nem lista de pessoas.\n"
+            . "Responda SOMENTE com um objeto JSON válido — sem markdown, sem texto antes/depois.\n\n"
             . "CONTEXTO\n"
-            . "Data de hoje: {$today}  (use para resolver expressões relativas: \"esse mês\", \"mês passado\", \"hoje\", \"amanhã\", \"essa semana\")\n\n"
-            . "INTENTS VÁLIDAS (use exatamente estas chaves; nunca invente uma nova)\n"
+            . "Data de hoje: {$today}\n\n"
+            . "COMBINAR FILTROS (regra principal)\n"
+            . "Se a pergunta tiver 1, 2, 3 ou mais critérios, coloque TODOS no mesmo objeto. "
+            . "Nunca descarte um filtro citado (setor + idade, setor + período, idade mín + máx, etc.).\n"
+            . "Chaves opcionais — inclua só as que o usuário pediu, mas não omita nenhuma delas:\n"
+            . "- department: nome EXATO de DEPARTAMENTOS (abaixo)\n"
+            . "- min_age: idade mínima inclusive (>=). «mais/maiores/acima de 30» → 30\n"
+            . "- max_age: idade exclusiva (<). «menos/menores/abaixo de 40» → 40\n"
+            . "- month, year, query, room, date, start, end, title, booking_id\n"
+            . "Pode enviar também {\"filters\":{...}} com as mesmas chaves; o Portal une com o topo do JSON.\n"
+            . "Qualquer filtro de idade (min_age e/ou max_age) → intent active_by_age, mesmo com department.\n"
+            . "Quantos/quantas/headcount SEM pedir nomes → intent active (só o número).\n"
+            . "Nomes/lista/quem são/quais usuários → intent active_list (lista nominativa) + department se citado.\n"
+            . "NÃO use active (contagem) se o usuário pediu nomes. NÃO use lookup_person para listas de setor.\n"
+            . "NÃO confunda idade da pessoa (lookup_person + focus age) com faixa etária de um grupo (active_by_age).\n"
+            . "NÃO confunda idade com anos de empresa.\n\n"
+            . "DEPARTAMENTOS (use um destes nomes; sinônimo deve mapear para esta lista)\n"
+            . ($departmentCatalog !== '' ? $departmentCatalog : "- (cadastro indisponível)\n")
+            . "«TI»/«informática»/«tecnologia» → TI; «RH» → Recursos Humanos; "
+            . "«GQ»/«garantia da qualidade» → Garantia da Qualidade; "
+            . "«CQ»/«controle de qualidade» → Controle de Qualidade.\n\n"
+            . "INTENTS VÁLIDAS (nunca invente uma nova)\n"
             . "- {\"intent\":\"active\"}\n"
-            . "- {\"intent\":\"active\",\"department\":\"TI\"}\n"
+            . "- {\"intent\":\"active\",\"department\":\"Financeiro\"}\n"
+            . "- {\"intent\":\"active_list\",\"department\":\"Compras\"}\n"
+            . "- {\"intent\":\"active_by_age\",\"min_age\":30}\n"
+            . "- {\"intent\":\"active_by_age\",\"min_age\":30,\"department\":\"Garantia da Qualidade\"}\n"
+            . "- {\"intent\":\"active_by_age\",\"max_age\":40,\"department\":\"TI\"}\n"
+            . "- {\"intent\":\"active_by_age\",\"min_age\":25,\"max_age\":40,\"department\":\"Produção\"}\n"
             . "- {\"intent\":\"inactive\"}\n"
             . "- {\"intent\":\"terminated_in_period\",\"month\":1,\"year\":{$thisYear}}\n"
             . "- {\"intent\":\"terminated_by_month\",\"year\":{$thisYear}}\n"
@@ -2956,49 +3475,42 @@ class LocalInternalChatAgent
             . "- {\"intent\":\"rooms_cancel\",\"booking_id\":12}\n"
             . "- {\"intent\":\"rooms_reserve_help\"}\n"
             . "- {\"intent\":\"unknown\"}\n\n"
-            . "REGRAS DE DEPARTAMENTO\n"
-            . "Use sempre o nome canônico: TI, Produção, Recursos Humanos, Financeiro, Comercial.\n"
-            . "Sinônimos comuns: \"tecnologia da informação\"/\"informática\"/\"T.I.\" → TI; \"RH\" → Recursos Humanos.\n"
-            . "Comparação deve ignorar maiúsculas/minúsculas e acentos.\n\n"
             . "REGRAS DE PESSOA (lookup_person)\n"
-            . "Se a pergunta for sobre status/ficha/departamento/bloqueio/anos de empresa de uma pessoa,\n"
-            . "retorne lookup_person com query = apenas o nome, removendo prefixos como\n"
-            . "\"status\", \"status do\", \"status de\", \"ficha\", \"dados de\", \"informações sobre\".\n"
-            . "Funciona com ou sem preposição: \"status wladimir\" e \"status do wladimir\" → query=\"wladimir\".\n"
-            . "NÃO corrija ortografia do nome — passe a query como o usuário escreveu\n"
-            . "(a busca no cadastro usa LIKE/contém, não fuzzy/soundex).\n"
-            . "Exemplo: \"status wldimir\" → {\"intent\":\"lookup_person\",\"query\":\"wldimir\"}.\n"
-            . "Se a mensagem for só números/código (ex.: \"43000001\") DEPOIS de um relatório no chat,\n"
-            . "isso filtra item/parceiro/documento no relatório (tratado no Portal) — use unknown e não invente pessoa.\n"
-            . "Sem relatório recente, código numérico pode ser matrícula: lookup_person com query=os dígitos.\n\n"
+            . "Ficha de UMA pessoa → lookup_person com query = só o nome.\n"
+            . "Se pediu um dado específico, inclua focus: age | tenure | status | department | blocked | position\n"
+            . "\"qual a idade do wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\",\"focus\":\"age\"}\n"
+            . "\"anos de empresa do X\" → focus tenure. NÃO use active_by_age para uma pessoa só.\n\n"
             . "REGRAS DE DESLIGADOS/INATIVOS\n"
             . "\"quantos desligados\" sem período → terminated_total.\n"
-            . "Lista nominativa de desligados → terminated_list (month/year/department opcionais).\n"
+            . "Lista nominativa de desligados → terminated_list (month/year/department opcionais; combine os que existirem).\n"
             . "Bloqueados sem desligamento → blocked_not_terminated.\n"
             . "\"desligados por departamento\" → terminated_by_department (year opcional).\n"
             . "Se a pergunta tiver mês (ex.: \"inativos em janeiro\") → terminated_in_period.\n"
             . "   NUNCA use department para um valor de mês (ex.: department=\"janeiro\" está errado).\n"
             . "Se pedir inativos/desligados \"por mês\" ou apenas um ano (ex.: \"desligados 2025\") → terminated_by_month.\n"
-            . "   NUNCA use report_run nem inactive para esses casos.\n"
             . "\"esse mês\" → terminated_in_period com month={$thisMonth}, year={$thisYear}.\n\n"
             . "REGRAS DE CONTRATAÇÕES/ADMISSÕES\n"
             . "Contratação, admissões, admitidos, contratados → NUNCA terminated_* (isso é desligamento).\n"
-            . "Lista nominativa → hired_list (month/year/department opcionais; filtro pela data_admissao).\n"
+            . "Lista nominativa → hired_list (combine month/year/department se o usuário citou).\n"
             . "\"quantas contratações em junho\" / \"admissões em 2026\" → hired_in_period.\n"
             . "\"quantas contratações\" sem período → hired_total.\n\n"
             . "REGRAS DE SALAS\n"
             . "Intents rooms_* são exclusivas de reserva de salas — nunca misturar com intents de RH.\n"
-            . "Resolva datas/horas relativas (\"hoje\", \"amanhã\", \"às 15h\") usando a data de hoje acima.\n"
+            . "Resolva datas/horas relativas usando a data de hoje acima.\n"
             . "Formato de data: \"YYYY-MM-DD\". Formato de data+hora: \"YYYY-MM-DD HH:MM:SS\".\n"
-            . "Se o usuário não especificar data em rooms_agenda, use a data de hoje.\n"
             . "Se pedir como reservar sem dados completos → rooms_reserve_help.\n\n"
             . "QUANDO NÃO TIVER CERTEZA\n"
-            . "Se a pergunta não se encaixar claramente em nenhuma intent, ou faltar informação\n"
-            . "essencial (ex.: reservar sala sem nome de sala), retorne {\"intent\":\"unknown\"}.\n"
-            . "Nunca invente campos que não foram ditos pelo usuário.\n\n"
-            . "EXEMPLOS (casos de borda; datas relativas já resolvidas com a data de hoje)\n"
+            . "Se não houver tool para o pedido, {\"intent\":\"unknown\"}. "
+            . "Nunca invente departamento fora da lista nem campos que o usuário não pediu.\n"
+            . "Nunca deixe de enviar um campo que o usuário pediu.\n\n"
+            . "EXEMPLOS DE COMBINAÇÃO\n"
+            . "\"garantia da qualidade maiores de 30 anos\" → "
+            . "{\"intent\":\"active_by_age\",\"department\":\"Garantia da Qualidade\",\"min_age\":30}\n"
+            . "\"TI com menos de 40 anos\" → {\"intent\":\"active_by_age\",\"department\":\"TI\",\"max_age\":40}\n"
+            . "\"nome dos usuários do compras\" → {\"intent\":\"active_list\",\"department\":\"Compras\"}\n"
+            . "\"quantos colaboradores tem no financeiro\" → {\"intent\":\"active\",\"department\":\"Financeiro\"}\n"
+            . "\"qual a idade do wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\",\"focus\":\"age\"}\n"
             . "\"status do wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\"}\n"
-            . "\"status wladimir\" → {\"intent\":\"lookup_person\",\"query\":\"wladimir\"}\n"
             . "\"quantos desligados esse mês\" → {\"intent\":\"terminated_in_period\",\"month\":{$thisMonth},\"year\":{$thisYear}}\n"
             . "\"lista de contratações em junho/{$thisYear}\" → {\"intent\":\"hired_list\",\"month\":6,\"year\":{$thisYear}}\n"
             . "\"quantas admissões em 2025\" → {\"intent\":\"hired_in_period\",\"year\":2025}\n"
@@ -3027,13 +3539,34 @@ class LocalInternalChatAgent
             $catalogHint .= "- {$tool} | {$item['name']}\n";
         }
 
-        $system = $this->buildLlmRouterSystemPrompt();
+        $deptCatalog = '';
+        foreach ($this->rh->listDepartmentNames() as $deptName) {
+            $deptCatalog .= '- ' . $deptName . "\n";
+        }
+
+        $system = $this->buildLlmRouterSystemPrompt($deptCatalog);
 
         $user = ($catalogHint !== '' ? "Relatórios no chat:\n{$catalogHint}\n" : '')
+            . "Identifique todos os filtros da solicitação e combine-os no mesmo JSON.\n"
             . 'Pergunta do usuário: ' . $message;
 
         $llm = $this->llm->complete($system, $user, true);
         if ($llm === null) {
+            $err = $this->llm->getLastError();
+            if ($err !== null && $err !== '') {
+                return [
+                    'resposta' => 'Não consegui usar a IA para interpretar «'
+                        . mb_substr($message, 0, 80)
+                        . '». '
+                        . $err
+                        . "\n\nTente de novo ou use uma das consultas abaixo:\n\n"
+                        . $this->formatHelpOptions(),
+                    'tool' => 'chat.help',
+                    'data' => null,
+                    'provider' => 'llm-error',
+                ];
+            }
+
             return null;
         }
 
@@ -3043,16 +3576,43 @@ class LocalInternalChatAgent
         $raw = preg_replace('/\s*```$/', '', $raw) ?? $raw;
         $intentJson = json_decode($raw, true);
         if (!is_array($intentJson)) {
-            return null;
+            return [
+                'resposta' => 'A IA ('
+                    . (string) ($llm['provider'] ?? '?')
+                    . ') respondeu, mas não em JSON de intenção. Tente de novo ou uma consulta da lista.',
+                'tool' => 'chat.help',
+                'data' => null,
+                'provider' => (string) ($llm['provider'] ?? 'llm'),
+            ];
         }
+
+        $intentJson = $this->flattenLlmFilterBag($intentJson);
 
         $name = (string) ($intentJson['intent'] ?? 'unknown');
         if ($name === 'unknown' || $name === '') {
-            return null;
+            if (!empty($intentJson['min_age']) || !empty($intentJson['max_age'])) {
+                $name = 'active_by_age';
+                $intentJson['intent'] = $name;
+            } elseif (!empty($intentJson['department'])) {
+                $name = 'active';
+                $intentJson['intent'] = $name;
+            }
+        }
+        if ($name === 'unknown' || $name === '') {
+            return [
+                'resposta' => 'A IA ('
+                    . (string) ($llm['provider'] ?? '?')
+                    . ') não mapeou «'
+                    . mb_substr($message, 0, 80)
+                    . '» para uma consulta existente.',
+                'tool' => 'chat.help',
+                'data' => null,
+                'provider' => (string) ($llm['provider'] ?? 'llm'),
+            ];
         }
 
         $allowed = [
-            'active', 'inactive', 'terminated_in_period', 'terminated_by_month', 'terminated_total',
+            'active', 'active_list', 'active_by_age', 'inactive', 'terminated_in_period', 'terminated_by_month', 'terminated_total',
             'terminated_list', 'terminated_by_department', 'hired_list', 'hired_in_period', 'hired_total',
             'blocked', 'blocked_not_terminated', 'lookup_person',
             'by_department', 'report_list', 'report_run', 'report_month_filter', 'suggest_invalid', 'clarify_by_month',
@@ -3110,7 +3670,10 @@ class LocalInternalChatAgent
             $intent['booking_id'] = (int) $intentJson['booking_id'];
         }
         if (!empty($intentJson['department'])) {
-            $dept = $this->resolveDepartmentAlias((string) $intentJson['department']);
+            $dept = $this->canonicalDepartment((string) $intentJson['department'], (string) $intentJson['department']);
+            if ($dept === null) {
+                $dept = $this->resolveDepartmentAlias((string) $intentJson['department']);
+            }
             if ($dept !== null) {
                 $first = mb_strtolower(explode(' ', $dept)[0] ?? '');
                 if (isset(self::MONTHS[$first])) {
@@ -3142,6 +3705,15 @@ class LocalInternalChatAgent
         if (!empty($intentJson['year'])) {
             $intent['year'] = (int) $intentJson['year'];
         }
+        if (!empty($intentJson['min_age'])) {
+            $intent['min_age'] = (int) $intentJson['min_age'];
+        }
+        if (!empty($intentJson['max_age'])) {
+            $intent['max_age'] = (int) $intentJson['max_age'];
+        }
+        if (!empty($intentJson['focus'])) {
+            $intent['focus'] = mb_strtolower(trim((string) $intentJson['focus']));
+        }
         if (!empty($intentJson['report_id'])) {
             $intent['report_id'] = (int) $intentJson['report_id'];
         }
@@ -3160,7 +3732,10 @@ class LocalInternalChatAgent
             $intent['query'] = $safeQuery;
         }
 
-        $denied = $this->denyIfUnauthorizedIntent((string) ($intent['name'] ?? $name));
+        $intent = $this->mergeCombinedRhFilters($intent, $message);
+        $name = (string) ($intent['name'] ?? $name);
+
+        $denied = $this->denyIfUnauthorizedIntent($name);
         if ($denied !== null) {
             $denied['provider'] = $llm['provider'];
 

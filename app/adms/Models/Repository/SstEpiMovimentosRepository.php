@@ -139,16 +139,25 @@ class SstEpiMovimentosRepository extends DbConnection
     }
 
     /**
+     * PHP converte chave de array "12345" em int; o CA precisa permanecer string
+     * para métodos com tipo ?string (senão a tela cai em Erro 004).
+     */
+    public static function caNumeroAsString(int|string|null $caNumero): string
+    {
+        return strtoupper(trim((string) $caNumero));
+    }
+
+    /**
      * Custo médio ponderado do CA (ou do EPI se CA vazio), recalculado pelo histórico.
      * Entrada/Devolução atualizam a média; Saída/Entrega consomem sem alterar o unitário restante.
      */
-    public function getCustoMedioCa(int $epiId, ?string $caNumero = null): ?float
+    public function getCustoMedioCa(int $epiId, int|string|null $caNumero = null): ?float
     {
         if (!$this->hasTable() || $epiId <= 0 || !$this->hasColumn('valor_unitario')) {
             return null;
         }
 
-        $ca = strtoupper(trim((string) $caNumero));
+        $ca = self::caNumeroAsString($caNumero);
         $sql = 'SELECT tipo_movimento, quantidade, valor_unitario, ca_numero
                 FROM adms_sst_epi_movimentos
                 WHERE adms_sst_epi_id = :eid';
@@ -321,7 +330,10 @@ class SstEpiMovimentosRepository extends DbConnection
 
         if ($hasValor) {
             foreach ($porCa as $caKey => $info) {
-                $porCa[$caKey]['valor_unitario'] = $this->getCustoMedioCa($epiId, $caKey);
+                $porCa[$caKey]['valor_unitario'] = $this->getCustoMedioCa(
+                    $epiId,
+                    self::caNumeroAsString($info['ca_numero'] ?? $caKey)
+                );
             }
         }
 
@@ -335,9 +347,9 @@ class SstEpiMovimentosRepository extends DbConnection
         return $out;
     }
 
-    public function getSaldoCa(int $epiId, string $caNumero): int
+    public function getSaldoCa(int $epiId, int|string $caNumero): int
     {
-        $ca = strtoupper(trim($caNumero));
+        $ca = self::caNumeroAsString($caNumero);
         if ($ca === '') {
             return 0;
         }
@@ -350,12 +362,12 @@ class SstEpiMovimentosRepository extends DbConnection
         return 0;
     }
 
-    public function getValidadeCaLote(int $epiId, string $caNumero): ?string
+    public function getValidadeCaLote(int $epiId, int|string $caNumero): ?string
     {
         if (!$this->hasTable() || $epiId <= 0 || !$this->hasColumn('ca_validade')) {
             return null;
         }
-        $ca = strtoupper(trim($caNumero));
+        $ca = self::caNumeroAsString($caNumero);
         if ($ca === '') {
             return null;
         }

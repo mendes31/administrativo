@@ -49,7 +49,7 @@ $dryRun = array_key_exists('dry_run', $form) ? !empty($form['dry_run']) : true;
                 <div class="col-md-8">
                     <label class="form-label" for="file">Planilha (.xlsx ou .csv)</label>
                     <input class="form-control" type="file" name="file" id="file" accept=".xlsx,.xls,.csv,.txt" required>
-                    <div class="form-text">A primeira linha deve ser o cabeçalho. No passo seguinte você associa cada coluna a um campo do sistema.</div>
+                    <div class="form-text">O modelo CSV traz duas linhas de cabeçalho: rótulos da tela e, abaixo, os nomes dos campos. A importação ignora os rótulos e usa só os nomes dos campos. Planilhas antigas (só a linha de campos) continuam válidas.</div>
                 </div>
 
                 <div class="col-md-4">

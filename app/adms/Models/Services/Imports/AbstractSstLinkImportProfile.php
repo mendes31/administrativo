@@ -126,6 +126,16 @@ abstract class AbstractSstLinkImportProfile implements ImportProfileInterface
         return (int) $row['id'];
     }
 
+    protected function requireUser(string $raw, string $label = 'Colaborador'): int
+    {
+        $id = (new SstImportLookup())->user($raw);
+        if ($id === null) {
+            throw new \RuntimeException($label . ' não encontrado' . ($raw !== '' ? ': ' . $raw : '.'));
+        }
+
+        return $id;
+    }
+
     /**
      * @param array<string, string> $mapped
      * @param array<string, int|string|null> $where

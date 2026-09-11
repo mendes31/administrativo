@@ -17,7 +17,7 @@
 <div class="help-field"><strong>Validade padrão (meses)</strong> Quando controla recarga: quantidade de meses usada para calcular a próxima data ao registrar uma recarga (padrão 12).</div>
 <div class="help-field"><strong>Status</strong> Ativo = disponível no cadastro de equipamentos; Inativo = oculto nas novas inclusões.</div>
 <div class="help-field"><strong>Descrição</strong> Texto livre opcional sobre o tipo.</div>
-<div class="help-field"><strong>Checklist</strong> Itens de inspeção vinculados ao tipo. Na vistoria, o responsável responde a cada item (conforme / não conforme / N/A).</div>
+<div class="help-field"><strong>Checklist</strong> Itens de inspeção vinculados ao tipo. Na vistoria, o responsável responde a cada item (conforme / não conforme / N/A). Carga em lote: Central de Importações → <em>SST — Tipos de equipamento</em>, depois <em>SST — Checklist de tipo</em> e <em>SST — Equipamentos de segurança</em>.</div>
 
 <h2>Novo / editar equipamento — campos</h2>
 
@@ -64,8 +64,8 @@
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Cadastre <strong>tipos</strong> com prefixo e checklist.</li>
-<li>Cadastre o <strong>equipamento</strong> (tipo → código automático → localização e demais dados).</li>
+<li>Cadastre <strong>tipos</strong> com prefixo e checklist. Em lote: Central de Importações → <em>SST — Tipos de equipamento</em> e, se quiser, <em>SST — Checklist de tipo</em>.</li>
+<li>Cadastre o <strong>equipamento</strong> (tipo → código automático → localização e demais dados), ou importe pelo tipo <em>SST — Equipamentos de segurança</em> (o código continua gerado pelo prefixo; use patrimônio ou o código gerado para atualizar).</li>
 <li>Ajuste periodicidade e, se necessário, as <strong>Config. vistorias</strong>.</li>
 <li>O responsável executa em <strong>Minhas vistorias</strong> ou via <strong>Ler QR</strong>.</li>
 <li>Itens não conformes podem gerar plano de ação.</li>
@@ -90,7 +90,7 @@
 <ol>
 <li>Na ficha do equipamento: <strong>Relatório auditoria</strong> → informe data início e fim → <strong>Gerar PDF</strong>.</li>
 <li>Na lista de equipamentos: <strong>Relatório período</strong> gera o consolidado (opcionalmente filtrando filial/grupo).</li>
-<li>O PDF traz identificação da empresa/unidade, dados do equipamento (quando unitário), <strong>índice</strong> das vistorias e, em seguida, o <strong>detalhamento completo de cada vistoria</strong> — o mesmo conteúdo do PDF individual: checklist item a item, observação geral, assinatura eletrônica, não conformidades com ações corretivas e fotos de evidência. A seção de recargas lista cada evento com data, documento, empresa prestadora e observação.</li>
+<li>O PDF traz identificação da empresa/unidade, dados do equipamento (quando unitário), <strong>índice</strong> das vistorias e, em seguida, o <strong>detalhamento completo de cada vistoria</strong> — o mesmo conteúdo do PDF individual: checklist item a item, observação geral, assinatura eletrônica, não conformidades com ações corretivas e fotos de evidência. A seção de recargas lista cada evento com data, documento, empresa prestadora e observação. Em consolidado de período longo, o arquivo pode demorar; use filtro de filial/grupo se possível.</li>
 </ol>
 
 <h2 id="nao-conformidades">Não conformidades e ações corretivas</h2>
@@ -127,6 +127,8 @@
 <dt>PDF da vistoria sem fotos</dt><dd>Anexe as imagens na tela de execução (câmera/galeria) e clique em Salvar fotos antes ou ao concluir. O PDF só lista fotos já gravadas.</dd>
 <dt>Vistoria Não conforme — o que fazer?</dt><dd>Não abra outra vistoria da mesma competência. Trate pela NC gerada + ação corretiva e encerre a NC. A vistoria continua Não conforme no histórico.</dd>
 <dt>Vistoria não foi gerada no dia</dt><dd>Confirme se o equipamento está Ativo, com “gerar automaticamente” e periodicidade. Faça login (a rotina roda 1×/dia) ou execute <code>php scripts/cron_sst_equipamento_vistorias.php</code>.</dd>
-<dt>Checklist vazio</dt><dd>Inclua itens no cadastro do tipo de equipamento.</dd>
+<dt>Não acho o modelo CSV de equipamentos</dt><dd>Na Central de Importações, escolha <em>SST — Equipamentos de segurança</em> (não EPI) e clique em <strong>Modelo CSV</strong>. A 1ª linha são os rótulos da tela; a 2ª, os nomes dos campos (não apague essa linha). Importe os tipos antes.</dd>
+<dt>PDF de auditoria por período falha / mostra aviso PHP</dt><dd>Gere de novo após a correção do relatório. Períodos muito amplos (ano inteiro, todos os equipamentos com fotos) podem demorar; restrinja filial/grupo ou as datas.</dd>
+<dt>Checklist vazio</dt><dd>Inclua itens no cadastro do tipo de equipamento ou importe <em>SST — Checklist de tipo</em>.</dd>
 <dt>Não conforme sem ação</dt><dd>Abra plano de correção com prazo.</dd>
 </dl>

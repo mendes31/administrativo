@@ -18,6 +18,9 @@ foreach ($profiles as $profile) {
         $k === 'sst_riscos_cargo'
         || str_starts_with($k, 'sst_risco_')
         || str_ends_with($k, '_necessidade')
+        || $k === 'sst_equipamento_checklist'
+        || $k === 'sst_ghe_colaboradores'
+        || $k === 'sst_ghe_treinamentos'
     ) {
         $profileGroups['SST — matrizes'][] = $profile;
     } elseif (str_starts_with($k, 'sst_')) {

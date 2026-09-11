@@ -41,6 +41,8 @@ final class ImportProfileCatalogTest extends TestCase
             'sst_cids',
             'sst_medicos',
             'sst_ghe',
+            'sst_equipamento_tipos',
+            'sst_equipamentos',
             'sst_riscos_cargo',
             'sst_risco_epi',
             'sst_risco_exame',
@@ -48,6 +50,9 @@ final class ImportProfileCatalogTest extends TestCase
             'sst_epi_necessidade',
             'sst_exame_necessidade',
             'sst_treinamento_necessidade',
+            'sst_equipamento_checklist',
+            'sst_ghe_colaboradores',
+            'sst_ghe_treinamentos',
         ];
         foreach ($sstKeys as $key) {
             self::assertArrayHasKey($key, $all, $key);

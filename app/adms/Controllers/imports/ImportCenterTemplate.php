@@ -32,8 +32,9 @@ class ImportCenterTemplate
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         echo "\xEF\xBB\xBF";
         $out = fopen('php://output', 'w');
-        $fields = array_keys($profile->fields());
-        fputcsv($out, $fields, ';');
+        $fields = $profile->fields();
+        fputcsv($out, array_values($fields), ';');
+        fputcsv($out, array_keys($fields), ';');
         if (method_exists($profile, 'sampleRow')) {
             $sample = $profile->sampleRow();
             if (is_array($sample) && $sample !== []) {

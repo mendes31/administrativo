@@ -27,11 +27,11 @@
 <div class="help-field"><strong>Carga em lote</strong> Catálogo e vínculos cargo/EPI/exame/treinamento também entram pela <em>Central de Importações</em> (Administração → Importações, permissão <em>ImportCenterSst</em>).</div>
 
 <h2 id="aba-cargos">Aba Cargos / Setores</h2>
-<p>Define <strong>quem está exposto</strong> a este risco. Sem vínculo aqui, exames, EPIs e treinamentos do risco não geram pendências.</p>
+<p>Define <strong>quem está exposto</strong> a este risco. Informe cargo, departamento ou ambos — o sistema aplica exatamente o que estiver preenchido, mesmo sem colaborador ativo naquele recorte (a pendência da pessoa só nasce se o cadastro dela bater com a regra).</p>
 <ul>
-    <li><strong>Cargo + setor</strong> — exposição específica (ex.: Gerente de TI no setor TI).</li>
-    <li><strong>Somente setor</strong> — todos os cargos daquele departamento.</li>
-    <li><strong>Somente cargo</strong> — cargo em qualquer setor.</li>
+    <li><strong>Somente cargo</strong> — todos os colaboradores daquele cargo, em qualquer setor.</li>
+    <li><strong>Somente departamento</strong> — todos os colaboradores daquele setor, em qualquer cargo. A matriz por cargo conta os cargos em que há colaborador ativo nesse setor.</li>
+    <li><strong>Cargo e departamento</strong> — somente quem tem essa associação (ex.: Agente de Higienização no setor Higienização).</li>
     <li><strong>Nível de exposição</strong> — registro qualitativo (Baixo, Médio, Alto).</li>
 </ul>
 
@@ -49,10 +49,10 @@
 <div class="help-field"><strong>Obrigatório</strong> EPI recomendado vs obrigatório.</div>
 
 <h2 id="aba-treinamentos">Aba Treinamentos</h2>
-<p>Treinamentos de segurança vinculados ao risco.</p>
+<p>Treinamentos de segurança vinculados ao risco. Ao salvar, os obrigatórios entram na matriz por cargo (coluna Risco). Exames e EPIs do mesmo risco não aparecem nessa matriz.</p>
 <div class="help-field"><strong>Treinamento</strong> Item do catálogo SST.</div>
 <div class="help-field"><strong>Validade (meses)</strong> Reciclagem específica para este risco.</div>
-<div class="help-field"><strong>Opcional</strong> Desmarcado = obrigatório (padrão). Marque apenas se for recomendado.</div>
+<div class="help-field"><strong>Opcional</strong> Desmarcado = obrigatório (padrão). Marque apenas se for recomendado — opcional não conta na matriz.</div>
 
 <div class="help-note">
     <strong>Dica F1</strong>
@@ -80,6 +80,8 @@
     <dd>Falta permissão de criar/editar, ou o registro está em status que bloqueia a operação.</dd>
     <dt>Lista vazia ou sem dados esperados</dt>
     <dd>Revise filtros, período e escopo (filial/departamento); pode não haver registros no critério atual.</dd>
+    <dt>Salvei cargo e departamento e todo o cargo recebeu pendência</dt><dd>Com os dois preenchidos, só colaboradores com essa combinação recebem exame, EPI e treinamento. Quem tem o cargo em outro setor não entra.</dd>
+<dt>Salvei só o departamento e a matriz por cargo não mostrou</dt><dd>A coluna Risco lista os cargos que têm colaborador ativo naquele setor. Sem pessoas no cargo, a linha fica zero até haver alocação. Recarregue a matriz após salvar.</dd>
     <dt>F1 abre outro tópico</dt>
     <dd>Use a busca na central de ajuda pelo título <strong>Riscos ocupacionais</strong> ou o menu do módulo.</dd>
 </dl>

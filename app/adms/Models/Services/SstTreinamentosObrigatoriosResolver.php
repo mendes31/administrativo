@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\SstRiscoCargoMatch;
 use PDO;
 
 /**
@@ -46,8 +47,7 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
                     'risco_treinamento' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_riscos_cargo rc
-                    ON (rc.adms_position_id IS NULL OR rc.adms_position_id = u.user_position_id)
-                   AND (rc.adms_department_id IS NULL OR rc.adms_department_id = u.user_department_id)
+                    ON " . SstRiscoCargoMatch::sqlUsuario('rc', 'u') . "
                 INNER JOIN adms_sst_risco_treinamento rt
                     ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
                 INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
@@ -74,15 +74,13 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
                     'necessidade' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_treinamento_necessidade n
-                    ON (n.adms_position_id IS NULL OR n.adms_position_id = u.user_position_id)
-                   AND (n.adms_department_id IS NULL OR n.adms_department_id = u.user_department_id)
+                    ON " . SstRiscoCargoMatch::sqlUsuario('n', 'u') . "
                    AND (
                         n.adms_sst_risco_id IS NULL
                         OR EXISTS (
                             SELECT 1 FROM adms_sst_riscos_cargo rc2
                             WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
-                              AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = u.user_position_id)
-                              AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = u.user_department_id)
+                              AND " . SstRiscoCargoMatch::sqlUsuario('rc2', 'u') . "
                         )
                    )
                 INNER JOIN adms_sst_treinamentos tr ON tr.id = n.adms_sst_treinamento_id AND tr.status = 'Ativo'
@@ -173,7 +171,7 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
             return [];
         }
 
-        $deptClause = $this->sqlRiscoCargoDepartamentoParaCargo($departmentId, 'rc', 'p');
+        $escopo = SstRiscoCargoMatch::sqlMatrizParaCargo('rc', 'p.id', $departmentId);
         $sql = "SELECT DISTINCT
                     tr.id AS adms_sst_treinamento_id,
                     tr.nome AS treinamento_nome,
@@ -181,8 +179,8 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
                     'risco_treinamento' AS origem
                 FROM adms_positions p
                 INNER JOIN adms_sst_riscos_cargo rc
-                    ON (rc.adms_position_id IS NULL OR rc.adms_position_id = p.id)
-                   AND {$deptClause}
+                    ON {$escopo}
+                INNER JOIN adms_sst_riscos r ON r.id = rc.adms_sst_risco_id AND r.status = 'Ativo'
                 INNER JOIN adms_sst_risco_treinamento rt
                     ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
                 INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
@@ -267,24 +265,6 @@ class SstTreinamentosObrigatoriosResolver extends DbConnection
         $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
-    }
-
-    private function sqlRiscoCargoDepartamentoParaCargo(?int $departmentId, string $aliasRc, string $aliasPos): string
-    {
-        if ($departmentId !== null && $departmentId > 0) {
-            return "({$aliasRc}.adms_department_id IS NULL OR {$aliasRc}.adms_department_id = :dep)";
-        }
-
-        return "(
-            {$aliasRc}.adms_department_id IS NULL
-            OR EXISTS (
-                SELECT 1 FROM adms_users u
-                WHERE u.user_position_id = {$aliasPos}.id
-                  AND u.user_department_id = {$aliasRc}.adms_department_id
-                  AND u.status = 'Ativo'
-                  AND u.data_desligamento IS NULL
-            )
-        )";
     }
 
     private function hasTable(string $table): bool

@@ -48,6 +48,75 @@ final class SstImportValues
         return null;
     }
 
+    public static function date(string $raw): ?string
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return null;
+        }
+        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw) === 1) {
+            return $raw;
+        }
+        foreach (['d/m/Y', 'd-m-Y', 'd.m.Y'] as $format) {
+            $dt = \DateTimeImmutable::createFromFormat('!' . $format, $raw);
+            if ($dt instanceof \DateTimeImmutable) {
+                return $dt->format('Y-m-d');
+            }
+        }
+
+        return null;
+    }
+
+    public static function equipamentoStatus(string $raw): ?string
+    {
+        $n = mb_strtolower(trim($raw));
+        if ($n === '') {
+            return null;
+        }
+        if (in_array($n, ['ativo', 'a', '1', 'sim', 's', 'true'], true)) {
+            return 'Ativo';
+        }
+        if (in_array($n, ['inativo', 'i', '0', 'nao', 'não', 'n', 'false'], true)) {
+            return 'Inativo';
+        }
+        if (in_array($n, ['baixado', 'baixa', 'descartado', 'descarte'], true)) {
+            return 'Baixado';
+        }
+        if (in_array($n, ['bloqueado', 'bloqueio'], true)) {
+            return 'Bloqueado';
+        }
+
+        return in_array($raw, ['Ativo', 'Inativo', 'Baixado', 'Bloqueado'], true) ? $raw : null;
+    }
+
+    public static function periodicidadeMeses(string $raw): ?int
+    {
+        $n = mb_strtolower(trim($raw));
+        if ($n === '') {
+            return null;
+        }
+        $map = [
+            'mensal' => 1,
+            '1' => 1,
+            'bimestral' => 2,
+            '2' => 2,
+            'trimestral' => 3,
+            '3' => 3,
+            'semestral' => 6,
+            '6' => 6,
+            'anual' => 12,
+            '12' => 12,
+        ];
+        if (isset($map[$n])) {
+            return $map[$n];
+        }
+        if (ctype_digit($n) && in_array((int) $n, [1, 2, 3, 6, 12], true)) {
+            return (int) $n;
+        }
+
+        return null;
+    }
+
     /**
      * @param array<string, mixed> $payload
      * @param array<string, mixed> $existing

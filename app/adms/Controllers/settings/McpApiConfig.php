@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\AdmsMcpApiConfigRepository;
 use App\adms\Models\Repository\DynamicReportsRepository;
+use App\adms\Models\Services\InternalChat\InternalChatLlmSettings;
 use App\adms\Models\Services\InternalChat\McpChatToolsAdminCatalog;
 use App\adms\Models\Services\LogResumoService;
 
@@ -22,6 +23,9 @@ class McpApiConfig
             $tab = 'conexao';
         }
 
+        $llmSettings = new InternalChatLlmSettings($config ?: []);
+        $ollamaUrl = $llmSettings->ollamaUrl();
+
         $data = [
             'title_head' => 'Assistente MCP',
             'menu' => 'mcp-api-config',
@@ -32,9 +36,17 @@ class McpApiConfig
             'active_tab' => $tab,
             'builtin_tools' => McpChatToolsAdminCatalog::builtinTools(),
             'chat_reports' => (new DynamicReportsRepository())->getReportsForChatAdmin(),
-            'ollama_models' => $this->fetchOllamaModels(),
-            'ollama_url' => rtrim((string) ($_ENV['OLLAMA_URL'] ?? ''), '/'),
+            'ollama_models' => $this->fetchOllamaModels($ollamaUrl),
+            'ollama_url' => $ollamaUrl,
             'ollama_env_model' => trim((string) ($_ENV['OLLAMA_MODEL'] ?? 'llama3.2')),
+            'llm_catalog' => InternalChatLlmSettings::catalog(),
+            'llm_provider' => $llmSettings->provider(),
+            'llm_key_masks' => [
+                'groq' => InternalChatLlmSettings::maskKey((string) ($config['llm_groq_api_key'] ?? '')),
+                'gemini' => InternalChatLlmSettings::maskKey((string) ($config['llm_gemini_api_key'] ?? '')),
+                'openai' => InternalChatLlmSettings::maskKey((string) ($config['llm_openai_api_key'] ?? '')),
+                'anthropic' => InternalChatLlmSettings::maskKey((string) ($config['llm_anthropic_api_key'] ?? '')),
+            ],
         ];
         $cfgId = (int) ($config['id'] ?? 0);
         if ($cfgId > 0) {
@@ -54,9 +66,9 @@ class McpApiConfig
      *
      * @return list<string>
      */
-    private function fetchOllamaModels(): array
+    private function fetchOllamaModels(string $base): array
     {
-        $base = rtrim((string) ($_ENV['OLLAMA_URL'] ?? ''), '/');
+        $base = rtrim($base, '/');
         if ($base === '') {
             return [];
         }

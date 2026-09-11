@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\SstCategoriaAsoHelper;
+use App\adms\Helpers\SstRiscoCargoMatch;
 use PDO;
 
 /**
@@ -100,8 +101,7 @@ class SstExamesObrigatoriosResolver extends DbConnection
                     'risco_exame' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_riscos_cargo rc
-                    ON (rc.adms_position_id IS NULL OR rc.adms_position_id = u.user_position_id)
-                   AND (rc.adms_department_id IS NULL OR rc.adms_department_id = u.user_department_id)
+                    ON " . SstRiscoCargoMatch::sqlUsuario('rc', 'u') . "
                 INNER JOIN adms_sst_risco_exame re
                     ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = :obr
                 INNER JOIN adms_sst_exames ex ON ex.id = re.adms_sst_exame_id AND ex.status = 'Ativo'
@@ -139,15 +139,13 @@ class SstExamesObrigatoriosResolver extends DbConnection
                     'necessidade' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_exame_necessidade n
-                    ON (n.adms_position_id IS NULL OR n.adms_position_id = u.user_position_id)
-                   AND (n.adms_department_id IS NULL OR n.adms_department_id = u.user_department_id)
+                    ON " . SstRiscoCargoMatch::sqlUsuario('n', 'u') . "
                    AND (
                         n.adms_sst_risco_id IS NULL
                         OR EXISTS (
                             SELECT 1 FROM adms_sst_riscos_cargo rc2
                             WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
-                              AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = u.user_position_id)
-                              AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = u.user_department_id)
+                              AND " . SstRiscoCargoMatch::sqlUsuario('rc2', 'u') . "
                         )
                    )
                 INNER JOIN adms_sst_exames ex ON ex.id = n.adms_sst_exame_id AND ex.status = 'Ativo'

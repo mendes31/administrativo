@@ -29,6 +29,27 @@ class SstGheTreinamentosRepository extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
+    /**
+     * Uma vez: vínculos do checkbox antigo (obrigatório desmarcado por padrão) passam a obrigatórios.
+     * Depois disso, obrigatorio = 0 permanece como opcional.
+     */
+    public function promoverVinculosSemFlagParaObrigatorio(): void
+    {
+        $marker = dirname(__DIR__, 3) . '/storage/cache/sst/ghe_obrigatorio_promovido.txt';
+        if (is_file($marker)) {
+            return;
+        }
+        $dir = dirname($marker);
+        if (!is_dir($dir)) {
+            @mkdir($dir, 0775, true);
+        }
+        $this->getConnection()->exec(
+            'UPDATE adms_sst_ghe_treinamentos SET obrigatorio = 1 WHERE obrigatorio = 0'
+        );
+        SstPendenciasService::invalidateDashboardCache();
+        @file_put_contents($marker, date('c'));
+    }
+
     /** @param array<int, array{obrigatorio: bool, validade_meses?: int|null}> $treinamentoMap */
     public function syncTreinamentosForGhe(int $gheId, array $treinamentoMap): void
     {

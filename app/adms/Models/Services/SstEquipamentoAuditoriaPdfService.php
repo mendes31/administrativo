@@ -88,14 +88,13 @@ class SstEquipamentoAuditoriaPdfService
         return '<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8">
 <style>
-body { font-family: DejaVu Sans, Arial, sans-serif; font-size: 9pt; color: #000; }
-h2 { font-size: 11pt; margin: 14px 0 6px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+body { font-family: dejavusans, sans-serif; font-size: 9pt; color: #000000; }
+h2 { font-size: 11pt; margin: 14px 0 6px; border-bottom: 1px solid #333333; padding-bottom: 3px; }
 table.grid { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 8px; }
-table.grid th, table.grid td { border: 1px solid #000; padding: 4px 5px; }
-table.grid th { background: #e8e8e8; }
-thead { display: table-header-group; }
-.nc { background: #f8d7da; }
-.rec-box { border: 1px solid #666; padding: 8px; margin: 8px 0 12px; page-break-inside: avoid; background: #fafafa; }
+table.grid th, table.grid td { border: 1px solid #000000; padding: 4px 5px; }
+table.grid th { background-color: #e8e8e8; }
+.nc { background-color: #f8d7da; }
+.rec-box { border: 1px solid #666666; padding: 8px; margin: 8px 0 12px; background-color: #fafafa; }
 ' . $vistCss . '
 </style>
 </head><body>
@@ -179,7 +178,7 @@ thead { display: table-header-group; }
                     . 'Checklist e evidências completas disponíveis apenas após conclusão.</p>';
             }
 
-            $html .= '<div class="vist-detail-wrap">' . $section . '</div>';
+            $html .= '<!--pdf-break--><div class="vist-detail-wrap">' . $section . '</div>';
         }
 
         return $html;
@@ -284,7 +283,7 @@ thead { display: table-header-group; }
                 ? 'Recarga ' . $n . ' — ' . $data . ' · ' . $esc($r['tipo_evento'] ?? '—')
                 : 'Recarga ' . $n . ' — ' . $esc($r['equipamento_codigo'] ?? '—') . ' · ' . $data;
 
-            $html .= '<div class="rec-box">';
+            $html .= '<!--pdf-break--><div class="rec-box">';
             $html .= '<strong>' . $titulo . '</strong>';
             $html .= '<table width="100%" style="border-collapse:collapse;margin-top:6px;font-size:8pt;">';
             if (!$unitario) {

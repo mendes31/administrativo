@@ -14,10 +14,7 @@ abstract class AbstractSstCatalogImportProfile implements ImportProfileInterface
     public function processRow(array $mapped, string $operation, string $emptyPolicy, bool $dryRun): array
     {
         $keyField = (string) ($mapped['_key_field'] ?? $this->defaultKeyField());
-        $keyRaw = SstImportValues::v($mapped, $keyField);
-        if ($keyRaw === '' && $keyField !== 'nome' && $keyField !== 'name') {
-            $keyRaw = SstImportValues::v($mapped, 'nome');
-        }
+        $keyRaw = $this->resolveKeyRaw($mapped, $keyField);
         if ($keyRaw === '') {
             return ['action' => 'error', 'message' => 'Chave vazia.', 'key' => ''];
         }
@@ -56,6 +53,19 @@ abstract class AbstractSstCatalogImportProfile implements ImportProfileInterface
         }
 
         return ['action' => 'updated', 'message' => 'Atualizado.', 'key' => $keyRaw];
+    }
+
+    /**
+     * @param array<string, string> $mapped
+     */
+    protected function resolveKeyRaw(array $mapped, string $keyField): string
+    {
+        $keyRaw = SstImportValues::v($mapped, $keyField);
+        if ($keyRaw === '' && $keyField !== 'nome' && $keyField !== 'name') {
+            $keyRaw = SstImportValues::v($mapped, 'nome');
+        }
+
+        return $keyRaw;
     }
 
     /** @param array<string, string> $mapped */

@@ -30,6 +30,7 @@ $titleOverrides = [
     'cad-niveis-acesso' => 'Níveis de acesso',
     'com-visao-geral' => 'Comunicação interna — visão geral',
     'com-informativos' => 'Informativos',
+    'notificacoes' => 'Minhas Notificações',
     'com-timeline' => 'Timeline e moderação',
     'com-eventos' => 'Eventos corporativos',
     'com-gamificacao' => 'Gamificação',

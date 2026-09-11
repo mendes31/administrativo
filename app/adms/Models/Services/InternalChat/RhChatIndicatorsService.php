@@ -648,6 +648,198 @@ class RhChatIndicatorsService extends DbConnection
     }
 
     /**
+     * Ativos por faixa de idade (data_nascimento). Só devolve nome/idade/depto.
+     * min_age = idade >= N; max_age = idade < N («menos de 40» → max_age 40).
+     *
+     * @return array{
+     *   total:int,
+     *   min_age:?int,
+     *   max_age:?int,
+     *   without_birthdate:int,
+     *   department:?string,
+     *   truncated:bool,
+     *   rows: list<array{nome:string, idade:int, departamento:string}>
+     * }
+     */
+    public function listActiveByMinAge(int $minAge, ?string $department = null, int $limit = 200): array
+    {
+        return $this->listActiveByAge($minAge, null, $department, $limit);
+    }
+
+    /**
+     * @return array{
+     *   total:int,
+     *   min_age:?int,
+     *   max_age:?int,
+     *   without_birthdate:int,
+     *   department:?string,
+     *   truncated:bool,
+     *   rows: list<array{nome:string, idade:int, departamento:string}>
+     * }
+     */
+    public function listActiveByAge(?int $minAge, ?int $maxAge, ?string $department = null, int $limit = 200): array
+    {
+        if ($minAge !== null) {
+            $minAge = max(16, min(90, $minAge));
+        }
+        if ($maxAge !== null) {
+            $maxAge = max(17, min(91, $maxAge));
+        }
+        $limit = max(1, min(500, $limit));
+        $department = $department !== null ? trim($department) : '';
+
+        $where = [
+            "usr.status = 'Ativo'",
+            'usr.data_desligamento IS NULL',
+            'usr.data_nascimento IS NOT NULL',
+        ];
+        $params = [];
+        $types = [];
+        if ($minAge !== null) {
+            $where[] = 'TIMESTAMPDIFF(YEAR, usr.data_nascimento, CURDATE()) >= :min_age';
+            $params[':min_age'] = $minAge;
+            $types[':min_age'] = PDO::PARAM_INT;
+        }
+        if ($maxAge !== null) {
+            $where[] = 'TIMESTAMPDIFF(YEAR, usr.data_nascimento, CURDATE()) < :max_age';
+            $params[':max_age'] = $maxAge;
+            $types[':max_age'] = PDO::PARAM_INT;
+        }
+        if ($department !== '') {
+            $where[] = 'LOWER(dep.name) = LOWER(:dept)';
+            $params[':dept'] = $department;
+            $types[':dept'] = PDO::PARAM_STR;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$whereSql}";
+        $stmtCount = $this->getConnection()->prepare($sqlCount);
+        foreach ($params as $k => $v) {
+            $stmtCount->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmtCount->execute();
+        $total = (int) ($stmtCount->fetchColumn() ?: 0);
+
+        $sqlSkip = "SELECT COUNT(*) FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE usr.status = 'Ativo' AND usr.data_desligamento IS NULL AND usr.data_nascimento IS NULL"
+            . ($department !== '' ? ' AND LOWER(dep.name) = LOWER(:dept)' : '');
+        $stmtSkip = $this->getConnection()->prepare($sqlSkip);
+        if ($department !== '') {
+            $stmtSkip->bindValue(':dept', $department, PDO::PARAM_STR);
+        }
+        $stmtSkip->execute();
+        $withoutBirth = (int) ($stmtSkip->fetchColumn() ?: 0);
+
+        $sql = "SELECT usr.name AS nome,
+                       TIMESTAMPDIFF(YEAR, usr.data_nascimento, CURDATE()) AS idade,
+                       dep.name AS departamento
+                FROM adms_users usr
+                LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+                WHERE {$whereSql}
+                ORDER BY usr.name ASC
+                LIMIT {$limit}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $rows = [];
+        foreach ($raw as $row) {
+            $rows[] = [
+                'nome' => (string) ($row['nome'] ?? ''),
+                'idade' => (int) ($row['idade'] ?? 0),
+                'departamento' => (string) (($row['departamento'] ?? '') !== '' ? $row['departamento'] : '(sem departamento)'),
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'min_age' => $minAge,
+            'max_age' => $maxAge,
+            'without_birthdate' => $withoutBirth,
+            'department' => $department !== '' ? $department : null,
+            'truncated' => $total > $limit,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
+     * Nomes dos ativos (sem filtro de idade). Departamento opcional.
+     *
+     * @return array{
+     *   total:int,
+     *   department:?string,
+     *   truncated:bool,
+     *   rows: list<array{nome:string, departamento:string, cargo:string}>
+     * }
+     */
+    public function listActive(?string $department = null, int $limit = 200): array
+    {
+        $limit = max(1, min(500, $limit));
+        $department = $department !== null ? trim($department) : '';
+
+        $where = [
+            "usr.status = 'Ativo'",
+            'usr.data_desligamento IS NULL',
+        ];
+        $params = [];
+        $types = [];
+        if ($department !== '') {
+            $where[] = 'LOWER(dep.name) = LOWER(:dept)';
+            $params[':dept'] = $department;
+            $types[':dept'] = PDO::PARAM_STR;
+        }
+        $whereSql = implode(' AND ', $where);
+
+        $sqlCount = "SELECT COUNT(*) FROM adms_users usr
+            LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+            WHERE {$whereSql}";
+        $stmtCount = $this->getConnection()->prepare($sqlCount);
+        foreach ($params as $k => $v) {
+            $stmtCount->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmtCount->execute();
+        $total = (int) ($stmtCount->fetchColumn() ?: 0);
+
+        $sql = "SELECT usr.name AS nome,
+                       dep.name AS departamento,
+                       pos.name AS cargo
+                FROM adms_users usr
+                LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
+                LEFT JOIN adms_positions pos ON pos.id = usr.user_position_id
+                WHERE {$whereSql}
+                ORDER BY usr.name ASC
+                LIMIT {$limit}";
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, $types[$k] ?? PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $raw = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $rows = [];
+        foreach ($raw as $row) {
+            $rows[] = [
+                'nome' => (string) ($row['nome'] ?? ''),
+                'departamento' => (string) (($row['departamento'] ?? '') !== '' ? $row['departamento'] : '(sem departamento)'),
+                'cargo' => (string) (($row['cargo'] ?? '') !== '' ? $row['cargo'] : '(sem cargo)'),
+            ];
+        }
+
+        return [
+            'total' => $total,
+            'department' => $department !== '' ? $department : null,
+            'truncated' => $total > $limit,
+            'rows' => $rows,
+        ];
+    }
+
+    /**
      * Busca colaborador por nome, username ou e-mail (sem CPF/celular).
      *
      * @return array{
@@ -665,7 +857,7 @@ class RhChatIndicatorsService extends DbConnection
 
         $like = '%' . $query . '%';
         $sql = "SELECT usr.id, usr.name, usr.username, usr.email, usr.status, usr.bloqueado,
-                       usr.data_admissao, usr.data_desligamento,
+                       usr.data_admissao, usr.data_desligamento, usr.data_nascimento,
                        dep.name AS departamento, pos.name AS cargo
                 FROM adms_users usr
                 LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
@@ -698,7 +890,7 @@ class RhChatIndicatorsService extends DbConnection
         } catch (\Throwable $e) {
             // Homolog sem coluna matricula: fallback legado.
             $sql = "SELECT usr.id, usr.name, usr.username, usr.email, usr.status, usr.bloqueado,
-                           usr.data_admissao, usr.data_desligamento,
+                           usr.data_admissao, usr.data_desligamento, usr.data_nascimento,
                            dep.name AS departamento, pos.name AS cargo
                     FROM adms_users usr
                     LEFT JOIN adms_departments dep ON dep.id = usr.user_department_id
@@ -730,8 +922,10 @@ class RhChatIndicatorsService extends DbConnection
         foreach ($rows as $row) {
             $admissao = $this->normalizeDate($row['data_admissao'] ?? null);
             $desligamento = $this->normalizeDate($row['data_desligamento'] ?? null);
+            $nascimento = $this->normalizeDate($row['data_nascimento'] ?? null);
             $tenure = $this->computeTenure($admissao, $desligamento);
             $blocked = $this->isBlockedValue($row['bloqueado'] ?? null);
+            $age = $this->computeAgeYears($nascimento);
 
             $matches[] = [
                 'id' => (int) ($row['id'] ?? 0),
@@ -744,6 +938,8 @@ class RhChatIndicatorsService extends DbConnection
                 'position' => (string) (($row['cargo'] ?? '') !== '' ? $row['cargo'] : '(sem cargo)'),
                 'admission_date' => $admissao,
                 'termination_date' => $desligamento,
+                'birth_date' => $nascimento,
+                'age' => $age,
                 'years_at_company' => $tenure['years_decimal'],
                 'tenure_label' => $tenure['label'],
             ];
@@ -801,6 +997,21 @@ class RhChatIndicatorsService extends DbConnection
         }
 
         return $s;
+    }
+
+    private function computeAgeYears(?string $birth): ?int
+    {
+        if ($birth === null) {
+            return null;
+        }
+        try {
+            $start = new \DateTimeImmutable($birth);
+            $diff = $start->diff(new \DateTimeImmutable('today'));
+
+            return $diff->invert === 1 ? null : $diff->y;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

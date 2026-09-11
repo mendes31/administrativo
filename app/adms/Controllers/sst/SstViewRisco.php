@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstExamesRepository;
 use App\adms\Models\Repository\SstRiscoCargoRepository;
@@ -40,7 +41,16 @@ class SstViewRisco
 
         $this->data['exames'] = (new SstExamesRepository())->getAll(1, 500, ['status' => 'Ativo']);
         $this->data['epis'] = (new SstEpisRepository())->getAll(1, 500, ['status' => 'Ativo']);
-        $this->data['cargosVinculados'] = (new SstRiscoCargoRepository())->getAllByRisco($itemId);
+        $cargoRepo = new SstRiscoCargoRepository();
+        $cargosVinculados = $cargoRepo->getAllByRisco($itemId);
+        foreach ($cargosVinculados as $idx => $row) {
+            $pos = SstRiscoCargoMatch::normalizeId($row['adms_position_id'] ?? null);
+            $dep = SstRiscoCargoMatch::normalizeId($row['adms_department_id'] ?? null);
+            if ($pos === null && $dep !== null) {
+                $cargosVinculados[$idx]['cargos_do_setor'] = $cargoRepo->getCargosAtivosNoDepartamento($dep);
+            }
+        }
+        $this->data['cargosVinculados'] = $cargosVinculados;
         $this->data['examesVinculadosRows'] = (new SstRiscoExameRepository())->getAllByRisco($itemId);
         $epiRows = (new SstRiscoEpiRepository())->getAllByRisco($itemId);
         $episVinculadosMap = [];

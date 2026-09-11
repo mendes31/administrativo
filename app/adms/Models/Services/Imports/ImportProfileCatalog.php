@@ -24,6 +24,8 @@ final class ImportProfileCatalog
                 new SstCidsImportProfile(),
                 new SstMedicosImportProfile(),
                 new SstGheImportProfile(),
+                new SstEquipamentoTiposImportProfile(),
+                new SstEquipamentosImportProfile(),
                 new SstRiscosCargoImportProfile(),
                 new SstRiscoEpiImportProfile(),
                 new SstRiscoExameImportProfile(),
@@ -31,6 +33,9 @@ final class ImportProfileCatalog
                 new SstEpiNecessidadeImportProfile(),
                 new SstExameNecessidadeImportProfile(),
                 new SstTreinamentoNecessidadeImportProfile(),
+                new SstEquipamentoChecklistImportProfile(),
+                new SstGheColaboradoresImportProfile(),
+                new SstGheTreinamentosImportProfile(),
             ];
             self::$profiles = [];
             foreach ($list as $profile) {

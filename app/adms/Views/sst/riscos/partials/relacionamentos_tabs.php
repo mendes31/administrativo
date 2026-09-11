@@ -65,7 +65,7 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
         <div class="tab-content border border-top-0 rounded-bottom p-3">
             <div class="tab-pane fade show active" id="tab-cargos" role="tabpanel">
                 <div class="d-flex flex-wrap gap-2 align-items-center mb-3">
-                    <p class="small text-muted flex-grow-1">Cargos e setores expostos a este risco — base para pendências de exame, EPI e treinamento.</p>
+                    <p class="small text-muted flex-grow-1 mb-0">Cargos e setores expostos a este risco. Só cargo: todos daquele cargo. Só departamento: todos do setor — a matriz conta os cargos dos colaboradores ativos nesse setor. Cargo e departamento: apenas essa combinação.</p>
                     <?php if ($podeGerirCargos): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-risco-cargo?adms_sst_risco_id=<?= $riscoId ?>" class="btn btn-success btn-sm">
                         <i class="fas fa-plus me-1"></i>Adicionar vínculo
@@ -86,7 +86,17 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
                                 $cid = (int) ($c['id'] ?? 0);
                             ?>
                                 <tr>
-                                    <td><?= htmlspecialchars($c['cargo_nome'] ?? 'Todos') ?></td>
+                                    <td>
+                                        <?= htmlspecialchars($c['cargo_nome'] ?? 'Todos') ?>
+                                        <?php if (($c['cargo_nome'] ?? '') === '' && !empty($c['cargos_do_setor'])): ?>
+                                            <div class="small text-muted mt-1">
+                                                Cargos com colaboradores neste setor:
+                                                <?= htmlspecialchars(implode(', ', array_column($c['cargos_do_setor'], 'name'))) ?>
+                                            </div>
+                                        <?php elseif (($c['cargo_nome'] ?? '') === ''): ?>
+                                            <div class="small text-muted mt-1">Nenhum colaborador ativo neste setor — a matriz passa a contar quando houver pessoas no cargo.</div>
+                                        <?php endif; ?>
+                                    </td>
                                     <td><?= htmlspecialchars($c['departamento_nome'] ?? 'Todos') ?></td>
                                     <td><?= htmlspecialchars($c['nivel'] ?? '-') ?></td>
                                     <td><?= htmlspecialchars($c['observacoes'] ?? '-') ?></td>
@@ -237,7 +247,7 @@ $csrfEpis = CSRFHelper::generateCSRFToken('sst_risco_relacionamentos');
                 <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-save-risco-treinamentos">
                     <input type="hidden" name="csrf_token" value="<?= $csrfTreinamentos ?>">
                     <input type="hidden" name="adms_sst_risco_id" value="<?= $riscoId ?>">
-                    <p class="small text-muted">Treinamentos exigidos para colaboradores expostos a este risco (via cargo/setor).</p>
+                    <p class="small text-muted">Treinamentos obrigatórios entram na matriz por cargo ao salvar (não depende de colaborador ativo). Exames e EPIs ficam nas respectivas telas.</p>
                     <?php if (empty($treinamentos)): ?>
                         <div class="alert alert-warning mb-0">Cadastre treinamentos SST primeiro.</div>
                     <?php else: ?>

@@ -4,7 +4,7 @@
 <p>Códigos da Classificação Internacional de Doenças usados em afastamentos, acidentes e relatórios analíticos SST.</p>
 
 
-<p><strong>Quem acessa:</strong> equipe SST/medicina do trabalho com <em>SstListCids</em>.</p>
+<p><strong>Quem acessa:</strong> equipe SST/medicina do trabalho com <em>SstListCids</em>. O autocomplete nas telas de afastamento, acidente e ASO usa a página <em>SstSearchCids</em> (<code>sst-search-cids</code>) — autorize no mesmo grupo <em>SST - Medicina / ASO / Exames</em>.</p>
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
 <li>Acesse <strong>SST → Cadastros → CIDs</strong>.</li>
@@ -19,7 +19,7 @@
 <div class="help-field"><strong>Status</strong> Inativos não aparecem em novos registros.</div>
 <h2>Problemas comuns</h2>
 <dl>
-<dt>CID não encontrado no autocomplete</dt><dd>Código inexistente ou inativo; cadastre ou corrija digitação.</dd>
+<dt>CID não encontrado no autocomplete</dt><dd>Código inexistente ou inativo; cadastre ou corrija digitação. Se o campo não busca nada, verifique a permissão <em>SstSearchCids</em>.</dd>
 <dt>Relatório por CID vazio</dt><dd>Afastamentos sem CID preenchido.</dd>
 <dt>Capítulo incorreto</dt><dd>Atualize importação oficial CID-10.</dd>
 <dt>Duplicidade de código</dt><dd>Mantenha um registro por código; inative duplicatas.</dd>

@@ -20,7 +20,7 @@ function buildManualAggregateTopicMap(): array
 
     $add([
         'email-config', 'create-email-config', 'notification-settings', 'calendar-config', 'sap-api-config', 'mcp-api-config',
-        'list-mcp-chat-tools', 'save-mcp-chat-tool',
+        'save-mcp-api-config', 'list-mcp-chat-tools', 'save-mcp-chat-tool',
         'push-config', 'whats-app-config', 'password-policy', 'update-password-policy', 'list-branches',
         'create-branch', 'update-branch', 'view-branch',
     ], 'adm-configuracoes');
@@ -56,6 +56,7 @@ function buildManualAggregateTopicMap(): array
     ], 'cad-niveis-acesso');
 
     $add(['list-informativos', 'create-informativo', 'update-informativo', 'view-informativo'], 'com-informativos');
+    $add(['notificacoes', 'list-notifications'], 'notificacoes');
     $add(['timeline', 'timeline-moderate'], 'com-timeline');
     $add(['list-company-events', 'create-company-event', 'update-company-event', 'view-company-event'], 'com-eventos');
     $add([
@@ -250,6 +251,7 @@ function manualTopicToContentDir(): array
         'cad-visao-geral' => 'cadastro', 'cad-estrutura' => 'cadastro', 'cad-usuarios' => 'cadastro',
         'cad-organograma' => 'cadastro', 'cad-niveis-acesso' => 'cadastro',
         'com-visao-geral' => 'comunicacao', 'com-informativos' => 'comunicacao', 'com-timeline' => 'comunicacao',
+        'notificacoes' => 'comunicacao',
         'com-eventos' => 'comunicacao', 'com-gamificacao' => 'comunicacao',
         'crm-visao-geral' => 'crm', 'crm-dashboards' => 'crm', 'crm-pipeline' => 'crm', 'crm-parceiros' => 'crm',
         'crm-oportunidades' => 'crm', 'crm-atividades' => 'crm', 'crm-configuracoes' => 'crm',
@@ -293,6 +295,7 @@ function manualAggregateTopicLabels(): array
         'cad-organograma' => 'Organograma',
         'cad-niveis-acesso' => 'Níveis de acesso',
         'com-informativos' => 'Informativos',
+        'notificacoes' => 'Minhas Notificações',
         'com-timeline' => 'Timeline',
         'com-eventos' => 'Eventos corporativos',
         'com-gamificacao' => 'Gamificação',

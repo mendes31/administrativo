@@ -1,7 +1,7 @@
 <h1>Assistente MCP</h1>
 
 <h2>Função no sistema</h2>
-<p>Centraliza os <strong>parâmetros do Assistente MCP (Tiarajuzinho)</strong>: conexão com o servidor (URL / piloto local) e o catálogo de tools (RH built-in + relatórios dinâmicos liberados no chat). O chat é transversal a vários departamentos; a permissão de uso (<em>McpChat</em>) fica no grupo ACL <strong>Configurações</strong>, não no CRM.</p>
+<p>Centraliza os <strong>parâmetros do Assistente MCP (Tiarajuzinho)</strong>: conexão com o servidor (URL / piloto local), o <strong>motor de IA</strong> (Groq, Gemini, OpenAI, Claude ou Ollama, com chaves nesta tela) e o catálogo de tools (RH built-in + relatórios dinâmicos liberados no chat). O chat é transversal a vários departamentos; a permissão de uso (<em>McpChat</em>) fica no grupo ACL <strong>Configurações</strong>, não no CRM.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Configurações do sistema</em> (<code>adm-configuracoes</code>). Detalhes do piloto: <code>docs/CHAT_INTERNO_TESTE_LOCAL.md</code>.</p>
 
@@ -15,14 +15,17 @@
     <dd>Flag do relatório dinâmico que o inclui no catálogo do Assistente MCP.</dd>
     <dt>local:internal</dt>
     <dd>Modo piloto no MySQL do Portal (indicadores RH / salas / relatórios), sem servidor MCP externo pago.</dd>
+    <dt>Motor de IA</dt>
+    <dd>Provedor que lê o texto livre e monta os filtros (departamento, idade, período…). O PHP só executa a consulta combinada. Não é preciso cadastrar cada frase. Chaves ficam nesta tela; o <code>.env</code> é fallback.</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Acesse <strong>Administração → Configurações → Assistente MCP</strong>.</li>
     <li>Na aba <strong>Conexão</strong>, informe <code>local:internal</code> (homologação) ou a URL HTTPS do servidor MCP, ative a integração e salve.</li>
+    <li>No bloco <strong>Motor de IA</strong>, escolha <em>Usar agora</em> (Automático, Groq, Gemini, OpenAI, Claude ou Ollama), cole a chave no provedor correspondente e clique em <strong>Testar IA</strong> e depois em <strong>Salvar</strong>.</li>
     <li>Na aba <strong>Tools</strong>, consulte as tools internas de RH e libere relatórios dinâmicos (nome da tool, descrição e exemplos).</li>
-    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «lista de contratações em junho», «salas», «relatório [nome]», «vendas por mês», «vendas 08/2026» ou «itens». Depois de um relatório, digite o <strong>mês</strong> (<code>08/2026</code>, <code>jun/26</code>) ou só o <strong>código SAP com dígito</strong> (ex.: <code>43000001</code>) para filtrar.</li>
+    <li>Com permissão <em>McpChat</em>, abra o chat no navbar e pergunte, por exemplo: «quantos colaboradores ativos?», «usuários maiores de 30 anos», «ativos da TI com mais de 30 anos», «departamento do Rafael», «Wladimir está bloqueado?», «quantos anos de empresa o X possui?», «bloqueados sem desligamento», «desligados por departamento», «lista de contratações em junho», «salas», «relatório [nome]», «vendas por mês», «vendas 08/2026» ou «itens». Depois de um relatório, digite o <strong>mês</strong> (<code>08/2026</code>, <code>jun/26</code>) ou só o <strong>código SAP com dígito</strong> (ex.: <code>43000001</code>) para filtrar.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -30,6 +33,11 @@
 <div class="help-field"><strong>URL da API MCP</strong> Endereço do servidor de agente, ou o valor especial <code>local:internal</code> para o piloto RH no MySQL do Portal. Em modo externo, o Portal envia <code>POST</code> com corpo <code>{"message":"…"}</code> (chave em minúsculas) para a URL configurada. APIs ERP que usam <code>{"Message":"…"}</code> (M maiúsculo) ou path fixo (ex.: <code>/api/sales</code>) exigem adaptador/proxy — não bastam colar a URL na tela.</div>
 <div class="help-field"><strong>Permissões no chat</strong> Abrir o Assistente exige <em>McpChat</em>. Cada consulta tipada exige também as páginas do nível do usuário (ex.: RH → <em>ListUsers</em>/<em>ViewUser</em>; salas → <em>CreateBooking</em>/<em>ListMeetingRooms</em>; relatórios → partilha do relatório + flag «Disponível no chat»). A listagem de ajuda mostra só o que o nível permite.</div>
 <div class="help-field"><strong>Ativar integração</strong> Se desmarcado, o chat não aparece / não responde mesmo com URL preenchida.</div>
+<div class="help-field"><strong>Motor de IA / Usar agora</strong> Qual provedor interpreta as perguntas. <em>Automático</em> tenta Groq → Gemini → OpenAI → Claude → Ollama (o primeiro com chave/URL). Trocar o motor não exige editar o <code>.env</code>.</div>
+<div class="help-field"><strong>Texto livre (IA)</strong> A IA identifica e combina os filtros da pergunta e escolhe se a resposta é <em>contagem</em> («quantos no Financeiro») ou <em>lista de nomes</em> («nomes dos usuários do Compras»). O PHP só executa. O selo da bolha mostra <code>ia: groq</code> quando o modelo roteou, mais a tool. Sem IA, o piloto local ainda reconhece algumas formulações.</div>
+<div class="help-field"><strong>Chave Groq / Gemini / OpenAI / Claude</strong> Cole a API key. Campo em branco mantém a chave já gravada. Marque <em>Apagar a chave</em> para remover. Os logs de alteração gravam apenas máscara, não a chave.</div>
+<div class="help-field"><strong>Testar IA</strong> Envia um ping ao motor de <em>Usar agora</em> (o primeiro com chave, se estiver em Automático). A faixa cinza/verde/vermelha aparece <strong>acima dos botões</strong> Salvar / Testar IA — role até lá se a página recarregar no topo. Verde + trecho da resposta = funcionando. Vermelho = chave, modelo ou rede. Enquanto testa, o botão mostra «Testando…».</div>
+<div class="help-field"><strong>URL do Ollama</strong> Ex.: <code>http://127.0.0.1:11434</code>. Vazio usa <code>OLLAMA_URL</code> do <code>.env</code>.</div>
 <div class="help-field"><strong>Modelo Ollama</strong> Escolhido na aba Conexão (lista via <code>/api/tags</code>). Cada chamada usa um modelo; fallbacks tentam o próximo se o principal falhar. Sem valor na tela, usa <code>OLLAMA_MODEL</code> do <code>.env</code>.</div>
 <div class="help-field"><strong>Disponível no Assistente MCP</strong> Liga ou desliga o relatório no catálogo do chat (aba Tools).</div>
 <div class="help-field"><strong>Nome da tool</strong> Identificador estável (ex.: <code>headcount_ti</code>). Se vazio ao ativar, gera a partir do nome do relatório.</div>
@@ -42,8 +50,18 @@
 <dl>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>McpApiConfig</em> ausente. A tela fica em <strong>Administração → Configurações</strong> (não no CRM).</dd>
-    <dt>Chat não aparece no navbar</dt>
-    <dd>Confira se a API está ativa, a URL preenchida e se o usuário tem <em>McpChat</em> no nível de acesso (grupo ACL Configurações).</dd>
+    <dt>Testar IA falhou conectando em 192.168.x:5153/api/sales</dt>
+    <dd>Essa URL é a API MCP/ERP antiga, não o Ollama. Em Automático ela é ignorada. Use Groq/Gemini com a chave da tela. Limpe <code>OLLAMA_URL</code> no <code>.env</code> se ainda apontar para <code>/api/sales</code>.</dd>
+    <dt>Chat respondeu com a lista de exemplos (tool: chat.help)</dt>
+    <dd>A IA ainda não roteou (teste Groq falhou) ou omitiu um filtro. Confirme <strong>Testar IA</strong> verde. A IA deve combinar no mesmo JSON todos os critérios (ex.: «garantia da qualidade maiores de 30» → departamento + idade). Se a bolha listar 118 nomes sem setor, o departamento não entrou no filtro.</dd>
+    <dt>Não consegui usar a IA… SSL / unable to get local issuer certificate</dt>
+    <dd>O PHP do WAMP não tem o arquivo de certificados CA. O cliente de IA passa a tratar isso como as demais APIs HTTPS do Portal. Recarregue a página, clique em <strong>Testar IA</strong> e tente o chat de novo.</dd>
+    <dt>Testar IA falhou (HTTP 401/403)</dt>
+    <dd>Chave inválida ou revogada. Gere outra no console do provedor (Groq, Google AI Studio, OpenAI ou Anthropic) e cole de novo. Deixe o campo em branco só para manter a chave já salva.</dd>
+    <dt>Testar IA falhou (HTTP 404 no modelo)</dt>
+    <dd>O catálogo do Groq/Gemini muda. Abra o console, copie o ID do modelo disponível e selecione (ou peça para cadastrar esse nome).</dd>
+    <dt>Chat não usa a chave nova</dt>
+    <dd>O teste pode passar com o valor do formulário, mas o chat lê o que está <strong>salvo</strong>. Clique em Salvar depois do teste.</dd>
     <dt>«Sem permissão para esta consulta»</dt>
     <dd><em>McpChat</em> só abre o Assistente. Inclua no nível as páginas do módulo (ex.: RH → <em>ListUsers</em>/<em>ViewUser</em>). A ajuda do chat lista só o que o nível permite.</dd>
     <dt>Pediu contratações e veio lista de desligados</dt>

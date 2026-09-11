@@ -502,9 +502,15 @@ if (is_readable($tjzFormatJs)) {
         if (meta && meta.tool) {
             const badge = document.createElement('div');
             badge.className = 'tjz-tool-badge';
-            badge.textContent = 'tool: ' + String(meta.tool);
-            if (meta.provider) {
-                badge.title = 'provider: ' + String(meta.provider);
+            var parts = [];
+            var prov = meta.provider ? String(meta.provider) : '';
+            if (prov && prov.indexOf('local-rules') !== 0 && prov.indexOf('llm-error') !== 0) {
+                parts.push('ia: ' + prov.split(':')[0]);
+            }
+            parts.push('tool: ' + String(meta.tool));
+            badge.textContent = parts.join(' · ');
+            if (prov) {
+                badge.title = 'provider: ' + prov;
             }
             bubble.appendChild(badge);
         }

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\SstCategoriaAsoHelper;
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
+use App\adms\Models\Repository\SstTreinamentoAplicacoesRepository;
 use App\adms\Models\Repository\SstTreinamentosRepository;
 use App\adms\Models\Repository\SstTreinamentoVinculosRepository;
 use App\adms\Models\Services\DbConnection;
@@ -18,6 +20,8 @@ use PDO;
 class SstPendenciasService extends DbConnection
 {
     private const DIAS_ALERTA = 30;
+
+    private const DASHBOARD_CACHE_VERSION = 3;
 
     public const SITUACOES_CRITICAS = [
         'nao_entregue',
@@ -34,12 +38,21 @@ class SstPendenciasService extends DbConnection
     }
 
     /**
-     * Resumo leve para o dashboard SST (uma consulta consolidada + cache curto).
+     * Resumo leve para o dashboard SST (matriz de treinamentos + validade + cache curto).
      *
-     * @return array{criticas_count: int, epis_amostra: array, exames_amostra: array}
+     * @return array{
+     *   criticas_count: int,
+     *   epis_amostra: array,
+     *   exames_amostra: array,
+     *   treinamentos_amostra: array,
+     *   treinamentos_pendentes_count: int,
+     *   treinamentos_vencidos_count: int
+     * }
      */
     public function getDashboardResumo(int $amostra = 5, int $cacheTtlSeconds = 90): array
     {
+        (new \App\adms\Models\Repository\SstGheTreinamentosRepository())->promoverVinculosSemFlagParaObrigatorio();
+
         $cached = $this->readDashboardCache($cacheTtlSeconds);
         if ($cached !== null) {
             return $cached;
@@ -49,10 +62,19 @@ class SstPendenciasService extends DbConnection
             'criticas_count' => $this->countPendenciasCriticas(),
             'epis_amostra' => $this->getPendenciasEpiGeral(['_limit' => $amostra]),
             'exames_amostra' => $this->getPendenciasExameGeral(['_limit' => $amostra]),
+            'treinamentos_amostra' => [],
+            'treinamentos_pendentes_count' => 0,
+            'treinamentos_vencidos_count' => 0,
         ];
-        if (self::incluirTreinamentos()) {
-            $data['treinamentos_amostra'] = $this->getPendenciasTreinamentoGeral(['_limit' => $amostra]);
-        }
+        $treinamentos = $this->ordenarPendenciasTreinamento(
+            $this->getPendenciasTreinamentoGeral([], true)
+        );
+        $data['treinamentos_amostra'] = array_slice($treinamentos, 0, $amostra);
+        $data['treinamentos_pendentes_count'] = count($treinamentos);
+        $data['treinamentos_vencidos_count'] = count(array_filter(
+            $treinamentos,
+            static fn (array $row): bool => ($row['situacao'] ?? '') === 'treinamento_vencido'
+        ));
         $this->writeDashboardCache($data);
 
         return $data;
@@ -349,7 +371,7 @@ class SstPendenciasService extends DbConnection
      *
      * @return array<int, array<string, mixed>>
      */
-    public function getPendenciasTreinamentoPorUsuario(int $userId, bool $ignorarFlagIncluir = false): array
+    public function getPendenciasTreinamentoPorUsuario(int $userId, bool $ignorarFlagIncluir = false, bool $incluirEmDia = false): array
     {
         if (!$ignorarFlagIncluir && !self::incluirTreinamentos()) {
             return [];
@@ -364,28 +386,169 @@ class SstPendenciasService extends DbConnection
         $resolver = new SstTreinamentosObrigatoriosResolver();
         $vinculoRepo = new SstTreinamentoVinculosRepository();
         $treinamentoRepo = new SstTreinamentosRepository();
+        $aplicacoesRepo = new SstTreinamentoAplicacoesRepository();
+        $statusService = new SstTreinamentoStatusService();
         $rows = [];
         foreach ($resolver->resolveForUser($userId) as $obrigatorio) {
             $treinamentoId = (int) ($obrigatorio['adms_sst_treinamento_id'] ?? 0);
             if ($treinamentoId <= 0) {
                 continue;
             }
+            $catalogo = $treinamentoRepo->getById($treinamentoId) ?: [];
+            $meses = (int) ($obrigatorio['validade_meses'] ?? $catalogo['validade_meses'] ?? 0);
             $vinculo = $vinculoRepo->getByUserAndTreinamento($userId, $treinamentoId);
+            if ($vinculo === null) {
+                $aplicacao = $aplicacoesRepo->getUltimaConcluidaPorUsuarioETreinamento($userId, $treinamentoId);
+                $realizacao = (string) ($aplicacao['data_realizacao'] ?? '');
+                if ($realizacao !== '') {
+                    $vinculo = [
+                        'data_realizacao' => $realizacao,
+                        'data_validade' => SstTreinamentoStatusService::calcularDataValidade(
+                            $realizacao,
+                            $meses > 0 ? $meses : null
+                        ),
+                    ];
+                }
+            } elseif ($meses > 0) {
+                $realizacao = (string) ($vinculo['data_realizacao'] ?? '');
+                if ($realizacao !== '') {
+                    $recalc = SstTreinamentoStatusService::calcularDataValidade($realizacao, $meses);
+                    if ($recalc !== null) {
+                        $vinculo['data_validade'] = $recalc;
+                    }
+                }
+            }
+            if (is_array($vinculo)) {
+                $vinculo['status'] = $statusService->calculateStatus($vinculo);
+            }
             $situacao = $this->avaliarSituacaoTreinamentoSst($vinculo);
             if ($situacao === null) {
-                continue;
+                if (!$incluirEmDia) {
+                    continue;
+                }
+                $situacao = 'treinamento_em_dia';
             }
-            $catalogo = $treinamentoRepo->getById($treinamentoId);
+            $status = is_array($vinculo) ? (string) ($vinculo['status'] ?? 'pendente') : 'pendente';
             $rows[] = [
                 'adms_sst_treinamento_id' => $treinamentoId,
                 'treinamento_nome' => (string) ($obrigatorio['treinamento_nome'] ?? $catalogo['nome'] ?? ''),
                 'treinamento_codigo' => $catalogo['codigo'] ?? null,
-                'treinamento_status' => $vinculo['status'] ?? null,
+                'treinamento_status' => $status,
+                'status' => $status,
+                'data_realizacao' => is_array($vinculo) ? ($vinculo['data_realizacao'] ?? null) : null,
+                'data_validade' => is_array($vinculo) ? ($vinculo['data_validade'] ?? null) : null,
+                'motivo' => $this->motivoOrigemTreinamento($obrigatorio, is_array($vinculo) ? $vinculo : null),
                 'situacao' => $situacao,
             ];
         }
 
-        return $this->enriquecerPendencias($rows, 'treinamento');
+        return $this->enriquecerPendencias($this->ordenarPendenciasTreinamento($rows), 'treinamento');
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function ordenarPendenciasTreinamento(array $rows): array
+    {
+        $ordem = [
+            'treinamento_vencido' => 0,
+            'sem_vinculo_treinamento' => 1,
+            'treinamento_pendente' => 2,
+            'treinamento_a_vencer' => 3,
+            'treinamento_em_dia' => 4,
+        ];
+        usort($rows, static function (array $a, array $b) use ($ordem): int {
+            $sa = $ordem[(string) ($a['situacao'] ?? '')] ?? 9;
+            $sb = $ordem[(string) ($b['situacao'] ?? '')] ?? 9;
+            if ($sa !== $sb) {
+                return $sa <=> $sb;
+            }
+            $va = (string) ($a['data_validade'] ?? '');
+            $vb = (string) ($b['data_validade'] ?? '');
+            if ($va !== $vb) {
+                if ($va === '') {
+                    return 1;
+                }
+                if ($vb === '') {
+                    return -1;
+                }
+
+                return $va <=> $vb;
+            }
+
+            return strcasecmp((string) ($a['colaborador_nome'] ?? $a['treinamento_nome'] ?? ''), (string) ($b['colaborador_nome'] ?? $b['treinamento_nome'] ?? ''));
+        });
+
+        return array_values($rows);
+    }
+
+    /**
+     * Relatório de treinamentos pela matriz (direto, risco, GHE) e validade.
+     *
+     * @param array<string, mixed> $filters
+     * @return list<array<string, mixed>>
+     */
+    public function getRelatorioTreinamentosMatriz(array $filters = []): array
+    {
+        (new \App\adms\Models\Repository\SstGheTreinamentosRepository())->promoverVinculosSemFlagParaObrigatorio();
+
+        $userFilters = [];
+        if (!empty($filters['adms_user_id'])) {
+            $userFilters['adms_user_id'] = (int) $filters['adms_user_id'];
+        }
+
+        $rows = $this->ordenarPendenciasTreinamento(
+            $this->getPendenciasTreinamentoGeral($userFilters, true, true)
+        );
+
+        $status = (string) ($filters['status'] ?? '');
+        $venc = (string) ($filters['status_vencimento'] ?? '');
+        $out = [];
+        foreach ($rows as $row) {
+            $st = (string) ($row['status'] ?? $row['treinamento_status'] ?? '');
+            if ($status !== '' && $st !== $status) {
+                continue;
+            }
+            if ($venc === 'vencido' && $st !== 'vencido') {
+                continue;
+            }
+            if ($venc === 'a_vencer' && $st !== 'proximo_vencimento') {
+                continue;
+            }
+            if ($venc === 'valido' && !in_array($st, ['dentro_do_prazo', 'concluido'], true)) {
+                continue;
+            }
+            if ($venc === 'pendente' && in_array($st, ['dentro_do_prazo', 'concluido'], true)) {
+                continue;
+            }
+            $out[] = $row;
+            if (count($out) >= 500) {
+                break;
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param array<string, mixed> $obrigatorio
+     * @param array<string, mixed>|null $vinculo
+     */
+    private function motivoOrigemTreinamento(array $obrigatorio, ?array $vinculo): string
+    {
+        $origem = match ((string) ($obrigatorio['origem'] ?? '')) {
+            'risco_treinamento' => 'risco',
+            'ghe' => 'ghe',
+            'necessidade' => 'matriz',
+            default => (string) ($obrigatorio['origem'] ?? 'matriz'),
+        };
+        $motivoVinculo = trim((string) ($vinculo['motivo'] ?? ''));
+        if ($motivoVinculo !== '' && $motivoVinculo !== $origem) {
+            return $origem . ' · ' . $motivoVinculo;
+        }
+
+        return $origem !== '' ? $origem : 'matriz';
     }
 
     /**
@@ -504,9 +667,9 @@ class SstPendenciasService extends DbConnection
     /**
      * @return array<int, array<string, mixed>>
      */
-    private function getPendenciasTreinamentoGeral(array $filters = []): array
+    private function getPendenciasTreinamentoGeral(array $filters = [], bool $ignorarFlagIncluir = false, bool $incluirEmDia = false): array
     {
-        if (!self::incluirTreinamentos()) {
+        if (!$ignorarFlagIncluir && !self::incluirTreinamentos()) {
             return [];
         }
 
@@ -538,7 +701,7 @@ class SstPendenciasService extends DbConnection
             if ($uid <= 0) {
                 continue;
             }
-            foreach ($this->getPendenciasTreinamentoPorUsuario($uid) as $row) {
+            foreach ($this->getPendenciasTreinamentoPorUsuario($uid, $ignorarFlagIncluir, $incluirEmDia) as $row) {
                 $out[] = array_merge($user, $row);
                 if ($limit !== null && count($out) >= $limit) {
                     return $out;
@@ -721,8 +884,7 @@ class SstPendenciasService extends DbConnection
 
     private function sqlRegraNecessidade(string $aliasNecessidade, string $aliasUser): string
     {
-        return "({$aliasNecessidade}.adms_position_id IS NULL OR {$aliasNecessidade}.adms_position_id = {$aliasUser}.user_position_id)
-                AND ({$aliasNecessidade}.adms_department_id IS NULL OR {$aliasNecessidade}.adms_department_id = {$aliasUser}.user_department_id)";
+        return SstRiscoCargoMatch::sqlUsuario($aliasNecessidade, $aliasUser);
     }
 
     /**
@@ -785,6 +947,7 @@ class SstPendenciasService extends DbConnection
             'treinamento_vencido' => 'Treinamento vencido',
             'treinamento_pendente' => 'Treinamento pendente',
             'treinamento_a_vencer' => 'Treinamento a vencer',
+            'treinamento_em_dia' => 'Treinamento em dia',
         ];
         $badges = [
             'nao_entregue' => 'danger',
@@ -801,6 +964,7 @@ class SstPendenciasService extends DbConnection
             'treinamento_vencido' => 'danger',
             'treinamento_pendente' => 'warning',
             'treinamento_a_vencer' => 'warning',
+            'treinamento_em_dia' => 'success',
         ];
 
         foreach ($rows as &$row) {
@@ -958,8 +1122,7 @@ class SstPendenciasService extends DbConnection
                     OR EXISTS (
                         SELECT 1 FROM adms_sst_riscos_cargo rc2
                         WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
-                          AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = {$aliasUser}.user_position_id)
-                          AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = {$aliasUser}.user_department_id)
+                          AND " . SstRiscoCargoMatch::sqlUsuario('rc2', $aliasUser) . "
                     )
                   )
             )";
@@ -969,8 +1132,7 @@ class SstPendenciasService extends DbConnection
                 SELECT 1 FROM adms_sst_riscos_cargo rc
                 INNER JOIN adms_sst_risco_treinamento rt ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
                 INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
-                WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
-                  AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+                WHERE " . SstRiscoCargoMatch::sqlUsuario('rc', $aliasUser) . "
             )";
         }
         if ($this->hasTable('adms_sst_ghe_colaboradores') && $this->hasTable('adms_sst_ghe_treinamentos')) {
@@ -1033,8 +1195,7 @@ class SstPendenciasService extends DbConnection
                     OR EXISTS (
                         SELECT 1 FROM adms_sst_riscos_cargo rc2
                         WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
-                          AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = {$aliasUser}.user_position_id)
-                          AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = {$aliasUser}.user_department_id)
+                          AND " . SstRiscoCargoMatch::sqlUsuario('rc2', $aliasUser) . "
                     )
                   )
             )",
@@ -1045,8 +1206,7 @@ class SstPendenciasService extends DbConnection
                 SELECT 1 FROM adms_sst_riscos_cargo rc
                 INNER JOIN adms_sst_risco_exame re ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = 1
                 INNER JOIN adms_sst_exames ex ON ex.id = re.adms_sst_exame_id AND ex.status = 'Ativo'
-                WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
-                  AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+                WHERE " . SstRiscoCargoMatch::sqlUsuario('rc', $aliasUser) . "
             )";
         }
 
@@ -1066,8 +1226,7 @@ class SstPendenciasService extends DbConnection
                     OR EXISTS (
                         SELECT 1 FROM adms_sst_riscos_cargo rc2
                         WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
-                          AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = {$aliasUser}.user_position_id)
-                          AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = {$aliasUser}.user_department_id)
+                          AND " . SstRiscoCargoMatch::sqlUsuario('rc2', $aliasUser) . "
                     )
                   )
             )",
@@ -1078,8 +1237,7 @@ class SstPendenciasService extends DbConnection
                 SELECT 1 FROM adms_sst_riscos_cargo rc
                 INNER JOIN adms_sst_risco_epi re ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = 1
                 INNER JOIN adms_sst_epis ep ON ep.id = re.adms_sst_epi_id AND ep.status = 'Ativo'
-                WHERE (rc.adms_position_id IS NULL OR rc.adms_position_id = {$aliasUser}.user_position_id)
-                  AND (rc.adms_department_id IS NULL OR rc.adms_department_id = {$aliasUser}.user_department_id)
+                WHERE " . SstRiscoCargoMatch::sqlUsuario('rc', $aliasUser) . "
             )";
         }
 
@@ -1159,15 +1317,22 @@ class SstPendenciasService extends DbConnection
         if (!is_array($payload) || !isset($payload['stored_at'], $payload['data'])) {
             return null;
         }
+        if ((int) ($payload['version'] ?? 0) !== self::DASHBOARD_CACHE_VERSION) {
+            return null;
+        }
         if (time() - (int) $payload['stored_at'] > $ttlSeconds) {
             return null;
         }
+        $data = $payload['data'];
+        if (!is_array($data) || !array_key_exists('treinamentos_pendentes_count', $data)) {
+            return null;
+        }
 
-        return is_array($payload['data']) ? $payload['data'] : null;
+        return $data;
     }
 
     /**
-     * @param array{criticas_count: int, epis_amostra: array, exames_amostra: array} $data
+     * @param array<string, mixed> $data
      */
     private function writeDashboardCache(array $data): void
     {
@@ -1177,6 +1342,7 @@ class SstPendenciasService extends DbConnection
         }
         $file = $dir . '/dashboard_pendencias.json';
         file_put_contents($file, json_encode([
+            'version' => self::DASHBOARD_CACHE_VERSION,
             'stored_at' => time(),
             'data' => $data,
         ], JSON_UNESCAPED_UNICODE));

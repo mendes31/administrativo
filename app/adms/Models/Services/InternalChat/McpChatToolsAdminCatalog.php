@@ -22,6 +22,7 @@ final class McpChatToolsAdminCatalog
                 'examples' => [
                     'departamento do Rafael',
                     'Wladimir está bloqueado?',
+                    'qual a idade do Wladimir?',
                     'quantos anos de empresa o Wladimir possui?',
                 ],
             ],
@@ -29,7 +30,13 @@ final class McpChatToolsAdminCatalog
                 'tool' => 'rh.count_active',
                 'name' => 'Colaboradores ativos',
                 'description' => 'Headcount ativo (opcionalmente por departamento). ACL: ListUsers.',
-                'examples' => ['quantos colaboradores ativos?', 'ativos na TI'],
+                'examples' => ['quantos colaboradores ativos?', 'ativos na TI', 'quantos no Financeiro'],
+            ],
+            [
+                'tool' => 'rh.list_active',
+                'name' => 'Nomes dos ativos',
+                'description' => 'Lista nominativa de ativos (opcionalmente por departamento). ACL: ListUsers.',
+                'examples' => ['nomes dos usuários do Compras', 'quem é da TI', 'lista de ativos da Produção'],
             ],
             [
                 'tool' => 'rh.count_inactive',
@@ -103,6 +110,15 @@ final class McpChatToolsAdminCatalog
                 'name' => 'Ativos por departamento',
                 'description' => 'Resumo + gráfico de headcount por depto. ACL: ListUsers.',
                 'examples' => ['headcount por departamento'],
+            ],
+            [
+                'tool' => 'rh.list_active_by_age',
+                'name' => 'Ativos por idade',
+                'description' => 'Lista ativos com filtros combináveis (departamento, idade mínima e/ou máxima). ACL: ListUsers.',
+                'examples' => [
+                    'usuários maiores de 30 anos',
+                    'ativos da TI com mais de 30 anos',
+                ],
             ],
             [
                 'tool' => 'report.list',

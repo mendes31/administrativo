@@ -46,13 +46,13 @@ class SstSaveGheRelacionamentos
                 if ($treinamentoId > 0) {
                     $validade = trim((string) ($validadePost[$treinamentoId] ?? ''));
                     $map[$treinamentoId] = [
-                        'obrigatorio' => isset($obrigatorioPost[$treinamentoId]),
+                        'obrigatorio' => !isset($obrigatorioPost[$treinamentoId . '_opcional']),
                         'validade_meses' => $validade !== '' ? (int) $validade : null,
                     ];
                 }
             }
             (new SstGheTreinamentosRepository())->syncTreinamentosForGhe($gheId, $map);
-            $_SESSION['msg'] = 'Treinamentos do GHE salvos.';
+            $_SESSION['msg'] = 'Treinamentos do GHE salvos. A matriz por cargo já considera esses vínculos.';
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $redirect . '#tab-treinamentos');
             exit;

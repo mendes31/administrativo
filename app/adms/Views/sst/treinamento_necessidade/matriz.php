@@ -47,7 +47,7 @@ if ($departmentId > 0) {
     <div class="alert alert-light border small mb-3">
         <strong>Como usar:</strong>
         <ul class="mb-0 ps-3">
-            <li><span class="badge bg-warning text-dark">Via risco</span> — configurado em <a href="<?= $_ENV['URL_ADM']; ?>sst-list-riscos">Riscos</a> (exposição cargo/setor + treinamentos do risco). Somente leitura aqui.</li>
+            <li><span class="badge bg-warning text-dark">Via risco</span> — só cargo: todos daquele cargo; só setor: cargos com colaboradores naquele departamento; cargo e setor: só essa combinação. Atualiza ao salvar no <a href="<?= $_ENV['URL_ADM']; ?>sst-list-riscos">risco</a>.</li>
             <li><span class="badge bg-primary">Matriz direta</span> — obrigação <em>inherente ao cargo</em>, independente de risco (ex.: Integração para todo Operador).</li>
             <li><span class="badge bg-info text-dark">Via GHE</span> — colaboradores do cargo em um <a href="<?= $_ENV['URL_ADM']; ?>sst-list-ghe">GHE</a>. Somente leitura aqui.</li>
         </ul>
@@ -71,7 +71,7 @@ if ($departmentId > 0) {
                 <div class="col-md-4">
                     <label class="form-label">Departamento (refina risco/GHE)</label>
                     <select name="adms_department_id" class="form-select" onchange="this.form.submit()">
-                        <option value="">Todos (colaboradores ativos do cargo)</option>
+                        <option value="">Todos os setores</option>
                         <?php foreach ($departments as $d): ?>
                             <option value="<?= (int)$d['id'] ?>" <?= $departmentId === (int)$d['id'] ? 'selected' : '' ?>>
                                 <?= htmlspecialchars($d['name'] ?? '') ?>
@@ -93,6 +93,28 @@ if ($departmentId > 0) {
                 <?php if ($resumo === []): ?>
                     <div class="alert alert-warning mb-0">Nenhum cargo cadastrado.</div>
                 <?php else: ?>
+                    <?php
+                    $cargosComVinculo = 0;
+                    $treinamentosDiretos = 0;
+                    foreach ($resumo as $rSum) {
+                        if ((int) ($rSum['total_efetivo'] ?? 0) > 0) {
+                            $cargosComVinculo++;
+                        }
+                        $treinamentosDiretos += (int) ($rSum['total_diretos'] ?? 0);
+                    }
+                    ?>
+                    <p class="small text-muted mb-2">
+                        Cargos com treinamento obrigatório ficam no <strong>topo</strong>.
+                        <?php if ($cargosComVinculo > 0): ?>
+                            Agora: <strong><?= $cargosComVinculo ?></strong> cargo(s) com vínculo
+                            (<?= $treinamentosDiretos ?> direto(s) na matriz, além de risco/GHE).
+                        <?php else: ?>
+                            Nenhum cargo com vínculo ainda — cadastre no <a href="<?= $_ENV['URL_ADM']; ?>sst-list-riscos">risco</a>, em <a href="<?= $_ENV['URL_ADM']; ?>sst-list-treinamento-necessidade">Necessidades</a> ou abra um cargo abaixo.
+                        <?php endif; ?>
+                    </p>
+                    <div class="mb-2">
+                        <input type="search" id="matrizCargoFilter" class="form-control form-control-sm" placeholder="Filtrar cargo..." autocomplete="off">
+                    </div>
                     <div class="table-responsive">
                         <table class="table table-sm table-hover mb-0">
                             <thead><tr>
@@ -103,9 +125,9 @@ if ($departmentId > 0) {
                                 <th class="text-center">GHE</th>
                                 <th></th>
                             </tr></thead>
-                            <tbody>
+                            <tbody id="matrizResumoBody">
                             <?php foreach ($resumo as $row): ?>
-                                <tr>
+                                <tr data-cargo="<?= htmlspecialchars(mb_strtolower((string) ($row['cargo_nome'] ?? ''), 'UTF-8')) ?>">
                                     <td><?= htmlspecialchars($row['cargo_nome'] ?? '') ?></td>
                                     <td class="text-center"><span class="badge bg-dark"><?= (int)($row['total_efetivo'] ?? 0) ?></span></td>
                                     <td class="text-center"><span class="badge bg-primary"><?= (int)($row['total_diretos'] ?? 0) ?></span></td>
@@ -119,6 +141,20 @@ if ($departmentId > 0) {
                             </tbody>
                         </table>
                     </div>
+                    <script>
+                    (function () {
+                        const input = document.getElementById('matrizCargoFilter');
+                        const rows = document.querySelectorAll('#matrizResumoBody tr');
+                        if (!input) return;
+                        input.addEventListener('input', function () {
+                            const q = (this.value || '').toLowerCase().trim();
+                            rows.forEach(function (tr) {
+                                const nome = tr.getAttribute('data-cargo') || '';
+                                tr.style.display = (!q || nome.indexOf(q) !== -1) ? '' : 'none';
+                            });
+                        });
+                    })();
+                    </script>
                 <?php endif; ?>
             </div>
         </div>

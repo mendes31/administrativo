@@ -4,6 +4,7 @@ namespace App\adms\Controllers\notifications;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -28,17 +29,19 @@ class ListNotifications
             exit;
         }
 
-        // Marcar todas como lidas (POST)
+        // Marcar sociais como lidas (POST) — ciência/informativos permanecem.
         if ($_SERVER['REQUEST_METHOD'] === 'POST' && !empty($_POST['mark_all_read'])) {
             if (CSRFHelper::validateCSRFToken('list_notifications', $_POST['csrf_token'] ?? '')) {
                 $repo->markAllAsRead($userId);
-                $_SESSION['msg'] = '<div class="alert alert-success">Todas as notificações foram marcadas como lidas.</div>';
+                NavbarLayoutCacheHelper::clear();
+                $_SESSION['msg'] = '<div class="alert alert-success">Notificações sociais (curtidas, comentários e compartilhamentos) foram marcadas como lidas. Comunicados, políticas e avisos que exigem ciência permanecem pendentes.</div>';
             }
             header('Location: ' . ($_ENV['URL_ADM'] ?? '') . 'list-notifications');
             exit;
         }
 
         $this->data['notifications'] = $repo->listForUser($userId, 50);
+        $this->data['has_unread_social'] = $repo->countUnreadSocial($userId) > 0;
         $this->data['csrf_token'] = CSRFHelper::generateCSRFToken('list_notifications');
 
         $pageElements = [

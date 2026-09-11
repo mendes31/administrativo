@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -183,17 +184,8 @@ class SstTreinamentoNecessidadeRepository extends DbConnection
             SELECT p2.id AS position_id, rt.adms_sst_treinamento_id AS tid, 'risco' AS origem
             FROM adms_positions p2
             INNER JOIN adms_sst_riscos_cargo rc
-                ON (rc.adms_position_id IS NULL OR rc.adms_position_id = p2.id)
-               AND (
-                    rc.adms_department_id IS NULL
-                    OR EXISTS (
-                        SELECT 1 FROM adms_users u
-                        WHERE u.user_position_id = p2.id
-                          AND u.user_department_id = rc.adms_department_id
-                          AND u.status = 'Ativo'
-                          AND u.data_desligamento IS NULL
-                    )
-               )
+                ON " . SstRiscoCargoMatch::sqlMatrizParaCargo('rc', 'p2.id', null) . "
+            INNER JOIN adms_sst_riscos r ON r.id = rc.adms_sst_risco_id AND r.status = 'Ativo'
             INNER JOIN adms_sst_risco_treinamento rt
                 ON rt.adms_sst_risco_id = rc.adms_sst_risco_id AND rt.obrigatorio = 1
             INNER JOIN adms_sst_treinamentos tr ON tr.id = rt.adms_sst_treinamento_id AND tr.status = 'Ativo'
@@ -229,14 +221,13 @@ class SstTreinamentoNecessidadeRepository extends DbConnection
                         FROM adms_sst_treinamento_necessidade n
                         WHERE n.adms_position_id IS NOT NULL
                           AND n.adms_sst_risco_id IS NULL
-                          AND n.adms_department_id IS NULL
                           AND n.obrigatorio = 1
                         {$riscoSub}
                         {$gheSub}
                     ) efetivos
                     GROUP BY position_id
                 ) e ON e.position_id = p.id
-                ORDER BY p.name";
+                ORDER BY COALESCE(e.total_efetivo, 0) DESC, p.name";
 
         return $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }

@@ -180,21 +180,21 @@ Confirmada em ' . $assinaturaEm . $assinaturaExtra . '
 
     public function cssStyles(): string
     {
-        return 'body { font-family: DejaVu Sans, sans-serif; font-size: 11px; color: #222; }
+        return 'body { font-family: dejavusans, sans-serif; font-size: 11px; color: #222222; }
 h1 { font-size: 16px; margin: 0 0 4px; }
-h2 { font-size: 13px; margin: 18px 0 8px; border-bottom: 1px solid #333; padding-bottom: 3px; }
+h2 { font-size: 13px; margin: 18px 0 8px; border-bottom: 1px solid #333333; padding-bottom: 3px; }
 h2.vist-section { font-size: 12px; margin-top: 20px; }
-h3 { font-size: 11px; margin: 12px 0 6px; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 2px; }
-.meta { color: #555; font-size: 10px; margin-bottom: 12px; }
+h3 { font-size: 11px; margin: 12px 0 6px; color: #333333; border-bottom: 1px solid #cccccc; padding-bottom: 2px; }
+.meta { color: #555555; font-size: 10px; margin-bottom: 12px; }
 .grid td { padding: 3px 8px 3px 0; vertical-align: top; }
-.grid .lbl { color: #666; width: 110px; }
+.grid .lbl { color: #666666; width: 110px; }
 table.chk { width: 100%; border-collapse: collapse; margin-top: 4px; }
-table.chk th, table.chk td { border: 1px solid #999; padding: 5px 6px; }
-table.chk th { background: #eee; font-size: 10px; }
-.assinatura { margin-top: 14px; padding: 8px; border: 1px solid #aaa; background: #f7f7f7; font-size: 10px; }
-.nc-box { border: 1px solid #c00; background: #fff5f5; padding: 8px; margin: 10px 0; page-break-inside: avoid; }
-.ac-box { border: 1px solid #999; background: #f9f9f9; padding: 6px; margin: 6px 0 8px; page-break-inside: avoid; }
-.vist-detail-wrap { margin-bottom: 18px; page-break-inside: avoid; }';
+table.chk th, table.chk td { border: 1px solid #999999; padding: 5px 6px; }
+table.chk th { background-color: #eeeeee; font-size: 10px; }
+.assinatura { margin-top: 14px; padding: 8px; border: 1px solid #aaaaaa; background-color: #f7f7f7; font-size: 10px; }
+.nc-box { border: 1px solid #cc0000; background-color: #fff5f5; padding: 8px; margin: 10px 0; }
+.ac-box { border: 1px solid #999999; background-color: #f9f9f9; padding: 6px; margin: 6px 0 8px; }
+.vist-detail-wrap { margin-bottom: 18px; }';
     }
 
     /**
@@ -226,7 +226,7 @@ table.chk th { background: #eee; font-size: 10px; }
             $html .= '</span>';
 
             if (($nc['status'] ?? '') === 'Encerrada') {
-                $html .= '<div style="margin-top:6px;font-size:10px;color:#0a5;">Encerrada';
+                $html .= '<div style="margin-top:6px;font-size:10px;color:#00aa55;">Encerrada';
                 if (!empty($nc['acao_encerramento_codigo'])) {
                     $html .= ' mediante <strong>' . $esc($nc['acao_encerramento_codigo']) . '</strong>';
                     if (!empty($nc['acao_encerramento_titulo'])) {
@@ -257,7 +257,7 @@ table.chk th { background: #eee; font-size: 10px; }
                     $html .= '<div class="ac-box">';
                     $html .= '<strong>' . $esc($acao['codigo'] ?? 'AC') . '</strong> — ' . $esc($acao['titulo'] ?? null);
                     if ($isEncerramento) {
-                        $html .= ' <span style="color:#0a5;font-size:9px">(encerrou a NC)</span>';
+                        $html .= ' <span style="color:#00aa55;font-size:9px">(encerrou a NC)</span>';
                     }
                     $html .= '<br><span style="font-size:10px">Status: ' . $esc($acao['status'] ?? null);
                     if (!empty($acao['responsavel_nome'])) {
@@ -318,15 +318,13 @@ table.chk th { background: #eee; font-size: 10px; }
                 : '—';
             $por = trim((string) ($anexo['uploaded_by_name'] ?? ''));
             $nome = $esc($anexo['file_name'] ?? null);
-            $fotosHtml .= '<div style="display:inline-block;width:48%;vertical-align:top;margin:0 1% 14px;page-break-inside:avoid">'
-                . '<div style="border:1px solid #ccc;padding:6px;text-align:center">'
-                . '<img src="' . htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') . '" style="max-width:100%;max-height:200px" />'
-                . '</div>'
-                . '<div style="font-size:10px;color:#444;margin-top:4px">'
+            $fotosHtml .= '<table width="100%" style="border-collapse:collapse;margin:0 0 10px 0;"><tr><td style="border:1px solid #cccccc;padding:6px;text-align:center;">'
+                . '<img src="' . htmlspecialchars($imgSrc, ENT_QUOTES, 'UTF-8') . '" width="220" />'
+                . '</td></tr><tr><td style="font-size:10px;color:#444444;padding-top:4px;">'
                 . '<strong>Foto ' . $prefix . '-' . $imgCount . '</strong> · ' . $quando
                 . ($por !== '' ? ' · ' . $esc($por) : '')
                 . '<br>' . $nome
-                . '</div></div>';
+                . '</td></tr></table>';
         }
         if ($fotosHtml === '') {
             return '<p style="color:#666;font-size:12px">Nenhuma foto anexada.</p>';

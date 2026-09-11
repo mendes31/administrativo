@@ -32,7 +32,9 @@ class SstViewGhe
         $this->data['colaboradores_vinculados'] = (new SstGheColaboradoresRepository())->getAtivosByGheId($gheId);
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $this->data['treinamentos'] = (new SstTreinamentosRepository())->getAll(1, 500, ['status' => 'Ativo']);
-        $treinamentoRows = (new SstGheTreinamentosRepository())->getAllByGhe($gheId);
+        $treinamentoRepoGhe = new SstGheTreinamentosRepository();
+        $treinamentoRepoGhe->promoverVinculosSemFlagParaObrigatorio();
+        $treinamentoRows = $treinamentoRepoGhe->getAllByGhe($gheId);
         $map = [];
         foreach ($treinamentoRows as $row) {
             $tid = (int) ($row['adms_sst_treinamento_id'] ?? 0);

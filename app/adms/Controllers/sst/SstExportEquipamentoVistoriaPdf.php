@@ -46,6 +46,7 @@ class SstExportEquipamentoVistoriaPdf
             @set_time_limit(120);
             @ini_set('pcre.backtrack_limit', '5000000');
             @ini_set('memory_limit', '512M');
+            @ini_set('display_errors', '0');
 
             $respostas = $repo->getRespostas($id);
             $anexos = (new SstAnexosRepository())->getByEntity(self::ENTITY_VISTORIA, $id);

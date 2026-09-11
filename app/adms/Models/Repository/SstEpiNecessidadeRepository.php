@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use PDO;
@@ -62,8 +63,7 @@ class SstEpiNecessidadeRepository extends DbConnection
     {
         $sql = "SELECT t.*, p.name AS cargo_nome, d.name AS departamento_nome, ep.nome AS epi_nome
                 FROM adms_users u
-                INNER JOIN adms_sst_epi_necessidade t ON (t.adms_position_id IS NULL OR t.adms_position_id = u.user_position_id)
-                    AND (t.adms_department_id IS NULL OR t.adms_department_id = u.user_department_id)
+                INNER JOIN adms_sst_epi_necessidade t ON " . SstRiscoCargoMatch::sqlUsuario('t', 'u') . "
                 LEFT JOIN adms_positions p ON p.id = t.adms_position_id
                 LEFT JOIN adms_departments d ON d.id = t.adms_department_id
                 LEFT JOIN adms_sst_epis ep ON ep.id = t.adms_sst_epi_id

@@ -7,17 +7,17 @@
 <p><strong>Quem acessa:</strong> SST com <em>SstMatrizTreinamentoCargo</em>.</p>
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Abra matriz e localize cargo desejado.</li>
-<li>Expanda linha para ver treinamentos por coluna (Total, Direto, Risco, GHE).</li>
-<li>Marque/desmarque checkboxes <strong>editáveis</strong> apenas para vínculos diretos.</li>
-<li>Altere regras de risco/GHE nas telas de origem (somente leitura aqui).</li>
+<li>Abra a matriz: cargos <strong>com</strong> treinamento obrigatório ficam no topo (os demais, com zero, vêm em seguida). Use o filtro de nome ou selecione o cargo no alto da tela.</li>
+<li>Veja as colunas Total, Direto (necessidades da listagem / matriz), Risco e GHE.</li>
+<li>Abra <strong>Ver / editar</strong> para marcar vínculos <strong>diretos</strong> do cargo. Itens cadastrados em Necessidades de Treinamento (cargo + departamento “Todos”) entram na coluna Direto.</li>
+<li>Altere cargo/setor e treinamentos na ficha do <strong>risco</strong> e salve: a coluna Risco atualiza na hora. Só cargo entra na linha daquele cargo; cargo e setor também; só setor entra nos cargos que têm colaborador ativo naquele departamento.</li>
 <li>Salve; execute sincronização de vínculos se necessário.</li>
 </ol>
 <h2>Colunas do resumo</h2>
 <div class="help-field"><strong>Total</strong> Treinamentos distintos efetivos (sem duplicar).</div>
-<div class="help-field"><strong>Direto</strong> Vínculos gravados na matriz.</div>
-<div class="help-field"><strong>Risco</strong> Herdados de riscos do cargo/setor.</div>
-<div class="help-field"><strong>GHE</strong> Via grupos homogêneos com colaboradores ativos.</div>
+<div class="help-field"><strong>Direto</strong> Vínculos da listagem de necessidades / matriz (cargo, sem risco). Departamento “Todos” ou um departamento específico entram nesta coluna.</div>
+<div class="help-field"><strong>Risco</strong> Treinamentos obrigatórios do risco. Só cargo: entram na linha daquele cargo. Cargo e setor: entram naquele cargo (restritos ao setor nas pendências). Só setor: entram nos cargos com colaborador ativo naquele departamento. Exames e EPIs ficam nas telas próprias.</div>
+<div class="help-field"><strong>GHE</strong> Treinamentos obrigatórios dos GHEs em que há colaborador ativo daquele cargo.</div>
 
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
@@ -26,8 +26,10 @@
 
 <h2>Problemas comuns</h2>
 <dl>
+<dt>Salvei o risco e a matriz não mudou</dt><dd>Recarregue a matriz. Só cargo e cargo+setor entram na linha do cargo. Só setor conta nos cargos que têm colaborador ativo naquele departamento. Exames e EPIs não entram nesta tela. Treinamento opcional no risco não conta.</dd>
+<dt>Resumo mostra zero em todos os cargos</dt><dd>Os cargos sem vínculo (a maior parte da lista) ficam com zero. Os que têm necessidade cadastrada sobem para o topo — use o filtro pelo nome do cargo (ex.: Gerente de Suprimentos) ou selecione o cargo no alto da tela.</dd>
 <dt>Checkbox desabilitado</dt><dd>Vínculo vem de risco/GHE; edite na origem.</dd>
 <dt>Total menor que soma das colunas</dt><dd>Mesmo treinamento deduplicado no Total.</dd>
 <dt>Salvar não grava risco</dt><dd>Comportamento esperado; matriz grava só diretos.</dd>
-<dt>Pendência após salvar matriz</dt><dd>Execute Sincronizar vínculos em Status treinamentos SST.</dd>
+<dt>Pendência após salvar matriz</dt><dd>O dashboard e o relatório de pendências já usam a mesma regra desta matriz (direto, risco e GHE) e a validade do catálogo/vínculo. A sincronização de vínculos materializa o status operacional, mas não é mais o único critério do indicador.</dd>
 </dl>

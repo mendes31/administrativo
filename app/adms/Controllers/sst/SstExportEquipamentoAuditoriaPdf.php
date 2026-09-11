@@ -71,6 +71,7 @@ class SstExportEquipamentoAuditoriaPdf
             @set_time_limit(300);
             @ini_set('pcre.backtrack_limit', '5000000');
             @ini_set('memory_limit', '512M');
+            @ini_set('display_errors', '0');
 
             $eqRepo = new SstEquipamentosRepository();
             $equipamento = null;
@@ -143,7 +144,11 @@ class SstExportEquipamentoAuditoriaPdf
 
             $chunks = $this->splitHtmlChunks($html);
             foreach ($chunks as $i => $chunk) {
-                $mpdf->WriteHTML($chunk, $i === 0 ? 0 : 2);
+                $mode = 2;
+                if ($i === 0) {
+                    $mode = str_contains($chunk, '<style') ? 1 : 0;
+                }
+                $mpdf->WriteHTML($chunk, $mode);
             }
             $mpdf->Output($fileName, 'I');
             exit;
@@ -220,31 +225,44 @@ class SstExportEquipamentoAuditoriaPdf
     }
 
     /**
+     * CSS separado + pedaços em marcadores (não cortar no meio da tag).
+     *
      * @return list<string>
      */
     private function splitHtmlChunks(string $html): array
     {
-        $max = 200000;
-        if (strlen($html) <= $max) {
-            return [$html];
+        $style = '';
+        if (preg_match('#<style\b[^>]*>(.*?)</style>#is', $html, $m) === 1) {
+            $style = '<style>' . $m[1] . '</style>';
+            $html = (string) preg_replace('#<style\b[^>]*>.*?</style>#is', '', $html, 1);
+        }
+        $html = (string) preg_replace('#</?(!DOCTYPE|html|head|body|meta)[^>]*>#i', '', $html);
+
+        $parts = preg_split('/<!--pdf-break-->/', $html) ?: [$html];
+        $chunks = [];
+        $buf = '';
+        $max = 80000;
+        foreach ($parts as $part) {
+            $part = trim($part);
+            if ($part === '') {
+                continue;
+            }
+            if ($buf !== '' && strlen($buf) + strlen($part) > $max) {
+                $chunks[] = $buf;
+                $buf = $part;
+            } else {
+                $buf .= $part;
+            }
+        }
+        if ($buf !== '') {
+            $chunks[] = $buf;
         }
 
-        $chunks = [];
-        $offset = 0;
-        $len = strlen($html);
-        while ($offset < $len) {
-            $remaining = $len - $offset;
-            if ($remaining <= $max) {
-                $chunks[] = substr($html, $offset);
-                break;
-            }
-            $slice = substr($html, $offset, $max);
-            $cut = strrpos($slice, '>');
-            if ($cut === false || $cut < (int) ($max * 0.5)) {
-                $cut = $max - 1;
-            }
-            $chunks[] = substr($html, $offset, $cut + 1);
-            $offset += $cut + 1;
+        if ($chunks === []) {
+            $chunks = [$html];
+        }
+        if ($style !== '') {
+            array_unshift($chunks, $style);
         }
 
         return $chunks !== [] ? $chunks : [$html];

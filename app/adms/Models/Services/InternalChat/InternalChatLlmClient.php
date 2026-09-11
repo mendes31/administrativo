@@ -4,26 +4,51 @@ namespace App\adms\Models\Services\InternalChat;
 
 /**
  * Cliente HTTP para LLMs no chat interno.
- * Prioridade (INTERNAL_CHAT_LLM=auto): OpenAI-compatible → Anthropic → Ollama.
+ * Prioridade: tela Assistente MCP (banco) → .env.
  */
 class InternalChatLlmClient
 {
+    private InternalChatLlmSettings $settings;
+
+    private ?string $lastError = null;
+
+    public function __construct(?InternalChatLlmSettings $settings = null)
+    {
+        $this->settings = $settings ?? InternalChatLlmSettings::fromRepository();
+    }
+
+    public function getLastError(): ?string
+    {
+        return $this->lastError;
+    }
+
     /**
      * @return array{text: string, provider: string}|null
      */
-    public function complete(string $system, string $user, bool $jsonMode = false): ?array
+    public function complete(string $system, string $user, bool $jsonMode = false, bool $firstPlanOnly = false): ?array
     {
-        $order = $this->resolveProviderOrder();
-        foreach ($order as $provider) {
-            $result = match ($provider) {
-                'openai' => $this->callOpenAi($system, $user, $jsonMode),
-                'anthropic' => $this->callAnthropic($system, $user),
-                'ollama' => $this->callOllama($system, $user, $jsonMode),
+        $this->lastError = null;
+        $plans = $this->settings->resolveCallPlan();
+        if ($firstPlanOnly && $plans !== []) {
+            $plans = [$plans[0]];
+        }
+        foreach ($plans as $plan) {
+            $result = match ($plan['transport']) {
+                'openai' => $this->callOpenAi($system, $user, $jsonMode, $plan),
+                'anthropic' => $this->callAnthropic($system, $user, $plan),
+                'ollama' => $this->callOllama($system, $user, $jsonMode, $plan),
                 default => null,
             };
             if ($result !== null) {
                 return $result;
             }
+            if ($firstPlanOnly) {
+                break;
+            }
+        }
+
+        if ($this->lastError === null) {
+            $this->lastError = 'Nenhum provedor de IA configurado (Groq, Gemini, OpenAI, Claude ou Ollama).';
         }
 
         return null;
@@ -31,52 +56,21 @@ class InternalChatLlmClient
 
     public function isAnyConfigured(): bool
     {
-        return $this->resolveProviderOrder() !== [];
+        return $this->settings->isAnyConfigured();
     }
 
     /**
-     * @return list<string>
-     */
-    private function resolveProviderOrder(): array
-    {
-        $mode = strtolower(trim((string) ($_ENV['INTERNAL_CHAT_LLM'] ?? 'auto')));
-        if ($mode === 'openai' || $mode === 'anthropic' || $mode === 'ollama') {
-            return $this->providerReady($mode) ? [$mode] : [];
-        }
-
-        // auto
-        $order = [];
-        foreach (['openai', 'anthropic', 'ollama'] as $p) {
-            if ($this->providerReady($p)) {
-                $order[] = $p;
-            }
-        }
-
-        return $order;
-    }
-
-    private function providerReady(string $provider): bool
-    {
-        return match ($provider) {
-            'openai' => trim((string) ($_ENV['OPENAI_API_KEY'] ?? '')) !== '',
-            'anthropic' => trim((string) ($_ENV['ANTHROPIC_API_KEY'] ?? '')) !== '',
-            'ollama' => rtrim((string) ($_ENV['OLLAMA_URL'] ?? ''), '/') !== '',
-            default => false,
-        };
-    }
-
-    /**
+     * @param array{api_key: string, base_url: string, model: string, slot: string} $plan
      * @return array{text: string, provider: string}|null
      */
-    private function callOpenAi(string $system, string $user, bool $jsonMode): ?array
+    private function callOpenAi(string $system, string $user, bool $jsonMode, array $plan): ?array
     {
-        $key = trim((string) ($_ENV['OPENAI_API_KEY'] ?? ''));
-        if ($key === '') {
+        $key = trim($plan['api_key']);
+        $base = rtrim($plan['base_url'], '/');
+        $model = $plan['model'];
+        if ($key === '' || $base === '' || $model === '') {
             return null;
         }
-
-        $base = rtrim((string) ($_ENV['OPENAI_BASE_URL'] ?? 'https://api.openai.com/v1'), '/');
-        $model = (string) ($_ENV['OPENAI_MODEL'] ?? 'gpt-4o-mini');
 
         $payload = [
             'model' => $model,
@@ -96,6 +90,14 @@ class InternalChatLlmClient
             'Content-Type: application/json',
         ], 45);
 
+        if ($body === null && $jsonMode) {
+            unset($payload['response_format']);
+            $body = $this->httpJson('POST', $base . '/chat/completions', $payload, [
+                'Authorization: Bearer ' . $key,
+                'Content-Type: application/json',
+            ], 45);
+        }
+
         if ($body === null) {
             return null;
         }
@@ -105,20 +107,21 @@ class InternalChatLlmClient
             return null;
         }
 
-        return ['text' => $text, 'provider' => 'openai:' . $model];
+        return ['text' => $text, 'provider' => $plan['slot'] . ':' . $model];
     }
 
     /**
+     * @param array{api_key: string, model: string, slot: string} $plan
      * @return array{text: string, provider: string}|null
      */
-    private function callAnthropic(string $system, string $user): ?array
+    private function callAnthropic(string $system, string $user, array $plan): ?array
     {
-        $key = trim((string) ($_ENV['ANTHROPIC_API_KEY'] ?? ''));
-        if ($key === '') {
+        $key = trim($plan['api_key']);
+        $model = $plan['model'];
+        if ($key === '' || $model === '') {
             return null;
         }
 
-        $model = (string) ($_ENV['ANTHROPIC_MODEL'] ?? 'claude-sonnet-4-20250514');
         $payload = [
             'model' => $model,
             'max_tokens' => 500,
@@ -152,15 +155,16 @@ class InternalChatLlmClient
             return null;
         }
 
-        return ['text' => $text, 'provider' => 'anthropic:' . $model];
+        return ['text' => $text, 'provider' => $plan['slot'] . ':' . $model];
     }
 
     /**
+     * @param array{base_url: string, slot: string} $plan
      * @return array{text: string, provider: string}|null
      */
-    private function callOllama(string $system, string $user, bool $jsonMode): ?array
+    private function callOllama(string $system, string $user, bool $jsonMode, array $plan): ?array
     {
-        $base = rtrim((string) ($_ENV['OLLAMA_URL'] ?? ''), '/');
+        $base = rtrim($plan['base_url'], '/');
         if ($base === '') {
             return null;
         }
@@ -197,8 +201,6 @@ class InternalChatLlmClient
     }
 
     /**
-     * Cadeia: modelo da tela MCP → fallbacks → OLLAMA_MODEL do .env.
-     *
      * @return list<string>
      */
     private function resolveOllamaModels(): array
@@ -229,21 +231,79 @@ class InternalChatLlmClient
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_CUSTOMREQUEST => $method,
             CURLOPT_HTTPHEADER => $headers,
+            CURLOPT_CONNECTTIMEOUT => min(8, $timeout),
             CURLOPT_TIMEOUT => $timeout,
             CURLOPT_POSTFIELDS => json_encode($payload, JSON_UNESCAPED_UNICODE),
         ]);
+        $this->applyCurlSsl($ch);
         $raw = curl_exec($ch);
+        $curlErr = curl_error($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
         if ($raw === false || $code >= 400) {
-            error_log('InternalChatLlmClient HTTP ' . $code . ' ' . $url . ' body=' . substr((string) $raw, 0, 300));
+            $snippet = substr((string) ($raw !== false ? $raw : $curlErr), 0, 280);
+            $this->lastError = 'HTTP ' . $code . ' ' . $url . ($snippet !== '' ? ' — ' . $snippet : '');
+            if ($this->isSslCertificateError($curlErr)) {
+                $this->lastError = 'SSL (certificado CA ausente no PHP/WAMP). ' . $this->lastError;
+            }
+            error_log('InternalChatLlmClient ' . $this->lastError);
 
             return null;
         }
 
-        $decoded = json_decode($raw, true);
+        $decoded = json_decode((string) $raw, true);
 
         return is_array($decoded) ? $decoded : null;
+    }
+
+    /**
+     * WAMP no Windows costuma não ter cacert.pem (erro “unable to get local issuer certificate”).
+     * Se houver bundle no php.ini, usa; senão segue o padrão SAP/WhatsApp deste projeto.
+     */
+    private function applyCurlSsl(\CurlHandle $ch): void
+    {
+        $ca = $this->resolveCaBundle();
+        if ($ca !== null) {
+            curl_setopt($ch, CURLOPT_CAINFO, $ca);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, true);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 2);
+
+            return;
+        }
+
+        curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, false);
+        curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+    }
+
+    private function resolveCaBundle(): ?string
+    {
+        foreach ([ini_get('curl.cainfo'), ini_get('openssl.cafile')] as $iniPath) {
+            $path = trim((string) $iniPath);
+            if ($path !== '' && is_readable($path)) {
+                return $path;
+            }
+        }
+
+        $candidates = [
+            dirname(__DIR__, 4) . DIRECTORY_SEPARATOR . 'cacert.pem',
+            'C:\\wamp64\\bin\\php\\extras\\ssl\\cacert.pem',
+        ];
+        $phpDir = dirname((string) PHP_BINARY);
+        $candidates[] = $phpDir . DIRECTORY_SEPARATOR . 'extras' . DIRECTORY_SEPARATOR . 'ssl' . DIRECTORY_SEPARATOR . 'cacert.pem';
+        $candidates[] = $phpDir . DIRECTORY_SEPARATOR . 'cacert.pem';
+
+        foreach ($candidates as $path) {
+            if (is_readable($path)) {
+                return $path;
+            }
+        }
+
+        return null;
+    }
+
+    private function isSslCertificateError(string $curlErr): bool
+    {
+        return $curlErr !== '' && (stripos($curlErr, 'SSL') !== false || stripos($curlErr, 'certificate') !== false);
     }
 }

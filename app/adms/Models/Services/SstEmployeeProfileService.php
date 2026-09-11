@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\SstRiscoCargoMatch;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 
@@ -252,8 +253,7 @@ class SstEmployeeProfileService extends DbConnection
 
     private function sqlRegraCargoDep(string $alias, string $userAlias): string
     {
-        return "({$alias}.adms_position_id IS NULL OR {$alias}.adms_position_id = {$userAlias}.user_position_id)
-                AND ({$alias}.adms_department_id IS NULL OR {$alias}.adms_department_id = {$userAlias}.user_department_id)";
+        return SstRiscoCargoMatch::sqlUsuario($alias, $userAlias);
     }
 
     /**

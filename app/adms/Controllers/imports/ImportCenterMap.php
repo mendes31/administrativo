@@ -10,6 +10,8 @@ use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\ImportJobsRepository;
 use App\adms\Models\Services\Imports\ImportJobRunner;
 use App\adms\Models\Services\Imports\ImportProfileCatalog;
+use App\adms\Models\Services\Imports\ImportProfileInterface;
+use App\adms\Models\Services\Imports\SpreadsheetImportReader;
 use App\adms\Views\Services\LoadViewService;
 
 class ImportCenterMap
@@ -72,12 +74,12 @@ class ImportCenterMap
         $this->data['job'] = $job;
         $this->data['profile'] = $profile;
         $this->data['headers'] = $headers;
-        $this->data['suggested'] = $this->suggestMap($headers, $profile->fields());
+        $this->data['suggested'] = SpreadsheetImportReader::suggestFieldMap($headers, $profile->fields());
         $this->data['preview'] = $this->preview($job);
         (new LoadViewService('adms/Views/imports/map', $this->data))->loadView();
     }
 
-    private function run(int $jobId, $profile): void
+    private function run(int $jobId, ImportProfileInterface $profile): void
     {
         $allowed = array_keys($profile->fields());
         $fieldMap = $_POST['field_map'] ?? [];
@@ -125,39 +127,6 @@ class ImportCenterMap
 
         header('Location: ' . $_ENV['URL_ADM'] . 'import-center-view/' . $jobId);
         exit;
-    }
-
-    /**
-     * @param list<string> $headers
-     * @param array<string, string> $fields
-     * @return array<string, int|string>
-     */
-    private function suggestMap(array $headers, array $fields): array
-    {
-        $aliases = [
-            'departamento' => 'department',
-            'setor' => 'department',
-            'department_id' => 'department',
-            'cargo' => 'position',
-            'position_id' => 'position',
-            'usuario' => 'username',
-            'login' => 'username',
-            'e-mail' => 'email',
-            'email_corporativo' => 'email',
-        ];
-        $suggested = [];
-        foreach ($headers as $i => $header) {
-            $h = strtolower(str_replace([' ', '-'], '_', trim((string) $header)));
-            if (isset($fields[$h])) {
-                $suggested[$h] = $i;
-                continue;
-            }
-            if (isset($aliases[$h]) && isset($fields[$aliases[$h]]) && !isset($suggested[$aliases[$h]])) {
-                $suggested[$aliases[$h]] = $i;
-            }
-        }
-
-        return $suggested;
     }
 
     /**

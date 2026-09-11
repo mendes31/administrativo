@@ -27,12 +27,12 @@
 <div class="help-field"><strong>Status</strong> Apenas GHEs ativos participam do cálculo.</div>
 
 <h2 id="aba-colaboradores">Aba Colaboradores</h2>
-<p>Vincule colaboradores ao GHE. O vínculo é no <strong>colaborador</strong>, não no cargo.</p>
+<p>Vincule colaboradores ao GHE. O vínculo é no <strong>colaborador</strong>, não no cargo. Em lote: Central de Importações → <em>SST — GHE × colaborador</em> (depois de importar o GHE e os usuários).</p>
 <div class="help-field"><strong>Colaborador</strong> Usuário ativo a incluir no grupo.</div>
 <div class="help-field"><strong>Data início / fim</strong> Histórico de participação; vínculo sem data fim = ativo.</div>
 
 <h2 id="aba-treinamentos">Aba Treinamentos</h2>
-<p>Treinamentos obrigatórios para todos os colaboradores ativos do GHE.</p>
+<p>Treinamentos obrigatórios para todos os colaboradores ativos do GHE. Em lote: <em>SST — GHE × treinamento</em>.</p>
 <div class="help-field"><strong>Treinamento</strong> Do catálogo SST.</div>
 <div class="help-field"><strong>Opcional</strong> Marque só se for recomendado; vinculado = obrigatório por padrão.</div>
 
@@ -42,7 +42,7 @@
 </div>
 
 <h2>Relação com a matriz</h2>
-<p>Treinamentos do GHE aparecem na coluna <strong>GHE</strong> da matriz cargo × treinamento. Não duplicam pendências se já existirem via risco.</p>
+<p>Treinamentos do GHE entram na coluna <strong>GHE</strong> da matriz nos cargos dos colaboradores ativos do grupo. O dashboard de pendências usa a mesma lista e a validade (meses do GHE ou do catálogo).</p>
 
 <h2>Fluxo principal</h2>
 <ol>
@@ -65,6 +65,8 @@
     <dd>Falta permissão de criar/editar, ou o registro está em status que bloqueia a operação.</dd>
     <dt>Lista vazia ou sem dados esperados</dt>
     <dd>Revise filtros, período e escopo (filial/departamento); pode não haver registros no critério atual.</dd>
+    <dt>Salvei o GHE e a matriz/dashboard não mudou</dt>
+    <dd>Recarregue a tela. Vinculado = obrigatório; se estiver marcado como opcional, não conta. A coluna GHE lista os cargos dos colaboradores ativos do grupo.</dd>
     <dt>F1 abre outro tópico</dt>
     <dd>Use a busca na central de ajuda pelo título <strong>GHE — Grupos Homogêneos de Exposição</strong> ou o menu do módulo.</dd>
 </dl>

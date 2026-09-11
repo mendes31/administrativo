@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\SstRiscoCargoMatch;
 use PDO;
 
 /**
@@ -43,8 +44,7 @@ class SstEpisObrigatoriosResolver extends DbConnection
                     'risco_epi' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_riscos_cargo rc
-                    ON (rc.adms_position_id IS NULL OR rc.adms_position_id = u.user_position_id)
-                   AND (rc.adms_department_id IS NULL OR rc.adms_department_id = u.user_department_id)
+                    ON " . SstRiscoCargoMatch::sqlUsuario('rc', 'u') . "
                 INNER JOIN adms_sst_risco_epi re
                     ON re.adms_sst_risco_id = rc.adms_sst_risco_id AND re.obrigatorio = 1
                 INNER JOIN adms_sst_epis ep ON ep.id = re.adms_sst_epi_id AND ep.status = 'Ativo'
@@ -70,15 +70,13 @@ class SstEpisObrigatoriosResolver extends DbConnection
                     'necessidade' AS origem
                 FROM adms_users u
                 INNER JOIN adms_sst_epi_necessidade n
-                    ON (n.adms_position_id IS NULL OR n.adms_position_id = u.user_position_id)
-                   AND (n.adms_department_id IS NULL OR n.adms_department_id = u.user_department_id)
+                    ON " . SstRiscoCargoMatch::sqlUsuario('n', 'u') . "
                    AND (
                         n.adms_sst_risco_id IS NULL
                         OR EXISTS (
                             SELECT 1 FROM adms_sst_riscos_cargo rc2
                             WHERE rc2.adms_sst_risco_id = n.adms_sst_risco_id
-                              AND (rc2.adms_position_id IS NULL OR rc2.adms_position_id = u.user_position_id)
-                              AND (rc2.adms_department_id IS NULL OR rc2.adms_department_id = u.user_department_id)
+                              AND " . SstRiscoCargoMatch::sqlUsuario('rc2', 'u') . "
                         )
                    )
                 INNER JOIN adms_sst_epis ep ON ep.id = n.adms_sst_epi_id AND ep.status = 'Ativo'

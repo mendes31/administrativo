@@ -102,6 +102,7 @@ final class SpreadsheetImportReader
         if ($rows === []) {
             return null;
         }
+        $rows = self::skipOptionalLabelRow($rows);
         $headers = array_map(static fn ($v): string => trim((string) $v), $rows[0]);
         while ($headers !== [] && end($headers) === '') {
             array_pop($headers);
@@ -144,14 +145,7 @@ final class SpreadsheetImportReader
             @unlink($tmp);
             return null;
         }
-        $headers = fgetcsv($fp, 0, $delimiter);
-        if ($headers === false) {
-            fclose($fp);
-            @unlink($tmp);
-            return null;
-        }
-        $headers = array_map(static fn ($v): string => trim((string) $v), $headers);
-        $data = [];
+        $all = [];
         while (($row = fgetcsv($fp, 0, $delimiter)) !== false) {
             if (!is_array($row)) {
                 continue;
@@ -160,10 +154,16 @@ final class SpreadsheetImportReader
             if (count(array_filter($cells, static fn ($v): bool => $v !== '')) === 0) {
                 continue;
             }
-            $data[] = $cells;
+            $all[] = $cells;
         }
         fclose($fp);
         @unlink($tmp);
+        if ($all === []) {
+            return null;
+        }
+        $all = self::skipOptionalLabelRow($all);
+        $headers = array_map(static fn ($v): string => trim((string) $v), $all[0]);
+        $data = array_values(array_slice($all, 1));
 
         return $this->writeNormalized($headers, $data);
     }
@@ -215,6 +215,117 @@ final class SpreadsheetImportReader
         }
 
         return $content;
+    }
+
+    /**
+     * Modelo CSV: 1ª linha = rótulos da tela, 2ª = nomes dos campos.
+     * Arquivos antigos (só nomes dos campos na 1ª linha) continuam válidos.
+     *
+     * @param list<list<mixed>> $rows
+     * @return list<list<mixed>>
+     */
+    public static function skipOptionalLabelRow(array $rows): array
+    {
+        if (count($rows) < 2) {
+            return $rows;
+        }
+        $first = array_map(static fn ($v): string => trim((string) $v), $rows[0]);
+        $second = array_map(static fn ($v): string => trim((string) $v), $rows[1]);
+        if (!self::looksLikeFieldHeader($first) && self::looksLikeFieldHeader($second)) {
+            array_shift($rows);
+
+            return array_values($rows);
+        }
+
+        return $rows;
+    }
+
+    /**
+     * @param list<string> $headers
+     * @param array<string, string> $fields campo => rótulo
+     * @return array<string, int>
+     */
+    public static function suggestFieldMap(array $headers, array $fields): array
+    {
+        $aliases = [
+            'departamento' => 'department',
+            'setor' => 'department',
+            'department_id' => 'department',
+            'cargo' => 'position',
+            'position_id' => 'position',
+            'usuario' => 'username',
+            'login' => 'username',
+            'e-mail' => 'email',
+            'email_corporativo' => 'email',
+        ];
+        $labelToField = [];
+        foreach ($fields as $field => $label) {
+            $labelToField[self::normalizeHeaderKey((string) $label)] = $field;
+        }
+
+        $suggested = [];
+        foreach ($headers as $i => $header) {
+            $raw = trim((string) $header);
+            if ($raw === '') {
+                continue;
+            }
+            if (isset($fields[$raw]) && !isset($suggested[$raw])) {
+                $suggested[$raw] = $i;
+                continue;
+            }
+            $h = self::normalizeHeaderKey($raw);
+            if (isset($fields[$h]) && !isset($suggested[$h])) {
+                $suggested[$h] = $i;
+                continue;
+            }
+            if (isset($labelToField[$h]) && !isset($suggested[$labelToField[$h]])) {
+                $suggested[$labelToField[$h]] = $i;
+                continue;
+            }
+            if (isset($aliases[$h], $fields[$aliases[$h]]) && !isset($suggested[$aliases[$h]])) {
+                $suggested[$aliases[$h]] = $i;
+            }
+        }
+
+        return $suggested;
+    }
+
+    /**
+     * @param list<string> $row
+     */
+    public static function looksLikeFieldHeader(array $row): bool
+    {
+        $named = 0;
+        $total = 0;
+        foreach ($row as $cell) {
+            $v = trim((string) $cell);
+            if ($v === '') {
+                continue;
+            }
+            $total++;
+            if (preg_match('/^[a-z][a-z0-9_]*$/i', $v) === 1) {
+                $named++;
+            }
+        }
+
+        return $total > 0 && $named >= (int) ceil($total * 0.7);
+    }
+
+    public static function normalizeHeaderKey(string $header): string
+    {
+        $h = mb_strtolower(trim($header), 'UTF-8');
+        $h = strtr($h, [
+            'á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a',
+            'é' => 'e', 'ê' => 'e',
+            'í' => 'i',
+            'ó' => 'o', 'ô' => 'o', 'õ' => 'o',
+            'ú' => 'u',
+            'ç' => 'c',
+            'º' => 'o', '°' => 'o',
+        ]);
+        $h = str_replace([' ', '-'], '_', $h);
+
+        return $h;
     }
 
     private function detectDelimiter(string $content): string

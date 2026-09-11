@@ -26,20 +26,19 @@ class SstDashboard
         $this->data['open_accidents_count'] = $service->getOpenAccidentsCount();
         $this->data['afastamentos_ativos_count'] = $service->getAfastamentosAtivosCount();
         $this->data['low_stock_epis_count'] = $service->getLowStockEpisCount();
-        $this->data['treinamentos_vencidos_count'] = $service->getTreinamentosVencidosCount();
-        $this->data['treinamentos_pendentes_count'] = $service->getTreinamentosPendentesCount();
-        $this->data['planos_acao_vencidos_count'] = (new SstPlanosAcaoRepository())->countVencidos();
         $pendenciasResumo = $pendenciasService->getDashboardResumo(5);
         $this->data['pendencias_vinculo_count'] = $pendenciasResumo['criticas_count'];
         $this->data['pendencias_epi_amostra'] = $pendenciasResumo['epis_amostra'];
         $this->data['pendencias_exame_amostra'] = $pendenciasResumo['exames_amostra'];
         $this->data['pendencias_treinamento_amostra'] = $pendenciasResumo['treinamentos_amostra'] ?? [];
+        $this->data['treinamentos_pendentes_count'] = (int) ($pendenciasResumo['treinamentos_pendentes_count'] ?? 0);
+        $this->data['treinamentos_vencidos_count'] = (int) ($pendenciasResumo['treinamentos_vencidos_count'] ?? 0);
         $this->data['pending_exams'] = $service->getPendingExams(5);
         $this->data['expired_epis'] = $service->getExpiredEpis(5);
         $this->data['open_accidents'] = $service->getOpenAccidents(5);
         $this->data['low_stock_epis'] = $service->getLowStockEpis(5);
         $this->data['afastamentos_ativos'] = $service->listAfastamentosAtivos(5);
-        $this->data['treinamentos_pendentes'] = $service->getTreinamentosPendentes(5);
+        $this->data['planos_acao_vencidos_count'] = (new SstPlanosAcaoRepository())->countVencidos();
         $this->data['asos_aguardando_count'] = (new \App\adms\Models\Repository\SstAsosRepository())->countAguardando();
         $this->data['golive'] = (new SstGoLiveReadinessService())->getChecklist();
 

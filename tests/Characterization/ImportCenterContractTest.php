@@ -32,12 +32,26 @@ final class ImportCenterContractTest extends TestCase
         self::assertStringContainsString('PositionsImportProfile', $catalog);
         self::assertStringContainsString('SstRiscosImportProfile', $catalog);
         self::assertStringContainsString('SstTreinamentoNecessidadeImportProfile', $catalog);
+        self::assertStringContainsString('SstEquipamentoTiposImportProfile', $catalog);
+        self::assertStringContainsString('SstEquipamentosImportProfile', $catalog);
+        self::assertStringContainsString('SstEquipamentoChecklistImportProfile', $catalog);
+        self::assertStringContainsString('SstGheColaboradoresImportProfile', $catalog);
+        self::assertStringContainsString('SstGheTreinamentosImportProfile', $catalog);
 
         $users = $this->readProjectFile('app/adms/Models/Services/Imports/UsersImportProfile.php');
         self::assertStringContainsString('ImportCenterUsers', $users);
         self::assertStringContainsString("'cpf'", $users);
         self::assertStringContainsString('emptyPolicy', $users);
         self::assertStringContainsString('getByName', $users);
+    }
+
+    public function testTemplateWritesLabelRowThenFieldNames(): void
+    {
+        $source = $this->readProjectFile('app/adms/Controllers/imports/ImportCenterTemplate.php');
+        self::assertStringContainsString('array_values($fields)', $source);
+        self::assertStringContainsString('array_keys($fields)', $source);
+        $reader = $this->readProjectFile('app/adms/Models/Services/Imports/SpreadsheetImportReader.php');
+        self::assertStringContainsString('skipOptionalLabelRow', $reader);
     }
 
     public function testMigrationRegistersClosedAclPagesAndJobsTable(): void

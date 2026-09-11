@@ -1,6 +1,7 @@
 <?php
 
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Services\InternalChat\InternalChatLlmSettings;
 
 $config = $this->data['mcp_api_config'] ?? [];
 $csrfToken = $this->data['csrf_token'] ?? CSRFHelper::generateCSRFToken('form_mcp_api_config');
@@ -84,7 +85,7 @@ if ($activeTab === 'tools' && !$canTools) {
                             <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>Parâmetros de Conexão</h5>
                         </div>
                         <div class="card-body">
-                            <form method="POST" action="<?= $_ENV['URL_ADM'] ?>save-mcp-api-config">
+                            <form method="POST" action="<?= $_ENV['URL_ADM'] ?>save-mcp-api-config" id="form-mcp-api-config">
                                 <input type="hidden" name="csrf_token" value="<?= $csrfToken; ?>">
 
                                 <div class="mb-3">
@@ -113,18 +114,27 @@ if ($activeTab === 'tools' && !$canTools) {
                                     </label>
                                 </div>
 
-                                <hr class="my-4">
-                                <h6 class="mb-3"><i class="fas fa-brain me-1"></i> Modelo Ollama (roteamento / análise)</h6>
+                                <?php include __DIR__ . '/partials/mcpLlmProviders.php'; ?>
+
+                                <h6 class="mb-3"><i class="fas fa-server me-1"></i> Modelo Ollama (quando o motor local estiver ativo)</h6>
                                 <?php if ($ollamaUrl === ''): ?>
                                     <div class="alert alert-warning small">
-                                        Defina <code>OLLAMA_URL</code> no <code>.env</code> (ex.: <code>http://127.0.0.1:11434</code>)
-                                        para listar e usar modelos locais. A URL do Ollama continua no servidor; aqui você só escolhe o <strong>modelo</strong>.
+                                        Informe a URL do Ollama no bloco acima (ou <code>OLLAMA_URL</code> no <code>.env</code>),
+                                        por exemplo <code>http://127.0.0.1:11434</code>, para listar modelos locais.
                                     </div>
                                 <?php else: ?>
                                     <p class="small text-muted mb-2">
                                         Ollama em <code><?= htmlspecialchars($ollamaUrl, ENT_QUOTES, 'UTF-8') ?></code>.
                                         Cada requisição usa <strong>um</strong> modelo; se falhar, tenta os fallbacks na ordem.
                                     </p>
+                                    <?php if (!InternalChatLlmSettings::isPlausibleOllamaUrl($ollamaUrl)): ?>
+                                        <div class="alert alert-warning small">
+                                            Essa URL não é o Ollama local (<code>http://127.0.0.1:11434</code>) —
+                                            parece a API MCP/ERP antiga. Em <strong>Automático</strong> ela é ignorada.
+                                            Para testar Groq, deixe <em>Usar agora</em> em Automático ou Groq e clique em
+                                            <strong>Testar IA</strong> de novo (a faixa de resultado fica acima dos botões).
+                                        </div>
+                                    <?php endif; ?>
                                 <?php endif; ?>
 
                                 <div class="mb-3">
@@ -173,12 +183,51 @@ if ($activeTab === 'tools' && !$canTools) {
                                     </div>
                                 </div>
 
-                                <div class="d-grid gap-2">
-                                    <button type="submit" class="btn btn-success btn-lg">
+                                <div id="mcp-ia-resultado" class="mb-3">
+                                    <?php
+                                    $llmTest = $_SESSION['mcp_llm_test_result'] ?? null;
+                                    unset($_SESSION['mcp_llm_test_result']);
+                                    if (is_array($llmTest) && !empty($llmTest['message'])):
+                                        $llmType = in_array(($llmTest['type'] ?? ''), ['success', 'warning', 'danger', 'info'], true)
+                                            ? (string) $llmTest['type']
+                                            : 'info';
+                                        ?>
+                                        <div class="alert alert-<?= htmlspecialchars($llmType, ENT_QUOTES, 'UTF-8') ?> mb-0" role="alert">
+                                            <?= htmlspecialchars((string) $llmTest['message'], ENT_QUOTES, 'UTF-8') ?>
+                                        </div>
+                                    <?php else: ?>
+                                        <div class="alert alert-light border small mb-0 text-muted">
+                                            Clique em <strong>Testar IA</strong> para pingar o motor selecionado em «Usar agora».
+                                            A resposta aparece nesta faixa (verde = ok, vermelho = falha).
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <div class="d-grid gap-2 d-sm-flex">
+                                    <button type="submit" name="form_action" value="save" class="btn btn-success btn-lg flex-grow-1">
                                         <i class="fas fa-save me-2"></i>Salvar Configuração
+                                    </button>
+                                    <button type="submit" name="form_action" value="test_llm" id="btn-test-llm" class="btn btn-outline-primary btn-lg">
+                                        <i class="fas fa-vial me-2"></i>Testar IA
                                     </button>
                                 </div>
                             </form>
+                            <script>
+                            (function () {
+                                var form = document.getElementById('form-mcp-api-config');
+                                var btn = document.getElementById('btn-test-llm');
+                                if (form && btn) {
+                                    form.addEventListener('submit', function (ev) {
+                                        var submitter = ev.submitter;
+                                        if (!submitter || submitter.getAttribute('value') !== 'test_llm') {
+                                            return;
+                                        }
+                                        btn.disabled = true;
+                                        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Testando…';
+                                    });
+                                }
+                            })();
+                            </script>
                             <?php if ($ollamaModels !== []): ?>
                             <script>
                             (function () {
@@ -208,7 +257,7 @@ if ($activeTab === 'tools' && !$canTools) {
                             <ul class="mb-0">
                                 <li>Esta URL será utilizada pelos endpoints internos do sistema para conversar com o servidor MCP.</li>
                                 <li>O <strong>Tiarajuzinho</strong> (ícone do robô) só aparece para usuários com permissão <em>McpChat</em> e quando a integração estiver ativa.</li>
-                                <li>Chaves de IA (OpenAI/Claude) ficam no <code>.env</code>; nesta tela só a URL e o ativar/desativar.</li>
+                                <li>Chaves de IA (Groq, Gemini, OpenAI, Claude) e a URL do Ollama ficam nesta tela. O <code>.env</code> só entra se o campo correspondente estiver vazio.</li>
                                 <li>O chat é transversal (vários departamentos); a permissão <em>McpChat</em> fica no grupo ACL <strong>Configurações</strong> (não no CRM).</li>
                                 <?php if ($canTools): ?>
                                     <li>Para liberar relatórios no chat, use a aba

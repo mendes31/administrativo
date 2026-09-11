@@ -3,6 +3,7 @@
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\NotificationSocialTypeHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\LogAlteracaoService;
 use App\adms\Models\Services\PushNotificationService;
@@ -242,6 +243,37 @@ class NotificationsRepository extends DbConnection
     }
 
     /**
+     * Conta não lidas sociais (Timeline) que o "Marcar todas como lidas" pode zerar.
+     */
+    public function countUnreadSocial(int $userId): int
+    {
+        if ($userId <= 0) {
+            return 0;
+        }
+
+        $types = NotificationSocialTypeHelper::types();
+        $placeholders = [];
+        foreach ($types as $i => $type) {
+            $placeholders[] = ':type_' . $i;
+        }
+        $in = implode(', ', $placeholders);
+        $sql = "SELECT COUNT(*) AS total
+                FROM adms_notifications
+                WHERE user_id = :user_id
+                  AND read_at IS NULL
+                  AND type IN ({$in})";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        foreach ($types as $i => $type) {
+            $stmt->bindValue(':type_' . $i, $type, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
      * Lista notificações do usuário (não lidas primeiro, depois por data).
      *
      * @param int $userId
@@ -344,14 +376,31 @@ class NotificationsRepository extends DbConnection
     }
 
     /**
-     * Marca todas as notificações do usuário como lidas.
+     * Marca como lidas as notificações sociais (Timeline) do usuário.
+     * Comunicados, políticas, ciência e demais avisos oficiais permanecem pendentes.
      */
     public function markAllAsRead(int $userId): bool
     {
-        $sql = 'UPDATE adms_notifications SET read_at = NOW()
-                WHERE user_id = :user_id AND read_at IS NULL';
+        if ($userId <= 0) {
+            return false;
+        }
+
+        $types = NotificationSocialTypeHelper::types();
+        $placeholders = [];
+        foreach ($types as $i => $type) {
+            $placeholders[] = ':type_' . $i;
+        }
+        $in = implode(', ', $placeholders);
+        $sql = "UPDATE adms_notifications SET read_at = NOW()
+                WHERE user_id = :user_id
+                  AND read_at IS NULL
+                  AND type IN ({$in})";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        foreach ($types as $i => $type) {
+            $stmt->bindValue(':type_' . $i, $type, PDO::PARAM_STR);
+        }
+
         return $stmt->execute();
     }
 

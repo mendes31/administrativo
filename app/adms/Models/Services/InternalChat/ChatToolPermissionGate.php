@@ -42,6 +42,7 @@ final class ChatToolPermissionGate
             // RH / Gestão de Pessoas (cadastro de usuários).
             'rh.lookup_person' => ['ListUsers', 'ViewUser'],
             'rh.count_active' => ['ListUsers'],
+            'rh.list_active' => ['ListUsers'],
             'rh.count_inactive' => ['ListUsers'],
             'rh.count_terminated' => ['ListUsers'],
             'rh.list_terminated' => ['ListUsers'],
@@ -53,6 +54,7 @@ final class ChatToolPermissionGate
             'rh.count_blocked' => ['ListUsers'],
             'rh.count_blocked_not_terminated' => ['ListUsers'],
             'rh.count_active_by_department' => ['ListUsers'],
+            'rh.list_active_by_age' => ['ListUsers'],
 
             // Reserva de salas.
             'rooms.list' => ['ListMeetingRooms', 'BookRoom', 'RoomCalendar'],
@@ -78,6 +80,8 @@ final class ChatToolPermissionGate
             'lookup_person' => 'rh.lookup_person',
             'lookup_person_refine' => 'rh.lookup_person',
             'active' => 'rh.count_active',
+            'active_list' => 'rh.list_active',
+            'active_by_age' => 'rh.list_active_by_age',
             'by_department' => 'rh.count_active_by_department',
             'inactive' => 'rh.count_inactive',
             'terminated_total' => 'rh.count_terminated',
