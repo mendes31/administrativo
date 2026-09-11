@@ -37,59 +37,59 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
             </div>
         </div>
         <div class="card-body">
-            <form method="get" class="mb-3">
-                <div class="d-flex gap-2 mb-2">
-                    <input type="text" name="search" id="search" class="form-control form-control-sm"
-                        value="<?= htmlspecialchars($filters['search'] ?? '') ?>"
-                        placeholder="Código, série, patrimônio, fabricante…">
-                    <button type="submit" class="btn btn-primary btn-sm flex-shrink-0"><i class="fa fa-search"></i> <span class="d-none d-sm-inline">Filtrar</span></button>
-                    <button class="btn btn-outline-primary btn-sm d-md-none flex-shrink-0" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $filtersId ?>">
-                        <i class="fa fa-filter"></i>
-                    </button>
-                </div>
-                <div class="collapse d-md-block" id="<?= $filtersId ?>">
-                    <div class="row g-2 align-items-end">
-                        <div class="col-6 col-md-2">
-                            <label class="form-label small mb-1">Grupo</label>
-                            <select name="tipo_id" class="form-select form-select-sm">
-                                <option value="">Todos</option>
-                                <?php foreach ($this->data['tipos'] ?? [] as $t): ?>
-                                <option value="<?= (int) $t['id'] ?>" <?= (string) ($filters['adms_sst_equipamento_tipo_id'] ?? '') === (string) $t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-2">
-                            <label class="form-label small mb-1">Empresa (site)</label>
-                            <select name="empresa_contratante" class="form-select form-select-sm">
-                                <option value="">Todas</option>
-                                <?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?>
-                                <option value="<?= htmlspecialchars((string) $slug) ?>" <?= (string) ($filters['empresa_contratante'] ?? '') === (string) $slug ? 'selected' : '' ?>><?= htmlspecialchars((string) $empLabel) ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-2">
-                            <label class="form-label small mb-1">Status</label>
-                            <select name="status" class="form-select form-select-sm">
-                                <option value="">Todos</option>
-                                <?php foreach (['Ativo', 'Inativo', 'Baixado', 'Bloqueado'] as $s): ?>
-                                <option value="<?= $s ?>" <?= ($filters['status'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-                        <div class="col-6 col-md-3">
-                            <label class="form-label small mb-1">Recarga</label>
-                            <select name="recarga_alerta" class="form-select form-select-sm">
-                                <option value="">Todas</option>
-                                <option value="1" <?= !empty($filters['recarga_alerta']) ? 'selected' : '' ?>>Vencida / a vencer (30d)</option>
-                            </select>
-                        </div>
-                        <div class="col-12 col-md-auto d-flex gap-2">
-                            <button type="submit" class="btn btn-primary btn-sm d-none d-md-inline-block"><i class="fa fa-search"></i> Filtrar</button>
-                            <a href="<?= $urlAdm ?>sst-list-equipamentos" class="btn btn-secondary btn-sm">Limpar</a>
-                        </div>
+            <div class="d-md-none mb-2">
+                <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $filtersId ?>">
+                    <i class="fa fa-filter me-1"></i> Filtros
+                </button>
+            </div>
+            <div class="collapse d-md-block" id="<?= $filtersId ?>">
+                <form method="get" class="row g-2 mb-3 align-items-end">
+                    <div class="col-12 col-md-3">
+                        <label class="form-label small mb-1" for="search">Busca</label>
+                        <input type="text" name="search" id="search" class="form-control form-control-sm"
+                            value="<?= htmlspecialchars($filters['search'] ?? '') ?>"
+                            placeholder="Código, série, patrimônio, fabricante…">
                     </div>
-                </div>
-            </form>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">Grupo</label>
+                        <select name="tipo_id" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <?php foreach ($this->data['tipos'] ?? [] as $t): ?>
+                            <option value="<?= (int) $t['id'] ?>" <?= (string) ($filters['adms_sst_equipamento_tipo_id'] ?? '') === (string) $t['id'] ? 'selected' : '' ?>><?= htmlspecialchars($t['nome']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">Empresa (site)</label>
+                        <select name="empresa_contratante" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            <?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?>
+                            <option value="<?= htmlspecialchars((string) $slug) ?>" <?= (string) ($filters['empresa_contratante'] ?? '') === (string) $slug ? 'selected' : '' ?>><?= htmlspecialchars((string) $empLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">Status</label>
+                        <select name="status" class="form-select form-select-sm">
+                            <option value="">Todos</option>
+                            <?php foreach (['Ativo', 'Inativo', 'Baixado', 'Bloqueado'] as $s): ?>
+                            <option value="<?= $s ?>" <?= ($filters['status'] ?? '') === $s ? 'selected' : '' ?>><?= $s ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-6 col-md-2">
+                        <label class="form-label small mb-1">Recarga</label>
+                        <select name="recarga_alerta" class="form-select form-select-sm">
+                            <option value="">Todas</option>
+                            <option value="1" <?= !empty($filters['recarga_alerta']) ? 'selected' : '' ?>>Vencida / a vencer (30d)</option>
+                        </select>
+                    </div>
+                    <div class="col-12 col-md-auto d-flex gap-2">
+                        <button type="submit" class="btn btn-primary btn-sm"><i class="fa fa-search"></i> Filtrar</button>
+                        <a href="<?= $urlAdm ?>sst-list-equipamentos" class="btn btn-secondary btn-sm">Limpar</a>
+                    </div>
+                </form>
+            </div>
 
             <?php if ($items === []): ?>
             <div class="alert alert-warning mb-0">Nenhum equipamento encontrado.</div>
