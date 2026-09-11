@@ -37,11 +37,21 @@ class ImportCenterView
         $this->data['profile'] = $profile;
         $this->data['stats'] = json_decode((string) ($job['stats_json'] ?? '{}'), true) ?: [];
         $this->data['report'] = json_decode((string) ($job['report_json'] ?? '[]'), true) ?: [];
+        $storedPath = (string) ($job['stored_path'] ?? '');
+        $mapping = json_decode((string) ($job['mapping_json'] ?? ''), true);
+        $this->data['pode_registrar'] = !empty($job['dry_run'])
+            && in_array((string) ($job['status'] ?? ''), ['done', 'failed'], true)
+            && is_array($mapping)
+            && $mapping !== []
+            && (string) ($job['key_field'] ?? '') !== ''
+            && $storedPath !== ''
+            && is_file($storedPath);
+        $this->data['arquivo_disponivel'] = $storedPath !== '' && is_file($storedPath);
 
         $pageElements = [
             'title_head' => 'Resultado da importação',
             'menu' => 'import-center',
-            'buttonPermission' => ['ImportCenterView', 'ImportCenter'],
+            'buttonPermission' => ['ImportCenterView', 'ImportCenter', 'ImportCenterCommit'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/imports/view', $this->data))->loadView();

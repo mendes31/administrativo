@@ -92,4 +92,44 @@ final class ImportJobRunner
 
         return array_merge($stats, ['report' => $report]);
     }
+
+    /**
+     * Reexecuta um job de simulação já mapeado, desta vez gravando no banco.
+     *
+     * @return array{created: int, updated: int, skipped: int, errors: int, report: list<array<string, mixed>>}
+     */
+    public function commitSimulation(int $jobId): array
+    {
+        $repo = new ImportJobsRepository();
+        $job = $repo->getById($jobId);
+        if ($job === null) {
+            throw new \RuntimeException('Job de importação não encontrado.');
+        }
+        if (empty($job['dry_run'])) {
+            throw new \RuntimeException('Esta execução já foi gravada no banco.');
+        }
+        $status = (string) ($job['status'] ?? '');
+        if (!in_array($status, ['done', 'failed'], true)) {
+            throw new \RuntimeException('Aguarde a simulação terminar antes de registrar.');
+        }
+
+        $mapping = json_decode((string) ($job['mapping_json'] ?? ''), true);
+        $keyField = (string) ($job['key_field'] ?? '');
+        if (!is_array($mapping) || $mapping === [] || $keyField === '') {
+            throw new \RuntimeException('Não há mapeamento salvo para registrar esta simulação.');
+        }
+        $fieldToIndex = [];
+        foreach ($mapping as $field => $idx) {
+            $fieldToIndex[(string) $field] = (int) $idx;
+        }
+
+        $path = (string) ($job['stored_path'] ?? '');
+        if ($path === '' || !is_file($path)) {
+            throw new \RuntimeException('Arquivo do job não está mais disponível. Envie a planilha de novo.');
+        }
+
+        $repo->update($jobId, ['dry_run' => 0, 'error_message' => null]);
+
+        return $this->run($jobId, $fieldToIndex, $keyField);
+    }
 }

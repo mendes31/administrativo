@@ -1,10 +1,15 @@
 <?php
 
+use App\adms\Helpers\CSRFHelper;
+
 $job = $this->data['job'] ?? [];
 $stats = $this->data['stats'] ?? [];
 $report = $this->data['report'] ?? [];
 $profile = $this->data['profile'] ?? null;
 $urlAdm = $_ENV['URL_ADM'] ?? '';
+$podeRegistrar = !empty($this->data['pode_registrar']);
+$perms = $this->data['buttonPermission'] ?? [];
+$csrfCommit = CSRFHelper::generateCSRFToken('form_import_center_commit');
 
 $actionLabel = [
     'created' => 'Criado',
@@ -43,7 +48,25 @@ $actionClass = [
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
             <?php if (!empty($job['dry_run'])): ?>
-                <div class="alert alert-warning">Esta execução foi uma <strong>simulação</strong>: nada foi gravado no banco.</div>
+                <div class="alert alert-warning">
+                    Esta execução foi uma <strong>simulação</strong>: nada foi gravado no banco.
+                    <?php if ($podeRegistrar && in_array('ImportCenterCommit', $perms, true)): ?>
+                        Se o resultado estiver correto, registre a importação abaixo — o mesmo arquivo e o mapeamento já salvos serão usados.
+                    <?php elseif (!empty($this->data['arquivo_disponivel'])): ?>
+                        Envie o arquivo novamente sem a opção de simular, ou peça a permissão <em>ImportCenterCommit</em>.
+                    <?php else: ?>
+                        O arquivo desta simulação não está mais disponível; envie a planilha de novo sem a opção de simular.
+                    <?php endif; ?>
+                </div>
+                <?php if ($podeRegistrar && in_array('ImportCenterCommit', $perms, true)): ?>
+                    <form method="POST" action="<?php echo $urlAdm; ?>import-center-commit/<?php echo (int) ($job['id'] ?? 0); ?>" class="mb-3"
+                          onsubmit="return confirm('Gravar no banco as <?php echo (int) ($stats['rows'] ?? 0); ?> linha(s) desta simulação?');">
+                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfCommit, ENT_QUOTES, 'UTF-8'); ?>">
+                        <button type="submit" class="btn btn-success">
+                            <i class="fa-solid fa-floppy-disk"></i> Registrar importação
+                        </button>
+                    </form>
+                <?php endif; ?>
             <?php endif; ?>
 
             <?php if (!empty($job['error_message'])): ?>

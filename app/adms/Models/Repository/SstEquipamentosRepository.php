@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Repository;
 
+use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Helpers\SstEquipamentoQrHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 use App\adms\Models\Services\DbConnection;
 use App\adms\Models\Services\SstEquipamentoCodigoService;
 use PDO;
@@ -17,6 +19,7 @@ class SstEquipamentosRepository extends DbConnection
         $page = max(1, $page);
         $offset = ($page - 1) * $perPage;
         [$where, $params] = $this->buildWhere($filters);
+        $orderSite = SstEquipamentoSiteHelper::sqlOrderRank('e.empresa_contratante');
         $sql = "SELECT e.*, t.nome AS tipo_nome,
                        t.controla_recarga, t.validade_recarga_meses,
                        d.name AS departamento_nome, u.name AS responsavel_nome,
@@ -27,7 +30,7 @@ class SstEquipamentosRepository extends DbConnection
                 LEFT JOIN adms_departments d ON d.id = e.adms_department_id
                 LEFT JOIN adms_users u ON u.id = e.responsavel_adms_user_id
                 {$where}
-                ORDER BY e.codigo ASC
+                ORDER BY {$orderSite} ASC, t.nome ASC, e.codigo ASC, e.id ASC
                 LIMIT :limit OFFSET :offset";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
@@ -45,6 +48,8 @@ class SstEquipamentosRepository extends DbConnection
         [$where, $params] = $this->buildWhere($filters);
         $sql = "SELECT COUNT(*) AS total FROM adms_sst_equipamentos e
                 INNER JOIN adms_sst_equipamento_tipos t ON t.id = e.adms_sst_equipamento_tipo_id
+                LEFT JOIN adms_departments d ON d.id = e.adms_department_id
+                LEFT JOIN adms_users u ON u.id = e.responsavel_adms_user_id
                 {$where}";
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($params as $k => $v) {
@@ -101,7 +106,16 @@ class SstEquipamentosRepository extends DbConnection
         }
 
         try {
-            $data['codigo'] = (new SstEquipamentoCodigoService())->allocateNextCodigo($tipoId, $pdo);
+            $siteSlug = SstEquipamentoSiteHelper::normalize($data['empresa_contratante'] ?? null);
+            if ($siteSlug === null) {
+                if ($ownsTransaction && $pdo->inTransaction()) {
+                    $pdo->rollBack();
+                }
+
+                return false;
+            }
+            $data['empresa_contratante'] = $siteSlug;
+            $data['codigo'] = (new SstEquipamentoCodigoService())->allocateNextCodigo($tipoId, $siteSlug, $pdo);
 
             $sql = 'INSERT INTO adms_sst_equipamentos (
                         codigo, patrimonio, adms_sst_equipamento_tipo_id, adms_department_id, empresa_contratante, localizacao,
@@ -268,8 +282,12 @@ class SstEquipamentosRepository extends DbConnection
             $params[':eq'] = $equipamentoId;
         }
         if ($empresaContratante !== null && $empresaContratante !== '') {
-            $where[] = 'e.empresa_contratante = :empresa';
-            $params[':empresa'] = $empresaContratante;
+            $where[] = SstEquipamentoSiteHelper::sqlInColumn(
+                'e.empresa_contratante',
+                $empresaContratante,
+                $params,
+                'empresa'
+            );
         }
         if ($tipoId !== null && $tipoId > 0) {
             $where[] = 'e.adms_sst_equipamento_tipo_id = :tipo';
@@ -334,10 +352,7 @@ class SstEquipamentosRepository extends DbConnection
     {
         $where = ['1=1'];
         $params = [];
-        if (!empty($filters['search'])) {
-            $where[] = '(e.codigo LIKE :search OR e.patrimonio LIKE :search OR e.localizacao LIKE :search OR t.nome LIKE :search)';
-            $params[':search'] = '%' . $filters['search'] . '%';
-        }
+        $this->appendSearch($where, $params, (string) ($filters['search'] ?? ''));
         if (!empty($filters['adms_sst_equipamento_tipo_id'])) {
             $where[] = 'e.adms_sst_equipamento_tipo_id = :tipo_id';
             $params[':tipo_id'] = (int) $filters['adms_sst_equipamento_tipo_id'];
@@ -351,8 +366,12 @@ class SstEquipamentosRepository extends DbConnection
             $params[':dept_id'] = (int) $filters['adms_department_id'];
         }
         if (!empty($filters['empresa_contratante'])) {
-            $where[] = 'e.empresa_contratante = :empresa_contratante';
-            $params[':empresa_contratante'] = (string) $filters['empresa_contratante'];
+            $where[] = SstEquipamentoSiteHelper::sqlInColumn(
+                'e.empresa_contratante',
+                (string) $filters['empresa_contratante'],
+                $params,
+                'empresa_contratante_'
+            );
         }
         if (!empty($filters['recarga_alerta'])) {
             $where[] = "t.controla_recarga = 1 AND (
@@ -363,5 +382,73 @@ class SstEquipamentosRepository extends DbConnection
         }
 
         return [' WHERE ' . implode(' AND ', $where), $params];
+    }
+
+    /**
+     * @param list<string> $where
+     * @param array<string, mixed> $params
+     */
+    private function appendSearch(array &$where, array &$params, string $raw): void
+    {
+        $raw = trim($raw);
+        if ($raw === '') {
+            return;
+        }
+
+        $params[':search'] = '%' . $raw . '%';
+        $parts = [
+            'e.codigo LIKE :search',
+            'e.patrimonio LIKE :search',
+            'e.localizacao LIKE :search',
+            'e.fabricante LIKE :search',
+            'e.modelo LIKE :search',
+            'e.numero_serie LIKE :search',
+            'e.capacidade LIKE :search',
+            'e.observacoes LIKE :search',
+            'e.caracteristicas LIKE :search',
+            'e.status LIKE :search',
+            'e.empresa_contratante LIKE :search',
+            't.nome LIKE :search',
+            't.codigo LIKE :search',
+            't.prefixo LIKE :search',
+            'd.name LIKE :search',
+            'u.name LIKE :search',
+            'CAST(e.id AS CHAR) LIKE :search',
+            'CAST(e.periodicidade_meses AS CHAR) LIKE :search',
+            'CAST(e.dia_previsto_vistoria AS CHAR) LIKE :search',
+            "DATE_FORMAT(e.data_fabricacao, '%d/%m/%Y') LIKE :search",
+            "DATE_FORMAT(e.data_fabricacao, '%Y-%m-%d') LIKE :search",
+            "DATE_FORMAT(e.data_recarga, '%d/%m/%Y') LIKE :search",
+            "DATE_FORMAT(e.data_recarga, '%Y-%m-%d') LIKE :search",
+            "DATE_FORMAT(e.data_proxima_recarga, '%d/%m/%Y') LIKE :search",
+            "DATE_FORMAT(e.data_proxima_recarga, '%Y-%m-%d') LIKE :search",
+            "DATE_FORMAT(e.data_referencia_inspecao, '%d/%m/%Y') LIKE :search",
+            "DATE_FORMAT(e.data_referencia_inspecao, '%Y-%m-%d') LIKE :search",
+        ];
+
+        $siteSlugs = [];
+        foreach (SstEquipamentoSiteHelper::options() as $slug => $label) {
+            if (mb_stripos($label, $raw) !== false || mb_stripos($slug, $raw) !== false) {
+                foreach (SstEquipamentoSiteHelper::slugsForFilter($slug) as $s) {
+                    $siteSlugs[$s] = true;
+                }
+            }
+        }
+        $i = 0;
+        foreach (array_keys($siteSlugs) as $slug) {
+            $key = ':search_site_' . $i++;
+            $parts[] = 'e.empresa_contratante = ' . $key;
+            $params[$key] = $slug;
+        }
+
+        foreach (SstEquipamentoPeriodicidadeHelper::options() as $meses => $label) {
+            if (mb_stripos($label, $raw) !== false) {
+                $key = ':search_per_' . $meses;
+                $parts[] = 'e.periodicidade_meses = ' . $key;
+                $params[$key] = $meses;
+            }
+        }
+
+        $where[] = '(' . implode(' OR ', $parts) . ')';
     }
 }

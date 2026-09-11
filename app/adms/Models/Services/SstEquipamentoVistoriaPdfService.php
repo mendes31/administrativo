@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\PdfInstitutionalHeaderHelper;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 
 /**
  * HTML tipográfico do relatório de vistoria de equipamento (PDF / impressão).
@@ -33,7 +33,7 @@ class SstEquipamentoVistoriaPdfService
         $gerado = date('d/m/Y H:i');
 
         $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
-            $vistoria['empresa_contratante'] ?? null,
+            SstEquipamentoSiteHelper::letterheadSlug($vistoria['empresa_contratante'] ?? null),
             'relatório'
         );
 
@@ -97,8 +97,11 @@ class SstEquipamentoVistoriaPdfService
 
         $codigo = $esc($vistoria['equipamento_codigo'] ?? null);
         $tipo = $esc($vistoria['tipo_nome'] ?? null);
-        $filial = $esc(UserFormHelper::empresaContratanteLabel($vistoria['empresa_contratante'] ?? null));
-        $local = $esc($vistoria['localizacao'] ?? null);
+        $filial = $esc(SstEquipamentoSiteHelper::label($vistoria['empresa_contratante'] ?? null));
+        $local = $esc(SstEquipamentoSiteHelper::formatLocalizacao(
+            $vistoria['empresa_contratante'] ?? null,
+            $vistoria['localizacao'] ?? null
+        ));
         $competencia = $esc($vistoria['competencia'] ?? null);
         $status = $esc($vistoria['status'] ?? null);
         $resultado = $esc($vistoria['resultado'] ?? null);
@@ -151,7 +154,7 @@ class SstEquipamentoVistoriaPdfService
         return $heading . '
 <table class="grid" width="100%">
 <tr><td class="lbl">Equipamento</td><td><strong>' . $codigo . '</strong></td><td class="lbl">Grupo</td><td>' . $tipo . '</td></tr>
-<tr><td class="lbl">Filial</td><td>' . $filial . '</td><td class="lbl">Localização</td><td>' . $local . '</td></tr>
+<tr><td class="lbl">Empresa (site)</td><td>' . $filial . '</td><td class="lbl">Localização</td><td>' . $local . '</td></tr>
 <tr><td class="lbl">Departamento</td><td>' . $dept . '</td><td class="lbl">Competência</td><td>' . $competencia . '</td></tr>
 <tr><td class="lbl">Prevista</td><td>' . $prevista . '</td><td class="lbl">Realizada</td><td>' . $realizada . '</td></tr>
 <tr><td class="lbl">Status</td><td>' . $status . '</td><td class="lbl">Resultado</td><td><strong>' . $resultado . '</strong></td></tr>

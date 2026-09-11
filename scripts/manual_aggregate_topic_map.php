@@ -35,7 +35,7 @@ function buildManualAggregateTopicMap(): array
     ], 'adm-permissoes');
     $add(['list-mandatory-trainings', 'create-mandatory-training', 'update-mandatory-training'], 'adm-treinamentos-obrigatorios');
     $add([
-        'import-center', 'import-center-create', 'import-center-map', 'import-center-view', 'import-center-template',
+        'import-center', 'import-center-create', 'import-center-map', 'import-center-view', 'import-center-commit', 'import-center-template',
         'import-center-users', 'import-center-departments', 'import-center-positions', 'import-center-sst',
     ], 'import-center');
 

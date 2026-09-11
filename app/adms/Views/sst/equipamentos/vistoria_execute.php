@@ -1,6 +1,6 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 
 $vistoria = $this->data['vistoria'] ?? [];
 $respostas = $this->data['respostas'] ?? [];
@@ -12,7 +12,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('sst_equipamento_vistoria');
 $id = (int) ($vistoria['id'] ?? 0);
 $fromQr = isset($_GET['from']) && $_GET['from'] === 'qr';
 $assinaturaEm = $vistoria['assinatura_confirmada_em'] ?? null;
-$filialLabel = UserFormHelper::empresaContratanteLabel($vistoria['empresa_contratante'] ?? null);
+$filialLabel = SstEquipamentoSiteHelper::label($vistoria['empresa_contratante'] ?? null);
 $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $podePdf = $readonly && in_array('SstExportEquipamentoVistoriaPdf', $perms, true);
 $fromQs = $fromQr ? '?from=qr' : '';
@@ -45,7 +45,7 @@ $fromQs = $fromQr ? '?from=qr' : '';
                     <div class="fw-semibold"><?= htmlspecialchars($vistoria['tipo_nome'] ?? '—') ?></div>
                 </div>
                 <div class="col-6 col-md-4 col-lg-2">
-                    <div class="text-muted">Filial</div>
+                    <div class="text-muted">Empresa (site)</div>
                     <div class="fw-semibold"><?= htmlspecialchars($filialLabel) ?></div>
                 </div>
                 <div class="col-6 col-md-4 col-lg-3">

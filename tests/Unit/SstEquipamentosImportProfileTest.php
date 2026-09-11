@@ -49,5 +49,7 @@ final class SstEquipamentosImportProfileTest extends TestCase
         self::assertArrayHasKey('prefixo', $tipos->fields());
         self::assertArrayHasKey('tipo', $eq->fields());
         self::assertContains('codigo', $eq->keyFields());
+        self::assertSame('Laboratório Tiaraju', $eq->sampleRow()[6]);
+        self::assertStringContainsString('único por site', $eq->fields()['codigo']);
     }
 }

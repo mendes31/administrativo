@@ -6,6 +6,7 @@ namespace App\adms\Helpers;
 
 /**
  * Normalização e formatação do código automático de equipamentos SST (PREFIXO + 5 dígitos).
+ * A sequência numérica é controlada por tipo e por site; o mesmo código pode existir em sites diferentes.
  */
 final class SstEquipamentoCodigoHelper
 {

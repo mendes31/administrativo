@@ -37,14 +37,33 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                         </select>
                     </div>
                     <div class="col-md-3 mb-3">
+                        <label class="form-label" for="empresa_contratante">Empresa (site) *</label>
+                        <select name="empresa_contratante" id="empresa_contratante" class="form-select" required>
+                            <?php
+                            $empVal = (string)($item['empresa_contratante'] ?? '');
+                            $empSelected = \App\adms\Helpers\SstEquipamentoSiteHelper::normalize($empVal) ?? $empVal;
+                            $sites = $this->data['empresas_contratantes'] ?? \App\adms\Helpers\SstEquipamentoSiteHelper::options();
+                            if ($empVal !== '' && $empSelected !== '' && !isset($sites[$empSelected])) {
+                                $sites[$empVal] = \App\adms\Helpers\SstEquipamentoSiteHelper::label($empVal) . ' (fora da lista — escolha um site)';
+                                $empSelected = $empVal;
+                            }
+                            ?>
+                            <option value="" <?= $empSelected === '' ? 'selected' : '' ?>>Selecione</option>
+                            <?php foreach ($sites as $slug => $empLabel): ?>
+                            <option value="<?= htmlspecialchars((string)$slug) ?>" <?= $empSelected === (string)$slug ? 'selected' : '' ?>><?= htmlspecialchars((string)$empLabel) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Define o contador do código. Compõe a localização com a sala/área.</div>
+                    </div>
+                    <div class="col-md-3 mb-3">
                         <label class="form-label" for="codigo">Código *</label>
                         <?php if ($isEdit): ?>
                         <input type="text" name="codigo" id="codigo" class="form-control text-uppercase" value="<?= htmlspecialchars($item['codigo'] ?? '') ?>" readonly>
                         <div class="form-text">Gerado no cadastro — não pode ser alterado.</div>
                         <?php else: ?>
-                        <input type="text" id="codigo" class="form-control text-uppercase bg-light" value="" readonly placeholder="Selecione o grupo">
+                        <input type="text" id="codigo" class="form-control text-uppercase bg-light" value="" readonly placeholder="Selecione o grupo e o site">
                         <input type="hidden" name="codigo" value="">
-                        <div class="form-text" id="codigo_hint">Gerado automaticamente (prefixo + 5 dígitos).</div>
+                        <div class="form-text" id="codigo_hint">Gerado automaticamente (prefixo + 5 dígitos, por site).</div>
                         <?php endif; ?>
                     </div>
                     <div class="col-md-3 mb-3">
@@ -59,20 +78,10 @@ $periodicidades = $this->data['periodicidades'] ?? [];
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <div class="col-md-3 mb-3">
-                        <label class="form-label" for="empresa_contratante">Filial / empresa contratante</label>
-                        <select name="empresa_contratante" id="empresa_contratante" class="form-select">
-                            <?php $empVal = (string)($item['empresa_contratante'] ?? ''); ?>
-                            <option value="" <?= $empVal === '' ? 'selected' : '' ?>>Selecione</option>
-                            <?php foreach ($this->data['empresas_contratantes'] ?? [] as $slug => $empLabel): ?>
-                            <option value="<?= htmlspecialchars((string)$slug) ?>" <?= $empVal === (string)$slug ? 'selected' : '' ?>><?= htmlspecialchars((string)$empLabel) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                        <div class="form-text">Mesmas opções do cadastro de usuário (Dados Contratuais).</div>
-                    </div>
                     <div class="col-md-5 mb-3">
-                        <label class="form-label" for="localizacao">Localização</label>
-                        <input type="text" name="localizacao" id="localizacao" class="form-control" value="<?= htmlspecialchars($item['localizacao'] ?? '') ?>">
+                        <label class="form-label" for="localizacao">Localização (sala / área)</label>
+                        <input type="text" name="localizacao" id="localizacao" class="form-control" value="<?= htmlspecialchars($item['localizacao'] ?? '') ?>" placeholder="Ex.: SALA TI">
+                        <div class="form-text">Exibida junto com o site (ex.: Laboratório Tiaraju — SALA TI).</div>
                     </div>
                     <div class="col-md-2 mb-3">
                         <label class="form-label" for="adms_department_id">Departamento</label>
@@ -207,6 +216,7 @@ $periodicidades = $this->data['periodicidades'] ?? [];
     var hintProxima = document.getElementById('hint_proxima_recarga');
     var codigo = document.getElementById('codigo');
     var hint = document.getElementById('codigo_hint');
+    var siteSelect = document.getElementById('empresa_contratante');
     var previews = <?= json_encode($this->data['codigo_previews'] ?? [], JSON_UNESCAPED_UNICODE) ?>;
     var isEdit = <?= $isEdit ? 'true' : 'false' ?>;
     var proximaManual = false;
@@ -266,19 +276,26 @@ $periodicidades = $this->data['periodicidades'] ?? [];
     function refreshCodigo() {
         if (isEdit || !codigo || !tipoSelect) return;
         var opt = tipoSelect.options[tipoSelect.selectedIndex];
+        var site = siteSelect ? siteSelect.value : '';
         if (!opt || !opt.value) {
             codigo.value = '';
-            if (hint) hint.textContent = 'Gerado automaticamente (prefixo + 5 dígitos).';
+            if (hint) hint.textContent = 'Gerado automaticamente (prefixo + 5 dígitos, por site).';
             return;
         }
-        var preview = previews[opt.value] || '';
+        if (!site) {
+            codigo.value = '';
+            if (hint) hint.textContent = 'Selecione o site para ver o próximo código deste grupo.';
+            return;
+        }
+        var byTipo = previews[opt.value] || {};
+        var preview = byTipo[site] || '';
         var prefixo = (opt.getAttribute('data-prefixo') || '').toUpperCase();
         if (preview) {
             codigo.value = preview;
-            if (hint) hint.textContent = 'Prévia do próximo código (confirmado ao salvar).';
+            if (hint) hint.textContent = 'Prévia do próximo código neste site (confirmado ao salvar).';
         } else if (prefixo.length === 3) {
             codigo.value = prefixo + '?????';
-            if (hint) hint.textContent = 'O número sequencial será definido ao salvar.';
+            if (hint) hint.textContent = 'O número sequencial deste site será definido ao salvar.';
         } else {
             codigo.value = '';
             if (hint) hint.textContent = 'Grupo sem prefixo válido. Cadastre o prefixo em Tipos de equipamento.';
@@ -294,6 +311,9 @@ $periodicidades = $this->data['periodicidades'] ?? [];
         });
         refreshCodigo();
         toggleRecarga();
+    }
+    if (siteSelect) {
+        siteSelect.addEventListener('change', refreshCodigo);
     }
     if (dataRecarga) {
         dataRecarga.addEventListener('change', function () {

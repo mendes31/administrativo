@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\PdfInstitutionalHeaderHelper;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 
 /**
  * Relatório de auditoria: índice + detalhamento completo de cada vistoria (como o PDF individual) e recargas.
@@ -45,21 +45,24 @@ class SstEquipamentoAuditoriaPdfService
             : $this->detectEmpresaUnica($vistorias, $recargas);
 
         $empresaBlock = PdfInstitutionalHeaderHelper::buildEmpresaInfoTable(
-            is_string($empresaSlug) ? $empresaSlug : null,
+            is_string($empresaSlug) ? SstEquipamentoSiteHelper::letterheadSlug($empresaSlug) : null,
             'relatório'
         );
 
         $equipBlock = '';
         if ($isUnitario) {
-            $filial = UserFormHelper::empresaContratanteLabel($equipamento['empresa_contratante'] ?? null);
+            $filial = SstEquipamentoSiteHelper::label($equipamento['empresa_contratante'] ?? null);
             $equipBlock = '<table width="100%" style="border-collapse:collapse;margin-bottom:10px;font-size:9pt;">'
                 . $this->row('Período', $periodo)
                 . $this->row('Código', (string) ($equipamento['codigo'] ?? '—'))
                 . $this->row('Patrimônio', (string) (($equipamento['patrimonio'] ?? '') !== '' ? $equipamento['patrimonio'] : '—'))
                 . $this->row('Nº de série', (string) (($equipamento['numero_serie'] ?? '') !== '' ? $equipamento['numero_serie'] : '—'))
                 . $this->row('Grupo', (string) ($equipamento['tipo_nome'] ?? '—'))
-                . $this->row('Filial', $filial)
-                . $this->row('Localização', (string) (($equipamento['localizacao'] ?? '') !== '' ? $equipamento['localizacao'] : '—'))
+                . $this->row('Empresa (site)', $filial)
+                . $this->row('Localização', SstEquipamentoSiteHelper::formatLocalizacao(
+                    $equipamento['empresa_contratante'] ?? null,
+                    $equipamento['localizacao'] ?? null
+                ))
                 . $this->row('Status do equipamento', (string) ($equipamento['status'] ?? '—'))
                 . '</table>';
         } else {

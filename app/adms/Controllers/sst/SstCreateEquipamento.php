@@ -8,7 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Helpers\SstEquipamentoRecargaHelper;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\SstEquipamentoRecargasRepository;
 use App\adms\Models\Repository\SstEquipamentoSettingsRepository;
@@ -47,16 +47,19 @@ class SstCreateEquipamento
         $codigoService = new SstEquipamentoCodigoService();
         foreach ($tipos as $t) {
             $tid = (int) ($t['id'] ?? 0);
-            if ($tid > 0) {
-                $peek = $codigoService->peekNextCodigo($tid);
+            if ($tid <= 0) {
+                continue;
+            }
+            foreach (SstEquipamentoSiteHelper::slugs() as $site) {
+                $peek = $codigoService->peekNextCodigo($tid, $site);
                 if ($peek !== null) {
-                    $previews[(string) $tid] = $peek;
+                    $previews[(string) $tid][$site] = $peek;
                 }
             }
         }
         $this->data['codigo_previews'] = $previews;
         $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
-        $this->data['empresas_contratantes'] = UserFormHelper::empresaContratanteOptions();
+        $this->data['empresas_contratantes'] = SstEquipamentoSiteHelper::options();
         $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         $this->data['periodicidades'] = SstEquipamentoPeriodicidadeHelper::options();
         $this->data['dias'] = SstEquipamentoPeriodicidadeHelper::dayOptions();
@@ -77,6 +80,12 @@ class SstCreateEquipamento
         $tipo = $tipoId > 0 ? (new SstEquipamentoTiposRepository())->getById($tipoId) : null;
         if (!$tipo || trim((string) ($tipo['prefixo'] ?? '')) === '') {
             $_SESSION['msg'] = 'Selecione um grupo com prefixo cadastrado (3 caracteres).';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento');
+            exit;
+        }
+        if (SstEquipamentoSiteHelper::normalize($_POST['empresa_contratante'] ?? null) === null) {
+            $_SESSION['msg'] = 'Selecione a empresa (site). O código é numerado por site.';
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-equipamento');
             exit;
@@ -130,7 +139,7 @@ class SstCreateEquipamento
             'patrimonio' => $_POST['patrimonio'] ?? null,
             'adms_sst_equipamento_tipo_id' => (int) ($_POST['adms_sst_equipamento_tipo_id'] ?? 0),
             'adms_department_id' => $_POST['adms_department_id'] ?? null,
-            'empresa_contratante' => UserFormHelper::normalizeEmpresaContratante($_POST['empresa_contratante'] ?? null),
+            'empresa_contratante' => SstEquipamentoSiteHelper::normalize($_POST['empresa_contratante'] ?? null),
             'localizacao' => $_POST['localizacao'] ?? null,
             'fabricante' => $_POST['fabricante'] ?? null,
             'modelo' => $_POST['modelo'] ?? null,

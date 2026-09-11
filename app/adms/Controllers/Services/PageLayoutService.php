@@ -290,6 +290,7 @@ class PageLayoutService
             'ImportCenterCreate',
             'ImportCenterMap',
             'ImportCenterView',
+            'ImportCenterCommit',
             'ImportCenterTemplate',
             'ImportCenterUsers',
             'ImportCenterDepartments',

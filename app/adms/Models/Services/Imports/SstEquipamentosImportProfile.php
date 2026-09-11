@@ -7,7 +7,7 @@ namespace App\adms\Models\Services\Imports;
 use App\adms\Helpers\SstEquipamentoCodigoHelper;
 use App\adms\Helpers\SstEquipamentoPeriodicidadeHelper;
 use App\adms\Helpers\SstEquipamentoRecargaHelper;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 use App\adms\Models\Repository\SstEquipamentoRecargasRepository;
 use App\adms\Models\Repository\SstEquipamentosRepository;
 use App\adms\Models\Services\SstEquipamentoVistoriaGeneratorService;
@@ -28,12 +28,12 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
     {
         return [
             'id' => 'ID (chave)',
-            'codigo' => 'Código gerado (chave para atualizar, ex. EXT00001)',
+            'codigo' => 'Código gerado (chave para atualizar; único por site, ex. EXT00001)',
             'patrimonio' => 'Patrimônio (chave alternativa)',
             'tipo' => 'Tipo / grupo (código, nome, prefixo ou ID)',
             'localizacao' => 'Localização',
             'department' => 'Departamento (nome ou ID)',
-            'empresa_contratante' => 'Filial / empresa contratante',
+            'empresa_contratante' => 'Empresa (site) * — Laboratório Tiaraju, Afra Pharma ou Afra Biotics',
             'responsavel' => 'Responsável (login, e-mail, CPF, nome ou ID)',
             'fabricante' => 'Fabricante',
             'modelo' => 'Tipo / agente (ex. Pó ABC)',
@@ -63,7 +63,7 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
     public function sampleRow(): array
     {
         return [
-            '', '', '', 'EXTINTOR', 'Almoxarifado — entrada', 'Suprimentos', 'Tiaraju Farma',
+            '', '', '', 'EXTINTOR', 'Almoxarifado — entrada', 'Suprimentos', 'Laboratório Tiaraju',
             '', 'ABC Equipamentos', 'Pó ABC', 'SN-001', '6 kg', '', '15/01/2026', '',
             'Mensal', '5', 'Sim', 'Ativo', '',
         ];
@@ -98,7 +98,7 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
         }
         $codigo = SstImportValues::v($mapped, 'codigo') ?: ($keyField === 'codigo' ? SstImportValues::v($mapped, $keyField) : '');
         if ($codigo !== '') {
-            $byCode = $lookup->byCodigo('adms_sst_equipamentos', $codigo);
+            $byCode = $this->findByCodigoAndSite($lookup, $codigo, $mapped);
             if ($byCode !== null) {
                 return $byCode;
             }
@@ -123,7 +123,7 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
         $tipo = $this->requireTipo($mapped);
         $deptId = $this->optionalDepartment($mapped);
         $responsavelId = $this->optionalResponsavel($mapped);
-        $empresa = $this->optionalEmpresa($mapped);
+        $empresa = $this->requireEmpresa($mapped);
         $dataRecarga = SstImportValues::date(SstImportValues::v($mapped, 'data_recarga'));
         $dataProxima = SstImportValues::date(SstImportValues::v($mapped, 'data_proxima_recarga'));
         $controla = !empty($tipo['controla_recarga']);
@@ -164,7 +164,11 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
         $tipo = SstImportValues::v($mapped, 'tipo') !== ''
             ? $this->requireTipo($mapped)
             : ['id' => $existing['adms_sst_equipamento_tipo_id'] ?? 0, 'controla_recarga' => $existing['controla_recarga'] ?? 0, 'validade_recarga_meses' => $existing['validade_recarga_meses'] ?? 12];
-        $payload = $this->buildCreatePayload(array_merge($mapped, [
+        $mappedForCreate = $mapped;
+        if (SstImportValues::v($mapped, 'empresa_contratante') === '' && !empty($existing['empresa_contratante'])) {
+            $mappedForCreate['empresa_contratante'] = (string) $existing['empresa_contratante'];
+        }
+        $payload = $this->buildCreatePayload(array_merge($mappedForCreate, [
             'tipo' => SstImportValues::v($mapped, 'tipo') !== '' ? SstImportValues::v($mapped, 'tipo') : (string) ($tipo['id'] ?? ''),
         ]));
         unset($payload['_tipo']);
@@ -282,6 +286,51 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
         return $id;
     }
 
+    /**
+     * @param array<string, string> $mapped
+     * @return array<string, mixed>|null
+     */
+    private function findByCodigoAndSite(SstImportLookup $lookup, string $codigo, array $mapped): ?array
+    {
+        $rows = $lookup->byCodigoAll('adms_sst_equipamentos', $codigo);
+        if ($rows === []) {
+            return null;
+        }
+        if (count($rows) === 1) {
+            return $rows[0];
+        }
+        $site = $this->optionalEmpresa($mapped);
+        if ($site === null) {
+            throw new \RuntimeException(
+                'O código ' . strtoupper(trim($codigo)) . ' existe em mais de um site. Informe a Empresa (site).'
+            );
+        }
+        $matched = null;
+        foreach ($rows as $row) {
+            if (SstEquipamentoSiteHelper::normalize($row['empresa_contratante'] ?? null) === $site) {
+                if ($matched !== null) {
+                    throw new \RuntimeException('Código duplicado no mesmo site: ' . strtoupper(trim($codigo)));
+                }
+                $matched = $row;
+            }
+        }
+
+        return $matched;
+    }
+
+    /** @param array<string, string> $mapped */
+    private function requireEmpresa(array $mapped): string
+    {
+        $slug = $this->optionalEmpresa($mapped);
+        if ($slug === null) {
+            throw new \RuntimeException(
+                'Para criar equipamento, informe a Empresa (site): Laboratório Tiaraju, Afra Pharma ou Afra Biotics.'
+            );
+        }
+
+        return $slug;
+    }
+
     /** @param array<string, string> $mapped */
     private function optionalEmpresa(array $mapped): ?string
     {
@@ -289,9 +338,9 @@ final class SstEquipamentosImportProfile extends AbstractSstCatalogImportProfile
         if ($raw === '') {
             return null;
         }
-        $slug = UserFormHelper::resolveEmpresaContratanteSlug($raw);
+        $slug = SstEquipamentoSiteHelper::normalize($raw);
         if ($slug === null) {
-            throw new \RuntimeException('Empresa contratante inválida: ' . $raw);
+            throw new \RuntimeException('Empresa (site) inválida: ' . $raw . '. Use Laboratório Tiaraju, Afra Pharma ou Afra Biotics.');
         }
 
         return $slug;

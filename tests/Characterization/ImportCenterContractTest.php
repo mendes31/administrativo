@@ -17,7 +17,8 @@ final class ImportCenterContractTest extends TestCase
     {
         $legacy = $this->readProjectFile('routes/LoadPageAdm.php');
         self::assertStringContainsString('ImportUsers', $legacy);
-        self::assertStringContainsString('ImportCenter', $legacy);
+        self::assertStringContainsString('ImportCenterView', $legacy);
+        self::assertStringContainsString('ImportCenterCommit', $legacy);
         self::assertStringContainsString('"imports"', $legacy);
 
         $acl = $this->readProjectFile('routes/LoadPageAdmAccessLevel.php');
@@ -96,6 +97,26 @@ final class ImportCenterContractTest extends TestCase
 
         $routes = $this->readProjectFile('routes/LoadPageAdm.php');
         self::assertStringContainsString('ImportCenterSst', $routes);
+    }
+
+    public function testCommitAfterDryRunIsWired(): void
+    {
+        $source = $this->readProjectFile(
+            'database/migrations/20260911193000_register_import_center_commit_page.php'
+        );
+        self::assertStringContainsString('ImportCenterCommit', $source);
+        self::assertStringContainsString('import-center-commit', $source);
+        self::assertStringContainsString("'default_page' => 0", $source);
+        self::assertStringContainsString("'public_page' => 0", $source);
+        self::assertStringContainsString('SELECT 0, al.id', $source);
+        self::assertStringNotContainsString('permission = 1', $source);
+
+        $runner = $this->readProjectFile('app/adms/Models/Services/Imports/ImportJobRunner.php');
+        self::assertStringContainsString('function commitSimulation', $runner);
+
+        $view = $this->readProjectFile('app/adms/Views/imports/view.php');
+        self::assertStringContainsString('Registrar importação', $view);
+        self::assertStringContainsString('import-center-commit/', $view);
     }
 
     public function testImportUsersRemainsIndependent(): void

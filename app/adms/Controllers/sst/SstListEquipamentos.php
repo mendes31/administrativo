@@ -6,7 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\SstEquipamentoTiposRepository;
 use App\adms\Models\Repository\SstEquipamentosRepository;
@@ -37,7 +37,7 @@ class SstListEquipamentos
         $this->data['filters'] = $filters;
         $this->data['tipos'] = (new SstEquipamentoTiposRepository())->getAllActiveForSelect();
         $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
-        $this->data['empresas_contratantes'] = UserFormHelper::empresaContratanteOptions();
+        $this->data['empresas_contratantes'] = SstEquipamentoSiteHelper::options();
         $pageElements = [
             'title_head' => 'Equipamentos de segurança - SST',
             'menu' => 'sst-list-equipamentos',

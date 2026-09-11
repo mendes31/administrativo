@@ -3,7 +3,7 @@
 <h2>Função no sistema</h2>
 <p>Importa cadastros a partir de Excel (<code>.xlsx</code>) ou CSV, com <strong>perfis declarados</strong> (usuários, departamentos, cargos e catálogos/matrizes do SST). Cada tipo de cadastro geral tem permissão própria; todos os tipos de Segurança e Medicina usam a permissão <em>ImportCenterSst</em>. Serve para popular homologação e testes, sem substituir a tela clássica <em>Importar Usuários</em>.</p>
 
-<p><strong>Quem acessa:</strong> <em>Super Administrador</em> (nível id 1) e <em>Super usuário</em> (flag no cadastro) entram de imediato, por acesso total — não dependem da matriz ACL. Demais níveis nascem <strong>sem permissão</strong> (<code>public_page = 0</code>, <code>default_page = 0</code>, <code>permission = 0</code>). Só passam a ver o menu e os tipos depois que o administrador liberar, no nível de acesso, as páginas <em>ImportCenter</em> (hub) e, por tipo, <em>ImportCenterUsers</em>, <em>ImportCenterDepartments</em>, <em>ImportCenterPositions</em> ou <em>ImportCenterSst</em>, além de <em>ImportCenterCreate</em>, <em>ImportCenterMap</em>, <em>ImportCenterView</em> e <em>ImportCenterTemplate</em>.</p>
+<p><strong>Quem acessa:</strong> <em>Super Administrador</em> (nível id 1) e <em>Super usuário</em> (flag no cadastro) entram de imediato, por acesso total — não dependem da matriz ACL. Demais níveis nascem <strong>sem permissão</strong> (<code>public_page = 0</code>, <code>default_page = 0</code>, <code>permission = 0</code>). Só passam a ver o menu e os tipos depois que o administrador liberar, no nível de acesso, as páginas <em>ImportCenter</em> (hub) e, por tipo, <em>ImportCenterUsers</em>, <em>ImportCenterDepartments</em>, <em>ImportCenterPositions</em> ou <em>ImportCenterSst</em>, além de <em>ImportCenterCreate</em>, <em>ImportCenterMap</em>, <em>ImportCenterView</em>, <em>ImportCenterCommit</em> e <em>ImportCenterTemplate</em>.</p>
 <p><strong>Onde fica:</strong> menu <em>Administração → Importações</em>.</p>
 
 <h2>O que significam os termos</h2>
@@ -28,7 +28,7 @@
     <li>Baixe o modelo CSV se quiser. A primeira linha são os <strong>rótulos da tela</strong> (só para leitura); a segunda linha são os <strong>nomes dos campos</strong> usados na importação. Preencha a partir da terceira linha. Planilhas antigas, só com a linha de campos, continuam válidas.</li>
     <li>Escolha a operação (só inserir, só atualizar ou upsert), a política de vazios e, de preferência, marque <strong>Somente simular</strong>.</li>
     <li>Envie o arquivo. Na tela seguinte, associe cada campo do sistema a uma coluna. A chave precisa estar mapeada.</li>
-    <li>Execute. Revise o relatório por linha. Se a simulação estiver correta, envie de novo <strong>sem</strong> a opção de simular.</li>
+    <li>Execute. Revise o relatório por linha. Se for simulação e o resultado estiver correto, clique em <strong>Registrar importação</strong> na própria tela de resultado — o arquivo e o mapeamento já salvos são reaproveitados. Não é preciso enviar a planilha de novo.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -36,12 +36,12 @@
 <div class="help-field"><strong>Modelo CSV</strong> Duas linhas de cabeçalho: rótulos da tela (ignorados na leitura) e nomes dos campos. Amostra na terceira linha. Não apague a linha dos nomes dos campos.</div>
 <div class="help-field"><strong>Usuários</strong> Chaves: CPF, usuário/login ou ID. Para criar: nome, e-mail, login, departamento e cargo (nome ou ID). Senha aleatória. Não cria já desligado. Departamento e cargo são resolvidos pelo nome — cadastre-os antes (ou importe-os nesta Central).</div>
 <div class="help-field"><strong>Departamentos / cargos</strong> Chaves: nome ou ID. Criação exige o nome.</div>
-<div class="help-field"><strong>SST — catálogos</strong> Riscos, EPIs, exames, treinamentos, CIDs, médicos, GHE/ambientes, tipos de equipamento e equipamentos de segurança. Chave típica: código (ou CRM no médico, nome no EPI). Em equipamentos o código é gerado pelo prefixo do tipo (ex.: <code>EXT00001</code>); use patrimônio ou o código gerado para atualizar. Referências a departamento no GHE e no equipamento usam nome ou ID.</div>
+<div class="help-field"><strong>SST — catálogos</strong> Riscos, EPIs, exames, treinamentos, CIDs, médicos, GHE/ambientes, tipos de equipamento e equipamentos de segurança. Chave típica: código (ou CRM no médico, nome no EPI). Em equipamentos o código é gerado pelo prefixo do tipo <strong>por site</strong> (ex.: <code>EXT00001</code> em cada unidade); o campo <em>Empresa (site)</em> é obrigatório na inclusão (Laboratório Tiaraju, Afra Pharma ou Afra Biotics). Para atualizar, use patrimônio ou o código gerado e, se o mesmo código existir em mais de um site, informe também o site. Referências a departamento no GHE e no equipamento usam nome ou ID.</div>
 <div class="help-field"><strong>SST — matrizes</strong> Risco × cargo/setor, risco × EPI, risco × exame, risco × treinamento, necessidades de EPI/exame/treinamento, checklist de tipo, GHE × colaborador e GHE × treinamento. Cargo, setor, risco, tipo e item entram por nome/código. Em risco × cargo informe cargo e/ou departamento. Colaborador no GHE aceita login, e-mail, CPF, nome ou ID.</div>
 <div class="help-field"><strong>Ordem recomendada (SST)</strong> 1) departamentos e cargos; 2) usuários, se precisar de responsável ou GHE × colaborador; 3) catálogos SST (tipos de equipamento <em>antes</em> dos equipamentos); 4) matrizes, necessidades, checklists e vínculos de GHE. Sem o cadastro base, a linha da matriz falha com “não encontrado”.</div>
 <div class="help-field"><strong>O que esta Central não importa (SST)</strong> ASO, entregas/fichas de EPI, movimentos de estoque, acidentes, afastamentos, vistorias e recargas avulsas, PPP, eSocial, histórico de aplicação de treinamento e programas PGR/PCMSO (com anexos). Esses fluxos continuam nas telas operacionais do módulo.</div>
 <div class="help-field"><strong>Operação</strong> Só inserir ignora quem já existe; só atualizar ignora quem não existe; upsert faz os dois.</div>
-<div class="help-field"><strong>Jobs</strong> Cada envio vira um job persistente (arquivo em pasta privada). O relatório lista no máximo 500 linhas.</div>
+<div class="help-field"><strong>Registrar importação</strong> Depois de uma simulação com arquivo e mapeamento ainda disponíveis, grava no banco as mesmas linhas. Confirme no aviso. O job deixa de ser simulação e o relatório passa a mostrar criado/atualizado de verdade.</div>
 <div class="help-field"><strong>Importar Usuários (clássico)</strong> A rota <code>import-users</code> permanece para formações e template oficial. Use a Central para testes cadastrais e carga de setores/cargos por nome.</div>
 
 <h2>Problemas comuns</h2>
@@ -55,11 +55,13 @@
     <dt>Erro 006 ao abrir o hub</dt>
     <dd>A migration das páginas/jobs ainda não rodou, ou o diretório <code>imports</code> não está no roteador. Rode o Phinx e peça um novo login (cache de menu).</dd>
     <dt>Não vejo equipamentos de segurança na lista</dt>
-    <dd>O tipo chama-se <em>SST — Equipamentos de segurança</em> (catálogos). Não confundir com <em>SST — EPIs</em>. Importe <em>SST — Tipos de equipamento</em> primeiro; o código do equipamento (EXT00001) é gerado na inclusão. Depois escolha o tipo e clique em <strong>Modelo CSV</strong>.</dd>
+    <dd>O tipo chama-se <em>SST — Equipamentos de segurança</em> (catálogos). Não confundir com <em>SST — EPIs</em>. Importe <em>SST — Tipos de equipamento</em> primeiro; informe a Empresa (site) — o código (EXT00001) é gerado na inclusão com contador daquele site. Depois escolha o tipo e clique em <strong>Modelo CSV</strong>.</dd>
     <dt>Departamento/cargo/risco não encontrado</dt>
     <dd>O nome ou código precisa coincidir com o cadastro (espaços extras são normalizados). Importe a base na ordem recomendada, ou use o ID.</dd>
     <dt>A simulação criaria, mas a gravação falha</dt>
-    <dd>A simulação não valida unicidade de e-mail/login no banco da mesma forma que o insert. Corrija duplicatas e tente de novo.</dd>
+    <dd>A simulação não valida unicidade de e-mail/login no banco da mesma forma que o insert. Corrija duplicatas e clique de novo em <strong>Registrar importação</strong>, ou envie o arquivo sem simular.</dd>
+    <dt>Não aparece o botão Registrar importação</dt>
+    <dd>Só vale para job de simulação já concluído, com arquivo e mapeamento salvos. Falta também a permissão <em>ImportCenterCommit</em> (liberada junto com o mapeamento na migration). Super Administrador e Super usuário veem o botão de imediato.</dd>
     <dt>Campo mapeado duas vezes</dt>
     <dd>Cada coluna do arquivo só pode ir para um campo do sistema.</dd>
     <dt>O mapeamento não reconhece as colunas</dt>

@@ -63,6 +63,23 @@ final class SstImportLookup extends DbConnection
         return $row ?: null;
     }
 
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function byCodigoAll(string $table, string $codigo): array
+    {
+        $table = $this->safeTable($table);
+        $codigo = strtoupper(trim($codigo));
+        if ($table === null || $codigo === '') {
+            return [];
+        }
+        $stmt = $this->getConnection()->prepare("SELECT * FROM {$table} WHERE UPPER(codigo) = :c");
+        $stmt->bindValue(':c', $codigo);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
     public function byNome(string $table, string $nome, string $column = 'nome'): ?array
     {
         $table = $this->safeTable($table);

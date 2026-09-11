@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Repository;
 
 use App\adms\Helpers\SstEquipamentoRecargaHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 use App\adms\Models\Services\DbConnection;
 use PDO;
 use Throwable;
@@ -48,8 +49,12 @@ class SstEquipamentoRecargasRepository extends DbConnection
             $params[':eq'] = $equipamentoId;
         }
         if ($empresaContratante !== null && $empresaContratante !== '') {
-            $where[] = 'e.empresa_contratante = :empresa';
-            $params[':empresa'] = $empresaContratante;
+            $where[] = SstEquipamentoSiteHelper::sqlInColumn(
+                'e.empresa_contratante',
+                $empresaContratante,
+                $params,
+                'empresa'
+            );
         }
         if ($tipoId !== null && $tipoId > 0) {
             $where[] = 'e.adms_sst_equipamento_tipo_id = :tipo';

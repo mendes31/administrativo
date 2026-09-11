@@ -1,6 +1,6 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
-use App\adms\Helpers\UserFormHelper;
+use App\adms\Helpers\SstEquipamentoSiteHelper;
 
 $nc = $this->data['nc'] ?? [];
 $acoes = $this->data['acoes'] ?? [];
@@ -13,7 +13,7 @@ $podeCriarAc = $aberta && in_array('SstCreateEquipamentoAcaoCorretiva', $perms, 
 $podeEncerrar = $aberta && in_array('SstEncerrarEquipamentoNaoConformidade', $perms, true);
 $csrfEncerrar = CSRFHelper::generateCSRFToken('sst_encerrar_nc');
 $acoesConcluidas = array_values(array_filter($acoes, static fn ($a) => ($a['status'] ?? '') === 'Concluído'));
-$filial = UserFormHelper::empresaContratanteLabel($nc['empresa_contratante'] ?? null);
+$filial = SstEquipamentoSiteHelper::label($nc['empresa_contratante'] ?? null);
 ?>
 <div class="container-fluid px-3 px-md-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -51,7 +51,7 @@ $filial = UserFormHelper::empresaContratanteLabel($nc['empresa_contratante'] ?? 
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="text-muted">Grupo / Filial</div>
+                    <div class="text-muted">Grupo / site</div>
                     <div class="fw-semibold"><?= htmlspecialchars($nc['tipo_nome'] ?? '') ?> · <?= htmlspecialchars($filial) ?></div>
                 </div>
                 <div class="col-6 col-md-3">

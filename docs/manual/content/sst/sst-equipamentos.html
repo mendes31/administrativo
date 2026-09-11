@@ -3,8 +3,21 @@
 <h2>Função no sistema</h2>
 <p>Controle de equipamentos de segurança (extintores, hidrantes, etc.) com checklist e vistorias periódicas.</p>
 
+<h2>O que significam os termos</h2>
+<div class="help-field"><strong>Site</strong> Unidade física da lista fixa: Laboratório Tiaraju, Afra Pharma ou Afra Biotics. Independente do cadastro de empresas/filiais.</div>
+<div class="help-field"><strong>Código do equipamento</strong> Prefixo do grupo + 5 dígitos (ex.: <code>EXT00001</code>). Cada site tem o próprio contador: o Laboratório Tiaraju e a Afra Pharma podem ter, cada um, um <code>EXT00001</code>.</div>
 
 <p><strong>Quem acessa:</strong> SST e responsáveis com <em>SstListEquipamentos</em>, <em>SstCreateEquipamento</em>, <em>SstListEquipamentoTipos</em>, <em>SstRegisterEquipamentoRecarga</em>, <em>SstMinhasEquipamentoVistorias</em>.</p>
+
+<h2>Lista de equipamentos</h2>
+<div class="help-field"><strong>Ordem</strong> Agrupa por site (Laboratório Tiaraju, Afra Pharma, Afra Biotics) e, dentro do site, pelo grupo e pelo código sequencial.</div>
+<div class="help-field"><strong>Nº série</strong> Número de série do fabricante, exibido na tabela.</div>
+<div class="help-field"><strong>Colunas</strong> Código, série, grupo, site, localização, periodicidade, próxima recarga, pendências e status. O responsável não aparece na lista — só na ficha e no cadastro.</div>
+<div class="help-field"><strong>Busca</strong> Localiza por qualquer campo do cadastro (código, série, patrimônio, fabricante, modelo/agente, capacidade, localização, site, grupo, responsável, departamento, status, observações, datas de fabricação/recarga), mesmo que a coluna não apareça na lista.</div>
+<div class="help-field"><strong>Celular</strong> A lista vira cartões (código, série, site, local). Busca fica no topo; os demais filtros abrem no ícone de funil. No computador permanece a tabela.</div>
+
+<h2>Ficha do equipamento</h2>
+<div class="help-field"><strong>Dados do cadastro</strong> Nº de série e localização em destaque; os demais campos em grade compacta (várias colunas). No computador o QR fica ao lado; no celular, abra <em>QR / etiqueta</em>.</div>
 
 <h2>Tipos de equipamento</h2>
 <p>Cadastre cada categoria (Extintor, Hidrante, etc.) antes dos equipamentos. O <strong>prefixo</strong> define a numeração automática.</p>
@@ -12,7 +25,7 @@
 <h3>Campos do tipo</h3>
 <div class="help-field"><strong>Nome *</strong> Nome exibido nas listas e no cadastro do equipamento (ex.: Extintor).</div>
 <div class="help-field"><strong>Código *</strong> Identificador interno do tipo (ex.: <code>EXTINTOR</code>). Não é o código do equipamento; serve para organização e busca.</div>
-<div class="help-field"><strong>Prefixo *</strong> Exatamente <strong>3 caracteres</strong> (A–Z / 0–9), únicos no sistema (ex.: <code>EXT</code>, <code>HID</code>). Usado para gerar o código do equipamento (<code>EXT00001</code>).</div>
+<div class="help-field"><strong>Prefixo *</strong> Exatamente <strong>3 caracteres</strong> (A–Z / 0–9), únicos no sistema (ex.: <code>EXT</code>, <code>HID</code>). Usado para gerar o código do equipamento (<code>EXT00001</code>), com numeração separada por site.</div>
 <div class="help-field"><strong>Controla recarga / validade de carga</strong> Marque para tipos que precisam de controle de recarga (ex.: Extintor). Habilita campos de data no equipamento, histórico e alertas. Tipos sem essa necessidade (hidrante, porta, etc.) deixam desmarcado.</div>
 <div class="help-field"><strong>Validade padrão (meses)</strong> Quando controla recarga: quantidade de meses usada para calcular a próxima data ao registrar uma recarga (padrão 12).</div>
 <div class="help-field"><strong>Status</strong> Ativo = disponível no cadastro de equipamentos; Inativo = oculto nas novas inclusões.</div>
@@ -23,11 +36,11 @@
 
 <h3>Identificação</h3>
 <div class="help-field"><strong>Grupo *</strong> Selecione primeiro. Define o checklist das vistorias e o prefixo do código. Ex.: Extintor (EXT). Cadastro em Tipos de equipamento.</div>
-<div class="help-field"><strong>Código *</strong> Gerado automaticamente: prefixo do grupo + 5 dígitos (ex.: <code>EXT00001</code>). Na inclusão, a tela mostra uma prévia; o valor definitivo é confirmado ao salvar. Na edição, o código não pode ser alterado.</div>
+<div class="help-field"><strong>Código *</strong> Gerado automaticamente: prefixo do grupo + 5 dígitos (ex.: <code>EXT00001</code>), <strong>com contador próprio em cada site</strong>. Na inclusão, escolha o grupo e o site para ver a prévia; o valor definitivo é confirmado ao salvar. Na edição, o código não muda (mesmo se o site for alterado).</div>
 <div class="help-field"><strong>Patrimônio</strong> Número patrimonial da empresa (plaqueta / inventário físico), se houver. Independente do código automático.</div>
 <div class="help-field"><strong>Status</strong> Ativo = entra na fila de vistorias; Inativo = pausado; Baixado = fora de uso (descarte / substituição).</div>
-<div class="help-field"><strong>Filial / empresa contratante</strong> Mesmas opções do cadastro de usuário (Dados Contratuais): Tiaraju Farma, Lab. Tiaraju Matriz, Lab. Tiaraju Filial.</div>
-<div class="help-field"><strong>Localização</strong> Onde o equipamento está instalado (setor, sala, torre, etc.). Facilita a vistoria em campo.</div>
+<div class="help-field"><strong>Empresa (site) *</strong> Obrigatório. Lista fixa: Laboratório Tiaraju, Afra Pharma e Afra Biotics. Define o contador do código e compõe a localização junto com a sala/área.</div>
+<div class="help-field"><strong>Localização (sala / área)</strong> Onde o equipamento está instalado (setor, sala, torre). Na tela e nos PDFs aparece junto com o site (ex.: Laboratório Tiaraju — SALA TI).</div>
 <div class="help-field"><strong>Departamento</strong> Departamento responsável pela área do equipamento (opcional).</div>
 <div class="help-field"><strong>Responsável</strong> Usuário que recebe as vistorias na fila “Minhas vistorias”. Se vazio (“fila geral”), qualquer usuário com permissão pode executar conforme a regra do módulo.</div>
 
@@ -57,15 +70,16 @@
 <h2>Código automático (resumo)</h2>
 <ol>
 <li>Cadastre o tipo com <strong>prefixo</strong> de 3 caracteres.</li>
-<li>No equipamento, escolha o <strong>grupo</strong>.</li>
-<li>O sistema gera <code>PREFIXO</code> + sequência de 5 dígitos (ex.: <code>HID00002</code>).</li>
+<li>No equipamento, escolha o <strong>grupo</strong> e a <strong>empresa (site)</strong>.</li>
+<li>O sistema gera <code>PREFIXO</code> + sequência de 5 dígitos daquele site (ex.: <code>HID00002</code> no Laboratório Tiaraju). Outro site recomeça a contagem.</li>
+<li>Os equipamentos já cadastrados foram reenumerados <strong>uma vez</strong> nessa regra (por grupo e site, na ordem em que estavam). O QR continua o mesmo; se a etiqueta impressa mostra o código antigo, emita de novo.</li>
 <li>Novos tipos podem ser criados a qualquer momento, desde que o prefixo seja único.</li>
 </ol>
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
 <li>Cadastre <strong>tipos</strong> com prefixo e checklist. Em lote: Central de Importações → <em>SST — Tipos de equipamento</em> e, se quiser, <em>SST — Checklist de tipo</em>.</li>
-<li>Cadastre o <strong>equipamento</strong> (tipo → código automático → localização e demais dados), ou importe pelo tipo <em>SST — Equipamentos de segurança</em> (o código continua gerado pelo prefixo; use patrimônio ou o código gerado para atualizar).</li>
+<li>Cadastre o <strong>equipamento</strong> (tipo + site → código automático daquele site → localização e demais dados), ou importe pelo tipo <em>SST — Equipamentos de segurança</em> (informe o site; o código é gerado pelo prefixo naquele site). Para atualizar, use patrimônio ou o código gerado + o site, se o mesmo código existir em mais de um site.</li>
 <li>Ajuste periodicidade e, se necessário, as <strong>Config. vistorias</strong>.</li>
 <li>O responsável executa em <strong>Minhas vistorias</strong> ou via <strong>Ler QR</strong>.</li>
 <li>Itens não conformes podem gerar plano de ação.</li>
@@ -117,11 +131,13 @@
 
 <h2>Problemas comuns</h2>
 <dl>
-<dt>Recarga vencida na lista</dt><dd>Abra o equipamento e use <strong>Registrar recarga</strong> com a nova data; a próxima é recalculada automaticamente.</dd>
+<dt>Não acho o equipamento na lista</dt><dd>A <strong>Busca</strong> cobre qualquer campo do cadastro (série, patrimônio, fabricante, localização…), não só o que aparece na tabela. A lista agrupa por site e depois pelo código.</dd>
 <dt>Campos de recarga não aparecem</dt><dd>No tipo do equipamento, marque <strong>Controla recarga / validade de carga</strong> (ex.: Extintor).</dd>
-<dt>Não consigo salvar o equipamento</dt><dd>Confirme se o tipo tem <strong>prefixo</strong> de 3 caracteres cadastrado.</dd>
+<dt>Não consigo salvar o equipamento</dt><dd>Confirme o <strong>site</strong> e se o tipo tem <strong>prefixo</strong> de 3 caracteres cadastrado.</dd>
 <dt>Prefixo já existe</dt><dd>Cada tipo precisa de um prefixo único (ex.: EXT, HID).</dd>
-<dt>Código não muda na edição</dt><dd>É intencional: o código é gerado só no cadastro e permanece fixo.</dd>
+<dt>Vi o mesmo código em dois sites</dt><dd>É esperado: a numeração é independente. Distinga pelo site (e pela localização).</dd>
+<dt>Erro ao mudar o site na edição</dt><dd>O código não é regenerado. Se o site de destino já tiver um equipamento com o mesmo código, escolha outro site ou mantenha o atual.</dd>
+<dt>Código não muda na edição</dt><dd>É intencional: o código é gerado só no cadastro e permanece fixo, mesmo se você mudar o site depois.</dd>
 <dt>QR cai no dashboard após login</dt><dd>Atualize a página e escaneie de novo; o retorno pós-login deve abrir o painel do equipamento. Se persistir, limpe o cache do navegador e confirme que a URL do QR contém <code>sst-scan-equipamento/</code> + token.</dd>
 <dt>QR não abre vistoria</dt><dd>Equipamento inativo/baixado, você não é o responsável, ou vistoria já concluída no período. O painel ainda mostra os dados e o status de recarga.</dd>
 <dt>PDF da vistoria sem fotos</dt><dd>Anexe as imagens na tela de execução (câmera/galeria) e clique em Salvar fotos antes ou ao concluir. O PDF só lista fotos já gravadas.</dd>

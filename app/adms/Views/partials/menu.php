@@ -259,7 +259,7 @@ $menus = [
                     'icon' => 'fa-solid fa-file-import',
                     'related_routes' => [
                         'import-center', 'import-center-create', 'import-center-map',
-                        'import-center-view', 'import-center-template',
+                        'import-center-view', 'import-center-commit', 'import-center-template',
                     ],
                 ],
             ];
