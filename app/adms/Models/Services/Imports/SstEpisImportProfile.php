@@ -85,7 +85,8 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
         return [
             'nome' => $nome,
             'descricao' => SstImportValues::v($mapped, 'descricao') ?: null,
-            'categoria' => SstImportValues::v($mapped, 'categoria') ?: null,
+            'categoria' => \App\adms\Helpers\SstEpiCategoriaHelper::canonicalize(SstImportValues::v($mapped, 'categoria'))
+                ?: (SstImportValues::v($mapped, 'categoria') ?: null),
             'estoque_minimo' => SstImportValues::v($mapped, 'estoque_minimo') !== '' ? (int) SstImportValues::v($mapped, 'estoque_minimo') : 0,
             'controla_tamanho' => $grade !== [] ? 1 : 0,
             'grade_tamanhos' => $grade !== [] ? SstEpiTamanhoHelper::serializeGrade($grade) : null,

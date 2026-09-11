@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEpiCatalogHelper;
+use App\adms\Helpers\SstEpiImagemHelper;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Services\SstEpiEstoqueService;
 use App\adms\Models\Repository\DepartmentsRepository;
@@ -133,6 +134,16 @@ class SstCreateEpi
             $_SESSION['msg_type'] = 'danger';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi');
             exit;
+        }
+        $img = SstEpiImagemHelper::fromRequest($_FILES['imagem'] ?? null, null, false);
+        if (!$img['ok']) {
+            $_SESSION['msg'] = $img['error'] ?? 'Erro na imagem.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-create-epi');
+            exit;
+        }
+        if ($img['changed']) {
+            $data['imagem'] = $img['path'];
         }
 
         $repo = new SstEpisRepository();

@@ -155,8 +155,6 @@ class SstEpiEntregasRepository extends DbConnection
         return $cache[$column];
     }
 
-    private function bindField(\PDOStatement $stmt, string $param, mixed $value): void
-
     public function update(int $id, array $data): bool
     {
         $oldData = $this->getById($id);

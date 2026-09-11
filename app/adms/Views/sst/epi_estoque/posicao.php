@@ -64,7 +64,7 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
                         $saldosTam = $r['saldos_tamanho'] ?? [];
                         $controla = !empty($r['controla_tamanho']);
                     ?>
-                        <tr class="<?= $baixo ? 'table-warning' : '' ?>">
+                        <tr class="<?= $baixo ? 'table-warning' : ($min > 0 && !$controla ? 'sst-epi-estoque-ok' : '') ?>">
                             <td>
                                 <strong><?= htmlspecialchars($r['nome'] ?? '') ?></strong>
                                 <div class="small text-muted"><?= htmlspecialchars($r['categoria'] ?? '') ?>
@@ -96,7 +96,7 @@ $urlAdm = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
                                 $casTxt[] = ($c['ca_numero'] ?? '') . ': ' . (int) ($c['saldo'] ?? 0);
                             }
                         ?>
-                        <tr class="<?= $baixoTam ? 'table-warning' : '' ?>">
+                        <tr class="<?= $baixoTam ? 'table-warning' : (!empty($st['estoque_ok']) ? 'sst-epi-estoque-ok' : '') ?>">
                             <td class="ps-4 small text-muted"><?= htmlspecialchars($r['nome'] ?? '') ?></td>
                             <td><strong><?= htmlspecialchars(SstEpiTamanhoHelper::label($st['tamanho'] ?? '')) ?></strong></td>
                             <td><?= $saldoTam ?><?php if ($baixoTam): ?> <span class="badge bg-warning text-dark">Comprar</span><?php endif; ?></td>

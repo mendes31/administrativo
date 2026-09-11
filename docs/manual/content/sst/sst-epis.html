@@ -13,13 +13,13 @@
     <dt>Grade de tamanhos</dt>
     <dd>Lista de numerações (33–46) ou letras (PP–XXG) do mesmo EPI. O saldo é controlado por tamanho, não por um cadastro para cada número.</dd>
     <dt>Mínimo padrão por tamanho</dt>
-    <dd>Com grade, o campo estoque mínimo do cadastro vale para <em>cada</em> numeração. O nº 38 com mínimo 3 alerta quando houver 3 ou menos daquele número, mesmo que o total do EPI esteja alto.</dd>
+    <dd>Com grade, o campo estoque mínimo do cadastro vale para <em>cada</em> numeração. O nº 38 com mínimo 3 alerta quando houver <em>menos</em> de 3 daquele número (saldo igual ao mínimo ainda está ok).</dd>
 </dl>
 
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Cadastre o EPI com nome e categoria de proteção. O Nº CA entra nas movimentações, não no catálogo.</li>
+<li>Cadastre o EPI com nome, categoria de proteção e, se quiser, uma <strong>foto</strong> do item. O Nº CA entra nas movimentações, não no catálogo.</li>
 <li>Informe a vida útil padrão (dias) e o estoque mínimo.</li>
 <li>Se for calçado ou uniforme, escolha a grade (calçado 33–46, vestuário PP–XXG ou lista personalizada).</li>
 <li>Com grade: o estoque mínimo vira o <strong>padrão de cada tamanho</strong>. Preencha só os números que precisam de outro valor (ex.: nº 38 = 8).</li>
@@ -28,11 +28,13 @@
 </ol>
 <h2>Campos e telas</h2>
 <div class="help-field"><strong>Nome</strong> Descrição do item (ex.: Calçado de segurança). Um cadastro cobre todos os números.</div>
-<div class="help-field"><strong>Categoria</strong> Auricular, respiratória, pés, tronco, etc.</div>
+<div class="help-field"><strong>Foto</strong> Imagem ilustrativa (JPG, PNG, GIF ou WEBP, até 5 MB). Aparece na listagem e na ficha do EPI. Opcional; dá para trocar ou remover na edição.</div>
+<div class="help-field"><strong>Categoria</strong> Tipo de proteção (cabeça, tronco, pés, etc.). Na edição o valor cadastrado permanece selecionado; variações como “Proteção de Tronco” equivalem a “Proteção do Tronco”.</div>
 <div class="help-field"><strong>Tamanho / numeração</strong> Não controla; calçado; vestuário; ou grade personalizada (ex.: 36, 37, 38).</div>
 <div class="help-field"><strong>Estoque mínimo</strong> Sem grade: alerta no total. Com grade: mínimo padrão de cada tamanho. Exceções na grade “Mínimo por numeração”.</div>
 <div class="help-field"><strong>Mínimo por numeração</strong> Campo vazio usa o padrão. Só grave valores diferentes (nº mais usado, etc.).</div>
 <div class="help-field"><strong>Validade de troca</strong> Periodicidade recomendada de substituição, em dias.</div>
+<div class="help-field"><strong>Lista / Posição</strong> Verde: saldo ≥ mínimo. Badge Comprar (amarelo) só se o saldo for <em>menor</em> que o mínimo daquele tamanho (ou do total, sem grade).</div>
 <div class="help-field"><strong>Importação (Central)</strong> Tipo <em>SST — EPIs</em>. <em>grade_tamanhos</em>: vazio, <code>calcado</code>, <code>vestuario</code> ou lista. <em>estoque_minimo</em> com grade = padrão por tamanho. <em>min_tamanhos</em> = exceções na mesma linha, ex. <code>38=8, 42=5</code> (os demais usam o padrão).</div>
 <h2>Problemas comuns</h2>
 <dl>
@@ -41,5 +43,6 @@
 <dt>EPI do GHE e do cargo duplicado</dt><dd>O mesmo item conta uma vez nas pendências e no perfil. No GHE o selo “Já no cargo” indica a sobreposição.</dd>
 <dt>Alerta estoque mínimo no total, mas falta o nº 38</dt><dd>Ative a grade no cadastro e defina o mínimo padrão (e, se preciso, o mínimo do 38). O alerta passa a ser por numeração.</dd>
 <dt>Importação não traz mínimo por número</dt><dd>Use a coluna <code>min_tamanhos</code> no formato <code>38=8, 42=5</code>, ou preencha a grade no cadastro do EPI. Os tamanhos omitidos usam o <em>estoque_minimo</em> padrão.</dd>
+<dt>Foto não envia ou some depois de salvar</dt><dd>Use JPG, PNG, GIF ou WEBP de até 5 MB. Se a tela não mudou, atualize com Ctrl+F5. A foto não entra na importação da Central.</dd>
 <dt>Entrega bloqueada por treinamento</dt><dd>Aplique treinamento SST vinculado ao EPI.</dd>
 </dl>

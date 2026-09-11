@@ -216,7 +216,10 @@ class SstEpiEstoqueService
             $payload['tamanho'] = $tam;
         }
 
-        $this->registrarMovimento($payload);
+        $result = $this->registrarMovimento($payload);
+        if (empty($result['ok'])) {
+            error_log('SST EPI: falha ao baixar estoque da ficha #' . $fichaId . ': ' . (string) ($result['error'] ?? 'erro'));
+        }
     }
 
     public function syncEstoqueCache(int $epiId): void
@@ -293,7 +296,7 @@ class SstEpiEstoqueService
                 }
             } else {
                 $ep['saldos_tamanho'] = [];
-                $ep['estoque_baixo'] = $padrao > 0 && (int) $ep['estoque_calculado'] <= $padrao;
+                $ep['estoque_baixo'] = $padrao > 0 && (int) $ep['estoque_calculado'] < $padrao;
             }
         }
         unset($ep);

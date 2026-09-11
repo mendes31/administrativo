@@ -74,6 +74,12 @@ class SstEpisRepository extends DbConnection
             array_splice($cols, $at, 0, ['controla_tamanho', 'grade_tamanhos']);
             array_splice($vals, $at, 0, [':controla_tamanho', ':grade_tamanhos']);
         }
+        if ($this->hasColumn('imagem') && array_key_exists('imagem', $data)) {
+            $descIdx = array_search('descricao', $cols, true);
+            $at = $descIdx === false ? count($cols) : $descIdx + 1;
+            array_splice($cols, $at, 0, ['imagem']);
+            array_splice($vals, $at, 0, [':imagem']);
+        }
 
         $sql = 'INSERT INTO adms_sst_epis (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $vals) . ')';
         $stmt = $this->getConnection()->prepare($sql);
@@ -86,6 +92,9 @@ class SstEpisRepository extends DbConnection
         if ($this->hasColumn('controla_tamanho')) {
             $this->bindField($stmt, ':controla_tamanho', !empty($data['controla_tamanho']) ? 1 : 0);
             $this->bindField($stmt, ':grade_tamanhos', $data['grade_tamanhos'] ?? null);
+        }
+        if ($this->hasColumn('imagem') && array_key_exists('imagem', $data)) {
+            $this->bindField($stmt, ':imagem', $data['imagem'] ?? null);
         }
         $this->bindField($stmt, ':periodicidade_troca_dias', $data['periodicidade_troca_dias'] ?? null);
         $this->bindField($stmt, ':status', $data['status'] ?? null);
@@ -125,6 +134,9 @@ class SstEpisRepository extends DbConnection
             $sets[] = 'controla_tamanho = :controla_tamanho';
             $sets[] = 'grade_tamanhos = :grade_tamanhos';
         }
+        if ($this->hasColumn('imagem') && array_key_exists('imagem', $data)) {
+            $sets[] = 'imagem = :imagem';
+        }
 
         $sql = 'UPDATE adms_sst_epis SET ' . implode(', ', $sets) . ' WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
@@ -138,6 +150,9 @@ class SstEpisRepository extends DbConnection
         if ($this->hasColumn('controla_tamanho')) {
             $this->bindField($stmt, ':controla_tamanho', !empty($data['controla_tamanho']) ? 1 : 0);
             $this->bindField($stmt, ':grade_tamanhos', $data['grade_tamanhos'] ?? null);
+        }
+        if ($this->hasColumn('imagem') && array_key_exists('imagem', $data)) {
+            $this->bindField($stmt, ':imagem', $data['imagem'] ?? null);
         }
         $this->bindField($stmt, ':periodicidade_troca_dias', $data['periodicidade_troca_dias'] ?? null);
         $this->bindField($stmt, ':status', $data['status'] ?? null);
@@ -201,7 +216,7 @@ class SstEpisRepository extends DbConnection
             $params[':status'] = $filters['status'];
         }
         if (!empty($filters['estoque_baixo'])) {
-            $where[] = 't.estoque_minimo > 0 AND t.estoque_atual <= t.estoque_minimo';
+            $where[] = 't.estoque_minimo > 0 AND t.estoque_atual < t.estoque_minimo';
         }
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 

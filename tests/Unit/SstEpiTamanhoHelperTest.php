@@ -99,5 +99,17 @@ final class SstEpiTamanhoHelperTest extends TestCase
         self::assertTrue($porTam['38']['estoque_baixo']);
         self::assertSame(8, $porTam['38']['minimo']);
         self::assertFalse($porTam['39']['estoque_baixo']);
+        self::assertTrue($porTam['39']['estoque_ok']);
+
+        $igualAoMin = SstEpiTamanhoHelper::linhasEstoquePorTamanho(
+            ['38'],
+            [['tamanho' => '38', 'saldo' => 5, 'cas' => []]],
+            5,
+            []
+        );
+        self::assertFalse($igualAoMin[0]['estoque_baixo']);
+        self::assertTrue($igualAoMin[0]['estoque_ok']);
+        self::assertSame('sst-epi-estoque-ok', SstEpiTamanhoHelper::classeLinhaEstoque(5, 5));
+        self::assertSame('table-warning', SstEpiTamanhoHelper::classeLinhaEstoque(4, 5));
     }
 }

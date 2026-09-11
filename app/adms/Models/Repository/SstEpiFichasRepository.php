@@ -298,20 +298,73 @@ class SstEpiFichasRepository extends DbConnection
         return true;
     }
 
-    private function syncEntregasFromFicha(int $fichaId, int $actorUserId): void
+    /**
+     * Garante baixa de estoque de fichas já assinadas (reprocessa itens sem movimento ET).
+     */
+    public function garantirBaixaEstoqueFichasAssinadasDoEpi(int $epiId): void
     {
-        if (!$this->hasColumnOnEntregas('adms_sst_epi_ficha_id')) {
+        if ($epiId <= 0 || !$this->hasTableFichas()) {
             return;
         }
+        $sql = 'SELECT DISTINCT f.id
+                FROM adms_sst_epi_fichas f
+                INNER JOIN adms_sst_epi_ficha_itens i ON i.adms_sst_epi_ficha_id = f.id
+                WHERE f.status_assinatura = \'Assinado\' AND i.adms_sst_epi_id = :epi';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':epi', $epiId, PDO::PARAM_INT);
+        $stmt->execute();
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $this->baixarEstoqueItensDaFicha((int) ($row['id'] ?? 0));
+        }
+    }
+
+    public function garantirBaixaEstoqueFichaAssinada(int $fichaId): void
+    {
+        $ficha = $this->getById($fichaId);
+        if (!$ficha || ($ficha['status_assinatura'] ?? '') !== 'Assinado') {
+            return;
+        }
+        $this->baixarEstoqueItensDaFicha($fichaId);
+    }
+
+    private function hasTableFichas(): bool
+    {
+        try {
+            $this->getConnection()->query('SELECT 1 FROM adms_sst_epi_fichas LIMIT 1');
+
+            return true;
+        } catch (\PDOException) {
+            return false;
+        }
+    }
+
+    private function syncEntregasFromFicha(int $fichaId, int $actorUserId): void
+    {
         $ficha = $this->getById($fichaId);
         if (!$ficha) {
             return;
         }
         $itens = $this->getItens($fichaId);
-        $entregaRepo = new SstEpiEntregasRepository();
+        if ($this->hasColumnOnEntregas('adms_sst_epi_ficha_id')) {
+            $entregaRepo = new SstEpiEntregasRepository();
+            foreach ($itens as $item) {
+                try {
+                    $entregaRepo->createFromFichaItem($ficha, $item, $fichaId, $actorUserId);
+                } catch (\Throwable) {
+                }
+            }
+        }
+        $this->baixarEstoqueItensDaFicha($fichaId);
+    }
+
+    private function baixarEstoqueItensDaFicha(int $fichaId): void
+    {
+        $ficha = $this->getById($fichaId);
+        if (!$ficha) {
+            return;
+        }
         $estoqueSvc = new \App\adms\Models\Services\SstEpiEstoqueService();
-        foreach ($itens as $item) {
-            $entregaRepo->createFromFichaItem($ficha, $item, $fichaId, $actorUserId);
+        foreach ($this->getItens($fichaId) as $item) {
             $estoqueSvc->registrarSaidaPorFicha(
                 $fichaId,
                 (int) ($item['adms_sst_epi_id'] ?? 0),

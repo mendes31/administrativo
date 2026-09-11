@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\SstEpiFichasRepository;
 use App\adms\Models\Repository\SstEpiEstoqueMinTamanhoRepository;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstEpiMovimentosRepository;
@@ -32,6 +33,7 @@ class SstViewEpi
             exit;
         }
         $itemId = (int) $this->data['item']['id'];
+        (new SstEpiFichasRepository())->garantirBaixaEstoqueFichasAssinadasDoEpi($itemId);
         $returnUrl = $_ENV['URL_ADM'] . 'sst-view-epi/' . $itemId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_sst_epis', $itemId, $returnUrl);
         $this->data['movimentos'] = (new SstEpiMovimentosRepository())->getByEpiId($itemId, 20);

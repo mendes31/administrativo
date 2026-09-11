@@ -94,6 +94,7 @@ $filtersId = 'sstFiltersEpi';
                 <div class="d-none d-md-block table-responsive">
                     <table class="table table-bordered table-striped table-hover">
                         <thead><tr>
+                            <th></th>
                             <th>Id</th>
 <th>Nome</th>
 <th>Categoria</th>
@@ -109,9 +110,18 @@ $filtersId = 'sstFiltersEpi';
                             $estoqueMin = (int)($item['estoque_minimo'] ?? 0);
                             $estoqueBaixo = array_key_exists('estoque_baixo', $item)
                                 ? !empty($item['estoque_baixo'])
-                                : ($estoqueMin > 0 && $estoqueAtual <= $estoqueMin);
+                                : ($estoqueMin > 0 && $estoqueAtual < $estoqueMin);
+                            $estoqueOk = !$estoqueBaixo && $estoqueMin > 0;
                         ?>
-                            <tr class="<?= $estoqueBaixo ? 'table-warning' : '' ?>">
+                            <tr class="<?= $estoqueBaixo ? 'table-warning' : ($estoqueOk ? 'sst-epi-estoque-ok' : '') ?>">
+                                <td class="text-center align-middle">
+                                    <?php $fotoUrl = \App\adms\Helpers\SstEpiImagemHelper::url($item['imagem'] ?? null); ?>
+                                    <?php if ($fotoUrl !== ''): ?>
+                                        <img src="<?= htmlspecialchars($fotoUrl) ?>" alt="" class="sst-epi-thumb">
+                                    <?php else: ?>
+                                        <span class="sst-epi-thumb sst-epi-thumb-empty" title="Sem foto"><i class="fas fa-hard-hat"></i></span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?= formatCellValue('id', $item['id'] ?? null) ?></td>
 <td><?= formatCellValue('nome', $item['nome'] ?? null) ?></td>
 <td><?= formatCellValue('categoria', $item['categoria'] ?? null) ?></td>
@@ -148,6 +158,12 @@ $filtersId = 'sstFiltersEpi';
                     ?>
                         <div class="card mb-2 shadow-sm"<?php if ($canView): ?> onclick="window.location.href='<?= $viewUrl ?>';" style="cursor:pointer;"<?php endif; ?>>
                             <div class="card-body py-2 px-3">
+                                <div class="d-flex gap-2 align-items-start">
+                                    <?php $fotoUrlMob = \App\adms\Helpers\SstEpiImagemHelper::url($item['imagem'] ?? null); ?>
+                                    <?php if ($fotoUrlMob !== ''): ?>
+                                        <img src="<?= htmlspecialchars($fotoUrlMob) ?>" alt="" class="sst-epi-thumb">
+                                    <?php endif; ?>
+                                    <div class="flex-grow-1">
                                 <div class="fw-bold small"><?= formatCellValue('nome', $item['nome'] ?? $id) ?></div>
                                 <?php if (!empty($item['categoria'])): ?>
                                     <div class="small text-muted"><?= formatCellValue('categoria', $item['categoria']) ?></div>
@@ -158,6 +174,8 @@ $filtersId = 'sstFiltersEpi';
                                 <div class="d-flex gap-1 mt-2 pt-2 border-top" onclick="event.stopPropagation();">
                                     <?php if ($canView): ?><a href="<?= $viewUrl ?>" class="btn btn-outline-info btn-sm flex-fill">Ver</a><?php endif; ?>
                                     <?php if (in_array('SstUpdateEpi', $perms)): ?><a href="<?= $_ENV['URL_ADM']; ?>sst-update-epi/<?= $id ?>" class="btn btn-outline-warning btn-sm flex-fill">Editar</a><?php endif; ?>
+                                </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

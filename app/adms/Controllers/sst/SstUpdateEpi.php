@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEpiCatalogHelper;
+use App\adms\Helpers\SstEpiImagemHelper;
 use App\adms\Models\Repository\SstEpiEstoqueMinTamanhoRepository;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Services\SstEpiEstoqueService;
@@ -152,6 +153,22 @@ class SstUpdateEpi
         }
 
         $repo = new SstEpisRepository();
+        $atual = $repo->getById($id);
+        $img = SstEpiImagemHelper::fromRequest(
+            $_FILES['imagem'] ?? null,
+            is_array($atual) ? ($atual['imagem'] ?? null) : null,
+            !empty($_POST['remover_imagem'])
+        );
+        if (!$img['ok']) {
+            $_SESSION['msg'] = $img['error'] ?? 'Erro na imagem.';
+            $_SESSION['msg_type'] = 'danger';
+            header('Location: ' . $_ENV['URL_ADM'] . 'sst-update-epi/' . $id);
+            exit;
+        }
+        if ($img['changed']) {
+            $data['imagem'] = $img['path'];
+        }
+
         if ($repo->update($id, $data)) {
             (new SstEpiEstoqueService())->salvarMinimosDoPost($id, $_POST, $data);
             $_SESSION['msg'] = 'Registro salvo com sucesso.';

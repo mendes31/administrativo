@@ -87,7 +87,7 @@ function formatCellValue(string $col, mixed $value): string {
                                 $casTxt[] = ($c['ca_numero'] ?? '') . ': ' . (int) ($c['saldo'] ?? 0);
                             }
                         ?>
-                        <tr class="<?= $baixoTam ? 'table-warning' : '' ?>">
+                        <tr class="<?= $baixoTam ? 'table-warning' : (!empty($st['estoque_ok']) ? 'sst-epi-estoque-ok' : '') ?>">
                             <td><strong><?= htmlspecialchars(\App\adms\Helpers\SstEpiTamanhoHelper::label($st['tamanho'] ?? '')) ?></strong></td>
                             <td><?= $saldoTam ?><?php if ($baixoTam): ?> <span class="badge bg-warning text-dark">Comprar</span><?php endif; ?></td>
                             <td><?= $minTam > 0 ? $minTam : '—' ?></td>
@@ -129,6 +129,15 @@ function formatCellValue(string $col, mixed $value): string {
             
         </div>
         <div class="col-md-4">
+            <?php $fotoUrl = \App\adms\Helpers\SstEpiImagemHelper::url($item['imagem'] ?? null); ?>
+            <?php if ($fotoUrl !== ''): ?>
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Foto</h5></div>
+                <div class="card-body text-center">
+                    <img src="<?= htmlspecialchars($fotoUrl) ?>" alt="<?= htmlspecialchars((string) ($item['nome'] ?? 'EPI')) ?>" class="img-fluid rounded sst-epi-foto-view">
+                </div>
+            </div>
+            <?php endif; ?>
             <?php if (!empty($this->data['log_resumo'])): $log_resumo = $this->data['log_resumo']; $log_btn_class = 'btn btn-outline-info w-100 mb-4'; include './app/adms/Views/partials/button_log_alteracoes.php'; endif; ?>
         </div>
     </div>

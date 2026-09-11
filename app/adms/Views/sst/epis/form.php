@@ -6,7 +6,8 @@ $item = $this->data['item'] ?? [];
 $isEdit = !empty($item['id']);
 $csrfToken = CSRFHelper::generateCSRFToken('sst_epis_form');
 $action = $isEdit ? 'sst-update-epi/' . (int)$item['id'] : 'sst-create-epi';
-$categoriaSelecionada = $item['categoria'] ?? '';
+$categoriaSelecionada = SstEpiCategoriaHelper::canonicalize((string) ($item['categoria'] ?? ''))
+    ?? trim((string) ($item['categoria'] ?? ''));
 ?>
 <div class="container-fluid px-4">
     <?php include './app/adms/Views/partials/alerts.php'; ?>
@@ -21,7 +22,7 @@ $categoriaSelecionada = $item['categoria'] ?? '';
     </div>
     <div class="card shadow-sm">
         <div class="card-body">
-            <form method="POST" action="<?= $_ENV['URL_ADM']; ?><?= $action ?>">
+            <form method="POST" action="<?= $_ENV['URL_ADM']; ?><?= $action ?>" enctype="multipart/form-data">
                 <input type="hidden" name="csrf_token" value="<?= $csrfToken ?>">
 
                 <h6 class="text-muted text-uppercase small mb-3">Dados básicos</h6>
@@ -34,7 +35,13 @@ $categoriaSelecionada = $item['categoria'] ?? '';
                         <label class="form-label" for="categoria">Categoria de proteção *</label>
                         <select name="categoria" id="categoria" class="form-select" required>
                             <option value="">Selecione...</option>
-                            <?php foreach (SstEpiCategoriaHelper::all() as $cat): ?>
+                            <?php
+                            $catsForm = SstEpiCategoriaHelper::all();
+                            if ($categoriaSelecionada !== '' && !in_array($categoriaSelecionada, $catsForm, true)) {
+                                $catsForm[] = $categoriaSelecionada;
+                            }
+                            foreach ($catsForm as $cat):
+                            ?>
                             <option value="<?= htmlspecialchars($cat) ?>" <?= $categoriaSelecionada === $cat ? 'selected' : '' ?>><?= htmlspecialchars($cat) ?></option>
                             <?php endforeach; ?>
                         </select>
@@ -43,6 +50,26 @@ $categoriaSelecionada = $item['categoria'] ?? '';
                         <label class="form-label" for="descricao">Descrição</label>
                         <textarea name="descricao" id="descricao" class="form-control" rows="2"><?= htmlspecialchars($item['descricao'] ?? '') ?></textarea>
                         <div class="form-text">Detalhes técnicos do item. O Nº CA é informado nas movimentações de estoque.</div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="imagem">Foto do EPI</label>
+                        <?php
+                        $fotoUrl = \App\adms\Helpers\SstEpiImagemHelper::url($item['imagem'] ?? null);
+                        if ($fotoUrl !== ''):
+                        ?>
+                        <div class="mb-2">
+                            <img src="<?= htmlspecialchars($fotoUrl) ?>" alt="Foto atual" class="img-thumbnail sst-epi-foto-preview">
+                        </div>
+                        <div class="form-check mb-2">
+                            <input class="form-check-input" type="checkbox" name="remover_imagem" value="1" id="remover_imagem">
+                            <label class="form-check-label" for="remover_imagem">Remover foto atual</label>
+                        </div>
+                        <?php endif; ?>
+                        <input type="file" name="imagem" id="imagem" class="form-control" accept="image/jpeg,image/png,image/gif,image/webp">
+                        <div class="form-text">JPG, PNG, GIF ou WEBP. Máximo 5 MB. Aparece na listagem e na ficha do item.</div>
+                        <div id="epiImagemPreview" class="mt-2 d-none">
+                            <img alt="Prévia" class="img-thumbnail sst-epi-foto-preview">
+                        </div>
                     </div>
                 </div>
 
@@ -181,5 +208,20 @@ $categoriaSelecionada = $item['categoria'] ?? '';
     sel.addEventListener('change', sync);
     if (gradeInput) gradeInput.addEventListener('input', renderMinimos);
     sync();
+})();
+(function () {
+    const input = document.getElementById('imagem');
+    const wrap = document.getElementById('epiImagemPreview');
+    if (!input || !wrap) return;
+    const img = wrap.querySelector('img');
+    input.addEventListener('change', function () {
+        const file = input.files && input.files[0];
+        if (!file || !img) {
+            wrap.classList.add('d-none');
+            return;
+        }
+        img.src = URL.createObjectURL(file);
+        wrap.classList.remove('d-none');
+    });
 })();
 </script>

@@ -299,10 +299,25 @@ final class SstEpiTamanhoHelper
                 'saldo' => $saldo,
                 'cas' => $cas,
                 'minimo' => $min,
-                'estoque_baixo' => $min > 0 && $saldo <= $min,
+                'estoque_baixo' => self::abaixoDoMinimo($saldo, $min),
+                'estoque_ok' => $min > 0 && $saldo >= $min,
             ];
         }
 
         return $out;
+    }
+
+    public static function abaixoDoMinimo(int $saldo, int $minimo): bool
+    {
+        return $minimo > 0 && $saldo < $minimo;
+    }
+
+    public static function classeLinhaEstoque(int $saldo, int $minimo): string
+    {
+        if ($minimo <= 0) {
+            return '';
+        }
+
+        return $saldo < $minimo ? 'table-warning' : 'sst-epi-estoque-ok';
     }
 }

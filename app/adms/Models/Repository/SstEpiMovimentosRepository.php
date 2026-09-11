@@ -685,7 +685,7 @@ class SstEpiMovimentosRepository extends DbConnection
             $params[':search'] = '%' . $filters['search'] . '%';
         }
         if (!empty($filters['estoque_baixo'])) {
-            $where[] = 'ep.estoque_minimo > 0 AND ep.estoque_atual <= ep.estoque_minimo';
+            $where[] = 'ep.estoque_minimo > 0 AND ep.estoque_atual < ep.estoque_minimo';
         }
         $whereClause = $where ? 'WHERE ' . implode(' AND ', $where) : '';
 

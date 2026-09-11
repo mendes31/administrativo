@@ -30,6 +30,9 @@ class SstViewEpiFicha
         }
         $this->data['item'] = $item;
         $this->data['itens'] = $repo->getItens($fichaId);
+        if (($item['status_assinatura'] ?? '') === 'Assinado') {
+            $repo->garantirBaixaEstoqueFichaAssinada($fichaId);
+        }
         $this->data['epis_entregues'] = $repo->getEpisEntreguesPorColaborador((int) $item['adms_user_id'], 100);
 
         if (($_GET['action'] ?? '') === 'resend_push' && ($item['status_assinatura'] ?? '') === 'Pendente') {

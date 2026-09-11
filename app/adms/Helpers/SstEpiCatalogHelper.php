@@ -16,7 +16,7 @@ final class SstEpiCatalogHelper
     {
         $nome = trim((string) ($post['nome'] ?? ''));
         $descricao = trim((string) ($post['descricao'] ?? ''));
-        $categoria = trim((string) ($post['categoria'] ?? ''));
+        $categoria = SstEpiCategoriaHelper::canonicalize((string) ($post['categoria'] ?? '')) ?? '';
         $status = (string) ($post['status'] ?? 'Ativo');
         $estoqueMin = trim((string) ($post['estoque_minimo'] ?? ''));
         $vidaUtil = trim((string) ($post['periodicidade_troca_dias'] ?? ''));
