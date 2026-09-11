@@ -3,7 +3,7 @@
 <h2>Função no sistema</h2>
 <p>Página inicial do colaborador: resume dados pessoais, totais de solicitações/chamados/pendências (e vagas internas, se houver permissão) e atalhos para ações do dia a dia.</p>
 
-<p class="help-note"><strong>Relacionado:</strong> <em>Vagas internas</em> (<code>vagas-internas</code>), <em>Minhas Solicitações</em>, <em>Meus Chamados</em> e <em>Meus documentos (folha)</em>.</p>
+<p class="help-note"><strong>Relacionado:</strong> <em>Vagas internas</em>, <em>Minhas Solicitações</em>, <em>Meus Chamados</em>, <em>Meus documentos (folha)</em>, <em>Meus EPIs</em> e <em>Meus treinamentos SST</em>.</p>
 
 <p><strong>Quem acessa:</strong> permissão <em>EmployeePortal</em>. Na matriz ACL, o pacote self-service está no grupo <em>Portal do Colaborador</em> (use <strong>Autorizar grupo</strong> nesse grupo para níveis comuns, sem liberar aprovações RH). As ações filhas (solicitações, chamados, vagas, documentos) exigem as respectivas páginas no nível.</p>
 
@@ -12,23 +12,25 @@
     <dt>Tempo de casa</dt>
     <dd>Soma dos períodos de vínculo registrados no histórico de emprego do usuário.</dd>
     <dt>Pendentes</dt>
-    <dd>Solicitações do colaborador ainda em andamento (não finalizadas).</dd>
+    <dd>Solicitações do colaborador ainda em andamento. Treinamentos SST obrigatórios (matriz cargo/risco/GHE) aparecem no card próprio e em <em>Meus treinamentos SST</em>.</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Abra <strong>Portal do Colaborador → Início</strong> no menu lateral (módulo próprio, fora de Gestão de Pessoas) ou pelo card no Dashboard.</li>
     <li>Confira o bloco de perfil (foto/iniciais, cargo, departamento, status, e-mail) e os cards de tempo de casa, admissão, departamento e cargo.</li>
-    <li>Use os cards de resumo (Solicitações, Chamados, Pendentes e, se permitido, Vagas internas) ou as ações rápidas.</li>
+    <li>Use os cards de resumo (solicitações, chamados, treinamentos SST, EPIs, vagas) ou as ações rápidas — os mesmos itens do menu Colaborador, conforme permissão.</li>
     <li>Pressione <kbd>F1</kbd> para reabrir esta ajuda.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Minhas informações</strong> Nome, foto (ou iniciais), status, e-mail, cargo, departamento, admissão e tempo de casa.</div>
-<div class="help-field"><strong>Solicitações / Chamados / Pendentes</strong> Contagens com atalho para a listagem correspondente.</div>
-<div class="help-field"><strong>Vagas internas</strong> Aparece só com permissão <em>VagasInternas</em>; a fila passa a ter 4 cards.</div>
+<div class="help-field"><strong>Solicitações / Chamados</strong> Contagens com atalho para a listagem correspondente.</div>
+<div class="help-field"><strong>Treinamentos SST</strong> Obrigações da matriz (direto, risco e GHE) ainda pendentes ou vencidas, sem depender de vínculo sincronizado.</div>
+<div class="help-field"><strong>EPIs a assinar</strong> Fichas de EPI aguardando ciência no portal.</div>
+<div class="help-field"><strong>Vagas internas</strong> Aparece só com permissão <em>VagasInternas</em>.</div>
 <div class="help-field"><strong>Card no Dashboard</strong> Com <em>DashboardCardEmployeePortal</em>, aparece atalho “Portal do Colaborador” na tela inicial.</div>
-<div class="help-field"><strong>Ações rápidas</strong> Atalhos condicionados às permissões de criar solicitação, chamado, documentos etc.</div>
+<div class="help-field"><strong>Ações rápidas</strong> Atalhos do menu (férias, afastamento, chamado, EPIs, treinamentos SST, vagas, documentos), cada um só se houver permissão.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -36,6 +38,8 @@
     <dd>Falta a permissão <em>EmployeePortal</em> no nível de acesso.</dd>
     <dt>Vejo Gestão de Pessoas só por causa do portal</dt>
     <dd>O portal é menu de 1º nível (<strong>Portal do Colaborador</strong>). O card no Dashboard exige a página <em>DashboardCardEmployeePortal</em> (migration e cache de permissões).</dd>
-    <dt>Não vejo o card de vagas internas</dt>
-    <dd>Inclua <em>VagasInternas</em> no nível e atualize o cache de permissões.</dd>
+    <dt>Não vejo Meus EPIs / treinamentos SST no início</dt>
+    <dd>O menu usa as páginas do nível; o início agora replica esses atalhos. Recarregue após incluir <em>MyEpiDeliveries</em> e <em>MySstTreinamentos</em>.</dd>
+    <dt>Treinamentos zerados no portal</dt>
+    <dd>A lista segue a matriz (cargo, risco e GHE) e a validade. Não depende da sincronização de vínculos nem da opção de notificação de pendências SST.</dd>
 </dl>

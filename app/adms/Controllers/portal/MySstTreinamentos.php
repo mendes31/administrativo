@@ -26,14 +26,51 @@ class MySstTreinamentos
 
         $repo = new SstTreinamentoVinculosRepository();
         $vinculos = $repo->getByUserId($uid, 200);
-        $this->data['vinculos'] = $vinculos;
+        $matriz = (new SstPendenciasService())->getPendenciasTreinamentoPorUsuario($uid, true, true);
+        $vinculosPorTreinamento = [];
+        foreach ($vinculos as $vinculo) {
+            $tid = (int) ($vinculo['adms_sst_treinamento_id'] ?? 0);
+            if ($tid > 0) {
+                $vinculosPorTreinamento[$tid] = $vinculo;
+            }
+        }
+
+        $lista = [];
+        $vistos = [];
+        foreach ($matriz as $row) {
+            $tid = (int) ($row['adms_sst_treinamento_id'] ?? 0);
+            if ($tid <= 0) {
+                continue;
+            }
+            $vistos[$tid] = true;
+            $vinculo = $vinculosPorTreinamento[$tid] ?? [];
+            $lista[] = [
+                'id' => (int) ($vinculo['id'] ?? 0),
+                'adms_sst_treinamento_id' => $tid,
+                'treinamento_nome' => $row['treinamento_nome'] ?? $vinculo['treinamento_nome'] ?? '',
+                'treinamento_codigo' => $row['treinamento_codigo'] ?? $vinculo['treinamento_codigo'] ?? null,
+                'nr_referencia' => $row['nr_referencia'] ?? $vinculo['nr_referencia'] ?? null,
+                'status' => $row['status'] ?? $vinculo['status'] ?? 'pendente',
+                'data_agendada' => $vinculo['data_agendada'] ?? null,
+                'data_realizacao' => $row['data_realizacao'] ?? $vinculo['data_realizacao'] ?? null,
+                'data_validade' => $row['data_validade'] ?? $vinculo['data_validade'] ?? null,
+                'certificado' => $vinculo['certificado'] ?? null,
+                'motivo' => $row['motivo'] ?? null,
+            ];
+        }
+        foreach ($vinculos as $vinculo) {
+            $tid = (int) ($vinculo['adms_sst_treinamento_id'] ?? 0);
+            if ($tid <= 0 || isset($vistos[$tid])) {
+                continue;
+            }
+            $lista[] = $vinculo;
+        }
+
+        $this->data['vinculos'] = $lista;
         $this->data['pendentes'] = array_values(array_filter(
-            $vinculos,
+            $lista,
             static fn (array $v): bool => in_array($v['status'] ?? '', ['pendente', 'agendado', 'vencido', 'proximo_vencimento'], true)
         ));
-        $this->data['pendencias_sst'] = SstPendenciasService::incluirTreinamentos()
-            ? (new SstPendenciasService())->getPendenciasTreinamentoPorUsuario($uid)
-            : [];
 
         $pageElements = [
             'title_head' => 'Meus treinamentos SST',

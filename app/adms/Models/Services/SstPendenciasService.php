@@ -433,6 +433,7 @@ class SstPendenciasService extends DbConnection
                 'adms_sst_treinamento_id' => $treinamentoId,
                 'treinamento_nome' => (string) ($obrigatorio['treinamento_nome'] ?? $catalogo['nome'] ?? ''),
                 'treinamento_codigo' => $catalogo['codigo'] ?? null,
+                'nr_referencia' => $catalogo['nr_referencia'] ?? null,
                 'treinamento_status' => $status,
                 'status' => $status,
                 'data_realizacao' => is_array($vinculo) ? ($vinculo['data_realizacao'] ?? null) : null,

@@ -50,8 +50,27 @@ class EmployeePortal
             $internas = (new \App\adms\Models\Repository\RhVagasRepository())->listInternas([], 1, 1);
             $this->data['total_vagas_internas'] = (int) ($internas['total'] ?? 0);
         } catch (\Throwable $e) {
-            // Migration/visibilidade pode não existir ainda em alguns ambientes
             $this->data['total_vagas_internas'] = 0;
+        }
+
+        $this->data['sst_treinamentos_pendentes'] = [];
+        $this->data['sst_treinamentos_pendentes_count'] = 0;
+        $this->data['sst_epi_fichas_pendentes_count'] = 0;
+        try {
+            $this->data['sst_treinamentos_pendentes'] = (new \App\adms\Models\Services\SstPendenciasService())
+                ->getPendenciasTreinamentoPorUsuario((int) $employeeId, true);
+            $this->data['sst_treinamentos_pendentes_count'] = count($this->data['sst_treinamentos_pendentes']);
+        } catch (\Throwable $e) {
+            $this->data['sst_treinamentos_pendentes'] = [];
+        }
+        try {
+            $fichas = (new \App\adms\Models\Repository\SstEpiFichasRepository())->getByUserId((int) $employeeId, 100);
+            $this->data['sst_epi_fichas_pendentes_count'] = count(array_filter(
+                $fichas,
+                static fn (array $f): bool => ($f['status_assinatura'] ?? '') === 'Pendente'
+            ));
+        } catch (\Throwable $e) {
+            $this->data['sst_epi_fichas_pendentes_count'] = 0;
         }
 
         $pageElements = [
@@ -64,6 +83,8 @@ class EmployeePortal
                 'CreateEmployeeTicket',
                 'MyPayrollDocuments',
                 'VagasInternas',
+                'MyEpiDeliveries',
+                'MySstTreinamentos',
             ],
         ];
         

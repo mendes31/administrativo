@@ -146,12 +146,19 @@ $tenure = $this->data['total_tenure'] ?? null;
     <?php endif; ?>
 
     <?php
-    $canVagasInternas = in_array('VagasInternas', $this->data['buttonPermission'] ?? [], true);
-    $resumoCol = $canVagasInternas ? 'col-md-3' : 'col-md-4';
+    $permsPortal = $this->data['buttonPermission'] ?? [];
+    $canVagasInternas = in_array('VagasInternas', $permsPortal, true);
+    $canMeusEpis = in_array('MyEpiDeliveries', $permsPortal, true);
+    $canMeusTreinamentos = in_array('MySstTreinamentos', $permsPortal, true);
+    $canChamados = in_array('ListEmployeeTickets', $permsPortal, true);
+    $canSolicitacoes = in_array('ListEmployeeRequests', $permsPortal, true);
+    $canDocumentos = in_array('MyPayrollDocuments', $permsPortal, true);
+    $sstPendentesCount = (int) ($this->data['sst_treinamentos_pendentes_count'] ?? 0);
+    $epiPendentesCount = (int) ($this->data['sst_epi_fichas_pendentes_count'] ?? 0);
     ?>
     <div class="row g-4">
-        <!-- Cards de Resumo -->
-        <div class="<?= $resumoCol ?>">
+        <?php if ($canSolicitacoes): ?>
+        <div class="col-6 col-md-4 col-xl-3">
             <div class="card border-primary shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-file-alt fa-3x text-primary mb-3"></i>
@@ -163,8 +170,10 @@ $tenure = $this->data['total_tenure'] ?? null;
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
-        <div class="<?= $resumoCol ?>">
+        <?php if ($canChamados): ?>
+        <div class="col-6 col-md-4 col-xl-3">
             <div class="card border-warning shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-ticket-alt fa-3x text-warning mb-3"></i>
@@ -176,22 +185,55 @@ $tenure = $this->data['total_tenure'] ?? null;
                 </div>
             </div>
         </div>
+        <?php endif; ?>
 
-        <div class="<?= $resumoCol ?>">
+        <?php if ($canSolicitacoes): ?>
+        <div class="col-6 col-md-4 col-xl-3">
             <div class="card border-info shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-clock fa-3x text-info mb-3"></i>
                     <h3 class="mb-0"><?= count($this->data['pending_requests'] ?? []) ?></h3>
-                    <p class="text-muted mb-0">Pendentes</p>
+                    <p class="text-muted mb-0">Solicitações pendentes</p>
                     <a href="<?php echo $_ENV['URL_ADM']; ?>list-employee-requests?status=pending" class="btn btn-info btn-sm mt-2">
                         Ver Pendentes
                     </a>
                 </div>
             </div>
         </div>
+        <?php endif; ?>
+
+        <?php if ($canMeusTreinamentos): ?>
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card border-warning shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-graduation-cap fa-3x text-warning mb-3"></i>
+                    <h3 class="mb-0"><?= $sstPendentesCount ?></h3>
+                    <p class="text-muted mb-0">Treinamentos SST</p>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>my-sst-treinamentos" class="btn btn-warning btn-sm mt-2">
+                        Meus treinamentos
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
+
+        <?php if ($canMeusEpis): ?>
+        <div class="col-6 col-md-4 col-xl-3">
+            <div class="card border-danger shadow h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-hard-hat fa-3x text-danger mb-3"></i>
+                    <h3 class="mb-0"><?= $epiPendentesCount ?></h3>
+                    <p class="text-muted mb-0">EPIs a assinar</p>
+                    <a href="<?php echo $_ENV['URL_ADM']; ?>my-epi-deliveries" class="btn btn-outline-danger btn-sm mt-2">
+                        Meus EPIs
+                    </a>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
 
         <?php if ($canVagasInternas): ?>
-        <div class="<?= $resumoCol ?>">
+        <div class="col-6 col-md-4 col-xl-3">
             <div class="card border-success shadow h-100">
                 <div class="card-body text-center">
                     <i class="fas fa-briefcase fa-3x text-success mb-3"></i>
@@ -205,6 +247,26 @@ $tenure = $this->data['total_tenure'] ?? null;
         </div>
         <?php endif; ?>
     </div>
+
+    <?php if ($canMeusTreinamentos && $sstPendentesCount > 0): ?>
+    <div class="card mb-4 mt-4 border-light shadow">
+        <div class="card-header"><span><i class="fas fa-graduation-cap me-2"></i>Treinamentos SST pendentes</span></div>
+        <div class="card-body p-0">
+            <?php foreach (array_slice($this->data['sst_treinamentos_pendentes'] ?? [], 0, 8) as $t): ?>
+                <div class="px-3 py-2 border-bottom small">
+                    <?= htmlspecialchars($t['treinamento_nome'] ?? '') ?>
+                    <span class="badge bg-<?= htmlspecialchars($t['situacao_badge'] ?? 'warning') ?> ms-1"><?= htmlspecialchars($t['situacao_label'] ?? 'Pendente') ?></span>
+                    <?php if (!empty($t['motivo'])): ?>
+                        <span class="text-muted"> · <?= htmlspecialchars((string) $t['motivo']) ?></span>
+                    <?php endif; ?>
+                </div>
+            <?php endforeach; ?>
+            <div class="px-3 py-2">
+                <a href="<?php echo $_ENV['URL_ADM']; ?>my-sst-treinamentos" class="small">Ver todos</a>
+            </div>
+        </div>
+    </div>
+    <?php endif; ?>
 
     <div class="row g-4 mt-2">
         <!-- Solicitações Pendentes -->
@@ -306,35 +368,63 @@ $tenure = $this->data['total_tenure'] ?? null;
         <div class="card-body">
             <div class="row g-3">
                 <?php if (in_array('CreateEmployeeRequest', $this->data['buttonPermission'] ?? [])) { ?>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-4 col-xl-3">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>create-employee-request?request_type=vacation" class="btn btn-outline-primary w-100">
                             <i class="fas fa-umbrella-beach me-2"></i>Solicitar Férias
                         </a>
                     </div>
                 <?php } ?>
                 <?php if (in_array('CreateEmployeeRequest', $this->data['buttonPermission'] ?? [])) { ?>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-4 col-xl-3">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>create-employee-request?request_type=time_off" class="btn btn-outline-info w-100">
                             <i class="fas fa-calendar-times me-2"></i>Solicitar Afastamento
                         </a>
                     </div>
                 <?php } ?>
                 <?php if (in_array('CreateEmployeeTicket', $this->data['buttonPermission'] ?? [])) { ?>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-4 col-xl-3">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>create-employee-ticket" class="btn btn-outline-warning w-100">
                             <i class="fas fa-ticket-alt me-2"></i>Abrir Chamado
                         </a>
                     </div>
                 <?php } ?>
                 <?php if (in_array('ListEmployeeRequests', $this->data['buttonPermission'] ?? [])) { ?>
-                    <div class="col-md-3">
+                    <div class="col-6 col-md-4 col-xl-3">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>list-employee-requests" class="btn btn-outline-secondary w-100">
                             <i class="fas fa-list me-2"></i>Ver Todas Solicitações
                         </a>
                     </div>
                 <?php } ?>
-                <?php if (in_array('MyPayrollDocuments', $this->data['buttonPermission'] ?? [])) { ?>
-                    <div class="col-md-3">
+                <?php if (in_array('MySstTreinamentos', $this->data['buttonPermission'] ?? [], true)) { ?>
+                    <div class="col-6 col-md-4 col-xl-3">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>my-sst-treinamentos" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-graduation-cap me-2"></i>Meus treinamentos SST
+                        </a>
+                    </div>
+                <?php } ?>
+                <?php if (in_array('MyEpiDeliveries', $this->data['buttonPermission'] ?? [], true)) { ?>
+                    <div class="col-6 col-md-4 col-xl-3">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>my-epi-deliveries" class="btn btn-outline-danger w-100">
+                            <i class="fas fa-hard-hat me-2"></i>Meus EPIs
+                        </a>
+                    </div>
+                <?php } ?>
+                <?php if (in_array('VagasInternas', $this->data['buttonPermission'] ?? [], true)) { ?>
+                    <div class="col-6 col-md-4 col-xl-3">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>vagas-internas" class="btn btn-outline-success w-100">
+                            <i class="fas fa-briefcase me-2"></i>Vagas internas
+                        </a>
+                    </div>
+                <?php } ?>
+                <?php if (in_array('ListEmployeeTickets', $this->data['buttonPermission'] ?? [], true)) { ?>
+                    <div class="col-6 col-md-4 col-xl-3">
+                        <a href="<?php echo $_ENV['URL_ADM']; ?>list-employee-tickets" class="btn btn-outline-warning w-100">
+                            <i class="fas fa-ticket-alt me-2"></i>Meus Chamados
+                        </a>
+                    </div>
+                <?php } ?>
+                <?php if (in_array('MyPayrollDocuments', $this->data['buttonPermission'] ?? [], true)) { ?>
+                    <div class="col-6 col-md-4 col-xl-3">
                         <a href="<?php echo $_ENV['URL_ADM']; ?>my-payroll-documents" class="btn btn-outline-dark w-100">
                             <i class="fas fa-file-invoice-dollar me-2"></i>Meus documentos (folha)
                         </a>

@@ -4,7 +4,6 @@ use App\adms\Helpers\SstTreinamentoStatusHelper;
 $urlAdm = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/';
 $vinculos = $this->data['vinculos'] ?? [];
 $pendentes = $this->data['pendentes'] ?? [];
-$pendenciasSst = $this->data['pendencias_sst'] ?? [];
 $perms = $this->data['buttonPermission'] ?? [];
 $canPdf = in_array('ViewSstTreinamentoCertificadoPdf', $perms, true);
 ?>
@@ -29,7 +28,7 @@ $canPdf = in_array('ViewSstTreinamentoCertificadoPdf', $perms, true);
         <div class="card-header"><h5 class="mb-0">Treinamentos obrigatórios</h5></div>
         <div class="card-body p-0">
             <?php if ($vinculos === []): ?>
-            <p class="text-muted p-3 mb-0">Nenhum treinamento SST vinculado ao seu cadastro.</p>
+            <p class="text-muted p-3 mb-0">Nenhum treinamento SST obrigatório para o seu cargo, risco ou GHE.</p>
             <?php else: ?>
             <div class="table-responsive d-none d-md-block">
                 <table class="table table-sm mb-0">
@@ -63,7 +62,7 @@ $canPdf = in_array('ViewSstTreinamentoCertificadoPdf', $perms, true);
                             <td><?= !empty($v['data_realizacao']) ? date('d/m/Y', strtotime($v['data_realizacao'])) : '-' ?></td>
                             <td><?= !empty($v['data_validade']) ? date('d/m/Y', strtotime($v['data_validade'])) : '-' ?></td>
                             <td class="text-nowrap">
-                                <?php if ($canPdf && $temCertificado): ?>
+                                <?php if ($canPdf && $id > 0 && $temCertificado): ?>
                                 <a href="<?= htmlspecialchars($urlAdm) ?>view-sst-treinamento-certificado-pdf/<?= $id ?>" class="btn btn-outline-primary btn-sm" target="_blank">Certificado PDF</a>
                                 <?php endif; ?>
                             </td>
@@ -92,7 +91,7 @@ $canPdf = in_array('ViewSstTreinamentoCertificadoPdf', $perms, true);
                             Agendado: <?= date('d/m/Y', strtotime($v['data_agendada'])) ?>
                             <?php endif; ?>
                         </div>
-                        <?php if ($canPdf && $temCertificado): ?>
+                        <?php if ($canPdf && $id > 0 && $temCertificado): ?>
                         <a href="<?= htmlspecialchars($urlAdm) ?>view-sst-treinamento-certificado-pdf/<?= $id ?>" class="btn btn-outline-primary btn-sm mt-2" target="_blank">Certificado PDF</a>
                         <?php endif; ?>
                     </div>
@@ -102,18 +101,4 @@ $canPdf = in_array('ViewSstTreinamentoCertificadoPdf', $perms, true);
             <?php endif; ?>
         </div>
     </div>
-
-    <?php if ($pendenciasSst !== []): ?>
-    <div class="card shadow-sm mb-4">
-        <div class="card-header"><h5 class="mb-0">Pendências identificadas pela matriz SST</h5></div>
-        <div class="card-body p-0">
-            <?php foreach ($pendenciasSst as $p): ?>
-            <div class="px-3 py-2 border-bottom small">
-                <?= htmlspecialchars($p['treinamento_nome'] ?? $p['nome'] ?? '') ?>
-                <span class="badge bg-<?= htmlspecialchars($p['situacao_badge'] ?? 'warning') ?> ms-1"><?= htmlspecialchars($p['situacao_label'] ?? 'Pendente') ?></span>
-            </div>
-            <?php endforeach; ?>
-        </div>
-    </div>
-    <?php endif; ?>
 </div>
