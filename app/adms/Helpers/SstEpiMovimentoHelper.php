@@ -189,6 +189,8 @@ final class SstEpiMovimentoHelper
     {
         $ca = self::normalizeCa((string) ($data['ca_numero'] ?? ''));
         $data['ca_numero'] = $ca !== '' ? $ca : null;
+        $tam = SstEpiTamanhoHelper::normalize((string) ($data['tamanho'] ?? ''));
+        $data['tamanho'] = $tam !== '' ? $tam : null;
 
         $validade = trim((string) ($data['ca_validade'] ?? ''));
         $data['ca_validade'] = $validade !== '' ? $validade : null;

@@ -74,8 +74,14 @@ class SstEpiEntregasRepository extends DbConnection
             $cols .= ', adms_sst_epi_ficha_id';
             $vals .= ', :adms_sst_epi_ficha_id';
         }
-        $cols .= ', tipo_movimento, quantidade, data_movimento, data_prevista_troca, termo_assinado, observacoes, created_by, updated_by, created_at, updated_at';
-        $vals .= ', :tipo_movimento, :quantidade, :data_movimento, :data_prevista_troca, :termo_assinado, :observacoes, :created_by, :updated_by, NOW(), NOW()';
+        $cols .= ', tipo_movimento, quantidade';
+        $vals .= ', :tipo_movimento, :quantidade';
+        if ($this->hasColumn('tamanho')) {
+            $cols .= ', tamanho';
+            $vals .= ', :tamanho';
+        }
+        $cols .= ', data_movimento, data_prevista_troca, termo_assinado, observacoes, created_by, updated_by, created_at, updated_at';
+        $vals .= ', :data_movimento, :data_prevista_troca, :termo_assinado, :observacoes, :created_by, :updated_by, NOW(), NOW()';
         $sql = "INSERT INTO adms_sst_epi_entregas ({$cols}) VALUES ({$vals})";
         $stmt = $this->getConnection()->prepare($sql);
         $this->bindField($stmt, ':adms_user_id', $data['adms_user_id'] ?? null);
@@ -85,6 +91,10 @@ class SstEpiEntregasRepository extends DbConnection
         }
         $this->bindField($stmt, ':tipo_movimento', $data['tipo_movimento'] ?? null);
         $this->bindField($stmt, ':quantidade', $data['quantidade'] ?? null);
+        if ($this->hasColumn('tamanho')) {
+            $tam = \App\adms\Helpers\SstEpiTamanhoHelper::normalize((string) ($data['tamanho'] ?? ''));
+            $this->bindField($stmt, ':tamanho', $tam !== '' ? $tam : null);
+        }
         $this->bindField($stmt, ':data_movimento', $data['data_movimento'] ?? null);
         $this->bindField($stmt, ':data_prevista_troca', $data['data_prevista_troca'] ?? null);
         $this->bindField($stmt, ':termo_assinado', $data['termo_assinado'] ?? null);
@@ -114,6 +124,7 @@ class SstEpiEntregasRepository extends DbConnection
             'adms_sst_epi_ficha_id' => $fichaId,
             'tipo_movimento' => 'Entrega',
             'quantidade' => (int) ($item['quantidade'] ?? 1),
+            'tamanho' => $item['tamanho'] ?? null,
             'data_movimento' => (string) ($ficha['data_entrega'] ?? date('Y-m-d')),
             'data_prevista_troca' => $item['data_prevista_troca'] ?? null,
             'termo_assinado' => true,
@@ -123,14 +134,28 @@ class SstEpiEntregasRepository extends DbConnection
 
     private function hasFichaColumn(): bool
     {
-        try {
-            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM adms_sst_epi_entregas LIKE 'adms_sst_epi_ficha_id'");
-
-            return (bool) $stmt->fetch(PDO::FETCH_ASSOC);
-        } catch (\PDOException) {
-            return false;
-        }
+        return $this->hasColumn('adms_sst_epi_ficha_id');
     }
+
+    private function hasColumn(string $column): bool
+    {
+        static $cache = [];
+        if (array_key_exists($column, $cache)) {
+            return $cache[$column];
+        }
+        try {
+            $stmt = $this->getConnection()->query(
+                'SHOW COLUMNS FROM adms_sst_epi_entregas LIKE ' . $this->getConnection()->quote($column)
+            );
+            $cache[$column] = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            $cache[$column] = false;
+        }
+
+        return $cache[$column];
+    }
+
+    private function bindField(\PDOStatement $stmt, string $param, mixed $value): void
 
     public function update(int $id, array $data): bool
     {

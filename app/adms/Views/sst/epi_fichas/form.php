@@ -67,7 +67,7 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
                 <h5 class="mb-3">EPIs desta entrega</h5>
                 <div id="itensContainer">
                     <div class="row g-2 align-items-end item-row mb-2">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <label class="form-label">EPI *</label>
                             <select name="itens[0][adms_sst_epi_id]" class="form-select epi-select" required>
                                 <option value="">Selecione...</option>
@@ -78,7 +78,13 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
                                 <?php endforeach; ?>
                             </select>
                         </div>
-                        <div class="col-md-2">
+                        <div class="col-md-2 wrap-tamanho">
+                            <label class="form-label">Tamanho / nº</label>
+                            <select name="itens[0][tamanho]" class="form-select tamanho-select">
+                                <option value="">—</option>
+                            </select>
+                        </div>
+                        <div class="col-md-1">
                             <label class="form-label">Qtde</label>
                             <input type="number" name="itens[0][quantidade]" class="form-control qty-input" value="1" min="1">
                         </div>
@@ -180,20 +186,81 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
         }
     }
 
+    function metaEpi(epiId) {
+        const raw = casEstoquePorEpi[epiId];
+        if (!raw) return {controla_tamanho: false, grade: [], lotes: [], cas: []};
+        if (Array.isArray(raw)) return {controla_tamanho: false, grade: [], lotes: [], cas: raw};
+        return raw;
+    }
+
+    function popularTamanhoSelect(row) {
+        const selEpi = row.querySelector('.epi-select');
+        const selTam = row.querySelector('.tamanho-select');
+        const wrapTam = row.querySelector('.wrap-tamanho');
+        if (!selEpi || !selTam) return;
+        const epiId = selEpi.value;
+        const meta = metaEpi(epiId);
+        const prev = selTam.value;
+        selTam.innerHTML = '';
+        const ph = document.createElement('option');
+        ph.value = '';
+        if (!epiId) {
+            ph.textContent = '—';
+            selTam.appendChild(ph);
+            selTam.required = false;
+            if (wrapTam) wrapTam.classList.remove('d-none');
+            return;
+        }
+        if (!meta.controla_tamanho) {
+            ph.textContent = '—';
+            selTam.appendChild(ph);
+            selTam.required = false;
+            selTam.value = '';
+            if (wrapTam) wrapTam.classList.add('d-none');
+            return;
+        }
+        if (wrapTam) wrapTam.classList.remove('d-none');
+        ph.textContent = 'Selecione...';
+        selTam.appendChild(ph);
+        const vistos = {};
+        (meta.lotes || []).forEach(function (l) {
+            const t = (l.tamanho || '').toString();
+            if (!t || vistos[t]) return;
+            vistos[t] = true;
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            if (prev === t) opt.selected = true;
+            selTam.appendChild(opt);
+        });
+        selTam.required = true;
+        if (!prev && selTam.options.length === 2) selTam.selectedIndex = 1;
+    }
+
     function popularCaSelect(row) {
         const selEpi = row.querySelector('.epi-select');
         const selCa = row.querySelector('.ca-select');
+        const selTam = row.querySelector('.tamanho-select');
         const qty = row.querySelector('.qty-input');
         if (!selEpi || !selCa) return;
         const epiId = selEpi.value;
         const prevCa = selCa.value;
+        const tam = selTam ? selTam.value : '';
+        const meta = metaEpi(epiId);
         selCa.innerHTML = '';
         const ph = document.createElement('option');
         ph.value = '';
         ph.textContent = epiId ? 'Selecione CA em estoque...' : 'Selecione o EPI primeiro...';
         selCa.appendChild(ph);
         if (!epiId) return;
-        const lotes = casEstoquePorEpi[epiId] || [];
+        if (meta.controla_tamanho && !tam) {
+            ph.textContent = 'Selecione o tamanho primeiro...';
+            if (qty) qty.removeAttribute('max');
+            return;
+        }
+        let lotes = meta.controla_tamanho
+            ? (meta.lotes || []).filter(function (l) { return String(l.tamanho || '') === tam; })
+            : (meta.cas || []);
         if (lotes.length === 0) {
             ph.textContent = 'Nenhum CA em estoque';
             if (qty) qty.removeAttribute('max');
@@ -221,8 +288,15 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
     function bindRow(row) {
         const selEpi = row.querySelector('.epi-select');
         const selCa = row.querySelector('.ca-select');
+        const selTam = row.querySelector('.tamanho-select');
         const prevInput = row.querySelector('.prev-troca-input');
-        selEpi.addEventListener('change', function () { popularCaSelect(row); });
+        selEpi.addEventListener('change', function () {
+            popularTamanhoSelect(row);
+            popularCaSelect(row);
+        });
+        if (selTam) {
+            selTam.addEventListener('change', function () { popularCaSelect(row); });
+        }
         if (selCa) {
             selCa.addEventListener('change', function () {
                 const qty = row.querySelector('.qty-input');
@@ -240,6 +314,7 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
         }
         const rm = row.querySelector('.remove-row');
         if (rm) rm.addEventListener('click', function () { row.remove(); });
+        popularTamanhoSelect(row);
         popularCaSelect(row);
     }
 
@@ -258,6 +333,8 @@ $impedimentosPreview = $this->data['impedimentos_treinamento_preview'] ?? [];
         row.querySelector('.remove-row').classList.remove('d-none');
         row.querySelector('.epi-select').value = '';
         row.querySelector('.ca-select').innerHTML = '<option value="">Selecione o EPI primeiro...</option>';
+        const tamSel = row.querySelector('.tamanho-select');
+        if (tamSel) tamSel.innerHTML = '<option value="">—</option>';
         const prev = row.querySelector('.prev-troca-input');
         if (prev) { prev.value = ''; prev.dataset.manual = ''; delete prev.dataset.auto; }
         const hint = row.querySelector('.prev-troca-hint');

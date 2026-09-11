@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEpiCatalogHelper;
 use App\adms\Models\Repository\SstEpisRepository;
+use App\adms\Models\Services\SstEpiEstoqueService;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -137,6 +138,7 @@ class SstCreateEpi
         $repo = new SstEpisRepository();
         $newId = $repo->create($data);
         if ($newId) {
+            (new SstEpiEstoqueService())->salvarMinimosDoPost((int) $newId, $_POST, $data);
             $_SESSION['msg'] = 'Registro salvo com sucesso.';
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-epi/' . $newId);

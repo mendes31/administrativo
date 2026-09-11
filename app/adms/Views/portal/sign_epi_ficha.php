@@ -30,11 +30,12 @@ $dataEntrega = !empty($ficha['data_entrega']) ? date('d/m/Y', strtotime($ficha['
 
                     <div class="table-responsive mb-3">
                         <table class="table table-sm table-bordered">
-                            <thead><tr><th>EPI</th><th>CA</th><th>Qtde</th><th>Prev. substituição</th></tr></thead>
+                            <thead><tr><th>EPI</th><th>Tam.</th><th>CA</th><th>Qtde</th><th>Prev. substituição</th></tr></thead>
                             <tbody>
                             <?php foreach ($itens as $i): ?>
                             <tr>
                                 <td><?= htmlspecialchars($i['epi_nome'] ?? '') ?></td>
+                                <td><?= htmlspecialchars($i['tamanho'] ?? '—') ?></td>
                                 <td><?= htmlspecialchars($i['ca_utilizado'] ?? $i['epi_ca_catalogo'] ?? '-') ?></td>
                                 <td><?= (int)($i['quantidade'] ?? 1) ?></td>
                                 <td><?= !empty($i['data_prevista_troca']) ? date('d/m/Y', strtotime($i['data_prevista_troca'])) : '-' ?></td>

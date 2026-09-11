@@ -138,7 +138,13 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-secondary bg-opacity-10 p-3 me-3"><i class="fas fa-boxes-stacked text-secondary fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">EPI estoque baixo</h6><h3 class="mb-0 fw-bold"><?= (int)($this->data['low_stock_epis_count'] ?? 0) ?></h3></div>
+                    <div>
+                        <h6 class="text-muted mb-1">EPI estoque baixo</h6>
+                        <h3 class="mb-0 fw-bold"><?= (int)($this->data['low_stock_epis_count'] ?? 0) ?></h3>
+                        <?php if (in_array('SstListEpiEstoque', $this->data['buttonPermission'] ?? [], true)): ?>
+                        <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque?estoque_baixo=1" class="small">Ver numeração</a>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>

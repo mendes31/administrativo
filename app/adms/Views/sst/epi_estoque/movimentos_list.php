@@ -58,7 +58,7 @@ $perms = $this->data['buttonPermission'] ?? [];
             <div class="table-responsive">
                 <table class="table table-sm table-bordered table-hover">
                     <thead><tr>
-                        <th>DOCNUM</th><th>Data</th><th>EPI</th><th>Tipo</th><th>Qtd</th><th class="text-end">Valor unit.</th><th class="text-end">Total</th><th>CA</th><th>Saldo após</th><th>Motivo</th><th>Documento</th><th>Responsável</th><th>Obs.</th>
+                        <th>DOCNUM</th><th>Data</th><th>EPI</th><th>Tipo</th><th>Qtd</th><th class="text-end">Valor unit.</th><th class="text-end">Total</th><th>Tam.</th><th>CA</th><th>Saldo após</th><th>Motivo</th><th>Documento</th><th>Responsável</th><th>Obs.</th>
                     </tr></thead>
                     <tbody>
                     <?php foreach ($items as $r):
@@ -79,6 +79,7 @@ $perms = $this->data['buttonPermission'] ?? [];
                         <td><?= $tipo === 'Ajuste' ? ($qty > 0 ? '+' : '') . $qty : abs($qty) ?></td>
                         <td class="text-end"><?= $vu !== null ? 'R$ ' . number_format($vu, 2, ',', '.') : '—' ?></td>
                         <td class="text-end"><?= $vt !== null ? 'R$ ' . number_format($vt, 2, ',', '.') : '—' ?></td>
+                        <td><?= htmlspecialchars($r['tamanho'] ?? '—') ?></td>
                         <td><?= htmlspecialchars($r['ca_numero'] ?? '-') ?></td>
                         <td><?= isset($r['saldo_apos']) ? (int)$r['saldo_apos'] : '-' ?></td>
                         <td class="small"><?php

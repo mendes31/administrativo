@@ -19,13 +19,15 @@
         </select></div>
         <div class="col-auto"><button class="btn btn-primary btn-sm">Filtrar</button></div>
     </form>
-    <div class="table-responsive"><table class="table table-bordered table-striped table-sm"><thead><tr><th>Colaborador</th><th>EPI</th><th>Qtd</th><th>Entrega</th><th>Prev. troca</th><th>Termo</th></tr></thead><tbody>
+    <div class="table-responsive"><table class="table table-bordered table-striped table-sm"><thead><tr><th>Colaborador</th><th>EPI</th><th>Tam.</th><th>Qtd</th><th>Entrega</th><th>Prev. troca</th><th>Termo</th></tr></thead><tbody>
         <?php foreach ($this->data['items'] ?? [] as $r):
             $hoje = date('Y-m-d');
             $troca = $r['data_prevista_troca'] ?? null;
             $rowClass = $troca && $troca < $hoje ? 'table-danger' : ($troca && $troca <= date('Y-m-d', strtotime('+30 days')) ? 'table-warning' : '');
         ?><tr class="<?= $rowClass ?>">
-            <td><?= htmlspecialchars($r['colaborador_nome'] ?? '') ?></td><td><?= htmlspecialchars($r['epi_nome'] ?? '') ?></td><td><?= (int)($r['quantidade'] ?? 0) ?></td>
+            <td><?= htmlspecialchars($r['colaborador_nome'] ?? '') ?></td>
+            <td><?= htmlspecialchars($r['epi_nome'] ?? '') ?></td>
+            <td><?= htmlspecialchars($r['tamanho'] ?? '—') ?></td>
             <td><?= !empty($r['data_movimento']) ? date('d/m/Y', strtotime($r['data_movimento'])) : '-' ?></td>
             <td><?= !empty($r['data_prevista_troca']) ? date('d/m/Y', strtotime($r['data_prevista_troca'])) : '-' ?></td>
             <td><?= !empty($r['termo_assinado']) ? 'Sim' : 'Não' ?></td>

@@ -1767,6 +1767,15 @@ $menus = [
                         ],
                     ],
                     [
+                        'label' => 'Estoque EPI',
+                        'url' => $_ENV['URL_ADM'] . 'sst-list-epi-estoque',
+                        'permission' => 'SstListEpiEstoque',
+                        'icon' => 'fas fa-boxes',
+                        'related_routes' => [
+                            'sst-list-epi-estoque',
+                        ],
+                    ],
+                    [
                         'label' => 'Movimentações EPI',
                         'url' => $_ENV['URL_ADM'] . 'sst-list-epi-movimentos',
                         'permission' => 'SstListEpiMovimentos',

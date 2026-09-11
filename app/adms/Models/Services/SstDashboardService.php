@@ -9,6 +9,9 @@ use PDO;
 
 class SstDashboardService extends DbConnection
 {
+    /** @var list<array<string, mixed>>|null */
+    private ?array $lowStockEpisCache = null;
+
     public function getPendingExamsCount(): int
     {
         $sql = "SELECT COUNT(*) AS total FROM adms_sst_asos
@@ -250,22 +253,25 @@ class SstDashboardService extends DbConnection
 
     public function getLowStockEpisCount(): int
     {
-        $sql = "SELECT COUNT(*) AS total FROM adms_sst_epis
-                WHERE status = 'Ativo' AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo";
-        return (int) ($this->getConnection()->query($sql)->fetch(PDO::FETCH_ASSOC)['total'] ?? 0);
+        return count($this->lowStockEpis());
     }
 
     public function getLowStockEpis(int $limit = 5): array
     {
-        $sql = "SELECT * FROM adms_sst_epis
-                WHERE status = 'Ativo' AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo
-                ORDER BY estoque_atual ASC, nome ASC
-                LIMIT :lim";
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
-        $stmt->execute();
+        return array_slice($this->lowStockEpis(), 0, $limit);
+    }
 
-        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    /** @return list<array<string, mixed>> */
+    private function lowStockEpis(): array
+    {
+        if ($this->lowStockEpisCache === null) {
+            $this->lowStockEpisCache = (new SstEpiEstoqueService())->listarPosicaoEstoque([
+                'status' => 'Ativo',
+                'estoque_baixo' => 1,
+            ]);
+        }
+
+        return $this->lowStockEpisCache;
     }
 
     public function getReportAfastamentos(array $filters = []): array

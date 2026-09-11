@@ -74,8 +74,10 @@ class SstEpiFichaPdfService
             $prev = !empty($item['data_prevista_troca'])
                 ? date('d/m/Y', strtotime((string) $item['data_prevista_troca']))
                 : '-';
+            $tam = $esc($item['tamanho'] ?? null);
             $rows .= '<tr>'
                 . '<td>' . $esc($item['epi_nome'] ?? null) . '</td>'
+                . '<td>' . $tam . '</td>'
                 . '<td>' . $ca . '</td>'
                 . '<td style="text-align:center">' . (int) ($item['quantidade'] ?? 1) . '</td>'
                 . '<td>' . $prev . '</td>'
@@ -108,7 +110,7 @@ th{background:#f0f0f0}
 </table>
 <h2>EPIs entregues</h2>
 <table>
-<thead><tr><th>EPI</th><th>Nº CA</th><th>Qtde</th><th>Prev. substituição</th></tr></thead>
+<thead><tr><th>EPI</th><th>Tamanho</th><th>Nº CA</th><th>Qtde</th><th>Prev. substituição</th></tr></thead>
 <tbody>{$rows}</tbody>
 </table>
 {$obsBlock}

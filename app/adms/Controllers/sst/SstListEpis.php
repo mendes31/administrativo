@@ -7,6 +7,7 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
 use App\adms\Models\Repository\SstEpisRepository;
+use App\adms\Models\Services\SstEpiEstoqueService;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -33,8 +34,18 @@ class SstListEpis
             $this->limitResult = (int) $_GET['per_page'];
         }
         $repo = new SstEpisRepository();
-        $total = $repo->getTotal($filters);
-        $this->data['items'] = $repo->getAll((int) $page, $this->limitResult, $filters);
+        $estoque = new SstEpiEstoqueService();
+        $repoFilters = $filters;
+        unset($repoFilters['estoque_baixo']);
+        if (!empty($filters['estoque_baixo'])) {
+            $all = $estoque->listarPosicaoEstoque(array_merge($repoFilters, ['estoque_baixo' => '1']));
+            $total = count($all);
+            $offset = max(0, ((int) $page - 1) * $this->limitResult);
+            $this->data['items'] = array_slice($all, $offset, $this->limitResult);
+        } else {
+            $total = $repo->getTotal($repoFilters);
+            $this->data['items'] = $estoque->anotarPosicao($repo->getAll((int) $page, $this->limitResult, $repoFilters));
+        }
         $this->data['pagination'] = PaginationService::generatePagination(
             $total,
             $this->limitResult,

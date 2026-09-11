@@ -55,7 +55,7 @@ class SstDashboard
                 'SstListTreinamentos', 'SstListTreinamentoNecessidade', 'SstMatrizTreinamentoCargo', 'SstListTreinamentoVinculos', 'SstListGhe',
                 'SstListAsos', 'SstListAfastamentos', 'SstListEpiEntregas', 'SstListAcidentes',
                 'SstListEquipamentos', 'SstListEquipamentoTipos', 'SstEquipamentoSettings',
-                'SstListEpiFichas', 'SstEncaminhamentoAso',
+                'SstListEpiFichas', 'SstListEpiEstoque', 'SstEncaminhamentoAso',
                 'ListUsers', 'NotificationSettings',
             ],
         ];

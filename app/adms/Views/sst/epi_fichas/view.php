@@ -67,11 +67,12 @@ $hashShort = $hash !== '' ? substr($hash, 0, 12) . '…' : '—';
                 <div class="card-header"><h5 class="mb-0">Itens desta ficha</h5></div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>EPI</th><th>CA</th><th>Qtde</th><th>Prev. troca</th></tr></thead>
+                        <thead><tr><th>EPI</th><th>Tam.</th><th>CA</th><th>Qtde</th><th>Prev. troca</th></tr></thead>
                         <tbody>
                         <?php foreach ($itens as $i): ?>
                         <tr>
                             <td><?= htmlspecialchars($i['epi_nome'] ?? '') ?></td>
+                            <td><?= htmlspecialchars($i['tamanho'] ?? '—') ?></td>
                             <td><?= htmlspecialchars($i['ca_utilizado'] ?? $i['epi_ca_catalogo'] ?? '-') ?></td>
                             <td><?= (int)($i['quantidade'] ?? 1) ?></td>
                             <td><?= !empty($i['data_prevista_troca']) ? date('d/m/Y', strtotime($i['data_prevista_troca'])) : '-' ?></td>
@@ -91,12 +92,13 @@ $hashShort = $hash !== '' ? substr($hash, 0, 12) . '…' : '—';
                     <p class="text-muted p-3 mb-0 small">Nenhum EPI entregue registrado.</p>
                     <?php else: ?>
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>Data</th><th>EPI</th><th>CA</th><th>Qtde</th></tr></thead>
+                        <thead><tr><th>Data</th><th>EPI</th><th>Tam.</th><th>CA</th><th>Qtde</th></tr></thead>
                         <tbody>
                         <?php foreach ($episEntregues as $e): ?>
                         <tr>
                             <td class="small"><?= !empty($e['data_entrega']) ? date('d/m/Y', strtotime($e['data_entrega'])) : '-' ?></td>
                             <td><?= htmlspecialchars($e['epi_nome'] ?? '') ?></td>
+                            <td class="small"><?= htmlspecialchars($e['tamanho'] ?? '—') ?></td>
                             <td class="small"><?= htmlspecialchars($e['ca'] ?? '-') ?></td>
                             <td><?= (int)($e['quantidade'] ?? 0) ?></td>
                         </tr>

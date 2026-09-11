@@ -86,6 +86,10 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                             <label class="form-label">Qtd *</label>
                             <input type="number" name="itens[0][quantidade]" class="form-control qty-input" value="1" min="1" required>
                         </div>
+                        <div class="col-md-1 wrap-tamanho">
+                            <label class="form-label">Tam.</label>
+                            <select name="itens[0][tamanho]" class="form-select tamanho-select form-select-sm"></select>
+                        </div>
                         <div class="col-md-2 valor-field-wrap">
                             <label class="form-label valor-label">Valor unit. R$ *</label>
                             <input type="text" name="itens[0][valor_unitario]" class="form-control valor-unit-input" inputmode="decimal" placeholder="0,00">
@@ -142,6 +146,10 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
                     <div class="col-md-3" id="wrapQty">
                         <label class="form-label">Quantidade *</label>
                         <input type="number" name="quantidade" id="qtyInput" class="form-control qty-input" min="1" value="<?= (int)($item['quantidade'] ?? 1) ?>" required>
+                    </div>
+                    <div class="col-md-2 d-none" id="wrapTamanho">
+                        <label class="form-label" for="tamanhoSelect">Tamanho / nº *</label>
+                        <select name="tamanho" id="tamanhoSelect" class="form-select tamanho-select"></select>
                     </div>
                     <div class="col-md-3 valor-field-wrap" id="wrapValorUnit">
                         <label class="form-label valor-label" for="valorUnitario">Valor unitário R$ *</label>
@@ -214,6 +222,52 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
 
     function usaSelectCa(tipo) {
         return tipo === 'Saída';
+    }
+
+    function metaEpi(epiId) {
+        const raw = casEstoquePorEpi[epiId];
+        if (!raw) return {controla_tamanho: false, grade: [], lotes: [], cas: []};
+        if (Array.isArray(raw)) return {controla_tamanho: false, grade: [], lotes: [], cas: raw};
+        return raw;
+    }
+
+    function popularTamanho(select, epiId, tipo, keep) {
+        if (!select) return;
+        const meta = metaEpi(epiId);
+        const prev = keep || select.value || '';
+        select.innerHTML = '';
+        const ph = document.createElement('option');
+        ph.value = '';
+        ph.textContent = 'Selecione...';
+        select.appendChild(ph);
+        if (!epiId || !meta.controla_tamanho) {
+            select.required = false;
+            return;
+        }
+        select.required = true;
+        const values = {};
+        if (tipo === 'Entrada' || tipo === 'Ajuste') {
+            (meta.grade || []).forEach(function (t) { values[t] = true; });
+        }
+        (meta.lotes || []).forEach(function (l) {
+            if (l.tamanho) values[l.tamanho] = true;
+        });
+        Object.keys(values).forEach(function (t) {
+            const opt = document.createElement('option');
+            opt.value = t;
+            opt.textContent = t;
+            if (prev === t) opt.selected = true;
+            select.appendChild(opt);
+        });
+        if (!prev && select.options.length === 2) select.selectedIndex = 1;
+    }
+
+    function toggleTamanhoWrap(wrap, epiId) {
+        if (!wrap) return;
+        const meta = metaEpi(epiId);
+        wrap.classList.toggle('d-none', !meta.controla_tamanho);
+        const sel = wrap.querySelector('.tamanho-select') || wrap;
+        if (sel && sel.tagName === 'SELECT') sel.required = !!meta.controla_tamanho;
     }
 
     function fillMotivoSelect(select, tipo) {
@@ -358,17 +412,23 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
         return '';
     }
 
-    function popularSelectCa(select, epiId, selected) {
+    function popularSelectCa(select, epiId, selected, tamanhoFiltro) {
         select.innerHTML = '';
         const placeholder = document.createElement('option');
         placeholder.value = '';
         placeholder.textContent = 'Selecione CA em estoque...';
         select.appendChild(placeholder);
-        const lotes = casEstoquePorEpi[epiId] || [];
+        const meta = metaEpi(epiId);
+        let lotes = meta.controla_tamanho ? (meta.lotes || []) : (meta.cas || []);
+        if (meta.controla_tamanho && tamanhoFiltro) {
+            lotes = lotes.filter(function (l) { return String(l.tamanho || '') === String(tamanhoFiltro); });
+        }
         lotes.forEach(function (l) {
             const opt = document.createElement('option');
             opt.value = l.ca_numero;
-            opt.textContent = l.ca_numero + ' (saldo: ' + l.saldo + ')';
+            let label = l.ca_numero + ' (saldo: ' + l.saldo + ')';
+            if (l.tamanho) label = l.tamanho + ' · ' + label;
+            opt.textContent = label;
             opt.dataset.validade = l.ca_validade || '';
             opt.dataset.saldo = String(l.saldo);
             if (l.valor_unitario !== null && l.valor_unitario !== undefined) {
@@ -390,7 +450,9 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
         if (!select || !input) return;
 
         if (usaSelectCa(tipo)) {
-            popularSelectCa(select, epiId, keepValue || input.value || select.value);
+            const tamSel = wrap.closest('.item-row')?.querySelector('.tamanho-select')
+                || document.getElementById('tamanhoSelect');
+            popularSelectCa(select, epiId, keepValue || input.value || select.value, tamSel ? tamSel.value : '');
             select.classList.remove('d-none');
             input.classList.add('d-none');
             input.removeAttribute('name');
@@ -458,6 +520,14 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
             const wrap = row.querySelector('.ca-field-wrap');
             const input = row.querySelector('.ca-input');
             syncCaField(wrap, tipo, epiId, input ? input.value : '');
+            const wrapTam = row.querySelector('.wrap-tamanho');
+            const tamSel = row.querySelector('.tamanho-select');
+            toggleTamanhoWrap(wrapTam, epiId);
+            popularTamanho(tamSel, epiId, tipo, tamSel ? tamSel.value : '');
+            if (tamSel && !tamSel.dataset.bound) {
+                tamSel.addEventListener('change', function () { refreshRow(row); });
+                tamSel.dataset.bound = '1';
+            }
             syncValorRequired(tipo, row);
             setValorReadonly(row, tipo === 'Saída' || tipo === 'Devolução');
             bindValorCalc(row);
@@ -527,19 +597,26 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
     function refreshSingle() {
         const t = tipo.value;
         const isAjuste = t === 'Ajuste';
+        const epiId = getEpiIdFromRow(null);
+        const meta = metaEpi(epiId);
+        const wrapTam = document.getElementById('wrapTamanho');
+        const tamSel = document.getElementById('tamanhoSelect');
+        toggleTamanhoWrap(wrapTam, epiId);
+        popularTamanho(tamSel, epiId, t, tamSel ? tamSel.value : '');
         wrapSaldo.classList.toggle('d-none', !isAjuste);
         wrapQty.classList.toggle('d-none', isAjuste);
-        wrapCa.classList.toggle('d-none', isAjuste);
-        wrapCaVal.classList.toggle('d-none', isAjuste);
-        caHint.classList.toggle('d-none', isAjuste);
+        const hideCa = isAjuste && !meta.controla_tamanho;
+        wrapCa.classList.toggle('d-none', hideCa);
+        wrapCaVal.classList.toggle('d-none', hideCa);
+        if (caHint) caHint.classList.toggle('d-none', hideCa);
         qtyInput.required = !isAjuste;
         wrapSaldo.querySelector('input').required = isAjuste;
         syncValorRequired(t, formRoot);
         setValorReadonly(formRoot, t === 'Saída' || t === 'Devolução');
         syncJustificativaSingle(t);
-        if (!isAjuste) {
-            const epiId = getEpiIdFromRow(null);
-            syncCaField(wrapCa, t, epiId, caInput.value || (caSelect ? caSelect.value : ''));
+        if (!hideCa) {
+            const tipoCa = (t === 'Saída' || (isAjuste && meta.controla_tamanho)) ? 'Saída' : t;
+            syncCaField(wrapCa, tipoCa, epiId, caInput.value || (caSelect ? caSelect.value : ''));
             if (caSelect && caSelect.value) onCaSelectChange(caSelect);
         }
         calcTotalInScope(formRoot);
@@ -547,6 +624,8 @@ $epiLockedId = $epiLocked && $epiLockedItem ? (int)($epiLockedItem['id'] ?? 0) :
 
     tipo.addEventListener('change', refreshSingle);
     if (epiSelect) epiSelect.addEventListener('change', refreshSingle);
+    const tamSelInit = document.getElementById('tamanhoSelect');
+    if (tamSelInit) tamSelInit.addEventListener('change', refreshSingle);
     refreshSingle();
 })();
 </script>

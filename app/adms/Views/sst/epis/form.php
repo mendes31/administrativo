@@ -49,9 +49,9 @@ $categoriaSelecionada = $item['categoria'] ?? '';
                 <h6 class="text-muted text-uppercase small mb-3 mt-2">Estoque e controle</h6>
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label" for="estoque_minimo">Estoque mínimo (alerta de compra)</label>
+                        <label class="form-label" for="estoque_minimo" id="labelEstoqueMinimo">Estoque mínimo (alerta de compra)</label>
                         <input type="number" name="estoque_minimo" id="estoque_minimo" class="form-control" min="0" value="<?= htmlspecialchars((string)($item['estoque_minimo'] ?? '')) ?>">
-                        <div class="form-text">Saldo agregado do EPI, independente de CA ou fabricante.</div>
+                        <div class="form-text" id="hintEstoqueMinimo">Saldo total do EPI. Com grade, este valor vira o mínimo padrão de cada tamanho.</div>
                     </div>
                     <?php if ($isEdit): ?>
                     <div class="col-md-4 mb-3">
@@ -63,6 +63,33 @@ $categoriaSelecionada = $item['categoria'] ?? '';
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="periodicidade_troca_dias">Vida útil padrão (dias)</label>
                         <input type="number" name="periodicidade_troca_dias" id="periodicidade_troca_dias" class="form-control" min="1" value="<?= htmlspecialchars((string)($item['periodicidade_troca_dias'] ?? '')) ?>">
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label" for="grade_preset">Tamanho / numeração</label>
+                        <?php
+                        $gradeAtual = \App\adms\Helpers\SstEpiTamanhoHelper::parseGrade((string) ($item['grade_tamanhos'] ?? ''));
+                        $presetAtual = !empty($item['controla_tamanho'])
+                            ? \App\adms\Helpers\SstEpiTamanhoHelper::detectPreset($gradeAtual)
+                            : \App\adms\Helpers\SstEpiTamanhoHelper::PRESET_NENHUM;
+                        ?>
+                        <select name="grade_preset" id="grade_preset" class="form-select">
+                            <?php foreach (\App\adms\Helpers\SstEpiTamanhoHelper::presetLabels() as $key => $lab): ?>
+                            <option value="<?= htmlspecialchars($key) ?>" <?= $presetAtual === $key ? 'selected' : '' ?>><?= htmlspecialchars($lab) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                        <div class="form-text">Calçado e uniforme: um cadastro só; o tamanho entra na movimentação e na ficha.</div>
+                    </div>
+                    <div class="col-md-8 mb-3 <?= $presetAtual === \App\adms\Helpers\SstEpiTamanhoHelper::PRESET_PERSONALIZADA ? '' : 'd-none' ?>" id="wrapGradePersonalizada">
+                        <label class="form-label" for="grade_tamanhos">Grade personalizada</label>
+                        <input type="text" name="grade_tamanhos" id="grade_tamanhos" class="form-control"
+                            value="<?= $presetAtual === \App\adms\Helpers\SstEpiTamanhoHelper::PRESET_PERSONALIZADA ? htmlspecialchars((string) ($item['grade_tamanhos'] ?? '')) : '' ?>"
+                            placeholder="Ex.: 36, 37, 38, 39, 40">
+                        <div class="form-text">Separe por vírgula. Use o mesmo código na entrada de estoque (38, GG…).</div>
+                    </div>
+                    <div class="col-12 mb-3 d-none" id="wrapMinTamanhos">
+                        <label class="form-label">Mínimo por numeração</label>
+                        <p class="form-text mb-2">Deixe vazio para usar o padrão acima. Ex.: padrão 3 em todos; nº 38 = 8.</p>
+                        <div id="gridMinTamanhos" class="row g-2"></div>
                     </div>
                     <div class="col-md-4 mb-3">
                         <label class="form-label" for="status">Status</label>
@@ -81,3 +108,78 @@ $categoriaSelecionada = $item['categoria'] ?? '';
         </div>
     </div>
 </div>
+<script>
+(function () {
+    const sel = document.getElementById('grade_preset');
+    const wrap = document.getElementById('wrapGradePersonalizada');
+    const wrapMin = document.getElementById('wrapMinTamanhos');
+    const grid = document.getElementById('gridMinTamanhos');
+    const gradeInput = document.getElementById('grade_tamanhos');
+    const labelMin = document.getElementById('labelEstoqueMinimo');
+    const hintMin = document.getElementById('hintEstoqueMinimo');
+    const GRADES = {
+        calcado: <?= json_encode(\App\adms\Helpers\SstEpiTamanhoHelper::calcado(), JSON_UNESCAPED_UNICODE) ?>,
+        vestuario: <?= json_encode(\App\adms\Helpers\SstEpiTamanhoHelper::vestuario(), JSON_UNESCAPED_UNICODE) ?>
+    };
+    const OVERRIDES = <?= json_encode($this->data['minimos_tamanho'] ?? [], JSON_UNESCAPED_UNICODE) ?>;
+    if (!sel || !wrap) return;
+
+    function esc(s) {
+        return String(s).replace(/[&<>"']/g, function (c) {
+            return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]);
+        });
+    }
+    function parsePersonalizada(raw) {
+        return String(raw || '').split(/[,;|\n\r\/]+/).map(function (p) {
+            return p.replace(/^(n[ºo°.\s]+|tam(anho)?[.\s:]*)/i, '').replace(/\s+/g, '').toUpperCase();
+        }).filter(function (p, i, arr) { return p && arr.indexOf(p) === i; });
+    }
+    function currentGrade() {
+        if (sel.value === 'calcado') return GRADES.calcado.slice();
+        if (sel.value === 'vestuario') return GRADES.vestuario.slice();
+        if (sel.value === 'personalizada') return parsePersonalizada(gradeInput ? gradeInput.value : '');
+        return [];
+    }
+    function currentValues() {
+        const map = Object.assign({}, OVERRIDES);
+        if (!grid) return map;
+        grid.querySelectorAll('input[data-tam]').forEach(function (inp) {
+            map[inp.getAttribute('data-tam')] = inp.value;
+        });
+        return map;
+    }
+    function renderMinimos() {
+        if (!wrapMin || !grid) return;
+        const grade = currentGrade();
+        const comGrade = grade.length > 0;
+        wrapMin.classList.toggle('d-none', !comGrade);
+        if (labelMin) {
+            labelMin.textContent = comGrade ? 'Mínimo padrão por tamanho' : 'Estoque mínimo (alerta de compra)';
+        }
+        if (hintMin) {
+            hintMin.textContent = comGrade
+                ? 'Ex.: 3 = alerta se qualquer número ficar com 3 ou menos. Números específicos na grade abaixo.'
+                : 'Saldo total do EPI. Sem grade, o alerta usa só este total.';
+        }
+        if (!comGrade) {
+            grid.innerHTML = '';
+            return;
+        }
+        const vals = currentValues();
+        grid.innerHTML = grade.map(function (tam) {
+            const v = vals[tam] !== undefined && vals[tam] !== null ? String(vals[tam]) : '';
+            return '<div class="col-4 col-sm-3 col-md-2 col-xl-1">' +
+                '<label class="form-label small mb-0">' + esc(tam) + '</label>' +
+                '<input type="number" min="0" class="form-control form-control-sm" name="min_tamanho[' + esc(tam) + ']" data-tam="' + esc(tam) + '" value="' + esc(v) + '" placeholder="padr.">' +
+                '</div>';
+        }).join('');
+    }
+    function sync() {
+        wrap.classList.toggle('d-none', sel.value !== 'personalizada');
+        renderMinimos();
+    }
+    sel.addEventListener('change', sync);
+    if (gradeInput) gradeInput.addEventListener('input', renderMinimos);
+    sync();
+})();
+</script>

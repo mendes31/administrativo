@@ -1,37 +1,45 @@
 <h1>Catálogo de EPIs</h1>
 
 <h2>Função no sistema</h2>
-<p>Equipamentos de Proteção Individual cadastrados para entrega, controle de estoque e vínculo a riscos.</p>
+<p>Equipamentos de Proteção Individual cadastrados para entrega, controle de estoque e vínculo a riscos. Calçado e uniforme ficam em um único item; o tamanho entra na movimentação e na ficha.</p>
 
 
-<p><strong>Quem acessa:</strong> SST com <em>SstListEpis</em>, <em>SstCreateEpi</em>.</p>
+<p><strong>Quem acessa:</strong> SST com <em>SstListEpis</em>, <em>SstCreateEpi</em>, <em>SstUpdateEpi</em>.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>EPI</dt>
     <dd>Equipamento de Proteção Individual exigido para controlar riscos ocupacionais; no SST inclui fichas e entregas.</dd>
+    <dt>Grade de tamanhos</dt>
+    <dd>Lista de numerações (33–46) ou letras (PP–XXG) do mesmo EPI. O saldo é controlado por tamanho, não por um cadastro para cada número.</dd>
+    <dt>Mínimo padrão por tamanho</dt>
+    <dd>Com grade, o campo estoque mínimo do cadastro vale para <em>cada</em> numeração. O nº 38 com mínimo 3 alerta quando houver 3 ou menos daquele número, mesmo que o total do EPI esteja alto.</dd>
 </dl>
 
 
 <h2>Fluxo principal (passo a passo)</h2>
 <ol>
-<li>Cadastre EPI com nome, CA e categoria de proteção.</li>
-<li>Informe validade de troca (meses) e estoque mínimo.</li>
-<li>Marque <em>exige treinamento</em> se entrega depende de capacitação.</li>
+<li>Cadastre o EPI com nome e categoria de proteção. O Nº CA entra nas movimentações, não no catálogo.</li>
+<li>Informe a vida útil padrão (dias) e o estoque mínimo.</li>
+<li>Se for calçado ou uniforme, escolha a grade (calçado 33–46, vestuário PP–XXG ou lista personalizada).</li>
+<li>Com grade: o estoque mínimo vira o <strong>padrão de cada tamanho</strong>. Preencha só os números que precisam de outro valor (ex.: nº 38 = 8).</li>
 <li>Vincule ao <strong>risco</strong> (aba EPIs), <strong>Necessidades de EPI</strong> (cargo) ou ao <strong>GHE</strong> (aba EPIs do ambiente).</li>
-<li>Mantenha estoque via movimentações EPI.</li>
+<li>Registre entradas em <strong>Estoque EPI</strong> informando CA e tamanho. Entregas saem pela ficha com o mesmo tamanho.</li>
 </ol>
 <h2>Campos e telas</h2>
-<div class="help-field"><strong>Nome / CA</strong> Descrição e Certificado de Aprovação.</div>
-<div class="help-field"><strong>Categoria</strong> Auricular, respiratória, cabeça, etc.</div>
-<div class="help-field"><strong>Validade de troca</strong> Periodicidade recomendada de substituição.</div>
-<div class="help-field"><strong>Estoque mínimo</strong> Alertas no dashboard SST.</div>
-<div class="help-field"><strong>Exige treinamento</strong> Bloqueia entrega sem treinamento em dia.</div>
+<div class="help-field"><strong>Nome</strong> Descrição do item (ex.: Calçado de segurança). Um cadastro cobre todos os números.</div>
+<div class="help-field"><strong>Categoria</strong> Auricular, respiratória, pés, tronco, etc.</div>
+<div class="help-field"><strong>Tamanho / numeração</strong> Não controla; calçado; vestuário; ou grade personalizada (ex.: 36, 37, 38).</div>
+<div class="help-field"><strong>Estoque mínimo</strong> Sem grade: alerta no total. Com grade: mínimo padrão de cada tamanho. Exceções na grade “Mínimo por numeração”.</div>
+<div class="help-field"><strong>Mínimo por numeração</strong> Campo vazio usa o padrão. Só grave valores diferentes (nº mais usado, etc.).</div>
+<div class="help-field"><strong>Validade de troca</strong> Periodicidade recomendada de substituição, em dias.</div>
+<div class="help-field"><strong>Importação (Central)</strong> Tipo <em>SST — EPIs</em>. <em>grade_tamanhos</em>: vazio, <code>calcado</code>, <code>vestuario</code> ou lista. <em>estoque_minimo</em> com grade = padrão por tamanho. <em>min_tamanhos</em> = exceções na mesma linha, ex. <code>38=8, 42=5</code> (os demais usam o padrão).</div>
 <h2>Problemas comuns</h2>
 <dl>
-<dt>CA vencido</dt><dd>Atualize CA ou substitua EPI no catálogo.</dd>
+<dt>CA vencido</dt><dd>Atualize o CA na próxima entrada de estoque ou substitua o lote.</dd>
 <dt>EPI não aparece na ficha de entrega</dt><dd>Sem vínculo risco/necessidade para o cargo nem EPI obrigatório no GHE do colaborador.</dd>
 <dt>EPI do GHE e do cargo duplicado</dt><dd>O mesmo item conta uma vez nas pendências e no perfil. No GHE o selo “Já no cargo” indica a sobreposição.</dd>
-<dt>Alerta estoque mínimo</dt><dd>Registre entrada em Movimentações EPI.</dd>
+<dt>Alerta estoque mínimo no total, mas falta o nº 38</dt><dd>Ative a grade no cadastro e defina o mínimo padrão (e, se preciso, o mínimo do 38). O alerta passa a ser por numeração.</dd>
+<dt>Importação não traz mínimo por número</dt><dd>Use a coluna <code>min_tamanhos</code> no formato <code>38=8, 42=5</code>, ou preencha a grade no cadastro do EPI. Os tamanhos omitidos usam o <em>estoque_minimo</em> padrão.</dd>
 <dt>Entrega bloqueada por treinamento</dt><dd>Aplique treinamento SST vinculado ao EPI.</dd>
 </dl>

@@ -41,8 +41,26 @@ function formatCellValue(string $col, mixed $value): string {
     <?php if (in_array('SstCreateEpiMovimento', $perms, true)): ?>
     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi-movimento?adms_sst_epi_id=<?= (int)$item['id'] ?>" class="btn btn-sm btn-outline-success ms-2">Movimentar</a>
     <?php endif; ?>
+    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque" class="btn btn-sm btn-outline-primary ms-1">Posição</a>
 </td></tr>
+<?php if (!empty($item['controla_tamanho'])): ?>
+<tr><th>Grade de tamanhos:</th><td><?= htmlspecialchars((string) ($item['grade_tamanhos'] ?? '—')) ?></td></tr>
+<tr><th width="35%">Estoque mínimo:</th><td>
+    Padrão por tamanho: <?= formatCellValue('estoque_minimo', $item['estoque_minimo'] ?? null) ?>
+    <?php
+    $minsEsp = $this->data['minimos_tamanho'] ?? [];
+    if ($minsEsp !== []):
+        $txt = [];
+        foreach ($minsEsp as $tam => $qtd) {
+            $txt[] = $tam . '=' . (int) $qtd;
+        }
+    ?>
+    <div class="small text-muted">Exceções: <?= htmlspecialchars(implode(', ', $txt)) ?></div>
+    <?php endif; ?>
+</td></tr>
+<?php else: ?>
 <tr><th width="35%">Estoque mínimo:</th><td><?= formatCellValue('estoque_minimo', $item['estoque_minimo'] ?? null) ?></td></tr>
+<?php endif; ?>
 <tr><th width="35%">Vida útil padrão (dias):</th><td><?= formatCellValue('periodicidade_troca_dias', $item['periodicidade_troca_dias'] ?? null) ?></td></tr>
 <tr><th width="35%">Status:</th><td><?= formatCellValue('status', $item['status'] ?? null) ?></td></tr>
 
@@ -50,6 +68,37 @@ function formatCellValue(string $col, mixed $value): string {
                     <tr><th>Atualizado em:</th><td><?= !empty($item['updated_at']) ? date('d/m/Y H:i', strtotime($item['updated_at'])) : '-' ?></td></tr>
                 </table></div>
             </div>
+                        <?php if (!empty($this->data['saldos_tamanho'])): ?>
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header"><h5 class="mb-0">Saldo por tamanho</h5></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead><tr><th>Tamanho / nº</th><th>Saldo</th><th>Mín.</th><th>CA</th></tr></thead>
+                        <tbody>
+                        <?php foreach ($this->data['saldos_tamanho'] as $st):
+                            $saldoTam = (int) ($st['saldo'] ?? 0);
+                            $minTam = (int) ($st['minimo'] ?? 0);
+                            $baixoTam = !empty($st['estoque_baixo']);
+                            if ($saldoTam === 0 && $minTam <= 0) {
+                                continue;
+                            }
+                            $casTxt = [];
+                            foreach ($st['cas'] ?? [] as $c) {
+                                $casTxt[] = ($c['ca_numero'] ?? '') . ': ' . (int) ($c['saldo'] ?? 0);
+                            }
+                        ?>
+                        <tr class="<?= $baixoTam ? 'table-warning' : '' ?>">
+                            <td><strong><?= htmlspecialchars(\App\adms\Helpers\SstEpiTamanhoHelper::label($st['tamanho'] ?? '')) ?></strong></td>
+                            <td><?= $saldoTam ?><?php if ($baixoTam): ?> <span class="badge bg-warning text-dark">Comprar</span><?php endif; ?></td>
+                            <td><?= $minTam > 0 ? $minTam : '—' ?></td>
+                            <td class="small"><?= htmlspecialchars($casTxt !== [] ? implode(' · ', $casTxt) : '—') ?></td>
+                        </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <?php endif; ?>
             <?php if (!empty($this->data['movimentos'])): ?>
             <div class="card mb-4 shadow-sm">
                 <div class="card-header hstack"><h5 class="mb-0">Últimas movimentações de estoque</h5>
@@ -59,13 +108,14 @@ function formatCellValue(string $col, mixed $value): string {
                 </div>
                 <div class="card-body p-0">
                     <table class="table table-sm mb-0">
-                        <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>CA</th><th>Saldo</th></tr></thead>
+                        <thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Tam.</th><th>CA</th><th>Saldo</th></tr></thead>
                         <tbody>
                         <?php foreach ($this->data['movimentos'] as $m): ?>
                         <tr>
                             <td><?= !empty($m['data_movimento']) ? date('d/m/Y', strtotime($m['data_movimento'])) : '-' ?></td>
                             <td><?= htmlspecialchars($m['tipo_movimento'] ?? '') ?></td>
                             <td><?= (int)($m['quantidade'] ?? 0) ?></td>
+                            <td><?= htmlspecialchars($m['tamanho'] ?? '—') ?></td>
                             <td><?= htmlspecialchars($m['ca_numero'] ?? '-') ?></td>
                             <td><?= isset($m['saldo_apos']) ? (int)$m['saldo_apos'] : '-' ?></td>
                         </tr>

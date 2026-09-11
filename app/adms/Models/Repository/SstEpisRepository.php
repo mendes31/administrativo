@@ -68,6 +68,12 @@ class SstEpisRepository extends DbConnection
             array_splice($cols, 2, 0, ['categoria']);
             array_splice($vals, 2, 0, [':categoria']);
         }
+        if ($this->hasColumn('controla_tamanho')) {
+            $estoqueIdx = array_search('estoque_minimo', $cols, true);
+            $at = $estoqueIdx === false ? count($cols) : $estoqueIdx + 1;
+            array_splice($cols, $at, 0, ['controla_tamanho', 'grade_tamanhos']);
+            array_splice($vals, $at, 0, [':controla_tamanho', ':grade_tamanhos']);
+        }
 
         $sql = 'INSERT INTO adms_sst_epis (' . implode(', ', $cols) . ') VALUES (' . implode(', ', $vals) . ')';
         $stmt = $this->getConnection()->prepare($sql);
@@ -77,6 +83,10 @@ class SstEpisRepository extends DbConnection
             $this->bindField($stmt, ':categoria', $data['categoria'] ?? null);
         }
         $this->bindField($stmt, ':estoque_minimo', $data['estoque_minimo'] ?? null);
+        if ($this->hasColumn('controla_tamanho')) {
+            $this->bindField($stmt, ':controla_tamanho', !empty($data['controla_tamanho']) ? 1 : 0);
+            $this->bindField($stmt, ':grade_tamanhos', $data['grade_tamanhos'] ?? null);
+        }
         $this->bindField($stmt, ':periodicidade_troca_dias', $data['periodicidade_troca_dias'] ?? null);
         $this->bindField($stmt, ':status', $data['status'] ?? null);
         $uid = (int) ($_SESSION['user_id'] ?? 1);
@@ -111,6 +121,10 @@ class SstEpisRepository extends DbConnection
         if ($this->hasColumn('categoria')) {
             $sets[] = 'categoria = :categoria';
         }
+        if ($this->hasColumn('controla_tamanho')) {
+            $sets[] = 'controla_tamanho = :controla_tamanho';
+            $sets[] = 'grade_tamanhos = :grade_tamanhos';
+        }
 
         $sql = 'UPDATE adms_sst_epis SET ' . implode(', ', $sets) . ' WHERE id = :id';
         $stmt = $this->getConnection()->prepare($sql);
@@ -121,6 +135,10 @@ class SstEpisRepository extends DbConnection
             $this->bindField($stmt, ':categoria', $data['categoria'] ?? null);
         }
         $this->bindField($stmt, ':estoque_minimo', $data['estoque_minimo'] ?? null);
+        if ($this->hasColumn('controla_tamanho')) {
+            $this->bindField($stmt, ':controla_tamanho', !empty($data['controla_tamanho']) ? 1 : 0);
+            $this->bindField($stmt, ':grade_tamanhos', $data['grade_tamanhos'] ?? null);
+        }
         $this->bindField($stmt, ':periodicidade_troca_dias', $data['periodicidade_troca_dias'] ?? null);
         $this->bindField($stmt, ':status', $data['status'] ?? null);
         $uid = (int) ($_SESSION['user_id'] ?? 1);

@@ -48,10 +48,9 @@ class SstCreateEpiMovimento
             $this->data['saldo_atual'] = $movRepo->hasTable() ? $movRepo->getSaldoCalculado($epiIdLocked) : (int) ($epi['estoque_atual'] ?? 0);
         }
 
-        $casPorEpi = [];
-        foreach ($this->data['epis'] as $ep) {
-            $epId = (int) ($ep['id'] ?? 0);
-            $casPorEpi[$epId] = $movRepo->getSaldoPorCaPorEpi($epId);
+        $casPorEpi = (new SstEpiEstoqueService())->metaEstoqueParaFormulario($this->data['epis']);
+        if ($epiIdLocked > 0 && $this->data['epi_locked_item']) {
+            $casPorEpi += (new SstEpiEstoqueService())->metaEstoqueParaFormulario([$this->data['epi_locked_item']]);
         }
         $this->data['cas_estoque_por_epi_json'] = json_encode($casPorEpi, JSON_UNESCAPED_UNICODE);
 
@@ -107,6 +106,7 @@ class SstCreateEpiMovimento
             'valor_unitario' => $_POST['valor_unitario'] ?? null,
             'data_movimento' => trim((string) ($_POST['data_movimento'] ?? '')),
             'ca_numero' => trim((string) ($_POST['ca_numero'] ?? '')),
+            'tamanho' => trim((string) ($_POST['tamanho'] ?? '')),
             'ca_validade' => trim((string) ($_POST['ca_validade'] ?? '')),
             'documento_ref' => trim((string) ($_POST['documento_ref'] ?? '')),
             'observacoes' => trim((string) ($_POST['observacoes'] ?? '')),
@@ -175,6 +175,7 @@ class SstCreateEpiMovimento
                 'valor_unitario' => $item['valor_unitario'] ?? null,
                 'data_movimento' => $dataMov,
                 'ca_numero' => (string) $item['ca_numero'],
+                'tamanho' => (string) ($item['tamanho'] ?? ''),
                 'ca_validade' => (string) ($item['ca_validade'] ?? ''),
                 'documento_ref' => $documentoRef,
                 'observacoes' => $obs,
@@ -230,6 +231,7 @@ class SstCreateEpiMovimento
                 'quantidade' => max(1, (int) ($row['quantidade'] ?? 1)),
                 'valor_unitario' => $row['valor_unitario'] ?? null,
                 'ca_numero' => $ca,
+                'tamanho' => trim((string) ($row['tamanho'] ?? '')),
                 'ca_validade' => trim((string) ($row['ca_validade'] ?? '')),
                 'observacoes' => trim((string) ($row['observacoes'] ?? '')),
             ];

@@ -35,21 +35,28 @@ class ImportCenterTemplate
         $fields = $profile->fields();
         fputcsv($out, array_values($fields), ';');
         fputcsv($out, array_keys($fields), ';');
-        if (method_exists($profile, 'sampleRow')) {
+        $samples = [];
+        if (method_exists($profile, 'sampleRows')) {
+            $rows = $profile->sampleRows();
+            $samples = is_array($rows) ? $rows : [];
+        } elseif (method_exists($profile, 'sampleRow')) {
             $sample = $profile->sampleRow();
-            if (is_array($sample) && $sample !== []) {
-                fputcsv($out, $sample, ';');
-            }
+            $samples = is_array($sample) && $sample !== [] ? [$sample] : [];
         } elseif ($profile->key() === 'users') {
-            fputcsv($out, [
+            $samples = [[
                 '', '000.000.000-00', 'fulano.silva', 'Fulano Silva', 'fulano@empresa.com',
                 '', '', 'Suprimentos', 'Gerente de Suprimentos', 'Ativo', 'Não',
                 '01/01/1990', '15/03/2020', '', '', 'MAT001',
-            ], ';');
+            ]];
         } elseif ($profile->key() === 'departments') {
-            fputcsv($out, ['', 'Suprimentos'], ';');
+            $samples = [['', 'Suprimentos']];
         } elseif ($profile->key() === 'positions') {
-            fputcsv($out, ['', 'Gerente de Suprimentos'], ';');
+            $samples = [['', 'Gerente de Suprimentos']];
+        }
+        foreach ($samples as $sample) {
+            if (is_array($sample) && $sample !== []) {
+                fputcsv($out, $sample, ';');
+            }
         }
         fclose($out);
         exit;

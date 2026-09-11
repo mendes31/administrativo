@@ -347,6 +347,149 @@ class SstEpiMovimentosRepository extends DbConnection
         return $out;
     }
 
+    /**
+     * Saldo por CA + tamanho (lote). Tamanho vazio agrupa peças sem numeração.
+     *
+     * @return list<array{ca_numero: string, tamanho: string, saldo: int, ca_validade: string|null, valor_unitario: float|null}>
+     */
+    public function getSaldoPorLotePorEpi(int $epiId, bool $somenteComSaldo = true): array
+    {
+        if (!$this->hasTable() || $epiId <= 0 || !$this->hasColumn('ca_numero')) {
+            return [];
+        }
+        $hasTam = $this->hasColumn('tamanho');
+        $hasValor = $this->hasColumn('valor_unitario');
+        $sql = 'SELECT ca_numero, tipo_movimento, quantidade, ca_validade'
+            . ($hasTam ? ', tamanho' : '')
+            . ($hasValor ? ', valor_unitario' : '')
+            . ' FROM adms_sst_epi_movimentos
+                WHERE adms_sst_epi_id = :eid
+                  AND ca_numero IS NOT NULL AND TRIM(ca_numero) <> \'\'
+                ORDER BY id ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eid', $epiId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        /** @var array<string, array{ca_numero: string, tamanho: string, saldo: int, ca_validade: string|null, valor_unitario: float|null}> $porLote */
+        $porLote = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $ca = strtoupper(trim((string) ($row['ca_numero'] ?? '')));
+            if ($ca === '') {
+                continue;
+            }
+            $tam = $hasTam
+                ? \App\adms\Helpers\SstEpiTamanhoHelper::normalize((string) ($row['tamanho'] ?? ''))
+                : '';
+            $key = $ca . "\0" . $tam;
+            if (!isset($porLote[$key])) {
+                $porLote[$key] = [
+                    'ca_numero' => $ca,
+                    'tamanho' => $tam,
+                    'saldo' => 0,
+                    'ca_validade' => null,
+                    'valor_unitario' => null,
+                ];
+            }
+            $porLote[$key]['saldo'] += self::impactoSaldo(
+                (string) ($row['tipo_movimento'] ?? ''),
+                (int) ($row['quantidade'] ?? 0)
+            );
+            $val = trim((string) ($row['ca_validade'] ?? ''));
+            $tipoRow = (string) ($row['tipo_movimento'] ?? '');
+            if ($val !== '' && in_array($tipoRow, self::TIPOS_ENTRADA, true)) {
+                $porLote[$key]['ca_validade'] = $val;
+            }
+        }
+
+        if ($hasValor) {
+            foreach ($porLote as $key => $info) {
+                $porLote[$key]['valor_unitario'] = $this->getCustoMedioCa(
+                    $epiId,
+                    self::caNumeroAsString($info['ca_numero'] ?? '')
+                );
+            }
+        }
+
+        $out = array_values($porLote);
+        if ($somenteComSaldo) {
+            $out = array_values(array_filter($out, static fn (array $c): bool => (int) ($c['saldo'] ?? 0) > 0));
+        }
+
+        usort($out, static function (array $a, array $b): int {
+            $tam = \App\adms\Helpers\SstEpiTamanhoHelper::compare((string) $a['tamanho'], (string) $b['tamanho']);
+            if ($tam !== 0) {
+                return $tam;
+            }
+
+            return strcmp((string) $a['ca_numero'], (string) $b['ca_numero']);
+        });
+
+        return $out;
+    }
+
+    public function getSaldoLote(int $epiId, int|string $caNumero, ?string $tamanho = null): int
+    {
+        $ca = self::caNumeroAsString($caNumero);
+        $tam = \App\adms\Helpers\SstEpiTamanhoHelper::normalize((string) $tamanho);
+        if ($ca === '') {
+            return 0;
+        }
+        foreach ($this->getSaldoPorLotePorEpi($epiId, false) as $row) {
+            if (($row['ca_numero'] ?? '') === $ca && (string) ($row['tamanho'] ?? '') === $tam) {
+                return max(0, (int) ($row['saldo'] ?? 0));
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * @return list<array{tamanho: string, saldo: int, cas: list<array{ca_numero: string, saldo: int}>}>
+     */
+    public function getSaldoPorTamanhoPorEpi(int $epiId, bool $somenteComSaldo = true): array
+    {
+        /** @var array<string, array{tamanho: string, saldo: int, cas: array<string, int>}> $porTam */
+        $porTam = [];
+        foreach ($this->getSaldoPorLotePorEpi($epiId, false) as $lote) {
+            $tam = (string) ($lote['tamanho'] ?? '');
+            $ca = (string) ($lote['ca_numero'] ?? '');
+            $saldo = (int) ($lote['saldo'] ?? 0);
+            if (!isset($porTam[$tam])) {
+                $porTam[$tam] = ['tamanho' => $tam, 'saldo' => 0, 'cas' => []];
+            }
+            $porTam[$tam]['saldo'] += $saldo;
+            if ($ca !== '') {
+                $porTam[$tam]['cas'][$ca] = ($porTam[$tam]['cas'][$ca] ?? 0) + $saldo;
+            }
+        }
+
+        $out = [];
+        foreach ($porTam as $row) {
+            if ($somenteComSaldo && (int) $row['saldo'] <= 0) {
+                continue;
+            }
+            $cas = [];
+            foreach ($row['cas'] as $ca => $saldoCa) {
+                if ($somenteComSaldo && $saldoCa <= 0) {
+                    continue;
+                }
+                $cas[] = ['ca_numero' => (string) $ca, 'saldo' => (int) $saldoCa];
+            }
+            usort($cas, static fn (array $a, array $b): int => strcmp($a['ca_numero'], $b['ca_numero']));
+            $out[] = [
+                'tamanho' => $row['tamanho'],
+                'saldo' => (int) $row['saldo'],
+                'cas' => $cas,
+            ];
+        }
+        usort($out, static fn (array $a, array $b): int => \App\adms\Helpers\SstEpiTamanhoHelper::compare(
+            (string) $a['tamanho'],
+            (string) $b['tamanho']
+        ));
+
+        return $out;
+    }
+
     public function getSaldoCa(int $epiId, int|string $caNumero): int
     {
         $ca = self::caNumeroAsString($caNumero);
@@ -428,6 +571,11 @@ class SstEpiMovimentosRepository extends DbConnection
             array_push($cols, 'ca_numero', 'ca_validade');
             array_push($vals, ':ca_numero', ':ca_validade');
         }
+        $hasTam = $this->hasColumn('tamanho');
+        if ($hasTam) {
+            array_push($cols, 'tamanho');
+            array_push($vals, ':tamanho');
+        }
         array_push($cols, 'data_movimento', 'documento_ref', 'referencia_tipo', 'referencia_id', 'saldo_apos', 'observacoes');
         array_push($vals, ':data_mov', ':doc_ref', ':ref_tipo', ':ref_id', ':saldo_apos', ':obs');
         if ($hasMotivo) {
@@ -477,6 +625,10 @@ class SstEpiMovimentosRepository extends DbConnection
             $val = trim((string) ($data['ca_validade'] ?? ''));
             $stmt->bindValue(':ca_validade', $val !== '' ? $val : null, $val !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
         }
+        if ($hasTam) {
+            $tam = \App\adms\Helpers\SstEpiTamanhoHelper::normalize((string) ($data['tamanho'] ?? ''));
+            $stmt->bindValue(':tamanho', $tam !== '' ? $tam : null, $tam !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+        }
         $stmt->bindValue(':data_mov', (string) ($data['data_movimento'] ?? date('Y-m-d')), PDO::PARAM_STR);
         $doc = trim((string) ($data['documento_ref'] ?? ''));
         $stmt->bindValue(':doc_ref', $doc !== '' ? $doc : null, $doc !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
@@ -522,6 +674,9 @@ class SstEpiMovimentosRepository extends DbConnection
             $search = '(ep.nome LIKE :search OR m.documento_ref LIKE :search';
             if ($this->hasColumn('ca_numero')) {
                 $search .= ' OR m.ca_numero LIKE :search';
+            }
+            if ($this->hasColumn('tamanho')) {
+                $search .= ' OR m.tamanho LIKE :search';
             }
             if ($this->hasColumn('doc_codigo')) {
                 $search .= ' OR m.doc_codigo LIKE :search OR m.justificativa LIKE :search OR m.motivo LIKE :search';

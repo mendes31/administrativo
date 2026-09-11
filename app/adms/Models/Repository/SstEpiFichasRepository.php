@@ -127,6 +127,7 @@ class SstEpiFichasRepository extends DbConnection
                         ep.nome AS epi_nome,
                         fi.quantidade,
                         fi.ca_utilizado AS ca,
+                        fi.tamanho AS tamanho,
                         fi.data_prevista_troca,
                         f.status_assinatura,
                         f.signed_at
@@ -143,6 +144,7 @@ class SstEpiFichasRepository extends DbConnection
                         ep.nome AS epi_nome,
                         e.quantidade,
                         NULL AS ca,
+                        NULL AS tamanho,
                         e.data_prevista_troca,
                         CASE WHEN e.termo_assinado = 1 THEN 'Assinado' ELSE 'Pendente' END AS status_assinatura,
                         NULL AS signed_at
@@ -209,8 +211,12 @@ class SstEpiFichasRepository extends DbConnection
     private function insertItens(int $fichaId, array $itens): void
     {
         $sql = 'INSERT INTO adms_sst_epi_ficha_itens
-            (adms_sst_epi_ficha_id, adms_sst_epi_id, quantidade, ca_utilizado, data_prevista_troca, observacoes, created_at)
-            VALUES (:ficha_id, :epi_id, :quantidade, :ca_utilizado, :data_prevista_troca, :observacoes, NOW())';
+            (adms_sst_epi_ficha_id, adms_sst_epi_id, quantidade, ca_utilizado'
+            . ($this->hasItemColumn('tamanho') ? ', tamanho' : '')
+            . ', data_prevista_troca, observacoes, created_at)
+            VALUES (:ficha_id, :epi_id, :quantidade, :ca_utilizado'
+            . ($this->hasItemColumn('tamanho') ? ', :tamanho' : '')
+            . ', :data_prevista_troca, :observacoes, NOW())';
         $stmt = $this->getConnection()->prepare($sql);
         foreach ($itens as $item) {
             $epiId = (int) ($item['adms_sst_epi_id'] ?? 0);
@@ -225,6 +231,10 @@ class SstEpiFichasRepository extends DbConnection
             $stmt->bindValue(':epi_id', $epiId, PDO::PARAM_INT);
             $stmt->bindValue(':quantidade', $qty, PDO::PARAM_INT);
             $stmt->bindValue(':ca_utilizado', $ca !== '' ? $ca : null, $ca !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            if ($this->hasItemColumn('tamanho')) {
+                $tam = \App\adms\Helpers\SstEpiTamanhoHelper::normalize((string) ($item['tamanho'] ?? ''));
+                $stmt->bindValue(':tamanho', $tam !== '' ? $tam : null, $tam !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
+            }
             $stmt->bindValue(':data_prevista_troca', $prev !== '' ? $prev : null, $prev !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->bindValue(':observacoes', $obs !== '' ? $obs : null, $obs !== '' ? PDO::PARAM_STR : PDO::PARAM_NULL);
             $stmt->execute();
@@ -307,9 +317,29 @@ class SstEpiFichasRepository extends DbConnection
                 (int) ($item['adms_sst_epi_id'] ?? 0),
                 (int) ($item['quantidade'] ?? 1),
                 (string) ($ficha['data_entrega'] ?? date('Y-m-d')),
-                isset($item['ca_utilizado']) ? (string) $item['ca_utilizado'] : null
+                isset($item['ca_utilizado']) ? (string) $item['ca_utilizado'] : null,
+                isset($item['tamanho']) ? (string) $item['tamanho'] : null,
+                isset($item['id']) ? (int) $item['id'] : null
             );
         }
+    }
+
+    private function hasItemColumn(string $column): bool
+    {
+        static $cache = [];
+        if (array_key_exists($column, $cache)) {
+            return $cache[$column];
+        }
+        try {
+            $stmt = $this->getConnection()->query(
+                'SHOW COLUMNS FROM adms_sst_epi_ficha_itens LIKE ' . $this->getConnection()->quote($column)
+            );
+            $cache[$column] = (bool) $stmt->fetch(PDO::FETCH_ASSOC);
+        } catch (\PDOException) {
+            $cache[$column] = false;
+        }
+
+        return $cache[$column];
     }
 
     private function hasColumnOnEntregas(string $column): bool

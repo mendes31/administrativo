@@ -7,7 +7,9 @@ namespace App\adms\Controllers\sst;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstEpiCatalogHelper;
+use App\adms\Models\Repository\SstEpiEstoqueMinTamanhoRepository;
 use App\adms\Models\Repository\SstEpisRepository;
+use App\adms\Models\Services\SstEpiEstoqueService;
 use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\PositionsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -41,6 +43,8 @@ class SstUpdateEpi
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-list-epis');
             exit;
         }
+        $this->data['minimos_tamanho'] = (new SstEpiEstoqueMinTamanhoRepository())
+            ->getMapByEpiId((int) $this->data['item']['id']);
         $this->loadFormData();
         $this->data['entity'] = array (
   'table' => 'adms_sst_epis',
@@ -149,6 +153,7 @@ class SstUpdateEpi
 
         $repo = new SstEpisRepository();
         if ($repo->update($id, $data)) {
+            (new SstEpiEstoqueService())->salvarMinimosDoPost($id, $_POST, $data);
             $_SESSION['msg'] = 'Registro salvo com sucesso.';
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $_ENV['URL_ADM'] . 'sst-view-epi/' . $id);

@@ -38,6 +38,9 @@ $filtersId = 'sstFiltersEpi';
                 <?php if (in_array('SstCreateEpi', $perms)): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-epi" class="btn btn-success btn-sm"><i class="fa-regular fa-square-plus"></i> Cadastrar</a>
                 <?php endif; ?>
+                <?php if (in_array('SstListEpiEstoque', $perms, true) || in_array('SstListEpis', $perms, true)): ?>
+                    <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-estoque" class="btn btn-outline-primary btn-sm"><i class="fas fa-boxes"></i> Estoque</a>
+                <?php endif; ?>
                 <?php if (in_array('SstListEpiMovimentos', $perms, true)): ?>
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-list-epi-movimentos" class="btn btn-outline-secondary btn-sm"><i class="fas fa-dolly"></i> Movimentações</a>
                 <?php endif; ?>
@@ -104,7 +107,9 @@ $filtersId = 'sstFiltersEpi';
                             $id = (int)($item['id'] ?? 0);
                             $estoqueAtual = (int)($item['estoque_atual'] ?? 0);
                             $estoqueMin = (int)($item['estoque_minimo'] ?? 0);
-                            $estoqueBaixo = $estoqueMin > 0 && $estoqueAtual <= $estoqueMin;
+                            $estoqueBaixo = array_key_exists('estoque_baixo', $item)
+                                ? !empty($item['estoque_baixo'])
+                                : ($estoqueMin > 0 && $estoqueAtual <= $estoqueMin);
                         ?>
                             <tr class="<?= $estoqueBaixo ? 'table-warning' : '' ?>">
                                 <td><?= formatCellValue('id', $item['id'] ?? null) ?></td>
@@ -163,7 +168,7 @@ $filtersId = 'sstFiltersEpi';
             <?php else: ?>
                 <div class="alert alert-warning">Nenhum registro encontrado.</div>
             <?php endif; ?>
-            <p class="text-muted small mb-0 mt-2">O saldo é atualizado pelas movimentações. Configure o estoque mínimo no cadastro de cada EPI para alertas de compra.</p>
+            <p class="text-muted small mb-0 mt-2">O saldo é atualizado pelas movimentações. Com grade de tamanho, o alerta de compra vale por numeração (mínimo padrão ou valor do número no cadastro do EPI).</p>
         </div>
     </div>
 </div>

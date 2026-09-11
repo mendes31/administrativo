@@ -70,6 +70,11 @@ final class ImportProfileCatalogTest extends TestCase
             }
             $sample = $profile->sampleRow();
             self::assertCount(count($profile->fields()), $sample, $profile->key());
+            if (method_exists($profile, 'sampleRows')) {
+                foreach ($profile->sampleRows() as $i => $row) {
+                    self::assertCount(count($profile->fields()), $row, $profile->key() . '#' . $i);
+                }
+            }
         }
     }
 

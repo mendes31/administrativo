@@ -5,10 +5,12 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\SstEpiEstoqueMinTamanhoRepository;
 use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstEpiMovimentosRepository;
 use App\adms\Models\Repository\SstRiscoEpiRepository;
 use App\adms\Models\Services\LogResumoService;
+use App\adms\Models\Services\SstEpiEstoqueService;
 use App\adms\Views\Services\LoadViewService;
 
 class SstViewEpi
@@ -33,6 +35,10 @@ class SstViewEpi
         $returnUrl = $_ENV['URL_ADM'] . 'sst-view-epi/' . $itemId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_sst_epis', $itemId, $returnUrl);
         $this->data['movimentos'] = (new SstEpiMovimentosRepository())->getByEpiId($itemId, 20);
+        $this->data['saldos_tamanho'] = !empty($this->data['item']['controla_tamanho'])
+            ? (new SstEpiEstoqueService())->anotarPosicao([$this->data['item']])[0]['saldos_tamanho'] ?? []
+            : [];
+        $this->data['minimos_tamanho'] = (new SstEpiEstoqueMinTamanhoRepository())->getMapByEpiId($itemId);
         $this->data['riscosRelacionados'] = (new SstRiscoEpiRepository())->getRiscosByEpiId($itemId);
         
         $this->data['entity'] = array (

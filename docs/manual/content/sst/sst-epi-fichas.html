@@ -11,6 +11,8 @@
 <dl>
     <dt>EPI</dt>
     <dd>Equipamento de Proteção Individual exigido para controlar riscos ocupacionais; no SST inclui fichas e entregas.</dd>
+    <dt>Tamanho / numeração</dt>
+    <dd>Número do calçado ou letra do uniforme, escolhido na ficha e na movimentação. O cadastro do EPI permanece único.</dd>
 </dl>
 
 
@@ -19,7 +21,7 @@
 <ol>
     <li>Confirme obrigatoriedade do EPI (risco ou necessidade de EPI) e <strong>estoque disponível</strong>.</li>
     <li><strong>Fichas de entrega EPI → Nova ficha</strong> — selecione colaborador (pode vir pré-preenchido via pendências).</li>
-    <li>Informe data de entrega e adicione <strong>itens</strong> (EPI, quantidade, CA, previsão de troca).</li>
+    <li>Informe data de entrega e adicione <strong>itens</strong> (EPI, quantidade, CA, tamanho se o item tiver grade, previsão de troca).</li>
     <li>Salve a ficha — movimentação de saída pode ser gerada conforme configuração.</li>
     <li>Solicite ao colaborador assinar em <strong>Meus EPIs</strong> (portal). A tela é padrão para níveis autenticados.</li>
     <li>Exporte PDF para arquivo; após assinatura, o hash garante integridade do documento.</li>
@@ -32,13 +34,13 @@
 <div class="help-field"><strong>Hash PDF</strong> Integridade do documento após assinatura.</div>
 
 <h2 id="aba-itens">Itens desta ficha</h2>
-<p>EPIs incluídos na entrega: quantidade, CA utilizado e previsão de troca (calculada pela validade do EPI/risco).</p>
+<p>EPIs incluídos na entrega: quantidade, CA utilizado, tamanho (quando o cadastro controla numeração) e previsão de troca (calculada pela validade do EPI/risco).</p>
 
 <h2 id="aba-historico-epi">Histórico de EPIs do colaborador</h2>
 <p>Todas as entregas anteriores do mesmo colaborador para consulta e auditoria.</p>
 
 <h2 id="secao-estoque">Estoque</h2>
-<p>Menu <strong>Estoque EPI</strong> (quando habilitado): posição por item, estoque mínimo e alerta no dashboard. Faça <strong>entrada</strong> antes de entregas se o saldo for insuficiente.</p>
+<p>Menu <strong>Estoque EPI</strong>: posição por item, tamanho e CA. Com grade, o estoque mínimo do cadastro é o <strong>padrão por numeração</strong>; números específicos podem ter outro mínimo. O badge <strong>Comprar</strong> aparece no tamanho abaixo do mínimo (e no total do EPI se qualquer número estiver baixo). Sem grade, o alerta continua no total. Faça <strong>entrada</strong> com CA e tamanho antes das entregas se o saldo daquele número for insuficiente.</p>
 
 <h2 id="secao-movimentacoes">Movimentações</h2>
 <p>Entradas, saídas, devoluções e ajustes. Saídas manuais e <strong>Entregas</strong> (geradas pela ficha) consomem estoque. Use para inventário e correção de saldo.</p>
@@ -59,7 +61,7 @@
 <h2>Problemas comuns</h2>
 <dl>
     <dt>Não consigo entregar — sem estoque</dt>
-    <dd>Registre movimentação de entrada ou ajuste em Movimentações EPI.</dd>
+    <dd>Registre movimentação de entrada com o CA e o tamanho pedidos na ficha. O saldo é do lote (CA + numeração), não só do total do EPI.</dd>
     <dt>Erro pedindo valor unitário</dt>
     <dd>Na entrada, preencha o valor unitário em R$. Sem isso o registro não é aceito.</dd>
     <dt>Erro pedindo justificativa</dt>
