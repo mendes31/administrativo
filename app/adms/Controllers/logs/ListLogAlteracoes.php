@@ -579,6 +579,7 @@ class ListLogAlteracoes
                 return $_ENV['URL_ADM'] . 'sst-view-ghe/' . $objetoId;
             case 'adms_sst_ghe_colaboradores':
             case 'adms_sst_ghe_treinamentos':
+            case 'adms_sst_ghe_epis':
                 return $_ENV['URL_ADM'] . 'sst-list-ghe';
             case 'adms_sst_anexos':
                 return $_ENV['URL_ADM'] . 'sst-dashboard';

@@ -90,7 +90,14 @@
             <div class="card border-0 shadow-sm h-100">
                 <div class="card-body d-flex align-items-center">
                     <div class="rounded-circle bg-danger bg-opacity-10 p-3 me-3"><i class="fas fa-hard-hat text-danger fa-2x"></i></div>
-                    <div><h6 class="text-muted mb-1">EPIs Vencidos</h6><h3 class="mb-0 fw-bold"><?= (int)($this->data['expired_epis_count'] ?? 0) ?></h3></div>
+                    <div>
+                        <h6 class="text-muted mb-1">EPIs pendentes</h6>
+                        <h3 class="mb-0 fw-bold"><?= (int)($this->data['expired_epis_count'] ?? 0) ?></h3>
+                        <span class="small text-muted"><?= (int)($this->data['epis_vencidos_count'] ?? 0) ?> sem entrega ou vencido(s)</span>
+                        <?php if (in_array('SstReportPendencias', $this->data['buttonPermission'] ?? [], true)): ?>
+                        <div><a href="<?= $_ENV['URL_ADM']; ?>sst-report-pendencias" class="small">Ver relatório</a></div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -229,6 +236,9 @@
                 <?php else: foreach ($this->data['pendencias_epi_amostra'] as $r): ?>
                     <div class="px-3 py-2 border-bottom small">
                         <?= htmlspecialchars($r['colaborador_nome'] ?? '') ?> — <?= htmlspecialchars($r['epi_nome'] ?? '') ?>
+                        <?php if (!empty($r['origem_label'])): ?>
+                            <span class="badge bg-secondary ms-1"><?= htmlspecialchars((string) $r['origem_label']) ?></span>
+                        <?php endif; ?>
                         <span class="badge bg-<?= htmlspecialchars($r['situacao_badge'] ?? 'secondary') ?> ms-1"><?= htmlspecialchars($r['situacao_label'] ?? '') ?></span>
                     </div>
                 <?php endforeach; endif; ?>

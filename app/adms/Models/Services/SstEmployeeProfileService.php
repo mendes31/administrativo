@@ -73,7 +73,7 @@ class SstEmployeeProfileService extends DbConnection
     }
 
     /**
-     * EPIs e exames obrigatórios por vínculo de cargo/departamento.
+     * EPIs (cargo + GHE, sem duplicar o mesmo item) e exames por cargo/departamento.
      *
      * @return array{epis: array, exames: array}
      */

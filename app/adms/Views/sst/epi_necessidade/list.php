@@ -41,6 +41,10 @@ $filtersId = 'sstFiltersEpiNecessidade';
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
+            <div class="alert alert-info py-2 small">
+                Esta tela lista regras por <strong>cargo/departamento</strong>. EPIs de um ambiente entram na ficha do
+                <a href="<?= $_ENV['URL_ADM']; ?>sst-list-ghe">GHE</a> (aba EPIs). O mesmo item no cargo e no GHE conta uma vez no dashboard e nas pendências.
+            </div>
             <div class="d-md-none mb-2">
                 <button class="btn btn-outline-primary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#<?= $filtersId ?>">
                     <i class="fa fa-filter me-1"></i> Filtros

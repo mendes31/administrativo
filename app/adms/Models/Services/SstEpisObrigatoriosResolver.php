@@ -8,7 +8,7 @@ use App\adms\Helpers\SstRiscoCargoMatch;
 use PDO;
 
 /**
- * Resolve EPIs obrigatórios: Cargo → Riscos → EPIs + regras diretas (necessidade).
+ * Resolve EPIs obrigatórios: cargo (risco/necessidade) + GHE, sem duplicar o mesmo item.
  */
 class SstEpisObrigatoriosResolver extends DbConnection
 {
@@ -25,10 +25,60 @@ class SstEpisObrigatoriosResolver extends DbConnection
             return [];
         }
 
-        return $this->deduplicateRows(array_merge(
+        return self::uniqueByEpiId(array_merge(
             $this->fetchFromRiscoEpi($userId),
-            $this->fetchFromEpiNecessidade($userId)
+            $this->fetchFromEpiNecessidade($userId),
+            $this->fetchFromGheEpi($userId)
         ));
+    }
+
+    /**
+     * EPIs já exigidos pelo cargo (risco ou necessidade), sem GHE.
+     *
+     * @return list<int>
+     */
+    public function cargoEpiIdsForUser(int $userId): array
+    {
+        $ids = [];
+        foreach (array_merge($this->fetchFromRiscoEpi($userId), $this->fetchFromEpiNecessidade($userId)) as $row) {
+            $epiId = (int) ($row['adms_sst_epi_id'] ?? 0);
+            if ($epiId > 0) {
+                $ids[$epiId] = true;
+            }
+        }
+
+        return array_keys($ids);
+    }
+
+    /**
+     * Mesmo EPI em cargo e GHE entra uma vez; as origens são combinadas (ex.: risco_epi+ghe).
+     *
+     * @param list<array<string, mixed>> $rows
+     * @return list<array{adms_sst_epi_id: int, epi_nome: string, origem: string}>
+     */
+    public static function uniqueByEpiId(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $row) {
+            $epiId = (int) ($row['adms_sst_epi_id'] ?? 0);
+            if ($epiId <= 0) {
+                continue;
+            }
+            $origem = (string) ($row['origem'] ?? '');
+            if (!isset($out[$epiId])) {
+                $out[$epiId] = [
+                    'adms_sst_epi_id' => $epiId,
+                    'epi_nome' => (string) ($row['epi_nome'] ?? ''),
+                    'origem' => $origem,
+                ];
+                continue;
+            }
+            if ($origem !== '' && !in_array($origem, explode('+', (string) $out[$epiId]['origem']), true)) {
+                $out[$epiId]['origem'] = trim((string) $out[$epiId]['origem'] . '+' . $origem, '+');
+            }
+        }
+
+        return array_values($out);
     }
 
     /** @return list<array<string, mixed>> */
@@ -90,23 +140,29 @@ class SstEpisObrigatoriosResolver extends DbConnection
         return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
-    /** @param list<array<string, mixed>> $rows */
-    private function deduplicateRows(array $rows): array
+    /** @return list<array<string, mixed>> */
+    private function fetchFromGheEpi(int $userId): array
     {
-        $out = [];
-        foreach ($rows as $row) {
-            $epiId = (int) ($row['adms_sst_epi_id'] ?? 0);
-            if ($epiId <= 0 || isset($out[$epiId])) {
-                continue;
-            }
-            $out[$epiId] = [
-                'adms_sst_epi_id' => $epiId,
-                'epi_nome' => (string) ($row['epi_nome'] ?? ''),
-                'origem' => (string) ($row['origem'] ?? ''),
-            ];
+        if (!$this->hasTable('adms_sst_ghe_epis') || !$this->hasTable('adms_sst_ghe_colaboradores')) {
+            return [];
         }
 
-        return array_values($out);
+        $sql = "SELECT DISTINCT
+                    ep.id AS adms_sst_epi_id,
+                    ep.nome AS epi_nome,
+                    'ghe' AS origem
+                FROM adms_sst_ghe_colaboradores gc
+                INNER JOIN adms_sst_ghe g ON g.id = gc.adms_sst_ghe_id AND g.status = 'Ativo'
+                INNER JOIN adms_sst_ghe_epis ge ON ge.adms_sst_ghe_id = g.id AND ge.obrigatorio = 1
+                INNER JOIN adms_sst_epis ep ON ep.id = ge.adms_sst_epi_id AND ep.status = 'Ativo'
+                WHERE gc.adms_user_id = :uid
+                  AND gc.data_fim IS NULL";
+
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':uid', $userId, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
     }
 
     private function hasTable(string $table): bool

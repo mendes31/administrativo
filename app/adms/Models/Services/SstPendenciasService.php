@@ -21,7 +21,7 @@ class SstPendenciasService extends DbConnection
 {
     private const DIAS_ALERTA = 30;
 
-    private const DASHBOARD_CACHE_VERSION = 3;
+    private const DASHBOARD_CACHE_VERSION = 4;
 
     public const SITUACOES_CRITICAS = [
         'nao_entregue',
@@ -60,12 +60,21 @@ class SstPendenciasService extends DbConnection
 
         $data = [
             'criticas_count' => $this->countPendenciasCriticas(),
-            'epis_amostra' => $this->getPendenciasEpiGeral(['_limit' => $amostra]),
+            'epis_amostra' => [],
+            'epis_pendentes_count' => 0,
+            'epis_vencidos_count' => 0,
             'exames_amostra' => $this->getPendenciasExameGeral(['_limit' => $amostra]),
             'treinamentos_amostra' => [],
             'treinamentos_pendentes_count' => 0,
             'treinamentos_vencidos_count' => 0,
         ];
+        $epis = $this->ordenarPendenciasEpi($this->getPendenciasEpiGeral([]));
+        $data['epis_amostra'] = array_slice($epis, 0, $amostra);
+        $data['epis_pendentes_count'] = count($epis);
+        $data['epis_vencidos_count'] = count(array_filter(
+            $epis,
+            static fn (array $row): bool => in_array((string) ($row['situacao'] ?? ''), ['nao_entregue', 'troca_vencida'], true)
+        ));
         $treinamentos = $this->ordenarPendenciasTreinamento(
             $this->getPendenciasTreinamentoGeral([], true)
         );
@@ -479,6 +488,36 @@ class SstPendenciasService extends DbConnection
             }
 
             return strcasecmp((string) ($a['colaborador_nome'] ?? $a['treinamento_nome'] ?? ''), (string) ($b['colaborador_nome'] ?? $b['treinamento_nome'] ?? ''));
+        });
+
+        return array_values($rows);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function ordenarPendenciasEpi(array $rows): array
+    {
+        $ordem = [
+            'nao_entregue' => 0,
+            'troca_vencida' => 1,
+            'troca_a_vencer' => 2,
+        ];
+        usort($rows, static function (array $a, array $b) use ($ordem): int {
+            $sa = $ordem[(string) ($a['situacao'] ?? '')] ?? 9;
+            $sb = $ordem[(string) ($b['situacao'] ?? '')] ?? 9;
+            if ($sa !== $sb) {
+                return $sa <=> $sb;
+            }
+            $temGhe = static fn (array $row): int => str_contains((string) ($row['origem'] ?? ''), 'ghe') ? 0 : 1;
+            $oa = $temGhe($a);
+            $ob = $temGhe($b);
+            if ($oa !== $ob) {
+                return $oa <=> $ob;
+            }
+
+            return strcasecmp((string) ($a['colaborador_nome'] ?? ''), (string) ($b['colaborador_nome'] ?? ''));
         });
 
         return array_values($rows);
@@ -973,6 +1012,19 @@ class SstPendenciasService extends DbConnection
             $row['situacao_label'] = $labels[$sit] ?? $sit;
             $row['situacao_badge'] = $badges[$sit] ?? 'secondary';
             $row['tipo_pendencia'] = $row['tipo_pendencia'] ?? $tipo;
+            $origensMap = [
+                'ghe' => 'GHE',
+                'risco_epi' => 'Risco',
+                'necessidade' => 'Cargo',
+            ];
+            $origemParts = [];
+            foreach (explode('+', (string) ($row['origem'] ?? '')) as $origemKey) {
+                $origemKey = trim($origemKey);
+                if ($origemKey !== '' && isset($origensMap[$origemKey])) {
+                    $origemParts[] = $origensMap[$origemKey];
+                }
+            }
+            $row['origem_label'] = implode(' · ', $origemParts);
         }
         unset($row);
 
@@ -1241,6 +1293,15 @@ class SstPendenciasService extends DbConnection
                 WHERE " . SstRiscoCargoMatch::sqlUsuario('rc', $aliasUser) . "
             )";
         }
+        if ($this->hasTable('adms_sst_ghe_colaboradores') && $this->hasTable('adms_sst_ghe_epis')) {
+            $parts[] = "EXISTS (
+                SELECT 1 FROM adms_sst_ghe_colaboradores gc
+                INNER JOIN adms_sst_ghe g ON g.id = gc.adms_sst_ghe_id AND g.status = 'Ativo'
+                INNER JOIN adms_sst_ghe_epis ge ON ge.adms_sst_ghe_id = g.id AND ge.obrigatorio = 1
+                INNER JOIN adms_sst_epis ep ON ep.id = ge.adms_sst_epi_id AND ep.status = 'Ativo'
+                WHERE gc.adms_user_id = {$aliasUser}.id AND gc.data_fim IS NULL
+            )";
+        }
 
         return '(' . implode(' OR ', $parts) . ')';
     }
@@ -1325,7 +1386,7 @@ class SstPendenciasService extends DbConnection
             return null;
         }
         $data = $payload['data'];
-        if (!is_array($data) || !array_key_exists('treinamentos_pendentes_count', $data)) {
+        if (!is_array($data) || !array_key_exists('treinamentos_pendentes_count', $data) || !array_key_exists('epis_pendentes_count', $data)) {
             return null;
         }
 

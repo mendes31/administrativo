@@ -8,12 +8,16 @@ $colaboradores = $this->data['colaboradores_vinculados'] ?? [];
 $users = $this->data['users'] ?? [];
 $treinamentos = $this->data['treinamentos'] ?? [];
 $treinamentosVinculadosMap = $this->data['treinamentosVinculadosMap'] ?? [];
+$epis = $this->data['epis'] ?? [];
+$episVinculadosMap = $this->data['episVinculadosMap'] ?? [];
+$episJaNoCargoIds = $this->data['episJaNoCargoIds'] ?? [];
 $podeEditarRel = in_array('SstSaveGheRelacionamentos', $perms, true);
 $podeSyncVinculos = in_array('SstSyncTreinamentoVinculos', $perms, true);
 $csrfRel = CSRFHelper::generateCSRFToken('sst_ghe_relacionamentos');
 $vinculadosIds = array_map(static fn(array $c): int => (int)($c['adms_user_id'] ?? 0), $colaboradores);
 $countColab = count($colaboradores);
 $countTrein = count($treinamentosVinculadosMap);
+$countEpi = count($episVinculadosMap);
 
 function formatGheViewCell(mixed $value): string {
     if ($value === null || $value === '') return '-';
@@ -65,6 +69,12 @@ function formatGheViewCell(mixed $value): string {
                             <button class="nav-link" id="tab-treinamentos-btn" data-bs-toggle="tab" data-bs-target="#tab-treinamentos" type="button" role="tab" data-adms-help-tab="aba-treinamentos">
                                 <i class="fas fa-graduation-cap me-1"></i>Treinamentos
                                 <span class="badge bg-success ms-1"><?= $countTrein ?></span>
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link" id="tab-epis-btn" data-bs-toggle="tab" data-bs-target="#tab-epis" type="button" role="tab" data-adms-help-tab="aba-epis">
+                                <i class="fas fa-hard-hat me-1"></i>EPIs
+                                <span class="badge bg-danger ms-1"><?= $countEpi ?></span>
                             </button>
                         </li>
                     </ul>
@@ -163,10 +173,67 @@ function formatGheViewCell(mixed $value): string {
                         </form>
                         <?php endif; ?>
                     </div>
+                    <div class="tab-pane fade" id="tab-epis" role="tabpanel">
+                        <?php if (!$podeEditarRel): ?>
+                            <?php if ($episVinculadosMap === []): ?>
+                                <div class="alert alert-info mb-0">Nenhum EPI vinculado a este GHE.</div>
+                            <?php else: ?>
+                                <ul class="list-group list-group-flush">
+                                <?php foreach ($epis as $ep):
+                                    $epId = (int)($ep['id'] ?? 0);
+                                    if ($epId <= 0 || !isset($episVinculadosMap[$epId])) continue;
+                                ?>
+                                    <li class="list-group-item px-0">
+                                        <?= htmlspecialchars($ep['nome'] ?? '') ?>
+                                        <?php if (!empty($episVinculadosMap[$epId]['obrigatorio'])): ?>
+                                            <span class="badge bg-success">Obrigatório</span>
+                                        <?php endif; ?>
+                                        <?php if (!empty($episJaNoCargoIds[$epId])): ?>
+                                            <span class="badge bg-secondary">Já no cargo</span>
+                                        <?php endif; ?>
+                                    </li>
+                                <?php endforeach; ?>
+                                </ul>
+                            <?php endif; ?>
+                        <?php else: ?>
+                        <form method="POST" action="<?= $_ENV['URL_ADM']; ?>sst-save-ghe-relacionamentos">
+                            <input type="hidden" name="csrf_token" value="<?= $csrfRel ?>">
+                            <input type="hidden" name="adms_sst_ghe_id" value="<?= $gheId ?>">
+                            <input type="hidden" name="secao" value="epis">
+                            <p class="small text-muted">EPIs extras deste ambiente. Se o item já for exigido pelo cargo (risco ou necessidade), as pendências e a ficha contam <strong>uma vez</strong>. O selo “Já no cargo” indica essa sobreposição nos colaboradores atuais do GHE.</p>
+                            <?php if (empty($epis)): ?>
+                                <div class="alert alert-warning mb-0">Cadastre EPIs primeiro.</div>
+                            <?php else: ?>
+                                <div class="table-responsive">
+                                    <table class="table table-sm mb-0">
+                                        <thead><tr><th width="40"></th><th>EPI</th><th>Origem cargo</th><th class="text-center" width="120">Opcional</th></tr></thead>
+                                        <tbody>
+                                        <?php foreach ($epis as $ep):
+                                            $epId = (int)($ep['id'] ?? 0);
+                                            if ($epId <= 0) continue;
+                                            $vinculado = isset($episVinculadosMap[$epId]);
+                                            $opcional = $vinculado && empty($episVinculadosMap[$epId]['obrigatorio']);
+                                            $jaCargo = !empty($episJaNoCargoIds[$epId]);
+                                        ?>
+                                        <tr>
+                                            <td><input class="form-check-input epi-check" type="checkbox" name="epis[]" value="<?= $epId ?>" id="epi_<?= $epId ?>" <?= $vinculado ? 'checked' : '' ?>></td>
+                                            <td><label class="form-check-label mb-0" for="epi_<?= $epId ?>"><?= htmlspecialchars($ep['nome'] ?? '') ?></label></td>
+                                            <td><?php if ($jaCargo): ?><span class="badge bg-secondary">Já no cargo</span><?php else: ?><span class="text-muted">—</span><?php endif; ?></td>
+                                            <td class="text-center"><input class="form-check-input epi-opcional" type="checkbox" name="epis_obrigatorio[<?= $epId ?>_opcional]" value="1" <?= $opcional ? 'checked' : '' ?> <?= !$vinculado ? 'disabled' : '' ?> title="Marque apenas se o EPI for recomendado, não obrigatório"></td>
+                                        </tr>
+                                        <?php endforeach; ?>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-sm mt-2"><i class="fas fa-save me-1"></i>Salvar EPIs</button>
+                            <?php endif; ?>
+                        </form>
+                        <?php endif; ?>
+                    </div>
                 </div>
                 <script>
                 (function () {
-                    document.querySelectorAll('.tr-check').forEach(function (chk) {
+                    document.querySelectorAll('.tr-check, .epi-check').forEach(function (chk) {
                         chk.addEventListener('change', function () {
                             const row = this.closest('tr');
                             if (!row) return;
@@ -174,7 +241,7 @@ function formatGheViewCell(mixed $value): string {
                                 if (inp !== chk) inp.disabled = !chk.checked;
                             });
                             if (chk.checked) {
-                                const op = row.querySelector('.tr-opcional');
+                                const op = row.querySelector('.tr-opcional, .epi-opcional');
                                 if (op) op.checked = false;
                             }
                         });
@@ -182,6 +249,7 @@ function formatGheViewCell(mixed $value): string {
                     const hash = window.location.hash;
                     if (hash === '#tab-colaboradores') document.getElementById('tab-colaboradores-btn')?.click();
                     if (hash === '#tab-treinamentos') document.getElementById('tab-treinamentos-btn')?.click();
+                    if (hash === '#tab-epis') document.getElementById('tab-epis-btn')?.click();
                 })();
                 </script>
             </div>

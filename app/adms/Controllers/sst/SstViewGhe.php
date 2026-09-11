@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
+use App\adms\Models\Repository\SstEpisRepository;
 use App\adms\Models\Repository\SstGheColaboradoresRepository;
+use App\adms\Models\Repository\SstGheEpisRepository;
 use App\adms\Models\Repository\SstGheRepository;
 use App\adms\Models\Repository\SstGheTreinamentosRepository;
 use App\adms\Models\Repository\SstTreinamentosRepository;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Models\Services\LogResumoService;
+use App\adms\Models\Services\SstEpisObrigatoriosResolver;
 use App\adms\Views\Services\LoadViewService;
 
 class SstViewGhe
@@ -46,6 +49,32 @@ class SstViewGhe
             }
         }
         $this->data['treinamentosVinculadosMap'] = $map;
+
+        $this->data['epis'] = (new SstEpisRepository())->getAll(1, 500, ['status' => 'Ativo']);
+        $epiRows = (new SstGheEpisRepository())->getAllByGhe($gheId);
+        $epiMap = [];
+        foreach ($epiRows as $row) {
+            $eid = (int) ($row['adms_sst_epi_id'] ?? 0);
+            if ($eid > 0) {
+                $epiMap[$eid] = [
+                    'obrigatorio' => !empty($row['obrigatorio']),
+                ];
+            }
+        }
+        $this->data['episVinculadosMap'] = $epiMap;
+
+        $episJaNoCargo = [];
+        $resolverEpi = new SstEpisObrigatoriosResolver();
+        foreach ($this->data['colaboradores_vinculados'] as $colab) {
+            $uid = (int) ($colab['adms_user_id'] ?? 0);
+            if ($uid <= 0) {
+                continue;
+            }
+            foreach ($resolverEpi->cargoEpiIdsForUser($uid) as $epiId) {
+                $episJaNoCargo[$epiId] = true;
+            }
+        }
+        $this->data['episJaNoCargoIds'] = $episJaNoCargo;
 
         $pageElements = [
             'title_head' => 'GHE — ' . ($item['nome'] ?? ''),

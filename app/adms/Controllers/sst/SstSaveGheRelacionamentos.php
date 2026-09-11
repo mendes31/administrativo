@@ -6,6 +6,7 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Models\Repository\SstGheColaboradoresRepository;
+use App\adms\Models\Repository\SstGheEpisRepository;
 use App\adms\Models\Repository\SstGheTreinamentosRepository;
 
 class SstSaveGheRelacionamentos
@@ -55,6 +56,29 @@ class SstSaveGheRelacionamentos
             $_SESSION['msg'] = 'Treinamentos do GHE salvos. A matriz por cargo já considera esses vínculos.';
             $_SESSION['msg_type'] = 'success';
             header('Location: ' . $redirect . '#tab-treinamentos');
+            exit;
+        }
+
+        if ($secao === 'epis') {
+            $epiIds = is_array($_POST['epis'] ?? null) ? array_map('intval', $_POST['epis']) : [];
+            $obrigatorioPost = is_array($_POST['epis_obrigatorio'] ?? null) ? $_POST['epis_obrigatorio'] : [];
+            $map = [];
+            foreach ($epiIds as $epiId) {
+                if ($epiId > 0) {
+                    $map[$epiId] = [
+                        'obrigatorio' => !isset($obrigatorioPost[$epiId . '_opcional']),
+                    ];
+                }
+            }
+            if (!(new SstGheEpisRepository())->syncEpisForGhe($gheId, $map)) {
+                $_SESSION['msg'] = 'Não foi possível salvar os EPIs do GHE. Execute as migrations do banco (tabela adms_sst_ghe_epis).';
+                $_SESSION['msg_type'] = 'danger';
+                header('Location: ' . $redirect . '#tab-epis');
+                exit;
+            }
+            $_SESSION['msg'] = 'EPIs do GHE salvos. O mesmo item já exigido pelo cargo conta uma vez nas pendências.';
+            $_SESSION['msg_type'] = 'success';
+            header('Location: ' . $redirect . '#tab-epis');
             exit;
         }
 

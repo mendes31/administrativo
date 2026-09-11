@@ -2,6 +2,7 @@
 
 <h2>Função no sistema</h2>
 <p>Recurso <strong>opcional</strong> para ambientes em que o cargo sozinho não descreve a exposição real do colaborador.</p>
+<p><strong>Quem acessa:</strong> SST com <em>SstViewGhe</em>, <em>SstUpdateGhe</em> e <em>SstSaveGheRelacionamentos</em> (abas Colaboradores, Treinamentos e EPIs).</p>
 
 <h2>O que significam os termos</h2>
 <dl>
@@ -15,7 +16,7 @@
 <h2>Quando usar</h2>
 <ul>
     <li>Mesmo cargo em linhas/ambientes diferentes com riscos distintos.</li>
-    <li>Treinamentos específicos de um grupo de trabalhadores.</li>
+    <li>Treinamentos e EPIs específicos de um grupo de trabalhadores.</li>
 </ul>
 <p><strong>Quando não usar:</strong> se cargo + setor + risco já resolve — não cadastre GHE.</p>
 
@@ -36,26 +37,35 @@
 <div class="help-field"><strong>Treinamento</strong> Do catálogo SST.</div>
 <div class="help-field"><strong>Opcional</strong> Marque só se for recomendado; vinculado = obrigatório por padrão.</div>
 
+<h2 id="aba-epis">Aba EPIs</h2>
+<p>EPIs extras deste ambiente, além dos já exigidos pelo cargo (risco ou necessidade). Vinculado = obrigatório. O selo <em>Já no cargo</em> aparece quando algum colaborador atual do GHE já tem o item pela regra de cargo — nas pendências e na ficha o mesmo EPI conta <strong>uma vez</strong>.</p>
+<div class="help-field"><strong>EPI</strong> Do catálogo SST.</div>
+<div class="help-field"><strong>Opcional</strong> Marque só se for recomendado; vinculado = obrigatório por padrão.</div>
+<div class="help-field"><strong>Já no cargo</strong> Informativo. Pode vincular mesmo assim para documentar o ambiente; o cálculo não duplica.</div>
+
 <div class="help-note">
-    <strong>Evolução prevista</strong>
-    Futuramente o GHE poderá vincular <strong>riscos</strong>, herdando EPIs e exames automaticamente. Hoje EPI/exame seguem cargo + setor → risco.
+    <strong>Exames</strong>
+    Continuam vindo de cargo + setor → risco. O GHE ainda não vincula exames.
 </div>
 
 <h2>Relação com a matriz</h2>
-<p>Treinamentos do GHE entram na coluna <strong>GHE</strong> da matriz nos cargos dos colaboradores ativos do grupo. O dashboard de pendências usa a mesma lista e a validade (meses do GHE ou do catálogo).</p>
+<p>Treinamentos do GHE entram na coluna <strong>GHE</strong> da matriz nos cargos dos colaboradores ativos do grupo. EPIs do GHE entram nas pendências e no perfil SST, sem duplicar o que o cargo já exige.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Abra este tópico pela central de ajuda (F1) ou pelo menu do módulo.</li>
-    <li>Identifique a área ou tela relacionada ao que precisa fazer.</li>
-    <li>Siga o link ou o caminho de menu indicado para a tela operacional.</li>
-    <li>Na tela de destino, use o F1 novamente para o passo a passo detalhado.</li>
+    <li>Cadastre o GHE (código, nome, local, departamento) e deixe-o <strong>Ativo</strong>.</li>
+    <li>Na visualização, aba <strong>Colaboradores</strong>, marque quem trabalha neste ambiente e salve.</li>
+    <li>Na aba <strong>Treinamentos</strong>, vincule os cursos do ambiente (vinculado = obrigatório).</li>
+    <li>Na aba <strong>EPIs</strong>, vincule os equipamentos extras do ambiente. Se o selo <em>Já no cargo</em> aparecer, o item já vale pelo cargo — nas pendências conta uma vez.</li>
+    <li>Confira o perfil SST do colaborador e o dashboard de pendências.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
-<div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
-<div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
+<div class="help-field"><strong>Código / Nome / Local</strong> Identificação do grupo e do ambiente físico.</div>
+<div class="help-field"><strong>Departamento</strong> Setor organizacional de referência.</div>
+<div class="help-field"><strong>Status</strong> Só GHE ativo entra no cálculo de treinamentos e EPIs.</div>
+<div class="help-field"><strong>Colaboradores</strong> Vínculo por pessoa; um colaborador ativo em um GHE por vez.</div>
+<div class="help-field"><strong>Treinamentos / EPIs</strong> Catálogo SST; vinculado = obrigatório, salvo se marcar Opcional.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -66,7 +76,9 @@
     <dt>Lista vazia ou sem dados esperados</dt>
     <dd>Revise filtros, período e escopo (filial/departamento); pode não haver registros no critério atual.</dd>
     <dt>Salvei o GHE e a matriz/dashboard não mudou</dt>
-    <dd>Recarregue a tela. Vinculado = obrigatório; se estiver marcado como opcional, não conta. A coluna GHE lista os cargos dos colaboradores ativos do grupo.</dd>
+    <dd>Recarregue a tela. Vinculado = obrigatório; se estiver marcado como opcional, não conta. A coluna GHE da matriz é só treinamentos; EPIs do GHE aparecem nas pendências e no perfil.</dd>
+    <dt>EPI do GHE e do cargo aparece duas vezes</dt>
+    <dd>Não deve: o mesmo item conta uma vez. O selo “Já no cargo” na aba EPIs indica a sobreposição.</dd>
     <dt>F1 abre outro tópico</dt>
     <dd>Use a busca na central de ajuda pelo título <strong>GHE — Grupos Homogêneos de Exposição</strong> ou o menu do módulo.</dd>
 </dl>

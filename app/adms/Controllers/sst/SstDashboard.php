@@ -22,7 +22,6 @@ class SstDashboard
         $service = new SstDashboardService();
         $pendenciasService = new SstPendenciasService();
         $this->data['pending_exams_count'] = $service->getPendingExamsCount();
-        $this->data['expired_epis_count'] = $service->getExpiredEpisCount();
         $this->data['open_accidents_count'] = $service->getOpenAccidentsCount();
         $this->data['afastamentos_ativos_count'] = $service->getAfastamentosAtivosCount();
         $this->data['low_stock_epis_count'] = $service->getLowStockEpisCount();
@@ -31,6 +30,8 @@ class SstDashboard
         $this->data['pendencias_epi_amostra'] = $pendenciasResumo['epis_amostra'];
         $this->data['pendencias_exame_amostra'] = $pendenciasResumo['exames_amostra'];
         $this->data['pendencias_treinamento_amostra'] = $pendenciasResumo['treinamentos_amostra'] ?? [];
+        $this->data['expired_epis_count'] = (int) ($pendenciasResumo['epis_pendentes_count'] ?? 0);
+        $this->data['epis_vencidos_count'] = (int) ($pendenciasResumo['epis_vencidos_count'] ?? 0);
         $this->data['treinamentos_pendentes_count'] = (int) ($pendenciasResumo['treinamentos_pendentes_count'] ?? 0);
         $this->data['treinamentos_vencidos_count'] = (int) ($pendenciasResumo['treinamentos_vencidos_count'] ?? 0);
         $this->data['pending_exams'] = $service->getPendingExams(5);
