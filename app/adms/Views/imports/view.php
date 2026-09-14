@@ -42,15 +42,37 @@ $actionClass = [
     <div class="card mb-4 border-light shadow">
         <div class="card-header hstack gap-2">
             <span><?php echo $profile ? htmlspecialchars($profile->label(), ENT_QUOTES, 'UTF-8') : htmlspecialchars((string) ($job['profile_key'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></span>
-            <a class="btn btn-info btn-sm ms-auto" href="<?php echo $urlAdm; ?>import-center"><i class="fa-solid fa-list"></i> Central</a>
+            <span class="ms-auto d-flex gap-2">
+                <?php if (!empty($job['profile_key'])): ?>
+                    <a class="btn btn-primary btn-sm" href="<?php echo $urlAdm; ?>import-center-create?profile=<?php echo urlencode((string) $job['profile_key']); ?>">
+                        <i class="fa-solid fa-file-arrow-up"></i> Enviar outro arquivo
+                    </a>
+                <?php endif; ?>
+                <a class="btn btn-info btn-sm" href="<?php echo $urlAdm; ?>import-center"><i class="fa-solid fa-list"></i> Central</a>
+            </span>
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
 
+            <?php
+            $qtdErros = (int) ($stats['errors'] ?? 0);
+            ?>
+            <?php if ($qtdErros > 0): ?>
+                <div class="alert alert-info">
+                    Não dá para editar este job nem trocar a planilha ou o ZIP aqui.
+                    Corrija os arquivos no computador e clique em <strong>Enviar outro arquivo</strong> para uma nova importação.
+                    <?php if (!empty($job['dry_run'])): ?>
+                        Não use <em>Registrar importação</em> enquanto houver linhas em erro — isso reaproveitaria os mesmos arquivos desta simulação.
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
             <?php if (!empty($job['dry_run'])): ?>
                 <div class="alert alert-warning">
                     Esta execução foi uma <strong>simulação</strong>: nada foi gravado no banco.
-                    <?php if ($podeRegistrar && in_array('ImportCenterCommit', $perms, true)): ?>
+                    <?php if ($qtdErros > 0): ?>
+                        Corrija as linhas com erro e envie de novo.
+                    <?php elseif ($podeRegistrar && in_array('ImportCenterCommit', $perms, true)): ?>
                         Se o resultado estiver correto, registre a importação abaixo — o mesmo arquivo e o mapeamento já salvos serão usados.
                     <?php elseif (!empty($this->data['arquivo_disponivel'])): ?>
                         Envie o arquivo novamente sem a opção de simular, ou peça a permissão <em>ImportCenterCommit</em>.
@@ -58,7 +80,7 @@ $actionClass = [
                         O arquivo desta simulação não está mais disponível; envie a planilha de novo sem a opção de simular.
                     <?php endif; ?>
                 </div>
-                <?php if ($podeRegistrar && in_array('ImportCenterCommit', $perms, true)): ?>
+                <?php if ($podeRegistrar && $qtdErros === 0 && in_array('ImportCenterCommit', $perms, true)): ?>
                     <form method="POST" action="<?php echo $urlAdm; ?>import-center-commit/<?php echo (int) ($job['id'] ?? 0); ?>" class="mb-3"
                           onsubmit="return confirm('Gravar no banco as <?php echo (int) ($stats['rows'] ?? 0); ?> linha(s) desta simulação?');">
                         <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfCommit, ENT_QUOTES, 'UTF-8'); ?>">

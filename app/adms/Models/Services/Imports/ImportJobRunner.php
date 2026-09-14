@@ -59,6 +59,8 @@ final class ImportJobRunner
                 $mapped[$field] = trim((string) ($row[$idx] ?? ''));
             }
             $mapped['_key_field'] = $keyField;
+            $assetsDir = ImportStorage::assetsDirForJob($jobId);
+            $mapped['_assets_dir'] = is_dir($assetsDir) ? $assetsDir : '';
             try {
                 $result = $profile->processRow($mapped, $operation, $emptyPolicy, $dryRun);
             } catch (\Throwable $e) {

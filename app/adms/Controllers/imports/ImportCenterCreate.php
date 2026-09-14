@@ -123,6 +123,27 @@ class ImportCenterCreate
         @unlink($parsed['normalized_path']);
         (new ImportJobsRepository())->update($jobId, ['stored_path' => $dest]);
 
+        if ($profile->key() === 'sst_epis') {
+            $zip = $_FILES['images_zip'] ?? null;
+            $zipErr = is_array($zip) ? (int) ($zip['error'] ?? UPLOAD_ERR_NO_FILE) : UPLOAD_ERR_NO_FILE;
+            if ($zipErr !== UPLOAD_ERR_NO_FILE && $zipErr !== UPLOAD_ERR_OK) {
+                $_SESSION['msg'] = 'Não foi possível ler o ZIP das fotos.';
+                $_SESSION['msg_type'] = 'danger';
+                header('Location: ' . $_ENV['URL_ADM'] . 'import-center-create?profile=' . urlencode($profile->key()));
+                exit;
+            }
+            if ($zipErr === UPLOAD_ERR_OK && is_array($zip)) {
+                try {
+                    ImportStorage::extractImageZip((string) $zip['tmp_name'], $jobId);
+                } catch (\Throwable $e) {
+                    $_SESSION['msg'] = $e->getMessage();
+                    $_SESSION['msg_type'] = 'danger';
+                    header('Location: ' . $_ENV['URL_ADM'] . 'import-center-create?profile=' . urlencode($profile->key()));
+                    exit;
+                }
+            }
+        }
+
         header('Location: ' . $_ENV['URL_ADM'] . 'import-center-map/' . $jobId);
         exit;
     }

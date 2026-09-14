@@ -32,6 +32,7 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
             'min_tamanhos' => 'Mínimos extras (ex.: 38=8, 42=5; vazio = só o padrão)',
             'periodicidade_troca_dias' => 'Troca (dias)',
             'status' => 'Status',
+            'imagem' => 'Foto (mesmo nome da chave + extensão, ou URL https)',
         ];
     }
 
@@ -56,10 +57,10 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
     public function sampleRows(): array
     {
         return [
-            ['', 'Capacete de segurança', 'Casco classe B', 'Proteção de Cabeça', '5', '', '', '365', 'Ativo'],
-            ['', 'Calçado de segurança', 'Bico de PVC', 'Proteção de Pés e Pernas', '3', 'calcado', '38=8, 42=5', '180', 'Ativo'],
-            ['', 'Camisa manga longa', 'Brim', 'Proteção do Tronco', '3', 'vestuario', 'GG=6', '365', 'Ativo'],
-            ['', 'Luva nitrílica', 'Caixa mista', 'Proteção de Mãos e Braços', '10', 'P, M, G, GG', '', '90', 'Ativo'],
+            ['', 'Capacete de segurança', 'Casco classe B', 'Proteção de Cabeça', '5', '', '', '365', 'Ativo', 'Capacete de segurança.jpg'],
+            ['', 'Calçado de segurança', 'Bico de PVC', 'Proteção de Pés e Pernas', '3', 'calcado', '38=8, 42=5', '180', 'Ativo', ''],
+            ['', 'Camisa manga longa', 'Brim', 'Proteção do Tronco', '3', 'vestuario', 'GG=6', '365', 'Ativo', ''],
+            ['', 'Luva nitrílica', 'Caixa mista', 'Proteção de Mãos e Braços', '10', 'P, M, G, GG', '', '90', 'Ativo', 'https://exemplo.com/luva.png'],
         ];
     }
 
@@ -81,6 +82,7 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
 
         $gradeRaw = SstImportValues::v($mapped, 'grade_tamanhos');
         $grade = $gradeRaw !== '' ? SstEpiTamanhoHelper::parseGrade($gradeRaw) : [];
+        $img = $this->imagemFromMapped($mapped, true);
 
         return [
             'nome' => $nome,
@@ -96,7 +98,7 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
             ),
             'periodicidade_troca_dias' => SstImportValues::v($mapped, 'periodicidade_troca_dias') !== '' ? (int) SstImportValues::v($mapped, 'periodicidade_troca_dias') : null,
             'status' => SstImportValues::status(SstImportValues::v($mapped, 'status')) ?? 'Ativo',
-        ];
+        ] + $img;
     }
 
     protected function buildUpdatePayload(array $mapped, array $existing, string $emptyPolicy): array
@@ -108,6 +110,13 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
             }
             $payload[$f] = SstImportValues::v($mapped, $f);
         }
+        if (isset($payload['categoria'])) {
+            $canon = \App\adms\Helpers\SstEpiCategoriaHelper::canonicalize((string) $payload['categoria']);
+            if ($canon !== null) {
+                $payload['categoria'] = $canon;
+            }
+        }
+        $payload += $this->imagemFromMapped($mapped, false, $emptyPolicy);
         if (isset($payload['status'])) {
             $payload['status'] = SstImportValues::status((string) $payload['status']) ?? $existing['status'] ?? 'Ativo';
         }
@@ -127,7 +136,7 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
         }
 
         return SstImportValues::mergeSkipEmpty($payload, $existing, $emptyPolicy, [
-            'nome', 'descricao', 'categoria', 'estoque_minimo', 'periodicidade_troca_dias', 'status',
+            'nome', 'descricao', 'categoria', 'estoque_minimo', 'periodicidade_troca_dias', 'status', 'imagem',
         ]);
     }
 
@@ -135,6 +144,7 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
     {
         $mins = $payload['_minimos_tamanho'] ?? [];
         unset($payload['_minimos_tamanho']);
+        $this->persistImagem($payload, null);
         $id = (new SstEpisRepository())->create($payload);
         if ($id) {
             $this->persistMinimos((int) $id, $payload, is_array($mins) ? $mins : []);
@@ -148,12 +158,68 @@ final class SstEpisImportProfile extends AbstractSstCatalogImportProfile
         $hasMins = array_key_exists('_minimos_tamanho', $payload);
         $mins = $hasMins && is_array($payload['_minimos_tamanho']) ? $payload['_minimos_tamanho'] : [];
         unset($payload['_minimos_tamanho']);
+        $atual = (new SstEpisRepository())->getById($id);
+        $this->persistImagem($payload, is_array($atual) ? ($atual['imagem'] ?? null) : null, is_array($atual) ? (string) ($atual['nome'] ?? '') : '');
         $ok = (new SstEpisRepository())->update($id, $payload);
         if ($ok && ($hasMins || (array_key_exists('controla_tamanho', $payload) && empty($payload['controla_tamanho'])))) {
             $this->persistMinimos($id, $payload, $hasMins ? $mins : []);
         }
 
         return $ok;
+    }
+
+    /**
+     * @param array<string, string> $mapped
+     * @return array<string, mixed>
+     */
+    private function imagemFromMapped(array $mapped, bool $forCreate, string $emptyPolicy = 'skip'): array
+    {
+        if (!SstImportValues::has($mapped, 'imagem')) {
+            return [];
+        }
+        $raw = SstImportValues::v($mapped, 'imagem');
+        $nome = SstImportValues::v($mapped, 'nome');
+        $assets = (string) ($mapped['_assets_dir'] ?? '');
+        if ($raw === '') {
+            if ($forCreate || $emptyPolicy !== 'clear') {
+                if ($assets !== '' && $nome !== '' && \App\adms\Helpers\SstEpiImagemHelper::findAssetByEpiName($assets, $nome) !== null) {
+                    return ['_imagem_source' => $nome, '_imagem_nome' => $nome, '_assets_dir' => $assets];
+                }
+
+                return [];
+            }
+
+            return ['_imagem_clear' => true];
+        }
+        $err = \App\adms\Helpers\SstEpiImagemHelper::validateImportSource($raw, $assets, $nome);
+        if ($err !== null) {
+            throw new \RuntimeException($err);
+        }
+
+        return ['_imagem_source' => $raw, '_imagem_nome' => $nome, '_assets_dir' => $assets];
+    }
+
+    /**
+     * @param array<string, mixed> $payload
+     */
+    private function persistImagem(array &$payload, ?string $current, string $nomeAtual = ''): void
+    {
+        $assets = (string) ($payload['_assets_dir'] ?? '');
+        $source = $payload['_imagem_source'] ?? null;
+        $nome = (string) ($payload['_imagem_nome'] ?? $payload['nome'] ?? $nomeAtual);
+        $clear = !empty($payload['_imagem_clear']);
+        unset($payload['_assets_dir'], $payload['_imagem_source'], $payload['_imagem_nome'], $payload['_imagem_clear']);
+
+        if ($clear) {
+            \App\adms\Helpers\SstEpiImagemHelper::deleteStored($current);
+            $payload['imagem'] = null;
+
+            return;
+        }
+        if (!is_string($source) || trim($source) === '') {
+            return;
+        }
+        $payload['imagem'] = \App\adms\Helpers\SstEpiImagemHelper::importFromSource(trim($source), $current, $assets, $nome);
     }
 
     /**

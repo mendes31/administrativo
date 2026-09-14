@@ -35,7 +35,7 @@
 <div class="help-field"><strong>Mínimo por numeração</strong> Campo vazio usa o padrão. Só grave valores diferentes (nº mais usado, etc.).</div>
 <div class="help-field"><strong>Validade de troca</strong> Periodicidade recomendada de substituição, em dias.</div>
 <div class="help-field"><strong>Lista / Posição</strong> Verde: saldo ≥ mínimo. Badge Comprar (amarelo) só se o saldo for <em>menor</em> que o mínimo daquele tamanho (ou do total, sem grade).</div>
-<div class="help-field"><strong>Importação (Central)</strong> Tipo <em>SST — EPIs</em>. <em>grade_tamanhos</em>: vazio, <code>calcado</code>, <code>vestuario</code> ou lista. <em>estoque_minimo</em> com grade = padrão por tamanho. <em>min_tamanhos</em> = exceções na mesma linha, ex. <code>38=8, 42=5</code> (os demais usam o padrão).</div>
+<div class="help-field"><strong>Importação (Central)</strong> Tipo <em>SST — EPIs</em>. <em>grade_tamanhos</em>: vazio, <code>calcado</code>, <code>vestuario</code> ou lista. <em>estoque_minimo</em> com grade = padrão por tamanho. <em>min_tamanhos</em> = exceções na mesma linha, ex. <code>38=8, 42=5</code> (os demais usam o padrão). <em>imagem</em> = URL https ou o arquivo no ZIP com o <em>mesmo nome da chave</em> (<code>nome</code> do EPI), ex. <code>Calçado de Segurança.png</code>. Espaços e acentos não impedem o casamento com o arquivo.</div>
 <h2>Problemas comuns</h2>
 <dl>
 <dt>CA vencido</dt><dd>Atualize o CA na próxima entrada de estoque ou substitua o lote.</dd>
@@ -43,6 +43,6 @@
 <dt>EPI do GHE e do cargo duplicado</dt><dd>O mesmo item conta uma vez nas pendências e no perfil. No GHE o selo “Já no cargo” indica a sobreposição.</dd>
 <dt>Alerta estoque mínimo no total, mas falta o nº 38</dt><dd>Ative a grade no cadastro e defina o mínimo padrão (e, se preciso, o mínimo do 38). O alerta passa a ser por numeração.</dd>
 <dt>Importação não traz mínimo por número</dt><dd>Use a coluna <code>min_tamanhos</code> no formato <code>38=8, 42=5</code>, ou preencha a grade no cadastro do EPI. Os tamanhos omitidos usam o <em>estoque_minimo</em> padrão.</dd>
-<dt>Foto não envia ou some depois de salvar</dt><dd>Use JPG, PNG, GIF ou WEBP de até 5 MB. Se a tela não mudou, atualize com Ctrl+F5. A foto não entra na importação da Central.</dd>
+<dt>Foto não envia ou some depois de salvar</dt><dd>No cadastro, use JPG, PNG, GIF ou WEBP de até 5 MB. Na Central, o arquivo no ZIP deve ter o mesmo nome da chave (<code>nome</code>), ex. <code>Calçado de Segurança.png</code>. Mapeie <code>imagem</code> com esse nome ou uma URL https.</dd>
 <dt>Entrega bloqueada por treinamento</dt><dd>Aplique treinamento SST vinculado ao EPI.</dd>
 </dl>

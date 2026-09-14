@@ -51,6 +51,13 @@ $dryRun = array_key_exists('dry_run', $form) ? !empty($form['dry_run']) : true;
                     <input class="form-control" type="file" name="file" id="file" accept=".xlsx,.xls,.csv,.txt" required>
                     <div class="form-text">O modelo CSV traz duas linhas de cabeçalho: rótulos da tela e, abaixo, os nomes dos campos. A importação ignora os rótulos e usa só os nomes dos campos. Planilhas antigas (só a linha de campos) continuam válidas.</div>
                 </div>
+                <?php if ($profile->key() === 'sst_epis'): ?>
+                <div class="col-md-4">
+                    <label class="form-label" for="images_zip">ZIP com as fotos (opcional)</label>
+                    <input class="form-control" type="file" name="images_zip" id="images_zip" accept=".zip,application/zip">
+                    <div class="form-text">O arquivo no ZIP deve ter o <strong>mesmo nome da chave</strong> (<code>nome</code> do EPI) mais a extensão, ex. <code>Calçado de Segurança.png</code>. A coluna <code>imagem</code> pode repetir esse nome ou uma URL https. JPG, PNG, GIF ou WEBP, até 5 MB.</div>
+                </div>
+                <?php endif; ?>
 
                 <div class="col-md-4">
                     <label class="form-label" for="operation">Operação</label>
