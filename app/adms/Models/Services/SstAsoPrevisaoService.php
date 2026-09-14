@@ -8,10 +8,11 @@ use App\adms\Helpers\SstAsoPrevisaoHelper;
 use App\adms\Helpers\SstCategoriaAsoHelper;
 use App\adms\Models\Repository\SstAsosRepository;
 
-/** Relação de ASOs periódicos previstos por mês, para planejamento com as lideranças. */
+/** Relação de ASOs periódicos previstos, para planejamento com as lideranças. */
 final class SstAsoPrevisaoService
 {
     /**
+     * @param string $ym Mês Y-m, ou vazio para a lista completa
      * @param array{search?: string, adms_user_id?: int|string, adms_department_id?: int|string} $filters
      * @return array{
      *   mes: string,
@@ -23,7 +24,7 @@ final class SstAsoPrevisaoService
      */
     public function listarPorMes(string $ym, array $filters = []): array
     {
-        $ym = SstAsoPrevisaoHelper::normalizarMes($ym);
+        $ym = SstAsoPrevisaoHelper::mesFiltro($ym);
         $hoje = new \DateTimeImmutable('today');
         $asoRepo = new SstAsosRepository();
         $rows = $asoRepo->listUltimosPeriodicosAtivos($filters);
@@ -35,7 +36,10 @@ final class SstAsoPrevisaoService
                 isset($row['data_realizacao']) ? (string) $row['data_realizacao'] : null,
                 12
             );
-            if ($previsto === null || $previsto->format('Y-m') !== $ym) {
+            if ($previsto === null) {
+                continue;
+            }
+            if ($ym !== '' && $previsto->format('Y-m') !== $ym) {
                 continue;
             }
             $userId = (int) ($row['adms_user_id'] ?? 0);
@@ -80,7 +84,7 @@ final class SstAsoPrevisaoService
 
         return [
             'mes' => $ym,
-            'mes_label' => SstAsoPrevisaoHelper::labelMes($ym),
+            'mes_label' => $ym === '' ? 'todos os meses' : SstAsoPrevisaoHelper::labelMes($ym),
             'itens' => $itens,
             'por_departamento' => $porDepartamento,
             'totais_departamento' => $totais,

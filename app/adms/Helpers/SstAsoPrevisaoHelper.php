@@ -48,13 +48,24 @@ final class SstAsoPrevisaoHelper
     {
         $hoje ??= new \DateTimeImmutable('today');
         $atual = $hoje->format('Y-m');
+        $filtrado = self::mesFiltro($ym);
+
+        return $filtrado !== '' ? $filtrado : $atual;
+    }
+
+    /** Mês do filtro da previsão; vazio = todos os meses. */
+    public static function mesFiltro(?string $ym): string
+    {
         $ym = trim((string) $ym);
+        if ($ym === '' || $ym === 'todos') {
+            return '';
+        }
         if (!preg_match('/^(\d{4})-(\d{2})$/', $ym, $m)) {
-            return $atual;
+            return '';
         }
         $month = (int) $m[2];
         if ($month < 1 || $month > 12) {
-            return $atual;
+            return '';
         }
 
         return sprintf('%04d-%02d', (int) $m[1], $month);

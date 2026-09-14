@@ -33,6 +33,14 @@ final class SstAsoPrevisaoHelperTest extends TestCase
         self::assertSame('2027-03', SstAsoPrevisaoHelper::normalizarMes('2027-03', $hoje));
     }
 
+    public function testMesFiltroVazioSignificaTodos(): void
+    {
+        self::assertSame('', SstAsoPrevisaoHelper::mesFiltro(''));
+        self::assertSame('', SstAsoPrevisaoHelper::mesFiltro('todos'));
+        self::assertSame('', SstAsoPrevisaoHelper::mesFiltro('abc'));
+        self::assertSame('2027-03', SstAsoPrevisaoHelper::mesFiltro('2027-03'));
+    }
+
     public function testLabelMesEmPortugues(): void
     {
         self::assertSame('outubro de 2026', SstAsoPrevisaoHelper::labelMes('2026-10'));

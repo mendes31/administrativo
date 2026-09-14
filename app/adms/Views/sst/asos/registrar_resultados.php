@@ -43,6 +43,7 @@ if ($validadeSugerida === '') {
         — tipo <strong><?= htmlspecialchars($item['tipo'] ?? '') ?></strong>.
         Preencha data, <strong>Resultado ASO</strong> (Apto/Inapto) e a validade. A consulta clínica não exige resultado à parte.
         Hemogramas e outros complementares obrigatórios sim.
+        Anexe os laudos no campo <strong>Anexos dos exames</strong> (vários arquivos de uma vez).
         <span class="badge bg-<?= SstAsoStatusHelper::badgeClass(SstAsoStatusHelper::AGUARDANDO_EXAMES) ?> ms-1">
             <?= htmlspecialchars(SstAsoStatusHelper::AGUARDANDO_EXAMES) ?>
         </span>
@@ -158,6 +159,14 @@ if ($validadeSugerida === '') {
                     </table>
                 </div>
             <?php endif; ?>
+
+            <div class="row">
+                <?php
+                $anexosLabel = 'Anexos dos exames';
+                $anexosHelp = 'Selecione vários arquivos de uma vez (Ctrl ou Cmd): PDF do ASO, laudo de hemograma, audiometria, etc. Máx. 10 MB cada.';
+                include './app/adms/Views/sst/partials/form_anexos.php';
+                ?>
+            </div>
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-success"><i class="fas fa-check me-1"></i> Concluir ASO</button>

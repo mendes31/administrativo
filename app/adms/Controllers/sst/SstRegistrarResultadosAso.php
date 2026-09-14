@@ -9,6 +9,7 @@ use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstAsoStatusHelper;
 use App\adms\Helpers\SstExameResultadoHelper;
 use App\adms\Helpers\SstExameTipoHelper;
+use App\adms\Models\Repository\SstAnexosRepository;
 use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstExamesRepository;
@@ -55,6 +56,7 @@ class SstRegistrarResultadosAso
         }
 
         $this->data['item'] = $item;
+        $this->data['anexos'] = (new SstAnexosRepository())->getByEntity('asos', (int) $id);
         $this->data['complementares'] = (new SstAsoExamesRepository())->getByAsoId((int) $id);
         $this->data['medicos'] = (new SstMedicosRepository())->getAll(1, 500);
         $exames = (new SstExamesRepository())->getAll(1, 500);
@@ -165,7 +167,9 @@ class SstRegistrarResultadosAso
 
         if ($repo->update($id, $data)) {
             (new SstAsoExamesRepository())->syncForAso($id, $complementares);
-            (new SstAnexosUploadService())->processUploads('asos', $id);
+            $uploadService = new SstAnexosUploadService();
+            $uploadService->processDeletions($_POST['delete_anexos'] ?? [], 'asos', $id);
+            $uploadService->processUploads('asos', $id);
             SstPendenciasService::invalidateDashboardCache();
             $_SESSION['msg'] = 'Resultados do ASO registrados com sucesso.';
             $_SESSION['msg_type'] = 'success';

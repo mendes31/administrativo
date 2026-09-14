@@ -33,7 +33,13 @@ class SstListAsos
         $this->data['aguardando_count'] = $repo->countAguardando();
 
         if ($visao === 'previsao') {
-            $mes = SstAsoPrevisaoHelper::normalizarMes((string) ($_GET['mes'] ?? ''));
+            if (isset($_GET['page']) && is_numeric($_GET['page'])) {
+                $page = (int) $_GET['page'];
+            }
+            if (isset($_GET['per_page']) && in_array((int) $_GET['per_page'], [10, 20, 50, 100], true)) {
+                $this->limitResult = (int) $_GET['per_page'];
+            }
+            $mes = SstAsoPrevisaoHelper::mesFiltro((string) ($_GET['mes'] ?? ''));
             $filters = [
                 'search' => $_GET['search'] ?? '',
                 'adms_user_id' => $_GET['adms_user_id'] ?? '',
@@ -46,13 +52,30 @@ class SstListAsos
                 $this->exportPrevisaoCsv($previsao);
                 return;
             }
+            $total = count($previsao['itens']);
+            $paginationFilters = array_merge(['per_page' => $this->limitResult], $filters);
+            $pagination = PaginationService::generatePagination(
+                $total,
+                $this->limitResult,
+                (int) $page,
+                'sst-list-asos',
+                $paginationFilters
+            );
+            $pageAtual = (int) ($pagination['current_page'] ?? 1);
+            $offset = max(0, ($pageAtual - 1) * $this->limitResult);
+            $previsao['itens'] = array_slice($previsao['itens'], $offset, $this->limitResult);
             $this->data['previsao'] = $previsao;
+            $this->data['previsao_total'] = $total;
             $this->data['filters'] = $filters;
-            $this->data['meses_opcoes'] = SstAsoPrevisaoHelper::mesesOpcoes();
+            $this->data['meses_opcoes'] = array_merge(
+                [['value' => '', 'label' => 'Todos']],
+                SstAsoPrevisaoHelper::mesesOpcoes()
+            );
             $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
             $this->data['items'] = [];
-            $this->data['pagination'] = ['html' => ''];
+            $this->data['pagination'] = $pagination;
             $this->data['per_page'] = $this->limitResult;
+            $this->data['paginationSettings'] = ['per_page' => $this->limitResult, 'options' => [10, 20, 50, 100]];
         } else {
         $semFiltrosNaUrl = !array_key_exists('search', $_GET)
             && !array_key_exists('adms_user_id', $_GET)
@@ -194,8 +217,8 @@ class SstListAsos
      */
     private function exportPrevisaoCsv(array $previsao): void
     {
-        $mes = (string) ($previsao['mes'] ?? date('Y-m'));
-        $filename = 'asos-previstos-' . $mes . '.csv';
+        $mes = (string) ($previsao['mes'] ?? '');
+        $filename = 'asos-previstos-' . ($mes !== '' ? $mes : 'completo') . '.csv';
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="' . $filename . '"');
         $out = fopen('php://output', 'w');

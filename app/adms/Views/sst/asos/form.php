@@ -83,6 +83,9 @@ $complementares = $this->data['complementares'] ?? [];
 $exames = $this->data['exames'] ?? [];
 $dataRealizacaoAso = $item['data_realizacao'] ?? '';
 include './app/adms/Views/sst/partials/form_aso_complementares.php';
+$anexosLabel = 'Anexos dos exames';
+$anexosHelp = 'Selecione vários arquivos de uma vez (Ctrl ou Cmd): PDF do ASO, laudo de hemograma, audiometria, etc. Máx. 10 MB cada.';
+include './app/adms/Views/sst/partials/form_anexos.php';
 ?>
 
                 </div>

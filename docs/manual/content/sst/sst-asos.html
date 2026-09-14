@@ -12,7 +12,7 @@
     <dt>ASO</dt>
     <dd>Atestado de Saúde Ocupacional emitido após exame médico do trabalho (admissional, periódico, etc.).</dd>
     <dt>Previsão mensal</dt>
-    <dd>Relação, por mês, de quem deve fazer o ASO periódico — para combinar com as lideranças antes de abrir a fila.</dd>
+    <dd>Lista completa de quem deve fazer o ASO periódico, ordenada pela data prevista. Dá para filtrar por mês, departamento e colaborador, com paginação como nas outras listagens.</dd>
 </dl>
 
 
@@ -20,9 +20,9 @@
 <h2>Fluxo principal</h2>
 <ol>
     <li>Abra <strong>SST → ASOs</strong>. A aba <em>Fila de resultados</em> mostra solicitações já abertas (em geral <em>Aguardando exames</em>).</li>
-    <li>Use a aba <strong>Previsão mensal</strong> para escolher um mês (atual ou futuro) e ver quem tem ASO periódico previsto naquele mês, agrupado por departamento — para combinar com as lideranças.</li>
+    <li>Use a aba <strong>Previsão mensal</strong> para ver a lista completa, ordenada pela data prevista. Filtre por mês, departamento ou colaborador se quiser recortar; a paginação e o “mostrar N registros” funcionam como nas outras telas. CSV exporta o recorte filtrado inteiro.</li>
     <li>Exporte CSV ou imprima a relação. Se quiser iniciar o ciclo antes, abra a solicitação na linha ou use Encaminhamento (PDF).</li>
-    <li>Depois que a solicitação estiver na fila, gere o PDF, realize os exames e use <strong>Registrar resultados</strong>.</li>
+    <li>Depois que a solicitação estiver na fila, gere o PDF, realize os exames e use <strong>Registrar resultados</strong>. Nessa tela dá para anexar vários arquivos de uma vez (ASO e laudos dos exames).</li>
 </ol>
 
 <h2>Fluxo admissional (passo a passo)</h2>
@@ -31,8 +31,8 @@
     <li>Informe médico, data do exame e clínica.</li>
     <li>Revise exames complementares sugeridos (cargo + riscos + categoria).</li>
     <li>Se faltam laudos: status <em>Aguardando exames</em> e gere <strong>Encaminhamento</strong> (PDF) para laboratório.</li>
-    <li>Após resultados, use <strong>Registrar resultados</strong> e conclua com aptidão e validade do ASO.</li>
-    <li>Anexe documentos na aba <strong>Anexos</strong>, se necessário.</li>
+    <li>Após resultados, use <strong>Registrar resultados</strong>, informe aptidão e validade, anexe os PDFs/laudos (vários arquivos) e conclua o ASO.</li>
+    <li>Os anexos também podem ser incluídos ou excluídos em <strong>Novo/Editar ASO</strong> e conferidos na visualização.</li>
 </ol>
 
 <h2>Fluxo periódico (passo a passo)</h2>
@@ -56,14 +56,15 @@
 <p>Lista de exames do evento ASO, com exigência (obrigatório/recomendado) e lançamento de resultados. Exames já incluídos em ASO pendente não duplicam pendência avulsa.</p>
 
 <h2 id="aba-anexos">Anexos</h2>
-<p>Documentos digitalizados do ASO ou laudos vinculados ao registro.</p>
+<p>Vários arquivos por ASO — PDF do atestado, laudo de hemograma, audiometria e demais exames. Ficam no registro do ASO (não em cada linha de complementar). Selecione todos de uma vez (Ctrl ou Cmd) ao <strong>registrar resultados</strong> ou ao criar/editar. Máx. 10 MB por arquivo (PDF, imagem ou Office).</p>
 
 <h2>Encaminhamento</h2>
 <p>Gera PDF para o colaborador realizar exames em laboratório/clínica, com base em cargo, riscos e categoria do ASO. Acesse pela listagem ou visualização do ASO. No PDF, as unidades (Matriz/Filial) são identificadas pelo <strong>nome fantasia</strong>, pois a razão social pode ser a mesma.</p>
 
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Previsão mensal</strong> Lista os periódicos cuja validade (ou realização + 12 meses) cai no mês escolhido. Não cria ASO sozinha. Filtros: mês, departamento, colaborador. CSV e impressão para as lideranças.</div>
+<div class="help-field"><strong>Anexos</strong> Vários arquivos por ASO (atestado e laudos). Envie ao registrar resultados ou ao criar/editar. Máx. 10 MB cada.</div>
+<div class="help-field"><strong>Previsão mensal</strong> Lista completa dos periódicos (validade ou realização + 12 meses), ordenada pela data prevista, com paginação. Filtros: mês (ou Todos), departamento, colaborador, pesquisa. Não cria ASO sozinha. CSV e impressão para as lideranças.</div>
 <div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
 <div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
 <div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
@@ -73,9 +74,11 @@
     <dt>Só vejo ASOs abertos / aguardando</dt>
     <dd>A aba <em>Fila de resultados</em> é operacional. Para meses futuros, use a aba <em>Previsão mensal</em> e selecione o mês.</dd>
     <dt>A previsão está vazia neste mês</dt>
-    <dd>Só entram colaboradores ativos com ASO periódico já concluído cuja validade caia naquele mês. Sem validade no último ASO, o sistema soma 12 meses à data de realização. Quem ainda não teve periódico aparece nas pendências, não nesta lista.</dd>
+    <dd>Deixe o mês em <em>Todos</em> para ver a lista completa. Só entram colaboradores ativos com ASO periódico já concluído. Sem validade no último ASO, o sistema soma 12 meses à data de realização. Quem ainda não teve periódico aparece nas pendências, não nesta lista.</dd>
     <dt>Exame não aparece na sugestão</dt>
     <dd>Verifique vínculo exame ↔ risco ↔ cargo/setor do colaborador e se o exame está ativo no catálogo.</dd>
+    <dt>Não consigo anexar vários laudos</dt>
+    <dd>No campo <em>Anexos dos exames</em>, selecione vários arquivos de uma vez (Ctrl ou Cmd). Os ficheiros ficam no ASO, não numa linha de complementar. Confira depois na visualização do registro.</dd>
     <dt>Não consigo concluir o ASO</dt>
     <dd>Informe data de realização, Resultado ASO (Apto/Inapto) e o resultado dos exames complementares obrigatórios (hemograma, etc.). A <em>consulta clínica</em> é o próprio ASO e não pede Normal/Alterado à parte. Se a validade ficar vazia, o sistema grava 12 meses após a realização.</dd>
     <dt>Pendência de exame continua após ASO concluído</dt>

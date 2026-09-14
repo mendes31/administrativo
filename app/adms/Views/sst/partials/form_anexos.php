@@ -2,9 +2,11 @@
 /** Partial: campo de upload de anexos SST (usar em forms com enctype multipart). */
 $anexos = $this->data['anexos'] ?? [];
 $isEdit = !empty($this->data['item']['id']);
+$anexosLabel = $anexosLabel ?? 'Anexos';
+$anexosHelp = $anexosHelp ?? 'Pode selecionar vários arquivos de uma vez (Ctrl ou Cmd). Fotos, PDFs e documentos — máx. 10 MB cada.';
 ?>
 <div class="col-12 mb-3">
-    <label class="form-label"><i class="fas fa-paperclip me-1"></i>Anexos</label>
+    <label class="form-label"><i class="fas fa-paperclip me-1"></i><?= htmlspecialchars($anexosLabel) ?></label>
     <?php if ($isEdit && !empty($anexos)): ?>
         <div class="mb-2">
             <?php foreach ($anexos as $anexo): ?>
@@ -21,5 +23,5 @@ $isEdit = !empty($this->data['item']['id']);
     <?php endif; ?>
     <input type="file" name="attachments[]" class="form-control" multiple
            accept=".jpg,.jpeg,.png,.gif,.webp,.pdf,.doc,.docx,.xls,.xlsx,.csv,.txt,.zip,.rar,.ppt,.pptx">
-    <small class="text-muted">Fotos, PDFs e documentos — máx. 10 MB por arquivo.</small>
+    <small class="text-muted"><?= htmlspecialchars($anexosHelp) ?></small>
 </div>
