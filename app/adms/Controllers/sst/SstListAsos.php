@@ -6,8 +6,11 @@ namespace App\adms\Controllers\sst;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Controllers\Services\PaginationService;
+use App\adms\Helpers\SstAsoPrevisaoHelper;
+use App\adms\Models\Repository\DepartmentsRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\SstAsoPrevisaoService;
 use App\adms\Views\Services\LoadViewService;
 
 class SstListAsos
@@ -24,11 +27,39 @@ class SstListAsos
             $_SESSION['msg_type'] = 'info';
         }
 
+        $visao = ($_GET['visao'] ?? '') === 'previsao' ? 'previsao' : 'fila';
+        $this->data['visao'] = $visao;
+        $repo = new SstAsosRepository();
+        $this->data['aguardando_count'] = $repo->countAguardando();
+
+        if ($visao === 'previsao') {
+            $mes = SstAsoPrevisaoHelper::normalizarMes((string) ($_GET['mes'] ?? ''));
+            $filters = [
+                'search' => $_GET['search'] ?? '',
+                'adms_user_id' => $_GET['adms_user_id'] ?? '',
+                'adms_department_id' => $_GET['adms_department_id'] ?? '',
+                'mes' => $mes,
+                'visao' => 'previsao',
+            ];
+            $previsao = (new SstAsoPrevisaoService())->listarPorMes($mes, $filters);
+            if (($_GET['export'] ?? '') === 'csv') {
+                $this->exportPrevisaoCsv($previsao);
+                return;
+            }
+            $this->data['previsao'] = $previsao;
+            $this->data['filters'] = $filters;
+            $this->data['meses_opcoes'] = SstAsoPrevisaoHelper::mesesOpcoes();
+            $this->data['departments'] = (new DepartmentsRepository())->getAllDepartmentsSelect();
+            $this->data['items'] = [];
+            $this->data['pagination'] = ['html' => ''];
+            $this->data['per_page'] = $this->limitResult;
+        } else {
         $semFiltrosNaUrl = !array_key_exists('search', $_GET)
             && !array_key_exists('adms_user_id', $_GET)
             && !array_key_exists('status', $_GET)
             && !array_key_exists('page', $_GET)
-            && !array_key_exists('per_page', $_GET);
+            && !array_key_exists('per_page', $_GET)
+            && !array_key_exists('visao', $_GET);
 
         $filters = [
             'search' => $_GET['search'] ?? '',
@@ -41,10 +72,8 @@ class SstListAsos
         if (isset($_GET['per_page']) && in_array((int) $_GET['per_page'], [10, 20, 50, 100], true)) {
             $this->limitResult = (int) $_GET['per_page'];
         }
-        $repo = new SstAsosRepository();
         $total = $repo->getTotal($filters);
         $this->data['items'] = $repo->getAll((int) $page, $this->limitResult, $filters);
-        $this->data['aguardando_count'] = $repo->countAguardando();
         $this->data['pagination'] = PaginationService::generatePagination(
             $total,
             $this->limitResult,
@@ -54,6 +83,7 @@ class SstListAsos
         );
         $this->data['per_page'] = $this->limitResult;
         $this->data['filters'] = $filters;
+        }
         $this->data['entity'] = array (
   'table' => 'adms_sst_asos',
   'singular' => 'ASO',
@@ -148,14 +178,56 @@ class SstListAsos
             $this->data['users'] = (new UsersRepository())->getAllUsersForSelect();
         }
         $pageElements = [
-            'title_head' => 'ASOs - SST',
+            'title_head' => ($this->data['visao'] ?? '') === 'previsao' ? 'ASOs previstos - SST' : 'ASOs - SST',
             'menu' => 'sst-list-asos',
             'buttonPermission' => [
                 'SstViewAso', 'SstCreateAso', 'SstUpdateAso', 'SstDeleteAso', 'SstRegistrarResultadosAso',
-                'SstEncaminhamentoAso', 'SstExportEncaminhamentoAsoPdf',
+                'SstEncaminhamentoAso', 'SstExportEncaminhamentoAsoPdf', 'SstAbrirAsoPendencia',
             ],
         ];
         $this->data = array_merge($this->data ?? [], (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/sst/asos/list', $this->data))->loadView();
+    }
+
+    /**
+     * @param array<string, mixed> $previsao
+     */
+    private function exportPrevisaoCsv(array $previsao): void
+    {
+        $mes = (string) ($previsao['mes'] ?? date('Y-m'));
+        $filename = 'asos-previstos-' . $mes . '.csv';
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        $out = fopen('php://output', 'w');
+        if ($out === false) {
+            return;
+        }
+        fwrite($out, "\xEF\xBB\xBF");
+        fputcsv($out, ['Departamento', 'Colaborador', 'Cargo', 'Última realização', 'Validade / previsto', 'Situação'], ';');
+        foreach ($previsao['itens'] ?? [] as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            fputcsv($out, [
+                (string) ($row['departamento_nome'] ?: 'Sem departamento'),
+                (string) ($row['colaborador_nome'] ?? ''),
+                (string) ($row['cargo_nome'] ?? ''),
+                $this->csvDate($row['data_realizacao'] ?? null),
+                $this->csvDate($row['previsto_em'] ?? $row['data_validade'] ?? null),
+                (string) ($row['situacao_label'] ?? ''),
+            ], ';');
+        }
+        fclose($out);
+    }
+
+    private function csvDate(mixed $value): string
+    {
+        $raw = substr(trim((string) $value), 0, 10);
+        if ($raw === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
+            return '';
+        }
+        $dt = \DateTimeImmutable::createFromFormat('Y-m-d', $raw);
+
+        return $dt ? $dt->format('d/m/Y') : '';
     }
 }

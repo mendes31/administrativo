@@ -8,6 +8,7 @@ use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\SstAsoStatusHelper;
 use App\adms\Helpers\SstExameResultadoHelper;
+use App\adms\Helpers\SstExameTipoHelper;
 use App\adms\Models\Repository\SstAsoExamesRepository;
 use App\adms\Models\Repository\SstAsosRepository;
 use App\adms\Models\Repository\SstExamesRepository;
@@ -109,21 +110,44 @@ class SstRegistrarResultadosAso
 
         $complementares = $this->parseComplementaresFromPost();
         $existentes = (new SstAsoExamesRepository())->getByAsoId($id);
-        $exigencias = [];
+        $existentesByExame = [];
         foreach ($existentes as $row) {
-            $exigencias[(int) ($row['adms_sst_exame_id'] ?? 0)] = $row['exigencia'] ?? null;
+            $existentesByExame[(int) ($row['adms_sst_exame_id'] ?? 0)] = $row;
         }
         foreach ($complementares as &$comp) {
             $eid = (int) ($comp['adms_sst_exame_id'] ?? 0);
-            $comp['exigencia'] = $exigencias[$eid] ?? $comp['exigencia'] ?? null;
-            if (($comp['exigencia'] ?? '') === 'obrigatorio' && empty($comp['resultado'])) {
-                $_SESSION['msg'] = 'Informe o resultado de todos os exames obrigatórios.';
+            $meta = $existentesByExame[$eid] ?? [];
+            $comp['exigencia'] = $meta['exigencia'] ?? $comp['exigencia'] ?? null;
+            $isClinico = SstExameTipoHelper::isEventoClinicoAso(
+                isset($meta['exame_tipo']) ? (string) $meta['exame_tipo'] : null,
+                isset($meta['exame_nome']) ? (string) $meta['exame_nome'] : null
+            );
+            if ($isClinico) {
+                if (trim((string) ($comp['resultado'] ?? '')) === '') {
+                    $comp['resultado'] = $resultado;
+                }
+                if (trim((string) ($comp['data_realizacao'] ?? '')) === '') {
+                    $comp['data_realizacao'] = $dataRealizacao;
+                }
+                continue;
+            }
+            $exigeResultado = !array_key_exists('exige_resultado', $meta) || !empty($meta['exige_resultado']);
+            if (($comp['exigencia'] ?? '') === 'obrigatorio' && $exigeResultado && trim((string) ($comp['resultado'] ?? '')) === '') {
+                $_SESSION['msg'] = 'Informe o resultado de todos os exames obrigatórios (exceto a consulta clínica, coberta pelo Resultado ASO).';
                 $_SESSION['msg_type'] = 'danger';
                 header('Location: ' . $_ENV['URL_ADM'] . 'sst-registrar-resultados-aso/' . $id);
                 exit;
             }
         }
         unset($comp);
+
+        $dataValidade = trim((string) ($_POST['data_validade'] ?? ''));
+        if ($dataValidade === '') {
+            $real = \DateTimeImmutable::createFromFormat('Y-m-d', substr($dataRealizacao, 0, 10));
+            if ($real instanceof \DateTimeImmutable) {
+                $dataValidade = $real->modify('+12 months')->format('Y-m-d');
+            }
+        }
 
         $data = [
             'adms_user_id' => $item['adms_user_id'],
@@ -132,7 +156,7 @@ class SstRegistrarResultadosAso
             'tipo' => $item['tipo'],
             'status' => SstAsoStatusHelper::CONCLUIDO,
             'data_realizacao' => $dataRealizacao,
-            'data_validade' => $_POST['data_validade'] ?? null,
+            'data_validade' => $dataValidade !== '' ? $dataValidade : null,
             'resultado' => $resultado,
             'restricoes' => $_POST['restricoes'] ?? null,
             'clinica' => $_POST['clinica'] ?? null,

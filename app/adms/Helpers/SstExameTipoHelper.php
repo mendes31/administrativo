@@ -33,6 +33,30 @@ final class SstExameTipoHelper
     }
 
     /**
+     * Consulta clínica / avaliação médica do evento ASO: a aptidão fica no Resultado ASO,
+     * não como achado Normal/Alterado de complementar.
+     */
+    public static function isEventoClinicoAso(?string $tipo, ?string $nome = null): bool
+    {
+        $tipo = trim((string) $tipo);
+        if (in_array($tipo, [self::CLINICO, self::AVALIACAO_MEDICA], true)) {
+            return true;
+        }
+        $n = mb_strtolower(trim((string) $nome), 'UTF-8');
+        $n = strtr($n, [
+            'á' => 'a', 'à' => 'a', 'ã' => 'a', 'â' => 'a',
+            'é' => 'e', 'ê' => 'e',
+            'í' => 'i',
+            'ó' => 'o', 'ô' => 'o',
+            'ú' => 'u',
+            'ç' => 'c',
+        ]);
+        $n = preg_replace('/[^a-z0-9]+/', '', $n) ?? '';
+
+        return $n === 'consultaclinica' || str_contains($n, 'consultaclinica') || $n === 'aso';
+    }
+
+    /**
      * Opções de resultado no lançamento do exame complementar (ASO), por tipo.
      * Hoje todos os tipos usam Normal / Alterado; extensível no futuro.
      *

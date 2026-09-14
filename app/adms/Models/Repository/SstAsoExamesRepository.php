@@ -12,7 +12,7 @@ class SstAsoExamesRepository extends DbConnection
     /** @return list<array<string, mixed>> */
     public function getByAsoId(int $asoId): array
     {
-        $sql = "SELECT ae.*, ex.nome AS exame_nome
+        $sql = "SELECT ae.*, ex.nome AS exame_nome, ex.tipo AS exame_tipo, ex.exige_resultado
                 FROM adms_sst_aso_exames ae
                 INNER JOIN adms_sst_exames ex ON ex.id = ae.adms_sst_exame_id
                 WHERE ae.adms_sst_aso_id = :aso_id

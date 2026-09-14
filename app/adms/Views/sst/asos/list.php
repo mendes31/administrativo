@@ -21,10 +21,12 @@ $entity = $this->data['entity'];
 $perms = $this->data['buttonPermission'] ?? [];
 $csrf_token = CSRFHelper::generateCSRFToken('form_delete_sst_asos');
 $filtersId = 'sstFiltersAso';
+$visao = ($this->data['visao'] ?? '') === 'previsao' ? 'previsao' : 'fila';
+$aguardando = (int) ($this->data['aguardando_count'] ?? 0);
 ?>
 <div class="container-fluid px-4">
     <div class="mb-1 hstack gap-2">
-        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-file-medical me-2"></i>ASOs — fila de resultados</h2>
+        <h2 class="mt-3 mobile-hide-page-title"><i class="fas fa-file-medical me-2"></i><?= $visao === 'previsao' ? 'ASOs — previsão mensal' : 'ASOs — fila de resultados' ?></h2>
         <ol class="breadcrumb mb-3 ms-auto mobile-hide-breadcrumb">
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
             <li class="breadcrumb-item"><a href="<?= $_ENV['URL_ADM']; ?>sst-dashboard">SST</a></li>
@@ -32,9 +34,8 @@ $filtersId = 'sstFiltersAso';
         </ol>
     </div>
     <div class="card mb-4 border-light shadow">
-        <div class="card-header hstack gap-2 flex-wrap">
-            <span>Fila de lançamento</span>
-            <?php $aguardando = (int) ($this->data['aguardando_count'] ?? 0); ?>
+        <div class="card-header hstack gap-2 flex-wrap d-print-none">
+            <span><?= $visao === 'previsao' ? 'Planejamento com as lideranças' : 'Fila de lançamento' ?></span>
             <?php if ($aguardando > 0): ?>
                 <span class="badge bg-warning text-dark"><?= $aguardando ?> aguardando resultados</span>
             <?php endif; ?>
@@ -49,6 +50,17 @@ $filtersId = 'sstFiltersAso';
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
+            <ul class="nav nav-tabs mb-3 d-print-none">
+                <li class="nav-item">
+                    <a class="nav-link <?= $visao === 'fila' ? 'active' : '' ?>" href="<?= $_ENV['URL_ADM']; ?>sst-list-asos">Fila de resultados<?php if ($aguardando > 0): ?> <span class="badge text-bg-warning text-dark"><?= $aguardando ?></span><?php endif; ?></a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link <?= $visao === 'previsao' ? 'active' : '' ?>" href="<?= $_ENV['URL_ADM']; ?>sst-list-asos?visao=previsao">Previsão mensal</a>
+                </li>
+            </ul>
+            <?php if ($visao === 'previsao'): ?>
+                <?php include __DIR__ . '/list_previsao.php'; ?>
+            <?php else: ?>
             <p class="text-muted small mb-3">
                 Solicitações são <strong>geradas automaticamente</strong> pelos vínculos (cargo → risco → exame).
                 Acesse cada linha com status <em>Aguardando exames</em>: use
@@ -202,6 +214,7 @@ $filtersId = 'sstFiltersAso';
                     Use o filtro <strong>Status → Todos</strong> para ver ASOs já concluídos, ou
                     <a href="<?= $_ENV['URL_ADM']; ?>sst-create-aso">cadastre manualmente</a>.
                 </p>
+            <?php endif; ?>
             <?php endif; ?>
         </div>
     </div>

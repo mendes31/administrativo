@@ -1,7 +1,7 @@
 <h1>ASOs e encaminhamentos</h1>
 
 <h2>Função no sistema</h2>
-<p>Atestado de Saúde Ocupacional — registro do exame clínico e exames complementares do colaborador.</p>
+<p>Atestado de Saúde Ocupacional — registro do exame clínico e exames complementares do colaborador. A listagem tem a fila de resultados e a previsão mensal dos periódicos.</p>
 
 
 
@@ -11,9 +11,19 @@
 <dl>
     <dt>ASO</dt>
     <dd>Atestado de Saúde Ocupacional emitido após exame médico do trabalho (admissional, periódico, etc.).</dd>
+    <dt>Previsão mensal</dt>
+    <dd>Relação, por mês, de quem deve fazer o ASO periódico — para combinar com as lideranças antes de abrir a fila.</dd>
 </dl>
 
 
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <strong>SST → ASOs</strong>. A aba <em>Fila de resultados</em> mostra solicitações já abertas (em geral <em>Aguardando exames</em>).</li>
+    <li>Use a aba <strong>Previsão mensal</strong> para escolher um mês (atual ou futuro) e ver quem tem ASO periódico previsto naquele mês, agrupado por departamento — para combinar com as lideranças.</li>
+    <li>Exporte CSV ou imprima a relação. Se quiser iniciar o ciclo antes, abra a solicitação na linha ou use Encaminhamento (PDF).</li>
+    <li>Depois que a solicitação estiver na fila, gere o PDF, realize os exames e use <strong>Registrar resultados</strong>.</li>
+</ol>
 
 <h2>Fluxo admissional (passo a passo)</h2>
 <ol>
@@ -30,7 +40,7 @@
     <li>Identifique colaboradores no <strong>relatório de Pendências</strong> ou dashboard (exames vencidos).</li>
     <li>Crie ASO com categoria <em>Periódico</em>.</li>
     <li>Repita o ciclo de complementares → resultados → conclusão.</li>
-    <li>A validade do novo ASO substitui a contagem de vencimento nas pendências.</li>
+    <li>A validade do novo ASO substitui a contagem de vencimento nas pendências e alimenta a <strong>Previsão mensal</strong>.</li>
 </ol>
 
 <h2 id="aba-dados">Dados do ASO</h2>
@@ -53,16 +63,21 @@
 
 
 <h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Previsão mensal</strong> Lista os periódicos cuja validade (ou realização + 12 meses) cai no mês escolhido. Não cria ASO sozinha. Filtros: mês, departamento, colaborador. CSV e impressão para as lideranças.</div>
 <div class="help-field"><strong>Mapa do módulo</strong> Links e resumos das telas cobertas por esta visão geral.</div>
 <div class="help-field"><strong>Permissões</strong> Cada tela operacional exige a página correspondente no nível de acesso.</div>
 <div class="help-field"><strong>Ajuda contextual (F1)</strong> Em cada tela de destino, o F1 abre o tópico detalhado daquela função.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Só vejo ASOs abertos / aguardando</dt>
+    <dd>A aba <em>Fila de resultados</em> é operacional. Para meses futuros, use a aba <em>Previsão mensal</em> e selecione o mês.</dd>
+    <dt>A previsão está vazia neste mês</dt>
+    <dd>Só entram colaboradores ativos com ASO periódico já concluído cuja validade caia naquele mês. Sem validade no último ASO, o sistema soma 12 meses à data de realização. Quem ainda não teve periódico aparece nas pendências, não nesta lista.</dd>
     <dt>Exame não aparece na sugestão</dt>
     <dd>Verifique vínculo exame ↔ risco ↔ cargo/setor do colaborador e se o exame está ativo no catálogo.</dd>
     <dt>Não consigo concluir o ASO</dt>
-    <dd>Status <em>aguardando exames</em> exige lançar resultados dos complementares obrigatórios ou ajustar status.</dd>
+    <dd>Informe data de realização, Resultado ASO (Apto/Inapto) e o resultado dos exames complementares obrigatórios (hemograma, etc.). A <em>consulta clínica</em> é o próprio ASO e não pede Normal/Alterado à parte. Se a validade ficar vazia, o sistema grava 12 meses após a realização.</dd>
     <dt>Pendência de exame continua após ASO concluído</dt>
     <dd>Confirme validade informada e se o exame estava no pacote do ASO (evita duplicidade). Atualize pendências após salvar.</dd>
     <dt>Erro 004 em ações do ASO</dt>

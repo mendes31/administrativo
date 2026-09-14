@@ -214,6 +214,86 @@ class SstAsosRepository extends DbConnection
         return [$whereClause, $params];
     }
 
+    /**
+     * Último ASO periódico concluído de cada colaborador ativo (para a previsão mensal).
+     *
+     * @param array{search?: string, adms_user_id?: int|string, adms_department_id?: int|string} $filters
+     * @return list<array<string, mixed>>
+     */
+    public function listUltimosPeriodicosAtivos(array $filters = []): array
+    {
+        $where = [
+            "u.status = 'Ativo'",
+            'u.data_desligamento IS NULL',
+            "a.tipo = 'Periódico'",
+            "(a.status IS NULL OR a.status = :concluido)",
+            'a.data_realizacao IS NOT NULL',
+            'a.id = (
+                SELECT a2.id FROM adms_sst_asos a2
+                WHERE a2.adms_user_id = a.adms_user_id
+                  AND a2.tipo = a.tipo
+                  AND (a2.status IS NULL OR a2.status = :concluido2)
+                  AND a2.data_realizacao IS NOT NULL
+                ORDER BY a2.data_realizacao DESC, a2.id DESC
+                LIMIT 1
+            )',
+        ];
+        $params = [
+            ':concluido' => SstAsoStatusHelper::CONCLUIDO,
+            ':concluido2' => SstAsoStatusHelper::CONCLUIDO,
+        ];
+        if (!empty($filters['search'])) {
+            $where[] = '(u.name LIKE :search OR CAST(u.id AS CHAR) LIKE :search)';
+            $params[':search'] = '%' . $filters['search'] . '%';
+        }
+        if (!empty($filters['adms_user_id'])) {
+            $where[] = 'u.id = :adms_user_id';
+            $params[':adms_user_id'] = (int) $filters['adms_user_id'];
+        }
+        if (!empty($filters['adms_department_id'])) {
+            $where[] = 'u.user_department_id = :adms_department_id';
+            $params[':adms_department_id'] = (int) $filters['adms_department_id'];
+        }
+        $sql = 'SELECT a.id AS ultimo_aso_id, a.adms_user_id, a.data_realizacao, a.data_validade, a.tipo,
+                       u.name AS colaborador_nome, u.user_department_id,
+                       dep.name AS departamento_nome, pos.name AS cargo_nome
+                FROM adms_sst_asos a
+                INNER JOIN adms_users u ON u.id = a.adms_user_id
+                LEFT JOIN adms_departments dep ON dep.id = u.user_department_id
+                LEFT JOIN adms_positions pos ON pos.id = u.user_position_id
+                WHERE ' . implode(' AND ', $where) . '
+                ORDER BY dep.name IS NULL, dep.name ASC, u.name ASC';
+        $stmt = $this->getConnection()->prepare($sql);
+        foreach ($params as $k => $v) {
+            $stmt->bindValue($k, $v, is_int($v) ? PDO::PARAM_INT : PDO::PARAM_STR);
+        }
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+    }
+
+    /**
+     * @return array<int, int> userId => asoId
+     */
+    public function mapAguardandoPorUsuario(string $tipo): array
+    {
+        $sql = 'SELECT adms_user_id, id FROM adms_sst_asos
+                WHERE status = :status AND tipo = :tipo';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':status', SstAsoStatusHelper::AGUARDANDO_EXAMES);
+        $stmt->bindValue(':tipo', $tipo);
+        $stmt->execute();
+        $out = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $row) {
+            $uid = (int) ($row['adms_user_id'] ?? 0);
+            if ($uid > 0 && !isset($out[$uid])) {
+                $out[$uid] = (int) $row['id'];
+            }
+        }
+
+        return $out;
+    }
+
     private function bindField(\PDOStatement $stmt, string $param, mixed $value): void
     {
         if ($value === null || $value === '') {
