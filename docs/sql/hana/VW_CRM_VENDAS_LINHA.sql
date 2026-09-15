@@ -6,6 +6,10 @@
 -- Pré-requisito: usuário da API SAP com SELECT nesta VIEW.
 -- Executar no schema da company (SBO). Se a VIEW já existir, DROP antes.
 --
+-- Recorte: grupos de item Produto acabado e Materiais de uso/consumo (brindes).
+-- No SAP desta empresa os códigos OITB são 104 e 106; os rótulos 400/700 são o nome.
+-- Todas as utilizações (OUSG) entram; a natureza comercial é classificada no Portal.
+--
 -- Nota HANA: CREATE VIEW não aceita CTE (WITH ... AS). Use UNION ALL direto.
 -- =============================================================================
 
@@ -37,13 +41,17 @@ SELECT
     T1."Dscription"                                    AS "DescricaoItem",
     T4."ItmsGrpCod"                                    AS "CodGrupoItem",
     T6."ItmsGrpNam"                                    AS "GrupoItem",
+    IFNULL(T1."Usage", 0)                              AS "CodUtilizacao",
+    IFNULL(T9."Usage", 'Sem utilização')               AS "Utilizacao",
     T1."WhsCode"                                       AS "Deposito",
     T1."Quantity"                                      AS "Quantidade",
     T1."Quantity"                                      AS "QuantidadeLiq",
     T1."Price"                                         AS "PrecoUnitario",
     T1."DiscPrcnt"                                     AS "DescontoPercentual",
     (T1."Price" * T1."Quantity")                       AS "ValorBruto",
+    (T1."Price" * T1."Quantity")                       AS "ValorBrutoSinalizado",
     ((T1."Price" * T1."Quantity") - T1."LineTotal")    AS "ValorDesconto",
+    ((T1."Price" * T1."Quantity") - T1."LineTotal")    AS "ValorDescontoSinalizado",
     T1."LineTotal"                                     AS "ValorLiquido",
     T1."LineTotal"                                     AS "ValorLiquidoSinalizado",
     IFNULL(T1."StockPrice", 0.0) * T1."Quantity"       AS "CustoTotal",
@@ -59,7 +67,14 @@ LEFT  JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
 LEFT  JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT  JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT  JOIN OBPL T7 ON T7."BPLId" = T0."BPLId"
+LEFT  JOIN OUSG T9 ON T9."ID" = T1."Usage"
 WHERE T0."CANCELED" = 'N'
+  AND (
+        T4."ItmsGrpCod" IN (104, 106, 400, 700)
+        OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%PROD ACABADO%'
+        OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO/CONS%'
+        OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO E CONSUMO%'
+      )
 
 UNION ALL
 
@@ -88,13 +103,17 @@ SELECT
     T1."Dscription"                                    AS "DescricaoItem",
     T4."ItmsGrpCod"                                    AS "CodGrupoItem",
     T6."ItmsGrpNam"                                    AS "GrupoItem",
+    IFNULL(T1."Usage", 0)                              AS "CodUtilizacao",
+    IFNULL(T9."Usage", 'Sem utilização')               AS "Utilizacao",
     T1."WhsCode"                                       AS "Deposito",
     T1."Quantity"                                      AS "Quantidade",
     (T1."Quantity" * -1)                               AS "QuantidadeLiq",
     T1."Price"                                         AS "PrecoUnitario",
     T1."DiscPrcnt"                                     AS "DescontoPercentual",
     (T1."Price" * T1."Quantity")                       AS "ValorBruto",
+    (T1."Price" * T1."Quantity" * -1)                  AS "ValorBrutoSinalizado",
     ((T1."Price" * T1."Quantity") - T1."LineTotal")    AS "ValorDesconto",
+    (((T1."Price" * T1."Quantity") - T1."LineTotal") * -1) AS "ValorDescontoSinalizado",
     T1."LineTotal"                                     AS "ValorLiquido",
     (T1."LineTotal" * -1)                              AS "ValorLiquidoSinalizado",
     (IFNULL(T1."StockPrice", 0.0) * T1."Quantity") * -1 AS "CustoTotal",
@@ -110,7 +129,14 @@ LEFT  JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
 LEFT  JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT  JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT  JOIN OBPL T7 ON T7."BPLId" = T0."BPLId"
-WHERE T0."CANCELED" = 'N';
+LEFT  JOIN OUSG T9 ON T9."ID" = T1."Usage"
+WHERE T0."CANCELED" = 'N'
+  AND (
+        T4."ItmsGrpCod" IN (104, 106, 400, 700)
+        OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%PROD ACABADO%'
+        OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO/CONS%'
+        OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO E CONSUMO%'
+      );
 
 -- Conceder SELECT ao usuário da API (ajuste o usuário conforme o ambiente):
 -- GRANT SELECT ON "VW_CRM_VENDAS_LINHA" TO <usuario_api>;

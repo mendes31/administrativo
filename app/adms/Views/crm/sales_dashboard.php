@@ -2,7 +2,9 @@
 /** @var array $this->data */
 $apiUrl = htmlspecialchars($this->data['api_url'] ?? '', ENT_QUOTES, 'UTF-8');
 $syncUrl = htmlspecialchars($this->data['sync_url'] ?? '', ENT_QUOTES, 'UTF-8');
+$usagesUrl = htmlspecialchars($this->data['usages_url'] ?? '', ENT_QUOTES, 'UTF-8');
 $canSync = !empty($this->data['can_sync']);
+$canUsages = !empty($this->data['can_usages']);
 ?>
 
 <style>
@@ -33,25 +35,45 @@ $canSync = !empty($this->data['can_sync']);
 }
 .crm-sales-dash .csd-toolbar{
   background:var(--csd-surface); border:1px solid var(--csd-line); border-radius:var(--csd-radius);
-  box-shadow:var(--csd-shadow); padding:14px 16px; display:flex; gap:12px;
-  flex-wrap:wrap; align-items:flex-end; margin-bottom:12px;
+  box-shadow:var(--csd-shadow); padding:8px 10px; display:flex; gap:6px;
+  flex-wrap:nowrap; align-items:flex-end; margin-bottom:12px;
+  overflow-x:auto; scrollbar-width:thin;
+}
+.crm-sales-dash .csd-toolbar::-webkit-scrollbar{height:6px;}
+.crm-sales-dash .csd-toolbar::-webkit-scrollbar-thumb{background:#C5CBC3; border-radius:6px;}
+.crm-sales-dash .csd-toolbar-fields{
+  display:flex; flex-wrap:nowrap; align-items:flex-end; gap:6px; flex:1 1 auto; min-width:0;
+}
+.crm-sales-dash .csd-toolbar.is-collapsed .csd-toolbar-fields{display:none;}
+.crm-sales-dash .csd-toolbar-summary{
+  display:none; font-size:12px; color:var(--csd-ink-soft); white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; min-width:0; flex:1 1 auto;
+  padding-bottom:4px;
+}
+.crm-sales-dash .csd-toolbar.is-collapsed .csd-toolbar-summary{display:block;}
+.crm-sales-dash .csd-toolbar-actions{
+  display:flex; flex-wrap:nowrap; align-items:flex-end; gap:6px; flex:0 0 auto;
 }
 .crm-sales-dash .csd-toolbar label{
-  display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:600;
+  display:flex; flex-direction:column; gap:2px; font-size:10px; font-weight:600;
   color:var(--csd-ink-mute); text-transform:uppercase; letter-spacing:.03em; margin:0;
+  min-width:0; flex:1 1 108px; max-width:160px;
 }
 .crm-sales-dash .csd-toolbar select,
 .crm-sales-dash .csd-toolbar input[type="date"]{
-  font-family:inherit; font-size:13px; color:var(--csd-ink); border:1px solid var(--csd-line);
-  background:var(--csd-bg); border-radius:8px; padding:8px 10px; min-width:140px; outline:none;
+  font-family:inherit; font-size:12px; color:var(--csd-ink); border:1px solid var(--csd-line);
+  background:var(--csd-bg); border-radius:6px; padding:5px 7px; min-width:0; width:100%;
+  outline:none; height:30px;
 }
 .crm-sales-dash .csd-toolbar select:focus,
-.crm-sales-dash .csd-toolbar input[type="date"]:focus{border-color:var(--csd-green); box-shadow:0 0 0 3px var(--csd-green-tint);}
-.crm-sales-dash .csd-custom-dates{display:none; gap:12px; flex-wrap:wrap; align-items:flex-end;}
+.crm-sales-dash .csd-toolbar input[type="date"]:focus{border-color:var(--csd-green); box-shadow:0 0 0 2px var(--csd-green-tint);}
+.crm-sales-dash .csd-custom-dates{display:none; gap:6px; flex-wrap:nowrap; align-items:flex-end; flex:0 0 auto;}
 .crm-sales-dash .csd-custom-dates.is-visible{display:flex;}
+.crm-sales-dash .csd-custom-dates label{flex:0 0 118px; max-width:118px;}
 .crm-sales-dash .csd-toolbar button{
   border:1px solid var(--csd-line); background:var(--csd-bg); color:var(--csd-ink-soft);
-  font-size:12.5px; font-weight:600; padding:9px 14px; border-radius:8px; cursor:pointer;
+  font-size:12px; font-weight:600; padding:5px 10px; border-radius:6px; cursor:pointer;
+  height:30px; white-space:nowrap; flex:0 0 auto;
 }
 .crm-sales-dash .csd-toolbar button:hover{background:var(--csd-line);}
 .crm-sales-dash .csd-toolbar button.csd-btn-primary{
@@ -59,9 +81,16 @@ $canSync = !empty($this->data['can_sync']);
 }
 .crm-sales-dash .csd-toolbar button.csd-btn-primary:hover{background:var(--csd-green-dark);}
 .crm-sales-dash .csd-toolbar button:disabled{opacity:.55; cursor:not-allowed;}
-.crm-sales-dash .csd-toolbar .csd-hint{
-  margin-left:auto; font-size:12px; color:var(--csd-ink-mute); max-width:280px;
+.crm-sales-dash .csd-toolbar button.csd-btn-toggle{
+  background:transparent; border-color:var(--csd-line); color:var(--csd-ink-soft);
+  padding:5px 8px;
 }
+.crm-sales-dash .csd-link-usages{
+  font-size:12px; font-weight:600; color:var(--csd-green-dark);
+  padding:5px 6px; white-space:nowrap; height:30px; display:inline-flex; align-items:center;
+  text-decoration:none;
+}
+.crm-sales-dash .csd-link-usages:hover{text-decoration:underline;}
 .crm-sales-dash .csd-sync-meta{
   font-size:12px; color:var(--csd-ink-mute); margin-bottom:12px;
 }
@@ -75,7 +104,13 @@ $canSync = !empty($this->data['can_sync']);
   border-radius:50%; cursor:pointer; font-size:11px; line-height:1; display:flex;
   align-items:center; justify-content:center; padding:0;
 }
-.crm-sales-dash .csd-kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;}
+.crm-sales-dash .csd-kpi-group{margin-bottom:16px;}
+.crm-sales-dash .csd-kpi-group h2{
+  font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+  color:var(--csd-ink-mute); margin:0 0 8px;
+}
+.crm-sales-dash .csd-kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:0;}
+.crm-sales-dash .csd-kpi-row.csd-kpi-row-3{grid-template-columns:repeat(3,1fr);}
 .crm-sales-dash .csd-kpi{
   border-radius:var(--csd-radius); padding:14px 16px; box-shadow:var(--csd-shadow); border:1px solid var(--csd-line);
   position:relative;
@@ -84,6 +119,8 @@ $canSync = !empty($this->data['can_sync']);
 .crm-sales-dash .csd-kpi.c-red{background:var(--csd-red-tint); border-color:#F4CDCD;}
 .crm-sales-dash .csd-kpi.c-orange{background:var(--csd-orange-tint); border-color:#F3CFA3;}
 .crm-sales-dash .csd-kpi.c-blue{background:var(--csd-blue-tint); border-color:#C7DBFB;}
+.crm-sales-dash .csd-kpi.c-teal{background:#E6F6F4; border-color:#B7E2DC;}
+.crm-sales-dash .csd-kpi.c-purple{background:#F3EEFB; border-color:#D9CBF3;}
 .crm-sales-dash .csd-kpi .label{
   font-size:12px; font-weight:600; margin:0 0 6px; color:var(--csd-ink-soft);
   display:flex; align-items:center; justify-content:space-between; gap:8px;
@@ -114,6 +151,8 @@ $canSync = !empty($this->data['can_sync']);
 .crm-sales-dash .csd-kpi.c-red .value,.crm-sales-dash .csd-kpi.c-red .delta{color:#8A2323;}
 .crm-sales-dash .csd-kpi.c-orange .value,.crm-sales-dash .csd-kpi.c-orange .delta{color:#8A4413;}
 .crm-sales-dash .csd-kpi.c-blue .value,.crm-sales-dash .csd-kpi.c-blue .delta{color:#1D4489;}
+.crm-sales-dash .csd-kpi.c-teal .value,.crm-sales-dash .csd-kpi.c-teal .delta{color:#0F6B61;}
+.crm-sales-dash .csd-kpi.c-purple .value,.crm-sales-dash .csd-kpi.c-purple .delta{color:#5B3A9E;}
 .crm-sales-dash .csd-grid{display:grid; grid-template-columns:1.6fr 1fr; gap:12px; margin-bottom:12px;}
 .crm-sales-dash .csd-grid-2{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;}
 .crm-sales-dash .csd-panel{
@@ -186,6 +225,20 @@ $canSync = !empty($this->data['can_sync']);
   text-align:left !important; color:var(--csd-ink-mute);
   overflow:visible !important; text-overflow:clip !important;
 }
+.crm-sales-dash .tbl-clientes .col-qtd{
+  min-width:5.5rem !important;
+}
+.crm-sales-dash table.tbl-itens{
+  table-layout:fixed !important;
+}
+.crm-sales-dash .tbl-itens td.num,
+.crm-sales-dash .tbl-itens th.col-num,
+.crm-sales-dash .tbl-itens tfoot td.num{
+  min-width:0 !important;
+  width:6.75rem;
+}
+.crm-sales-dash .tbl-itens .col-qtd{width:5.1rem; min-width:0 !important;}
+.crm-sales-dash .table-scroll.itens-scroll{overflow-x:hidden;}
 .crm-sales-dash .name-cell{
   color:var(--csd-ink); font-weight:600;
   white-space:normal !important; overflow:visible !important;
@@ -198,8 +251,20 @@ $canSync = !empty($this->data['can_sync']);
   font-weight:700; color:var(--csd-ink-mute); margin-right:6px; white-space:nowrap;
 }
 .crm-sales-dash .cliente-nome{font-weight:600; white-space:normal;}
+.crm-sales-dash .tbl-itens .name-cell{
+  white-space:nowrap !important; overflow:hidden !important; text-overflow:ellipsis !important;
+  word-break:normal; overflow-wrap:normal;
+}
+.crm-sales-dash .tbl-itens .cliente-nome{white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.crm-sales-dash .tbl-itens .bar-mini{margin-top:4px;}
 .crm-sales-dash .bar-mini{height:5px; border-radius:3px; background:var(--csd-green-tint); margin-top:5px; overflow:hidden;}
 .crm-sales-dash .bar-mini span{display:block; height:100%; background:var(--csd-green); border-radius:3px;}
+.crm-sales-dash .tbl-clientes tbody tr[data-card-code],
+.crm-sales-dash .tbl-clientes tbody tr[data-item-code]{cursor:pointer;}
+.crm-sales-dash .tbl-clientes tbody tr[data-card-code]:hover,
+.crm-sales-dash .tbl-clientes tbody tr[data-item-code]:hover{background:var(--csd-green-tint);}
+.crm-sales-dash .tbl-clientes tbody tr.is-selected{background:var(--csd-orange-tint);}
+.crm-sales-dash .tbl-clientes tbody tr.is-selected:hover{background:var(--csd-orange-tint);}
 .crm-sales-dash .table-scroll{max-height:320px; overflow-y:auto; overflow-x:auto; scrollbar-width:thin;}
 .crm-sales-dash .table-scroll::-webkit-scrollbar{width:8px; height:8px;}
 .crm-sales-dash .table-scroll::-webkit-scrollbar-thumb{background:#C5CBC3; border-radius:8px;}
@@ -242,13 +307,12 @@ $canSync = !empty($this->data['can_sync']);
 }
 @media (max-width:1000px){
   .crm-sales-dash .csd-grid,.crm-sales-dash .csd-grid-2{grid-template-columns:1fr;}
-  .crm-sales-dash .csd-kpi-row{grid-template-columns:1fr 1fr;}
-  .crm-sales-dash .csd-toolbar .csd-hint{margin-left:0; max-width:100%;}
+  .crm-sales-dash .csd-kpi-row,
+  .crm-sales-dash .csd-kpi-row.csd-kpi-row-3{grid-template-columns:1fr 1fr;}
 }
 @media (max-width:560px){
-  .crm-sales-dash .csd-kpi-row{grid-template-columns:1fr;}
-  .crm-sales-dash .csd-toolbar select,
-  .crm-sales-dash .csd-toolbar input[type="date"]{min-width:100%; width:100%;}
+  .crm-sales-dash .csd-kpi-row,
+  .crm-sales-dash .csd-kpi-row.csd-kpi-row-3{grid-template-columns:1fr;}
 }
 </style>
 
@@ -258,13 +322,14 @@ $canSync = !empty($this->data['can_sync']);
   <div class="crm-sales-dash" id="crmSalesDash"
        data-api-url="<?= $apiUrl ?>"
        data-sync-url="<?= $syncUrl ?>"
+       data-usages-url="<?= $usagesUrl ?>"
        data-can-sync="<?= $canSync ? '1' : '0' ?>">
     <div class="csd-overlay" aria-live="polite"><div class="csd-spinner" id="csdSpinnerText">Carregando…</div></div>
 
     <div class="csd-banner">
       <div>
         <h1>Dashboard de vendas SAP</h1>
-        <p>Faturamento líquido, devoluções e desempenho comercial · clique nos gráficos para filtrar</p>
+        <p>Produto acabado e materiais de uso/consumo · faturamento, bonificações e brindes · clique nos gráficos para filtrar</p>
       </div>
       <div class="csd-periodo-tag" id="periodoResumo">Carregando período…</div>
     </div>
@@ -272,51 +337,61 @@ $canSync = !empty($this->data['can_sync']);
     <div class="csd-error" id="csdError" role="alert"></div>
     <div class="csd-warn" id="csdWarn" role="status"></div>
 
-    <div class="csd-toolbar">
-      <label>Período
-        <select id="fPeriodo">
-          <option value="mes_atual">Mês atual</option>
-          <option value="mes_anterior">Mês anterior</option>
-          <option value="3">Últimos 3 meses</option>
-          <option value="6">Últimos 6 meses</option>
-          <option value="12" selected>Últimos 12 meses</option>
-          <option value="24">Últimos 24 meses</option>
-          <option value="36">Últimos 36 meses</option>
-          <option value="ano_atual">Ano atual (YTD)</option>
-          <option value="ano_anterior">Ano anterior</option>
-          <option value="personalizado">Personalizado…</option>
-        </select>
-      </label>
-      <div class="csd-custom-dates" id="customDates" aria-hidden="true">
-        <label>Data início
-          <input type="date" id="fDateFrom" autocomplete="off">
+    <div class="csd-toolbar" id="csdToolbar">
+      <button type="button" class="csd-btn-toggle" id="btnToggleFiltros" aria-expanded="true" aria-controls="csdToolbarFields" title="Expandir ou colapsar os filtros">Colapsar</button>
+      <span class="csd-toolbar-summary" id="csdToolbarSummary"></span>
+      <div class="csd-toolbar-fields" id="csdToolbarFields">
+        <label>Período
+          <select id="fPeriodo">
+            <option value="mes_atual">Mês atual</option>
+            <option value="mes_anterior">Mês anterior</option>
+            <option value="3">Últimos 3 meses</option>
+            <option value="6">Últimos 6 meses</option>
+            <option value="12" selected>Últimos 12 meses</option>
+            <option value="24">Últimos 24 meses</option>
+            <option value="36">Últimos 36 meses</option>
+            <option value="ano_atual">Ano atual (YTD)</option>
+            <option value="ano_anterior">Ano anterior</option>
+            <option value="personalizado">Personalizado…</option>
+          </select>
         </label>
-        <label>Data fim
-          <input type="date" id="fDateTo" autocomplete="off">
+        <div class="csd-custom-dates" id="customDates" aria-hidden="true">
+          <label>Data início
+            <input type="date" id="fDateFrom" autocomplete="off">
+          </label>
+          <label>Data fim
+            <input type="date" id="fDateTo" autocomplete="off">
+          </label>
+        </div>
+        <label>Vendedor
+          <select id="fVendedor"><option value="">Todos</option></select>
         </label>
+        <label>Grupo
+          <select id="fGrupoCliente"><option value="">Todos</option></select>
+        </label>
+        <label>Região
+          <select id="fRegiao"><option value="">Todas</option></select>
+        </label>
+        <button type="button" id="btnLimpar">Limpar</button>
+        <button type="button" id="btnAtualizar">Atualizar</button>
       </div>
-      <label>Vendedor
-        <select id="fVendedor"><option value="">Todos</option></select>
-      </label>
-      <label>Grupo de cliente
-        <select id="fGrupoCliente"><option value="">Todos</option></select>
-      </label>
-      <label>Região
-        <select id="fRegiao"><option value="">Todas</option></select>
-      </label>
-      <button type="button" id="btnLimpar">Limpar tudo</button>
-      <button type="button" id="btnAtualizar">Atualizar</button>
-      <?php if ($canSync): ?>
-      <button type="button" id="btnSyncSap" class="csd-btn-primary" title="Sincroniza apenas o incremento (últimos dias desde o último sync)">Atualizar agora (incremental)</button>
-      <?php endif; ?>
-      <span class="csd-hint">Clique em uma barra, fatia ou ponto para filtrar. Clique de novo para desfazer. No personalizado, use Atualizar.</span>
+      <div class="csd-toolbar-actions">
+        <?php if ($canSync): ?>
+        <button type="button" id="btnSyncSap" class="csd-btn-primary" title="Sincroniza apenas o incremento (últimos dias desde o último sync)">Sync incremental</button>
+        <?php endif; ?>
+        <?php if ($canUsages && $usagesUrl !== ''): ?>
+        <a href="<?= $usagesUrl ?>" class="csd-link-usages">Classificar utilizações</a>
+        <?php endif; ?>
+      </div>
     </div>
 
     <div class="csd-sync-meta" id="csdSyncMeta">Cache: —</div>
 
     <div class="csd-chips" id="chipsRow"></div>
 
-    <section class="csd-kpi-row">
+    <div class="csd-kpi-group">
+      <h2>Faturamento</h2>
+      <section class="csd-kpi-row">
       <div class="csd-kpi c-green">
         <p class="label">
           Faturamento líquido
@@ -324,7 +399,7 @@ $canSync = !empty($this->data['can_sync']);
         </p>
         <div class="csd-kpi-tip" id="tipFat" role="tooltip">
           <strong>O que entra neste card</strong>
-          Soma das notas de saída (faturas SAP OINV) menos as notas de devolução (ORIN) no período e nos filtros. É valor em reais, não quantidade.
+          Soma das notas de saída (faturas SAP OINV) menos as notas de devolução (ORIN) no período e nos filtros, só de <em>venda</em> (produto acabado e materiais de uso/consumo). Bonificações e brindes ficam nos grupos abaixo. É valor em reais, não quantidade.
           <strong style="margin-top:8px;">Clientes ativos</strong>
           Parceiros distintos (código SAP) que tiveram pelo menos uma fatura no período — quem só devolveu não entra.
         </div>
@@ -369,7 +444,134 @@ $canSync = !empty($this->data['can_sync']);
         <p class="value" id="kpiTicket">—</p>
         <p class="delta" id="kpiTicketDelta"></p>
       </div>
-    </section>
+      </section>
+    </div>
+
+    <div class="csd-kpi-group">
+      <h2>Venda e desconto</h2>
+      <section class="csd-kpi-row csd-kpi-row-3">
+      <div class="csd-kpi c-teal">
+        <p class="label">
+          Itens vendidos
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensVend" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipItensVend" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Quantidade líquida (fatura − devolução) das linhas classificadas como <em>venda</em> nos grupos Produto acabado e Materiais de uso/consumo.
+        </div>
+        <p class="value" id="kpiItensVendidos">—</p>
+        <p class="delta">Unidades (quantidade SAP)</p>
+      </div>
+      <div class="csd-kpi c-red">
+        <p class="label">
+          Desconto
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipDesc" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipDesc" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Soma do desconto em reais nas linhas de <em>venda</em> (preço × quantidade − total da linha), líquido de devoluções.
+        </div>
+        <p class="value" id="kpiDesconto">—</p>
+        <p class="delta">Só linhas de venda</p>
+      </div>
+      <div class="csd-kpi c-red">
+        <p class="label">
+          % Desconto
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctDesc" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipPctDesc" role="tooltip">
+          <strong>Como é calculado</strong>
+          Desconto ÷ valor bruto de venda (preço × quantidade, líquido de devoluções) × 100.
+        </div>
+        <p class="value" id="kpiPctDesconto">—</p>
+        <p class="delta">Sobre o bruto de venda</p>
+      </div>
+      </section>
+    </div>
+
+    <div class="csd-kpi-group">
+      <h2>Bonificação</h2>
+      <section class="csd-kpi-row csd-kpi-row-3">
+      <div class="csd-kpi c-orange">
+        <p class="label">
+          Bonificações
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipBonifVal" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipBonifVal" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Valor líquido das utilizações classificadas como <em>bonificação</em> (não inclui brinde). Não entra no faturamento. O rodapé conta <em>linhas de item</em>, não notas.
+        </div>
+        <p class="value" id="kpiBonificacoes">—</p>
+        <p class="delta" id="kpiBonificacoesDelta"></p>
+      </div>
+      <div class="csd-kpi c-orange">
+        <p class="label">
+          Itens bonificados
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensBon" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipItensBon" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Quantidade líquida das linhas classificadas como bonificação.
+        </div>
+        <p class="value" id="kpiItensBonificados">—</p>
+        <p class="delta">Unidades (quantidade SAP)</p>
+      </div>
+      <div class="csd-kpi c-orange">
+        <p class="label">
+          % Bonificações
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctBonif" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipPctBonif" role="tooltip">
+          <strong>Como é calculado</strong>
+          Valor de bonificações ÷ faturamento líquido de venda × 100. Brindes não entram neste percentual.
+        </div>
+        <p class="value" id="kpiPctBonificacoes">—</p>
+        <p class="delta">Sobre o faturamento líquido</p>
+      </div>
+      </section>
+    </div>
+
+    <div class="csd-kpi-group">
+      <h2>Brindes</h2>
+      <section class="csd-kpi-row csd-kpi-row-3">
+      <div class="csd-kpi c-purple">
+        <p class="label">
+          Brindes
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipBrindesVal" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipBrindesVal" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Valor líquido das utilizações classificadas como <em>brinde</em> (não inclui bonificação). Não entra no faturamento. O rodapé conta <em>linhas de item</em>, não notas.
+        </div>
+        <p class="value" id="kpiBrindes">—</p>
+        <p class="delta" id="kpiBrindesDelta"></p>
+      </div>
+      <div class="csd-kpi c-purple">
+        <p class="label">
+          Itens de brinde
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensBrinde" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipItensBrinde" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Quantidade líquida das linhas classificadas como brinde (em geral materiais de uso e consumo).
+        </div>
+        <p class="value" id="kpiItensBrindes">—</p>
+        <p class="delta">Unidades (quantidade SAP)</p>
+      </div>
+      <div class="csd-kpi c-purple">
+        <p class="label">
+          % Brindes
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctBrindes" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipPctBrindes" role="tooltip">
+          <strong>Como é calculado</strong>
+          Valor de brindes ÷ faturamento líquido de venda × 100. Bonificações não entram neste percentual.
+        </div>
+        <p class="value" id="kpiPctBrindes">—</p>
+        <p class="delta">Sobre o faturamento líquido</p>
+      </div>
+      </section>
+    </div>
 
     <section class="csd-grid">
       <div class="csd-panel">
@@ -410,7 +612,7 @@ $canSync = !empty($this->data['can_sync']);
       </div>
     </section>
 
-    <section class="csd-grid">
+    <section class="csd-grid-2">
       <div class="csd-panel">
         <h2>Top clientes</h2>
         <p class="panel-sub" id="subTopClientes">Todos os clientes do período · ordenado por faturamento líquido</p>
@@ -430,22 +632,32 @@ $canSync = !empty($this->data['can_sync']);
         </div>
       </div>
       <div class="csd-panel">
-        <h2>Vendas por grupo de item</h2>
-        <p class="panel-sub">Participação · top 10 visíveis, role para ver mais</p>
-        <div class="csd-chart csd-chart-scroll">
-          <div class="csd-chart-inner">
-            <canvas id="chartGrupoItem" aria-label="Faturamento por grupo de item"></canvas>
-          </div>
+        <h2>Itens vendidos</h2>
+        <p class="panel-sub" id="subTopItens">Todos os itens do período · ordenado por faturamento líquido</p>
+        <div class="table-scroll itens-scroll">
+          <table class="tbl-clientes tbl-itens">
+            <thead>
+              <tr>
+                <th>Item</th>
+                <th class="col-num col-qtd">Qtd</th>
+                <th class="col-num">Líquido</th>
+                <th class="col-num">Devolução</th>
+              </tr>
+            </thead>
+            <tbody id="tblItens"></tbody>
+            <tfoot id="tblItensFoot"></tfoot>
+          </table>
         </div>
       </div>
     </section>
 
     <footer class="csd-note">
-      Fonte: cache MySQL sincronizado a partir do SAP Business One (HANA). Preferência pela VIEW <code>VW_CRM_VENDAS_LINHA</code> no sync; se indisponível, o sync usa CTE com filtro de data.
+      Fonte: cache MySQL sincronizado a partir do SAP Business One (HANA), só grupos de item <strong>400 Produto acabado</strong> e <strong>700 Materiais de uso/consumo</strong>. Todas as utilizações entram; a natureza (venda, bonificação, brinde) é classificada no Portal.
+      Preferência pela VIEW <code>VW_CRM_VENDAS_LINHA</code> no sync; se indisponível ou desatualizada, o sync usa CTE com filtro de data.
       Painel: <strong id="csdSource">MySQL</strong>. Este painel é independente do Dashboard CRM de pipeline.
     </footer>
   </div>
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=13"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=20"></script>

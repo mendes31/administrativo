@@ -575,6 +575,11 @@
                     "title": "Dashboard de Vendas SAP (CRM)"
                 },
                 {
+                    "type": "topic",
+                    "topic_id": "crm-list-sales-usages",
+                    "title": "Utilizações de venda SAP (CRM)"
+                },
+                {
                     "type": "group",
                     "label": "Atividades",
                     "children": [

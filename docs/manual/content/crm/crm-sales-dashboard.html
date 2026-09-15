@@ -1,12 +1,24 @@
 <h1>Dashboard de Vendas SAP (CRM)</h1>
 
 <h2>Função no sistema</h2>
-<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN), KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA (não consulta o SAP a cada filtro). É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
+<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN) restrito aos grupos de item <strong>Produto acabado (400)</strong> e <strong>Materiais de uso e consumo (700)</strong> — os brindes estão neste último. Todas as utilizações SAP entram; a natureza (venda, bonificação, brinde) é classificada no Portal. KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA (não consulta o SAP a cada filtro). É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Faturamento líquido</dt>
-    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN), em reais, no período filtrado.</dd>
+    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> (não classificada conta como venda). Bonificação e brinde ficam nos cards próprios. Só Produto acabado e Materiais de uso/consumo (no SAP desta empresa, códigos 104 e 106; os rótulos 400/700 são o nome do grupo).</dd>
+    <dt>Itens vendidos / itens bonificados / itens de brinde</dt>
+    <dd>Quantidade SAP líquida (fatura − devolução) das linhas de venda, de bonificação ou de brinde, respectivamente. Bonificação e brinde não se misturam.</dd>
+    <dt>Bonificações</dt>
+    <dd>Valor líquido das utilizações classificadas como bonificação. O rodapé conta linhas de item, não notas. Não entra no faturamento.</dd>
+    <dt>Brindes</dt>
+    <dd>Valor líquido das utilizações classificadas como brinde (em geral no grupo 700). O rodapé mostra linhas de item e o percentual sobre o faturamento líquido. Não entra no faturamento.</dd>
+    <dt>% Desconto</dt>
+    <dd>Desconto em reais das linhas de venda ÷ valor bruto de venda (preço × quantidade) × 100.</dd>
+    <dt>% Bonificações</dt>
+    <dd>Valor de bonificações ÷ faturamento líquido de venda × 100 (sem brindes).</dd>
+    <dt>Utilização (OUSG)</dt>
+    <dd>Código de uso da linha da nota. Classifique em <em>Utilizações de venda SAP</em>. Novos códigos entram sozinhos após o sync.</dd>
     <dt>Linhas de item em devolução</dt>
     <dd>Contagem no card Devoluções: cada linha da nota de crédito/devolução conta 1. Não é quantidade de notas e nem de unidades do produto.</dd>
     <dt>Clientes ativos</dt>
@@ -16,7 +28,7 @@
     <dt>AnoMes</dt>
     <dd>Competência mensal do documento (<code>YYYY-MM</code>), usada na evolução e no isolamento de mês.</dd>
     <dt>Cache MySQL</dt>
-    <dd>Tabela <code>crm_sales_fact_daily</code> com fatos diários agregados por cliente e dimensões comerciais. O painel lê só este cache.</dd>
+    <dd>Tabela <code>crm_sales_fact_daily</code> com fatos diários agregados por cliente, item e dimensões comerciais. O painel lê só este cache.</dd>
     <dt>VIEW <code>VW_CRM_VENDAS_LINHA</code></dt>
     <dd>Objeto no HANA usado na <em>sincronização</em> (não no carregamento do painel). Sem ela, o sync usa CTE com filtro de data — mais lento na carga inicial.</dd>
     <dt>Atualizar agora (incremental)</dt>
@@ -24,19 +36,20 @@
     <dt>Sync no 1º acesso do dia</dt>
     <dd>Ao abrir o painel pela primeira vez no dia, o sistema sincroniza o incremento automaticamente (com lock para não duplicar). Demais acessos/filtros no mesmo dia leem só o cache.</dd>
     <dt>Cross-filter</dt>
-    <dd>Clique em barra, fatia ou ponto aplica filtro ao painel inteiro; chips permitem remover cada filtro.</dd>
+    <dd>Clique em barra, fatia, ponto ou em uma linha das tabelas Top clientes / Itens vendidos aplica o filtro ao painel inteiro; clique de novo ou use os chips para remover.</dd>
 </dl>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>; classificação de utilizações via <em>CrmListSalesUsages</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>.</li>
+    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>. Se a VIEW HANA já existir, recrie-a com o script atualizado (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) — senão o sync usa CTE.</li>
     <li>Acesse <strong>CRM → Dashboard de Vendas SAP</strong>.</li>
+    <li>Classifique as utilizações em <strong>CRM → Utilizações de venda SAP</strong> (venda, bonificação, brinde ou ignorar). Até classificar, entram como venda.</li>
     <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
     <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
-    <li>Opcionalmente filtre por vendedor, grupo de cliente ou região na barra de ferramentas.</li>
-    <li>Clique em gráficos (evolução, grupo, vendedor, região, grupo de item) para refinar; use chips ou <strong>Limpar tudo</strong>.</li>
+    <li>Opcionalmente filtre por vendedor, grupo de cliente ou região na barra de ferramentas (use <strong>Expandir filtros</strong> se estiver recolhida). Com a barra aberta, todos os campos e botões ficam na mesma linha.</li>
+    <li>Clique em gráficos (evolução, grupo de cliente, vendedor, região) ou em uma linha de <strong>Top clientes</strong> / <strong>Itens vendidos</strong> para refinar; clique de novo ou use chips / <strong>Limpar</strong>.</li>
     <li>Para forçar atualização no meio do dia, use <strong>Atualizar agora (incremental)</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
     <li>Confira no rodapé/meta a data da última sincronização e a fonte do sync (VIEW ou CTE).</li>
 </ol>
@@ -47,8 +60,12 @@
 <div class="help-field"><strong>Vendedor</strong> Nome do vendedor SAP (<code>OSLP.SlpName</code>).</div>
 <div class="help-field"><strong>Grupo de cliente</strong> Grupo do PN (<code>OCRG.GroupName</code>).</div>
 <div class="help-field"><strong>Região</strong> Preferência pelo território SAP (<code>OTER.descript</code>); se vazio no cadastro do PN, usa a <strong>UF</strong> (<code>OCRD.State1</code>). Sem ambos: “Sem região”.</div>
-<div class="help-field"><strong>KPIs</strong> Cada card tem um botão <em>i</em> com a regra de cálculo. Faturamento líquido = faturas − devoluções. Devoluções (valor) = reais em ORIN; a contagem é de <em>linhas de item</em>, não de notas. Taxa = devolvido ÷ faturamento bruto. Ticket = líquido ÷ clientes ativos. Valores em reais com centavos.</div>
-<div class="help-field"><strong>Top clientes</strong> Lista <em>todos</em> os parceiros do recorte, ordenados por líquido, com rolagem (os primeiros ficam visíveis). Código do PN + nome completo; valores com centavos. O rodapé soma o recorte filtrado.</div>
+<div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> com a regra. Faturamento líquido = faturas − devoluções das linhas de <em>venda</em>. Devoluções (valor) = reais em ORIN de venda; a contagem é de <em>linhas de item</em>, não de notas. Taxa = devolvido ÷ faturamento bruto. Ticket = líquido ÷ clientes ativos. Valores em reais com centavos.</div>
+<div class="help-field"><strong>KPIs</strong> Quatro grupos: <em>Faturamento</em> (líquido, devoluções, taxa, ticket); <em>Venda e desconto</em> (itens vendidos, desconto em R$, % desconto); <em>Bonificação</em> (valor, itens, %); <em>Brindes</em> (valor, itens, %). Bonificação e brinde dependem da classificação em <em>Utilizações de venda SAP</em>.</div>
+<div class="help-field"><strong>Classificar utilizações</strong> Atalho para <em>crm-list-sales-usages</em>. Sem classificar, bonificação/brinde infla o faturamento (tratados como venda).</div>
+<div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Clique na linha para filtrar o painel por aquele cliente: a tabela fica só com ele (e os demais widgets acompanham). Clique de novo ou no chip para desfazer. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte filtrado.</div>
+<div class="help-field"><strong>Filtros</strong> Barra compacta com período, vendedor, grupo de cliente e região. <em>Expandir/Colapsar filtros</em> recolhe os campos; ao expandir, tudo permanece numa única linha. O texto de ajuda da barra foi removido — o clique nos gráficos continua filtrando.</div>
+<div class="help-field"><strong>Itens vendidos</strong> Ranking dos SKUs do recorte (só natureza venda), ordenado por líquido decrescente, com rolagem. Clique na linha para filtrar o painel por aquele item: a tabela fica só com ele. Código SAP, descrição, quantidade líquida, líquido e devolução (sem coluna de grupo de item). O rodapé soma o recorte filtrado.</div>
 <div class="help-field"><strong>API dados</strong> Endpoint <code>crm-sales-dashboard-data</code> agrega só no MySQL (resposta rápida ao trocar filtros).</div>
 <div class="help-field"><strong>API sync</strong> Endpoint <code>crm-sales-dashboard-sync</code> — somente <code>incremental</code> na web. Full sync apenas via CLI.</div>
 <div class="help-field"><strong>CLI / cron</strong> <code>php scripts/sync_crm_sales_sap.php</code> (incremental), <code>--full</code> (36 meses). Cron opcional se não quiser depender do 1º acesso do dia.</div>
@@ -58,12 +75,20 @@
     <dt>Não vejo o menu</dt>
     <dd>Execute <code>vendor/bin/phinx migrate</code> e confirme permissão <em>CrmSalesDashboard</em> no nível de acesso.</dd>
     <dt>Cache vazio / aviso de sincronização</dt>
-    <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez. Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
+    <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez (obrigatório após a migration de utilizações, que esvazia o cache). Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
+    <dt>Bonificações zeradas / tudo no faturamento</dt>
+    <dd>As utilizações ainda estão como não classificadas. Abra <strong>Utilizações de venda SAP</strong> e marque bonificação/brinde.</dd>
+    <dt>Lista de itens vazia / ranking some</dt>
+    <dd>Após a migration que inclui o item no cache, rode <code>php scripts/sync_crm_sales_sap.php --full</code>. O sync incremental não reconstrói o histórico antigo.</dd>
+    <dt>Ainda vejo matéria-prima / serviços no ranking de itens</dt>
+    <dd>O recorte é Produto acabado (OITB 104 / nome 400) e Materiais de uso/consumo (OITB 106 / nome 700, inclusive BPX). Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
     <dd>Confirme a Configuração SAP API. Em produção, crie a VIEW <code>VW_CRM_VENDAS_LINHA</code> (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) e conceda SELECT — o CTE fallback deixa o <code>--full</code> bem mais lento.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>
     <dd>Esperado: o painel lê MySQL. Use <strong>Atualizar agora (incremental)</strong> ou abra o painel (1º acesso do dia). Cancelamentos/ajustes recentes entram no overlap de 3 dias.</dd>
-    <dt>Só aparecem 10 clientes no Top clientes</dt>
+    <dt>Só aparece 1 cliente / 1 item na tabela</dt>
+    <dd>Esperado se você clicou na linha: o filtro isola aquele parceiro ou SKU. Clique de novo na linha, no chip laranja ou em <strong>Limpar</strong> para voltar à listagem completa.</dd>
+    <dt>Só aparecem 10 clientes no Top clientes (ou poucos itens no ranking)</dt>
     <dd>A lista traz todos; a caixa tem altura fixa com rolagem. Role para baixo — o cabeçalho e o total ficam fixos. Confira se há filtro ativo no painel.</dd>
     <dt>Barras com valor muito alto (ex.: TERCEIROS / SP)</dt>
     <dd>A escala das barras pode ser limitada quando há um valor muito acima dos demais (para comparar o resto). O rótulo ao lado da barra e o tooltip mostram o valor completo com centavos. Os gráficos de barras mostram cerca de 10 itens e têm rolagem para o restante.</dd>

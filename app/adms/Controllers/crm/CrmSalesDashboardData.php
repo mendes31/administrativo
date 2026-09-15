@@ -52,6 +52,8 @@ class CrmSalesDashboardData
                 'regiao' => $input['regiao'] ?? null,
                 'grupo_item' => $input['grupo_item'] ?? null,
                 'ano_mes' => $input['ano_mes'] ?? null,
+                'card_code' => $input['card_code'] ?? null,
+                'item_code' => $input['item_code'] ?? null,
             ];
 
             $service = new CrmSalesDashboardService();

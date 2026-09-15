@@ -28,6 +28,44 @@ class CrmSalesFactRepository extends DbConnection
         return $exists;
     }
 
+    public function hasUsageColumns(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        if (!$this->tableExists()) {
+            $has = false;
+            return $has;
+        }
+        try {
+            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM crm_sales_fact_daily LIKE 'usage_id'");
+            $has = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $has = false;
+        }
+        return $has;
+    }
+
+    public function hasItemColumns(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        if (!$this->tableExists()) {
+            $has = false;
+            return $has;
+        }
+        try {
+            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM crm_sales_fact_daily LIKE 'item_code'");
+            $has = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $has = false;
+        }
+        return $has;
+    }
+
     public function countRows(): int
     {
         if (!$this->tableExists()) {
@@ -71,20 +109,7 @@ class CrmSalesFactRepository extends DbConnection
     }
 
     /**
-     * @param list<array{
-     *   grain_hash: string,
-     *   doc_date: string,
-     *   ano_mes: string,
-     *   tipo_documento: string,
-     *   card_code: string,
-     *   cliente: string,
-     *   vendedor: string,
-     *   grupo_cliente: string,
-     *   regiao: string,
-     *   grupo_item: string,
-     *   valor_liquido: float,
-     *   qtd_linhas: int
-     * }> $rows
+     * @param list<array<string, mixed>> $rows
      */
     public function upsertBatch(array $rows): int
     {
@@ -93,21 +118,73 @@ class CrmSalesFactRepository extends DbConnection
         }
 
         $now = date('Y-m-d H:i:s');
-        $sql = 'INSERT INTO crm_sales_fact_daily (
-                    grain_hash, doc_date, ano_mes, tipo_documento, card_code, cliente,
-                    vendedor, grupo_cliente, regiao, grupo_item,
-                    valor_liquido, qtd_linhas, synced_at, created_at, updated_at
-                ) VALUES (
-                    :grain_hash, :doc_date, :ano_mes, :tipo_documento, :card_code, :cliente,
-                    :vendedor, :grupo_cliente, :regiao, :grupo_item,
-                    :valor_liquido, :qtd_linhas, :synced_at, :created_at, :updated_at
-                )
-                ON DUPLICATE KEY UPDATE
-                    cliente = VALUES(cliente),
-                    valor_liquido = VALUES(valor_liquido),
-                    qtd_linhas = VALUES(qtd_linhas),
-                    synced_at = VALUES(synced_at),
-                    updated_at = VALUES(updated_at)';
+        $withUsage = $this->hasUsageColumns();
+        $withItem = $this->hasItemColumns();
+
+        if ($withUsage && $withItem) {
+            $sql = 'INSERT INTO crm_sales_fact_daily (
+                        grain_hash, doc_date, ano_mes, tipo_documento, card_code, cliente,
+                        vendedor, grupo_cliente, regiao, grupo_item, item_code, item_name,
+                        usage_id, usage_name,
+                        valor_liquido, quantidade, valor_bruto, valor_desconto, qtd_linhas,
+                        synced_at, created_at, updated_at
+                    ) VALUES (
+                        :grain_hash, :doc_date, :ano_mes, :tipo_documento, :card_code, :cliente,
+                        :vendedor, :grupo_cliente, :regiao, :grupo_item, :item_code, :item_name,
+                        :usage_id, :usage_name,
+                        :valor_liquido, :quantidade, :valor_bruto, :valor_desconto, :qtd_linhas,
+                        :synced_at, :created_at, :updated_at
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        cliente = VALUES(cliente),
+                        item_name = VALUES(item_name),
+                        usage_name = VALUES(usage_name),
+                        valor_liquido = VALUES(valor_liquido),
+                        quantidade = VALUES(quantidade),
+                        valor_bruto = VALUES(valor_bruto),
+                        valor_desconto = VALUES(valor_desconto),
+                        qtd_linhas = VALUES(qtd_linhas),
+                        synced_at = VALUES(synced_at),
+                        updated_at = VALUES(updated_at)';
+        } elseif ($withUsage) {
+            $sql = 'INSERT INTO crm_sales_fact_daily (
+                        grain_hash, doc_date, ano_mes, tipo_documento, card_code, cliente,
+                        vendedor, grupo_cliente, regiao, grupo_item, usage_id, usage_name,
+                        valor_liquido, quantidade, valor_bruto, valor_desconto, qtd_linhas,
+                        synced_at, created_at, updated_at
+                    ) VALUES (
+                        :grain_hash, :doc_date, :ano_mes, :tipo_documento, :card_code, :cliente,
+                        :vendedor, :grupo_cliente, :regiao, :grupo_item, :usage_id, :usage_name,
+                        :valor_liquido, :quantidade, :valor_bruto, :valor_desconto, :qtd_linhas,
+                        :synced_at, :created_at, :updated_at
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        cliente = VALUES(cliente),
+                        usage_name = VALUES(usage_name),
+                        valor_liquido = VALUES(valor_liquido),
+                        quantidade = VALUES(quantidade),
+                        valor_bruto = VALUES(valor_bruto),
+                        valor_desconto = VALUES(valor_desconto),
+                        qtd_linhas = VALUES(qtd_linhas),
+                        synced_at = VALUES(synced_at),
+                        updated_at = VALUES(updated_at)';
+        } else {
+            $sql = 'INSERT INTO crm_sales_fact_daily (
+                        grain_hash, doc_date, ano_mes, tipo_documento, card_code, cliente,
+                        vendedor, grupo_cliente, regiao, grupo_item,
+                        valor_liquido, qtd_linhas, synced_at, created_at, updated_at
+                    ) VALUES (
+                        :grain_hash, :doc_date, :ano_mes, :tipo_documento, :card_code, :cliente,
+                        :vendedor, :grupo_cliente, :regiao, :grupo_item,
+                        :valor_liquido, :qtd_linhas, :synced_at, :created_at, :updated_at
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        cliente = VALUES(cliente),
+                        valor_liquido = VALUES(valor_liquido),
+                        qtd_linhas = VALUES(qtd_linhas),
+                        synced_at = VALUES(synced_at),
+                        updated_at = VALUES(updated_at)';
+        }
 
         $pdo = $this->getConnection();
         $stmt = $pdo->prepare($sql);
@@ -116,7 +193,7 @@ class CrmSalesFactRepository extends DbConnection
         $pdo->beginTransaction();
         try {
             foreach ($rows as $row) {
-                $stmt->execute([
+                $params = [
                     ':grain_hash' => $row['grain_hash'],
                     ':doc_date' => $row['doc_date'],
                     ':ano_mes' => $row['ano_mes'],
@@ -132,7 +209,19 @@ class CrmSalesFactRepository extends DbConnection
                     ':synced_at' => $now,
                     ':created_at' => $now,
                     ':updated_at' => $now,
-                ]);
+                ];
+                if ($withUsage) {
+                    $params[':usage_id'] = (int) ($row['usage_id'] ?? 0);
+                    $params[':usage_name'] = (string) ($row['usage_name'] ?? '');
+                    $params[':quantidade'] = (float) ($row['quantidade'] ?? 0);
+                    $params[':valor_bruto'] = (float) ($row['valor_bruto'] ?? 0);
+                    $params[':valor_desconto'] = (float) ($row['valor_desconto'] ?? 0);
+                }
+                if ($withUsage && $withItem) {
+                    $params[':item_code'] = (string) ($row['item_code'] ?? '');
+                    $params[':item_name'] = (string) ($row['item_name'] ?? '');
+                }
+                $stmt->execute($params);
                 $count++;
             }
             $pdo->commit();
@@ -151,14 +240,55 @@ class CrmSalesFactRepository extends DbConnection
     public function fetchKpis(string $from, string $to, array $dims, ?string $ignoreDim = null): array
     {
         [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
-        $sql = "SELECT
-                    SUM(CASE WHEN tipo_documento = 'Fatura' THEN valor_liquido ELSE 0 END) AS bruto,
-                    SUM(CASE WHEN tipo_documento = 'Devolucao' THEN ABS(valor_liquido) ELSE 0 END) AS devolucoes,
-                    SUM(valor_liquido) AS liquido,
-                    COUNT(DISTINCT CASE WHEN tipo_documento = 'Fatura' THEN card_code END) AS clientes_ativos,
-                    SUM(CASE WHEN tipo_documento = 'Devolucao' THEN qtd_linhas ELSE 0 END) AS qtd_devolucoes
-                FROM crm_sales_fact_daily
-                WHERE {$where}";
+        $fromSql = $this->fromFactSql();
+        $nat = $this->natureSql();
+
+        if (!$this->hasUsageJoin()) {
+            $sql = "SELECT
+                        SUM(CASE WHEN f.tipo_documento = 'Fatura' THEN f.valor_liquido ELSE 0 END) AS bruto,
+                        SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucoes,
+                        SUM(f.valor_liquido) AS liquido,
+                        COUNT(DISTINCT CASE WHEN f.tipo_documento = 'Fatura' THEN f.card_code END) AS clientes_ativos,
+                        SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN f.qtd_linhas ELSE 0 END) AS qtd_devolucoes,
+                        0 AS itens_vendidos,
+                        0 AS valor_bonificacoes,
+                        0 AS valor_brindes,
+                        0 AS qtd_bonificacoes,
+                        0 AS qtd_brindes,
+                        0 AS itens_bonificados,
+                        0 AS itens_brindes,
+                        0 AS desconto,
+                        0 AS valor_bruto_venda
+                    FROM {$fromSql}
+                    WHERE {$where}";
+        } else {
+            $sql = "SELECT
+                        SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.valor_liquido ELSE 0 END) AS bruto,
+                        SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucoes,
+                        SUM(CASE WHEN {$nat} = 'venda' THEN f.valor_liquido ELSE 0 END) AS liquido,
+                        COUNT(DISTINCT CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.card_code END) AS clientes_ativos,
+                        SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Devolucao' THEN f.qtd_linhas ELSE 0 END) AS qtd_devolucoes,
+                        SUM(CASE WHEN {$nat} = 'venda' THEN f.quantidade ELSE 0 END) AS itens_vendidos,
+                        SUM(CASE WHEN {$nat} = 'bonificacao' THEN f.valor_liquido ELSE 0 END) AS valor_bonificacoes,
+                        SUM(CASE WHEN {$nat} = 'brinde' THEN f.valor_liquido ELSE 0 END) AS valor_brindes,
+                        SUM(CASE
+                            WHEN {$nat} = 'bonificacao' AND f.tipo_documento = 'Fatura' THEN f.qtd_linhas
+                            WHEN {$nat} = 'bonificacao' AND f.tipo_documento = 'Devolucao' THEN -f.qtd_linhas
+                            ELSE 0
+                        END) AS qtd_bonificacoes,
+                        SUM(CASE
+                            WHEN {$nat} = 'brinde' AND f.tipo_documento = 'Fatura' THEN f.qtd_linhas
+                            WHEN {$nat} = 'brinde' AND f.tipo_documento = 'Devolucao' THEN -f.qtd_linhas
+                            ELSE 0
+                        END) AS qtd_brindes,
+                        SUM(CASE WHEN {$nat} = 'bonificacao' THEN f.quantidade ELSE 0 END) AS itens_bonificados,
+                        SUM(CASE WHEN {$nat} = 'brinde' THEN f.quantidade ELSE 0 END) AS itens_brindes,
+                        SUM(CASE WHEN {$nat} = 'venda' THEN f.valor_desconto ELSE 0 END) AS desconto,
+                        SUM(CASE WHEN {$nat} = 'venda' THEN f.valor_bruto ELSE 0 END) AS valor_bruto_venda
+                    FROM {$fromSql}
+                    WHERE {$where}";
+        }
+
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         return $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
@@ -186,12 +316,15 @@ class CrmSalesFactRepository extends DbConnection
         if (!isset($allowed[$column])) {
             return [];
         }
-        $col = $allowed[$column];
+        $col = 'f.' . $allowed[$column];
         [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
         $order = $orderAsc ? "{$col} ASC" : 'valor DESC';
-        $sql = "SELECT {$col} AS label, SUM(valor_liquido) AS valor
-                FROM crm_sales_fact_daily
+        $fromSql = $this->fromFactSql();
+        $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $sql = "SELECT {$col} AS label, SUM(f.valor_liquido) AS valor
+                FROM {$fromSql}
                 WHERE {$where}
+                  {$vendaOnly}
                   AND {$col} IS NOT NULL
                   AND {$col} <> ''
                 GROUP BY {$col}
@@ -218,18 +351,21 @@ class CrmSalesFactRepository extends DbConnection
      * @param array<string, string|null> $dims
      * @return list<array{card_code: string, cliente: string, grupo: string, liquido: float, devolucao: float}>
      */
-    public function fetchTopClientes(string $from, string $to, array $dims): array
+    public function fetchTopClientes(string $from, string $to, array $dims, ?string $ignoreDim = null): array
     {
-        [$where, $params] = $this->buildWhere($from, $to, $dims, null);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
+        $fromSql = $this->fromFactSql();
+        $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
         $sql = "SELECT
-                    card_code,
-                    MAX(cliente) AS cliente,
-                    MAX(grupo_cliente) AS grupo,
-                    SUM(valor_liquido) AS liquido,
-                    SUM(CASE WHEN tipo_documento = 'Devolucao' THEN ABS(valor_liquido) ELSE 0 END) AS devolucao
-                FROM crm_sales_fact_daily
+                    f.card_code,
+                    MAX(f.cliente) AS cliente,
+                    MAX(f.grupo_cliente) AS grupo,
+                    SUM(f.valor_liquido) AS liquido,
+                    SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao
+                FROM {$fromSql}
                 WHERE {$where}
-                GROUP BY card_code
+                  {$vendaOnly}
+                GROUP BY f.card_code
                 ORDER BY liquido DESC";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
@@ -247,16 +383,57 @@ class CrmSalesFactRepository extends DbConnection
     }
 
     /**
-     * @return array{vendedores: list<string>, grupos_cliente: list<string>, regioes: list<string>}
+     * Todos os itens do recorte, ordenados por líquido (sem limite de linhas).
+     *
+     * @param array<string, string|null> $dims
+     * @return list<array{item_code: string, item_name: string, grupo: string, quantidade: float, liquido: float, devolucao: float}>
      */
+    public function fetchTopItens(string $from, string $to, array $dims, ?string $ignoreDim = null): array
+    {
+        if (!$this->hasItemColumns()) {
+            return [];
+        }
+        [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
+        $fromSql = $this->fromFactSql();
+        $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $sql = "SELECT
+                    f.item_code,
+                    MAX(f.item_name) AS item_name,
+                    MAX(f.grupo_item) AS grupo,
+                    SUM(f.quantidade) AS quantidade,
+                    SUM(f.valor_liquido) AS liquido,
+                    SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao
+                FROM {$fromSql}
+                WHERE {$where}
+                  {$vendaOnly}
+                  AND f.item_code IS NOT NULL
+                  AND f.item_code <> ''
+                GROUP BY f.item_code
+                ORDER BY liquido DESC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $out[] = [
+                'item_code' => (string) ($row['item_code'] ?? ''),
+                'item_name' => (string) ($row['item_name'] ?? ''),
+                'grupo' => (string) ($row['grupo'] ?? ''),
+                'quantidade' => (float) ($row['quantidade'] ?? 0),
+                'liquido' => (float) ($row['liquido'] ?? 0),
+                'devolucao' => (float) ($row['devolucao'] ?? 0),
+            ];
+        }
+        return $out;
+    }
+
     public function fetchFilterOptions(string $from, string $to): array
     {
         $pick = function (string $column) use ($from, $to): array {
-            $sql = "SELECT DISTINCT {$column} AS label
-                    FROM crm_sales_fact_daily
-                    WHERE doc_date >= :from AND doc_date <= :to
-                      AND {$column} IS NOT NULL AND {$column} <> ''
-                    ORDER BY {$column}";
+            $sql = "SELECT DISTINCT f.{$column} AS label
+                    FROM {$this->fromFactSql()}
+                    WHERE f.doc_date >= :from AND f.doc_date <= :to
+                      AND f.{$column} IS NOT NULL AND f.{$column} <> ''
+                    ORDER BY f.{$column}";
             $stmt = $this->getConnection()->prepare($sql);
             $stmt->execute([':from' => $from, ':to' => $to]);
             $vals = [];
@@ -388,21 +565,55 @@ class CrmSalesFactRepository extends DbConnection
         ]);
     }
 
+    private function hasUsageJoin(): bool
+    {
+        if (!$this->hasUsageColumns()) {
+            return false;
+        }
+        $usageRepo = new CrmSalesUsageNatureRepository();
+        return $usageRepo->tableExists();
+    }
+
+    private function fromFactSql(): string
+    {
+        if (!$this->hasUsageJoin()) {
+            return 'crm_sales_fact_daily f';
+        }
+        return 'crm_sales_fact_daily f
+                LEFT JOIN crm_sales_usage_nature n ON n.usage_id = f.usage_id';
+    }
+
+    /**
+     * nao_classificada (e NULL) entram como venda até o cadastro classificar.
+     */
+    private function natureSql(): string
+    {
+        return "CASE
+            WHEN n.natureza = 'ignorar' THEN 'ignorar'
+            WHEN n.natureza IN ('bonificacao', 'brinde') THEN n.natureza
+            ELSE 'venda'
+        END";
+    }
+
     /**
      * @param array<string, string|null> $dims
      * @return array{0: string, 1: array<string, string>}
      */
     private function buildWhere(string $from, string $to, array $dims, ?string $ignoreDim): array
     {
-        $parts = ['doc_date >= :from', 'doc_date <= :to'];
+        $parts = ['f.doc_date >= :from', 'f.doc_date <= :to'];
         $params = [':from' => $from, ':to' => $to];
         $map = [
-            'vendedor' => 'vendedor',
-            'grupo_cliente' => 'grupo_cliente',
-            'regiao' => 'regiao',
-            'grupo_item' => 'grupo_item',
-            'ano_mes' => 'ano_mes',
+            'vendedor' => 'f.vendedor',
+            'grupo_cliente' => 'f.grupo_cliente',
+            'regiao' => 'f.regiao',
+            'grupo_item' => 'f.grupo_item',
+            'ano_mes' => 'f.ano_mes',
+            'card_code' => 'f.card_code',
         ];
+        if ($this->hasItemColumns()) {
+            $map['item_code'] = 'f.item_code';
+        }
         foreach ($map as $key => $col) {
             if ($ignoreDim === $key) {
                 continue;

@@ -24,7 +24,9 @@
     grupo_cliente: 'Grupo de cliente',
     regiao: 'Região',
     grupo_item: 'Grupo de item',
-    ano_mes: 'Mês'
+    ano_mes: 'Mês',
+    card_code: 'Cliente',
+    item_code: 'Item'
   };
 
   function defaultCustomRange() {
@@ -53,7 +55,11 @@
     grupo_cliente: null,
     regiao: null,
     grupo_item: null,
-    ano_mes: null
+    ano_mes: null,
+    card_code: null,
+    card_label: null,
+    item_code: null,
+    item_label: null
   };
   let charts = {};
   let abortCtrl = null;
@@ -73,6 +79,14 @@
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
   });
+  const fmtQtd = (v) => Number(v || 0).toLocaleString('pt-BR', {
+    maximumFractionDigits: 0
+  });
+  const fmtQtdItem = (v) => Number(v || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2
+  });
+  const fmtPct = (v) => ((v || 0).toFixed(2).replace('.', ',')) + '%';
   const fmtMoedaTabela = (v) => Number(v || 0).toLocaleString('pt-BR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -161,19 +175,58 @@
     document.getElementById('fGrupoCliente').value = filtro.grupo_cliente || '';
     document.getElementById('fRegiao').value = filtro.regiao || '';
     toggleCustomDates();
+    atualizarResumoFiltros();
+  }
+
+  function atualizarResumoFiltros() {
+    const el = document.getElementById('csdToolbarSummary');
+    if (!el) return;
+    const periodoEl = document.getElementById('fPeriodo');
+    const partes = [];
+    if (periodoEl && periodoEl.selectedIndex >= 0) {
+      partes.push(periodoEl.options[periodoEl.selectedIndex].text);
+    }
+    if (filtro.vendedor) partes.push(filtro.vendedor);
+    if (filtro.grupo_cliente) partes.push(filtro.grupo_cliente);
+    if (filtro.regiao) partes.push(filtro.regiao);
+    if (filtro.card_code) partes.push(filtro.card_label || filtro.card_code);
+    if (filtro.item_code) partes.push(filtro.item_label || filtro.item_code);
+    el.textContent = partes.join(' · ');
+  }
+
+  function aplicarEstadoFiltros(open) {
+    const bar = document.getElementById('csdToolbar');
+    const btn = document.getElementById('btnToggleFiltros');
+    if (!bar || !btn) return;
+    bar.classList.toggle('is-collapsed', !open);
+    btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    btn.textContent = open ? 'Colapsar' : 'Expandir';
+    try {
+      localStorage.setItem('crmSalesFiltrosOpen', open ? '1' : '0');
+    } catch (e) { /* ignore */ }
+    atualizarResumoFiltros();
+  }
+
+  function chipTexto(campo) {
+    if (campo === 'card_code') return filtro.card_label || filtro.card_code;
+    if (campo === 'item_code') return filtro.item_label || filtro.item_code;
+    return filtro[campo];
   }
 
   function renderChips() {
-    const campos = ['vendedor', 'grupo_cliente', 'regiao', 'grupo_item', 'ano_mes'];
+    const campos = ['vendedor', 'grupo_cliente', 'regiao', 'grupo_item', 'ano_mes', 'card_code', 'item_code'];
     const ativos = campos.filter((c) => filtro[c]);
     const el = document.getElementById('chipsRow');
     el.innerHTML = ativos.map((c) =>
-      '<span class="csd-chip">' + rotulos[c] + ': ' + filtro[c] +
+      '<span class="csd-chip">' + rotulos[c] + ': ' + escapeHtml(chipTexto(c)) +
       '<button type="button" data-campo="' + c + '" aria-label="Remover filtro">×</button></span>'
     ).join('');
     el.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
-        filtro[btn.getAttribute('data-campo')] = null;
+        const campo = btn.getAttribute('data-campo');
+        filtro[campo] = null;
+        if (campo === 'card_code') filtro.card_label = null;
+        if (campo === 'item_code') filtro.item_label = null;
         sincronizarToolbar();
         carregar();
       });
@@ -458,6 +511,19 @@
     carregar();
   }
 
+  function toggleFiltroComLabel(campo, valor, labelCampo, labelValor) {
+    if (!valor) return;
+    if (filtro[campo] === valor) {
+      filtro[campo] = null;
+      if (labelCampo) filtro[labelCampo] = null;
+    } else {
+      filtro[campo] = valor;
+      if (labelCampo) filtro[labelCampo] = labelValor || valor;
+    }
+    sincronizarToolbar();
+    carregar();
+  }
+
   function onClickChart(campo) {
     return (evt, elements, chart) => {
       if (!elements.length) return;
@@ -480,6 +546,8 @@
     if (filtro.regiao) params.set('regiao', filtro.regiao);
     if (filtro.grupo_item) params.set('grupo_item', filtro.grupo_item);
     if (filtro.ano_mes) params.set('ano_mes', filtro.ano_mes);
+    if (filtro.card_code) params.set('card_code', filtro.card_code);
+    if (filtro.item_code) params.set('item_code', filtro.item_code);
     return params.toString();
   }
 
@@ -564,14 +632,29 @@
 
     document.getElementById('kpiFaturamento').textContent = fmtMoeda(kpis.faturamento_liquido || 0);
     document.getElementById('kpiDevolucao').textContent = fmtMoeda(kpis.devolucoes || 0);
-    document.getElementById('kpiTaxaDevolucao').textContent =
-      ((kpis.taxa_devolucao || 0).toFixed(2).replace('.', ',')) + '%';
+    document.getElementById('kpiTaxaDevolucao').textContent = fmtPct(kpis.taxa_devolucao || 0);
     document.getElementById('kpiTicket').textContent = fmtMoeda(kpis.ticket_medio || 0);
     document.getElementById('kpiFaturamentoDelta').textContent = (kpis.clientes_ativos || 0) + ' clientes ativos (parceiros com fatura)';
     document.getElementById('kpiDevolucaoDelta').textContent = (kpis.qtd_devolucoes || 0) + ' linhas de item em notas de devolução';
     document.getElementById('kpiTaxaDevolucaoDelta').textContent =
       (kpis.taxa_devolucao || 0) > 10 ? 'Acima da meta de 10%' : 'Dentro da meta de 10%';
     document.getElementById('kpiTicketDelta').textContent = 'Por cliente ativo';
+
+    const setTxt = (id, txt) => {
+      const el = document.getElementById(id);
+      if (el) el.textContent = txt;
+    };
+    setTxt('kpiItensVendidos', fmtQtd(kpis.itens_vendidos || 0));
+    setTxt('kpiDesconto', fmtMoeda(kpis.desconto || 0));
+    setTxt('kpiPctDesconto', fmtPct(kpis.pct_desconto || 0));
+    setTxt('kpiBonificacoes', fmtMoeda(kpis.valor_bonificacoes || 0));
+    setTxt('kpiBonificacoesDelta', (kpis.qtd_bonificacoes || 0) + ' linhas de item');
+    setTxt('kpiItensBonificados', fmtQtd(kpis.itens_bonificados || 0));
+    setTxt('kpiPctBonificacoes', fmtPct(kpis.pct_bonificacoes || 0));
+    setTxt('kpiBrindes', fmtMoeda(kpis.valor_brindes || 0));
+    setTxt('kpiBrindesDelta', (kpis.qtd_brindes || 0) + ' linhas de item');
+    setTxt('kpiItensBrindes', fmtQtd(kpis.itens_brindes || 0));
+    setTxt('kpiPctBrindes', fmtPct(kpis.pct_brindes || 0));
 
     destruirCharts();
     document.querySelectorAll('#crmSalesDash .csd-scale-note').forEach((el) => el.remove());
@@ -650,9 +733,6 @@
     const regioes = series.regiao || [];
     charts.regiao = createHorizontalBarChart('chartRegiao', regioes, 'regiao', 12);
 
-    const itens = series.grupo_item || [];
-    charts.grupoItem = createHorizontalBarChart('chartGrupoItem', itens, 'grupo_item', 40);
-
     const clientes = data.top_clientes || [];
     const clienteVals = clientes.map((c) => c.liquido);
     const clienteScale = adaptiveAxisMax(clienteVals);
@@ -660,7 +740,7 @@
     const subEl = document.getElementById('subTopClientes');
     if (subEl) {
       subEl.textContent = clientes.length
-        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · role para ver todos'
+        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · clique na linha para filtrar (de novo para limpar)'
         : 'Nenhum cliente no recorte';
     }
     document.getElementById('tblClientes').innerHTML = clientes.length
@@ -670,7 +750,10 @@
         const nome = String(info.cliente || '').trim() || '—';
         const parceiro = (code ? '<span class="cliente-code">' + escapeHtml(code) + '</span>' : '') +
           '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
-        return '<tr><td class="name-cell" title="' + escapeHtml((code ? code + ' · ' : '') + nome) + '">' + parceiro +
+        const sel = filtro.card_code && filtro.card_code === code ? ' class="is-selected"' : '';
+        const label = (code ? code + ' · ' : '') + nome;
+        return '<tr' + sel + ' data-card-code="' + escapeHtml(code) + '" data-card-label="' + escapeHtml(label) + '">' +
+          '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
           '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td>' +
           '<td class="col-grupo" title="' + escapeHtml(info.grupo || '') + '">' + escapeHtml(info.grupo || '—') + '</td>' +
           '<td class="num col-num">' + fmtMoedaTabela(info.liquido) + '</td>' +
@@ -685,6 +768,51 @@
         const totLiq = clientes.reduce((s, c) => s + Number(c.liquido || 0), 0);
         const totDev = clientes.reduce((s, c) => s + Number(c.devolucao || 0), 0);
         foot.innerHTML = '<tr><td colspan="2">Total</td>' +
+          '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
+          '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
+      }
+    }
+
+    const itens = data.top_itens || [];
+    const itemVals = itens.map((c) => c.liquido);
+    const itemScale = adaptiveAxisMax(itemVals);
+    const maxItemVisual = itemScale.max || 1;
+    const subItens = document.getElementById('subTopItens');
+    if (subItens) {
+      subItens.textContent = itens.length
+        ? itens.length + ' item(ns) · ordenado por faturamento líquido · clique na linha para filtrar (de novo para limpar)'
+        : 'Nenhum item no recorte';
+    }
+    const tblItens = document.getElementById('tblItens');
+    if (tblItens) {
+      tblItens.innerHTML = itens.length
+        ? itens.map((info) => {
+          const pct = Math.max(4, Math.min(100, Math.round(info.liquido / maxItemVisual * 100)));
+          const code = String(info.item_code || '').trim();
+          const nome = String(info.item_name || '').trim() || '—';
+          const parceiro = (code ? '<span class="cliente-code">' + escapeHtml(code) + '</span>' : '') +
+            '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
+          const sel = filtro.item_code && filtro.item_code === code ? ' class="is-selected"' : '';
+          const label = (code ? code + ' · ' : '') + nome;
+          return '<tr' + sel + ' data-item-code="' + escapeHtml(code) + '" data-item-label="' + escapeHtml(label) + '">' +
+            '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
+            '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td>' +
+            '<td class="num col-num col-qtd">' + fmtQtdItem(info.quantidade) + '</td>' +
+            '<td class="num col-num">' + fmtMoedaTabela(info.liquido) + '</td>' +
+            '<td class="num col-num neg">' + (info.devolucao > 0 ? fmtMoedaTabela(-Math.abs(info.devolucao)) : '—') + '</td></tr>';
+        }).join('')
+        : '<tr><td colspan="4" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
+    }
+    const footItens = document.getElementById('tblItensFoot');
+    if (footItens) {
+      if (!itens.length) {
+        footItens.innerHTML = '';
+      } else {
+        const totQtd = itens.reduce((s, c) => s + Number(c.quantidade || 0), 0);
+        const totLiq = itens.reduce((s, c) => s + Number(c.liquido || 0), 0);
+        const totDev = itens.reduce((s, c) => s + Number(c.devolucao || 0), 0);
+        footItens.innerHTML = '<tr><td>Total</td>' +
+          '<td class="num col-num col-qtd">' + fmtQtdItem(totQtd) + '</td>' +
           '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
           '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
       }
@@ -802,6 +930,26 @@
     filtro.regiao = e.target.value || null;
     carregar();
   });
+  const tblClientes = document.getElementById('tblClientes');
+  if (tblClientes) {
+    tblClientes.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const code = tr.getAttribute('data-card-code');
+      if (!code) return;
+      toggleFiltroComLabel('card_code', code, 'card_label', tr.getAttribute('data-card-label') || code);
+    });
+  }
+  const tblItens = document.getElementById('tblItens');
+  if (tblItens) {
+    tblItens.addEventListener('click', (e) => {
+      const tr = e.target.closest('tr');
+      if (!tr) return;
+      const code = tr.getAttribute('data-item-code');
+      if (!code) return;
+      toggleFiltroComLabel('item_code', code, 'item_label', tr.getAttribute('data-item-label') || code);
+    });
+  }
   document.getElementById('btnLimpar').addEventListener('click', () => {
     filtro = {
       periodo: '12',
@@ -811,7 +959,11 @@
       grupo_cliente: null,
       regiao: null,
       grupo_item: null,
-      ano_mes: null
+      ano_mes: null,
+      card_code: null,
+      card_label: null,
+      item_code: null,
+      item_label: null
     };
     opcoesCache = null;
     opcoesPeriodoKey = '';
@@ -830,6 +982,18 @@
   const btnSync = document.getElementById('btnSyncSap');
   if (btnSync) {
     btnSync.addEventListener('click', sincronizarSap);
+  }
+  const btnToggleFiltros = document.getElementById('btnToggleFiltros');
+  if (btnToggleFiltros) {
+    btnToggleFiltros.addEventListener('click', () => {
+      const open = btnToggleFiltros.getAttribute('aria-expanded') !== 'true';
+      aplicarEstadoFiltros(open);
+    });
+    let openPref = true;
+    try {
+      openPref = localStorage.getItem('crmSalesFiltrosOpen') !== '0';
+    } catch (e) { /* ignore */ }
+    aplicarEstadoFiltros(openPref);
   }
 
   function fecharKpiTips(exceto) {

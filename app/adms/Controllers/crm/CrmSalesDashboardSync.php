@@ -16,7 +16,7 @@ class CrmSalesDashboardSync
     public function index(): void
     {
         ini_set('memory_limit', '512M');
-        ini_set('max_execution_time', '300');
+            ini_set('max_execution_time', '600');
 
         header('Content-Type: application/json; charset=utf-8');
 

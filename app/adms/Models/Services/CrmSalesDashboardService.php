@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Models\Repository\crm\CrmSalesFactRepository;
+use App\adms\Models\Repository\crm\CrmSalesUsageNatureRepository;
 use DateInterval;
 use DateTimeImmutable;
 use Exception;
@@ -20,10 +21,12 @@ class CrmSalesDashboardService
     public const MAX_MONTHS = 36;
 
     private CrmSalesFactRepository $repo;
+    private CrmSalesUsageNatureRepository $usageRepo;
 
-    public function __construct(?CrmSalesFactRepository $repo = null)
+    public function __construct(?CrmSalesFactRepository $repo = null, ?CrmSalesUsageNatureRepository $usageRepo = null)
     {
         $this->repo = $repo ?? new CrmSalesFactRepository();
+        $this->usageRepo = $usageRepo ?? new CrmSalesUsageNatureRepository();
     }
 
     /**
@@ -35,7 +38,9 @@ class CrmSalesDashboardService
      *   grupo_cliente?: string|null,
      *   regiao?: string|null,
      *   grupo_item?: string|null,
-     *   ano_mes?: string|null
+     *   ano_mes?: string|null,
+     *   card_code?: string|null,
+     *   item_code?: string|null
      * } $filters
      */
     public function getDashboardData(array $filters): array
@@ -53,6 +58,8 @@ class CrmSalesDashboardService
             'regiao' => $this->trimOrNull($filters['regiao'] ?? null),
             'grupo_item' => $this->trimOrNull($filters['grupo_item'] ?? null),
             'ano_mes' => $this->trimOrNull($filters['ano_mes'] ?? null),
+            'card_code' => $this->trimOrNull($filters['card_code'] ?? null),
+            'item_code' => $this->trimOrNull($filters['item_code'] ?? null),
         ];
 
         $from = $range['from']->format('Y-m-d');
@@ -80,23 +87,16 @@ class CrmSalesDashboardService
                     'grupos_cliente' => [],
                     'regioes' => [],
                 ],
-                'kpis' => [
-                    'faturamento_liquido' => 0,
-                    'devolucoes' => 0,
-                    'taxa_devolucao' => 0,
-                    'ticket_medio' => 0,
-                    'clientes_ativos' => 0,
-                    'qtd_devolucoes' => 0,
-                    'faturamento_bruto' => 0,
-                ],
+                'kpis' => $this->emptyKpis(),
                 'series' => [
                     'evolucao' => $this->fillMissingMonths([], $meses),
                     'grupo_cliente' => [],
                     'vendedores' => [],
                     'regiao' => [],
-                    'grupo_item' => [],
                 ],
                 'top_clientes' => [],
+                'top_itens' => [],
+                'usages_unclassified' => $this->usageRepo->countUnclassified(),
                 'sync' => $this->formatSyncMeta($sync, $rowCount),
                 'warning' => 'Cache vazio. Execute a sincronização (CLI --full ou botão Atualizar agora).',
             ];
@@ -110,13 +110,29 @@ class CrmSalesDashboardService
         $qtdDev = (int) ($kpisRow['qtd_devolucoes'] ?? 0);
         $taxa = $bruto > 0 ? ($devolucoes / $bruto * 100) : 0.0;
         $ticket = $clientes > 0 ? ($liquido / $clientes) : 0.0;
+        $itensVendidos = (float) ($kpisRow['itens_vendidos'] ?? 0);
+        $valorBonif = (float) ($kpisRow['valor_bonificacoes'] ?? 0);
+        $valorBrindes = (float) ($kpisRow['valor_brindes'] ?? 0);
+        $qtdBonif = (int) ($kpisRow['qtd_bonificacoes'] ?? 0);
+        $qtdBrindes = (int) ($kpisRow['qtd_brindes'] ?? 0);
+        $itensBonif = (float) ($kpisRow['itens_bonificados'] ?? 0);
+        $itensBrindes = (float) ($kpisRow['itens_brindes'] ?? 0);
+        $desconto = (float) ($kpisRow['desconto'] ?? 0);
+        $brutoVenda = (float) ($kpisRow['valor_bruto_venda'] ?? 0);
+        $pctDesconto = $brutoVenda > 0 ? ($desconto / $brutoVenda * 100) : 0.0;
+        $pctBonif = $liquido > 0 ? ($valorBonif / $liquido * 100) : 0.0;
+        $pctBrindes = $liquido > 0 ? ($valorBrindes / $liquido * 100) : 0.0;
+        $unclassified = $this->usageRepo->countUnclassified();
+        $warning = $unclassified > 0
+            ? $unclassified . ' utilização(ões) SAP ainda não classificada(s); até classificar, entram como venda. Use CRM → Utilizações de venda SAP.'
+            : null;
 
         $evolucao = $this->repo->fetchGroupSum($from, $to, $dims, 'ano_mes', 'ano_mes', true);
         $porGrupoCliente = $this->repo->fetchGroupSum($from, $to, $dims, 'grupo_cliente', 'grupo_cliente');
         $porVendedor = $this->repo->fetchGroupSum($from, $to, $dims, 'vendedor', 'vendedor');
         $porRegiao = $this->repo->fetchGroupSum($from, $to, $dims, 'regiao', 'regiao');
-        $porGrupoItem = $this->repo->fetchGroupSum($from, $to, $dims, 'grupo_item', 'grupo_item');
         $topClientes = $this->repo->fetchTopClientes($from, $to, $dims);
+        $topItens = $this->repo->fetchTopItens($from, $to, $dims);
         $opcoes = $this->repo->fetchFilterOptions($from, $to);
 
         $meses = $this->listAnoMesInRange($range);
@@ -144,16 +160,56 @@ class CrmSalesDashboardService
                 'clientes_ativos' => $clientes,
                 'qtd_devolucoes' => $qtdDev,
                 'faturamento_bruto' => $bruto,
+                'itens_vendidos' => $itensVendidos,
+                'valor_bonificacoes' => $valorBonif,
+                'valor_brindes' => $valorBrindes,
+                'qtd_bonificacoes' => $qtdBonif,
+                'qtd_brindes' => $qtdBrindes,
+                'itens_bonificados' => $itensBonif,
+                'itens_brindes' => $itensBrindes,
+                'desconto' => $desconto,
+                'pct_desconto' => round($pctDesconto, 2),
+                'pct_bonificacoes' => round($pctBonif, 2),
+                'pct_brindes' => round($pctBrindes, 2),
             ],
             'series' => [
                 'evolucao' => $evolucaoCompleta,
                 'grupo_cliente' => $porGrupoCliente,
                 'vendedores' => $porVendedor,
                 'regiao' => $porRegiao,
-                'grupo_item' => $porGrupoItem,
             ],
             'top_clientes' => $topClientes,
+            'top_itens' => $topItens,
+            'usages_unclassified' => $unclassified,
             'sync' => $this->formatSyncMeta($sync, $rowCount),
+            'warning' => $warning,
+        ];
+    }
+
+    /**
+     * @return array<string, int|float>
+     */
+    private function emptyKpis(): array
+    {
+        return [
+            'faturamento_liquido' => 0,
+            'devolucoes' => 0,
+            'taxa_devolucao' => 0,
+            'ticket_medio' => 0,
+            'clientes_ativos' => 0,
+            'qtd_devolucoes' => 0,
+            'faturamento_bruto' => 0,
+            'itens_vendidos' => 0,
+            'valor_bonificacoes' => 0,
+            'valor_brindes' => 0,
+            'qtd_bonificacoes' => 0,
+            'qtd_brindes' => 0,
+            'itens_bonificados' => 0,
+            'itens_brindes' => 0,
+            'desconto' => 0,
+            'pct_desconto' => 0,
+            'pct_bonificacoes' => 0,
+            'pct_brindes' => 0,
         ];
     }
 

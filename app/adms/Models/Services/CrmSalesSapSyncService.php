@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Models\Repository\crm\CrmSalesFactRepository;
+use App\adms\Models\Repository\crm\CrmSalesUsageNatureRepository;
 use DateInterval;
 use DateTimeImmutable;
 use Exception;
@@ -28,15 +29,23 @@ class CrmSalesSapSyncService
     public const VIEW_NAME = 'VW_CRM_VENDAS_LINHA';
     public const LOOKBACK_MONTHS = 36;
     public const INCREMENTAL_OVERLAP_DAYS = 3;
+    /** Códigos OITB reais (104/106) e os números do nome SAP (400/700) se existirem noutro ambiente. */
+    public const ITEM_GROUP_CODES = [104, 106, 400, 700];
 
     private SapReportApiService $sap;
     private CrmSalesFactRepository $repo;
+    private CrmSalesUsageNatureRepository $usageRepo;
     private ?bool $viewAvailable = null;
+    private ?bool $viewHasUsage = null;
 
-    public function __construct(?SapReportApiService $sap = null, ?CrmSalesFactRepository $repo = null)
-    {
+    public function __construct(
+        ?SapReportApiService $sap = null,
+        ?CrmSalesFactRepository $repo = null,
+        ?CrmSalesUsageNatureRepository $usageRepo = null
+    ) {
         $this->sap = $sap ?? new SapReportApiService();
         $this->repo = $repo ?? new CrmSalesFactRepository();
+        $this->usageRepo = $usageRepo ?? new CrmSalesUsageNatureRepository();
     }
 
     /**
@@ -130,7 +139,7 @@ class CrmSalesSapSyncService
         }
 
         $range = $this->resolveSyncRange($mode);
-        $source = $this->isViewAvailable() ? 'view' : 'cte';
+        $source = $this->resolveSource();
 
         $runId = $this->repo->createSyncRun([
             'sync_mode' => $mode,
@@ -176,6 +185,10 @@ class CrmSalesSapSyncService
                     $mappedRow = $this->mapRawRow($raw);
                     if ($mappedRow !== null) {
                         $mapped[] = $mappedRow;
+                        $this->usageRepo->upsertFromSync(
+                            (int) $mappedRow['usage_id'],
+                            (string) $mappedRow['usage_name']
+                        );
                     }
                 }
 
@@ -327,6 +340,58 @@ class CrmSalesSapSyncService
     }
 
     /**
+     * VIEW só é usada se já tiver CodUtilizacao (script HANA atualizado).
+     */
+    private function resolveSource(): string
+    {
+        if ($this->isViewAvailable() && $this->viewHasUsageColumn()) {
+            return 'view';
+        }
+        return 'cte';
+    }
+
+    private function viewHasUsageColumn(): bool
+    {
+        if ($this->viewHasUsage !== null) {
+            return $this->viewHasUsage;
+        }
+        try {
+            $this->sap->execute(
+                'SELECT TOP 1 "CodUtilizacao" FROM "' . self::VIEW_NAME . '"'
+            );
+            $this->viewHasUsage = true;
+        } catch (Exception $e) {
+            $this->viewHasUsage = false;
+            error_log(
+                'CrmSalesSapSync: VIEW sem CodUtilizacao, usando CTE. ' . $e->getMessage()
+            );
+        }
+        return $this->viewHasUsage;
+    }
+
+    private function itemGroupFilterSql(string $itemAlias = 'T4', string $groupAlias = 'T6'): string
+    {
+        $codes = implode(', ', self::ITEM_GROUP_CODES);
+        return '('
+            . $itemAlias . '."ItmsGrpCod" IN (' . $codes . ')'
+            . ' OR UPPER(IFNULL(' . $groupAlias . '."ItmsGrpNam", \'\')) LIKE \'%PROD ACABADO%\''
+            . ' OR UPPER(IFNULL(' . $groupAlias . '."ItmsGrpNam", \'\')) LIKE \'%USO/CONS%\''
+            . ' OR UPPER(IFNULL(' . $groupAlias . '."ItmsGrpNam", \'\')) LIKE \'%USO E CONSUMO%\''
+            . ')';
+    }
+
+    private function itemGroupFilterViewSql(string $alias = 'T0'): string
+    {
+        $codes = implode(', ', self::ITEM_GROUP_CODES);
+        return '('
+            . $alias . '."CodGrupoItem" IN (' . $codes . ')'
+            . ' OR UPPER(IFNULL(' . $alias . '."GrupoItem", \'\')) LIKE \'%PROD ACABADO%\''
+            . ' OR UPPER(IFNULL(' . $alias . '."GrupoItem", \'\')) LIKE \'%USO/CONS%\''
+            . ' OR UPPER(IFNULL(' . $alias . '."GrupoItem", \'\')) LIKE \'%USO E CONSUMO%\''
+            . ')';
+    }
+
+    /**
      * @return list<array<string, mixed>>
      */
     private function fetchAggregatedChunk(
@@ -349,7 +414,8 @@ class CrmSalesSapSyncService
             . ' AND T0."DocDate" <= ' . $this->quoteDate($to);
 
         if ($source === 'view') {
-            $base = 'SELECT * FROM "' . self::VIEW_NAME . '" T0 WHERE ' . $dateFilter;
+            $base = 'SELECT * FROM "' . self::VIEW_NAME . '" T0 WHERE ' . $dateFilter
+                . ' AND ' . $this->itemGroupFilterViewSql('T0');
         } else {
             $base = $this->cteBody($dateFilter);
         }
@@ -364,7 +430,14 @@ class CrmSalesSapSyncService
             IFNULL(src."GrupoCliente", \'\') AS "GrupoCliente",
             IFNULL(src."Regiao", \'\') AS "Regiao",
             IFNULL(src."GrupoItem", \'\') AS "GrupoItem",
+            IFNULL(src."ItemCode", \'\') AS "ItemCode",
+            MAX(IFNULL(src."DescricaoItem", \'\')) AS "DescricaoItem",
+            IFNULL(src."CodUtilizacao", 0) AS "CodUtilizacao",
+            MAX(IFNULL(src."Utilizacao", \'\')) AS "Utilizacao",
             SUM(src."ValorLiquidoSinalizado") AS "ValorLiquido",
+            SUM(src."QuantidadeLiq") AS "Quantidade",
+            SUM(src."ValorBrutoSinalizado") AS "ValorBruto",
+            SUM(src."ValorDescontoSinalizado") AS "ValorDesconto",
             COUNT(*) AS "QtdLinhas"
          FROM (' . $base . ') src
          GROUP BY
@@ -375,12 +448,15 @@ class CrmSalesSapSyncService
             IFNULL(src."Vendedor", \'\'),
             IFNULL(src."GrupoCliente", \'\'),
             IFNULL(src."Regiao", \'\'),
-            IFNULL(src."GrupoItem", \'\')';
+            IFNULL(src."GrupoItem", \'\'),
+            IFNULL(src."ItemCode", \'\'),
+            IFNULL(src."CodUtilizacao", 0)';
     }
 
     private function cteBody(string $dateFilter): string
     {
-        return 'SELECT
+        $itemFilter = $this->itemGroupFilterSql('T4', 'T6');
+        $selectFatura = 'SELECT
     \'Fatura\' AS "TipoDocumento",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
@@ -390,7 +466,14 @@ class CrmSalesSapSyncService
     T5."GroupName" AS "GrupoCliente",
     IFNULL(NULLIF(T8."descript", \'\'), IFNULL(NULLIF(T2."State1", \'\'), \'Sem região\')) AS "Regiao",
     T6."ItmsGrpNam" AS "GrupoItem",
-    T1."LineTotal" AS "ValorLiquidoSinalizado"
+    IFNULL(T1."ItemCode", \'\') AS "ItemCode",
+    IFNULL(T1."Dscription", \'\') AS "DescricaoItem",
+    IFNULL(T1."Usage", 0) AS "CodUtilizacao",
+    IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
+    T1."LineTotal" AS "ValorLiquidoSinalizado",
+    T1."Quantity" AS "QuantidadeLiq",
+    (T1."Price" * T1."Quantity") AS "ValorBrutoSinalizado",
+    ((T1."Price" * T1."Quantity") - T1."LineTotal") AS "ValorDescontoSinalizado"
 FROM OINV T0
 INNER JOIN INV1 T1 ON T1."DocEntry" = T0."DocEntry"
 INNER JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
@@ -399,9 +482,9 @@ LEFT JOIN OITM T4 ON T4."ItemCode" = T1."ItemCode"
 LEFT JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
 LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
-WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter . '
-UNION ALL
-SELECT
+LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
+WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter . ' AND ' . $itemFilter;
+        $selectDev = 'SELECT
     \'Devolucao\' AS "TipoDocumento",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
@@ -411,7 +494,14 @@ SELECT
     T5."GroupName" AS "GrupoCliente",
     IFNULL(NULLIF(T8."descript", \'\'), IFNULL(NULLIF(T2."State1", \'\'), \'Sem região\')) AS "Regiao",
     T6."ItmsGrpNam" AS "GrupoItem",
-    (T1."LineTotal" * -1) AS "ValorLiquidoSinalizado"
+    IFNULL(T1."ItemCode", \'\') AS "ItemCode",
+    IFNULL(T1."Dscription", \'\') AS "DescricaoItem",
+    IFNULL(T1."Usage", 0) AS "CodUtilizacao",
+    IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
+    (T1."LineTotal" * -1) AS "ValorLiquidoSinalizado",
+    (T1."Quantity" * -1) AS "QuantidadeLiq",
+    (T1."Price" * T1."Quantity" * -1) AS "ValorBrutoSinalizado",
+    (((T1."Price" * T1."Quantity") - T1."LineTotal") * -1) AS "ValorDescontoSinalizado"
 FROM ORIN T0
 INNER JOIN RIN1 T1 ON T1."DocEntry" = T0."DocEntry"
 INNER JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
@@ -420,7 +510,11 @@ LEFT JOIN OITM T4 ON T4."ItemCode" = T1."ItemCode"
 LEFT JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
 LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
-WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter;
+LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
+WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter . ' AND ' . $itemFilter;
+        return $selectFatura . '
+UNION ALL
+' . $selectDev;
     }
 
     /**
@@ -480,9 +574,17 @@ WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter;
         if ($grupoItem === '') {
             $grupoItem = 'Sem grupo de item';
         }
+        $itemCode = trim((string) ($get($raw, 'ItemCode') ?? ''));
+        $itemName = trim((string) ($get($raw, 'DescricaoItem') ?? ''));
         $anoMes = trim((string) ($get($raw, 'AnoMes') ?? ''));
         if ($anoMes === '') {
             $anoMes = substr($docDate, 0, 7);
+        }
+
+        $usageId = (int) ($get($raw, 'CodUtilizacao') ?? 0);
+        $usageName = trim((string) ($get($raw, 'Utilizacao') ?? ''));
+        if ($usageName === '') {
+            $usageName = 'Sem utilização';
         }
 
         $grain = implode('|', [
@@ -493,6 +595,8 @@ WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter;
             $grupoCli,
             $regiao,
             $grupoItem,
+            $itemCode,
+            (string) $usageId,
         ]);
 
         return [
@@ -506,7 +610,14 @@ WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter;
             'grupo_cliente' => mb_substr($grupoCli, 0, 150),
             'regiao' => mb_substr($regiao, 0, 150),
             'grupo_item' => mb_substr($grupoItem, 0, 150),
+            'item_code' => mb_substr($itemCode, 0, 50),
+            'item_name' => mb_substr($itemName, 0, 255),
+            'usage_id' => $usageId,
+            'usage_name' => mb_substr($usageName, 0, 150),
             'valor_liquido' => (float) ($get($raw, 'ValorLiquido', 'ValorLiquidoSinalizado') ?? 0),
+            'quantidade' => (float) ($get($raw, 'Quantidade', 'QuantidadeLiq') ?? 0),
+            'valor_bruto' => (float) ($get($raw, 'ValorBruto', 'ValorBrutoSinalizado') ?? 0),
+            'valor_desconto' => (float) ($get($raw, 'ValorDesconto', 'ValorDescontoSinalizado') ?? 0),
             'qtd_linhas' => max(0, (int) ($get($raw, 'QtdLinhas') ?? 0)),
         ];
     }

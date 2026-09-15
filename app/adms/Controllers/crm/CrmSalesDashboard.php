@@ -23,6 +23,7 @@ class CrmSalesDashboard
                 'CrmSalesDashboard',
                 'CrmSalesDashboardData',
                 'CrmSalesDashboardSync',
+                'CrmListSalesUsages',
             ],
         ];
 
@@ -31,8 +32,10 @@ class CrmSalesDashboard
         $base = $_ENV['URL_ADM'] ?? '';
         $this->data['api_url'] = $base . 'crm-sales-dashboard-data';
         $this->data['sync_url'] = $base . 'crm-sales-dashboard-sync';
+        $this->data['usages_url'] = $base . 'crm-list-sales-usages';
         $perms = $this->data['buttonPermission'] ?? [];
         $this->data['can_sync'] = is_array($perms) && in_array('CrmSalesDashboardSync', $perms, true);
+        $this->data['can_usages'] = is_array($perms) && in_array('CrmListSalesUsages', $perms, true);
 
         $loadView = new LoadViewService('adms/Views/crm/sales_dashboard', $this->data);
         $loadView->loadView();

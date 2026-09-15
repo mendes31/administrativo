@@ -441,6 +441,12 @@ $menus = [
                 'icon' => 'fas fa-chart-area'
             ],
             [
+                'label' => 'Utilizações de venda SAP',
+                'url' => $_ENV['URL_ADM'] . 'crm-list-sales-usages',
+                'permission' => 'CrmListSalesUsages',
+                'icon' => 'fas fa-tags'
+            ],
+            [
                 'label' => 'Pipeline de Vendas',
                 'url' => $_ENV['URL_ADM'] . 'crm-kanban-pipeline',
                 'permission' => 'CrmKanbanPipeline',
