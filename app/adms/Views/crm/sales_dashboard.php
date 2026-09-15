@@ -78,13 +78,37 @@ $canSync = !empty($this->data['can_sync']);
 .crm-sales-dash .csd-kpi-row{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px;}
 .crm-sales-dash .csd-kpi{
   border-radius:var(--csd-radius); padding:14px 16px; box-shadow:var(--csd-shadow); border:1px solid var(--csd-line);
+  position:relative;
 }
 .crm-sales-dash .csd-kpi.c-green{background:var(--csd-green-tint); border-color:#CDE9D6;}
 .crm-sales-dash .csd-kpi.c-red{background:var(--csd-red-tint); border-color:#F4CDCD;}
 .crm-sales-dash .csd-kpi.c-orange{background:var(--csd-orange-tint); border-color:#F3CFA3;}
 .crm-sales-dash .csd-kpi.c-blue{background:var(--csd-blue-tint); border-color:#C7DBFB;}
-.crm-sales-dash .csd-kpi .label{font-size:12px; font-weight:600; margin:0 0 6px; color:var(--csd-ink-soft);}
-.crm-sales-dash .csd-kpi .value{font-size:1.35rem; font-weight:700; margin:0; letter-spacing:-0.01em;}
+.crm-sales-dash .csd-kpi .label{
+  font-size:12px; font-weight:600; margin:0 0 6px; color:var(--csd-ink-soft);
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+}
+.crm-sales-dash .csd-kpi-info{
+  flex:0 0 auto; width:20px; height:20px; border-radius:50%;
+  border:1px solid currentColor; background:rgba(255,255,255,.55);
+  color:inherit; font-size:12px; font-weight:700; font-style:italic; font-family:Georgia,serif;
+  line-height:1; cursor:pointer; padding:0;
+  display:inline-flex; align-items:center; justify-content:center;
+}
+.crm-sales-dash .csd-kpi-info:hover,
+.crm-sales-dash .csd-kpi-info[aria-expanded="true"]{background:#fff; box-shadow:0 0 0 3px rgba(27,36,30,.08);}
+.crm-sales-dash .csd-kpi-tip{
+  display:none; position:absolute; z-index:8; left:12px; right:12px; top:42px;
+  background:#fff; color:var(--csd-ink); border:1px solid var(--csd-line);
+  border-radius:10px; box-shadow:var(--csd-shadow); padding:10px 12px;
+  font-size:12px; font-weight:500; line-height:1.45; text-align:left;
+}
+.crm-sales-dash .csd-kpi-tip.is-open{display:block;}
+.crm-sales-dash .csd-kpi-tip strong{display:block; margin-bottom:4px; font-size:12px;}
+.crm-sales-dash .csd-kpi .value{
+  font-size:1.05rem; font-weight:700; margin:0; letter-spacing:-0.02em;
+  font-variant-numeric:tabular-nums; line-height:1.25; word-break:break-word;
+}
 .crm-sales-dash .csd-kpi .delta{font-size:12px; font-weight:600; margin-top:6px;}
 .crm-sales-dash .csd-kpi.c-green .value,.crm-sales-dash .csd-kpi.c-green .delta{color:var(--csd-green-dark);}
 .crm-sales-dash .csd-kpi.c-red .value,.crm-sales-dash .csd-kpi.c-red .delta{color:#8A2323;}
@@ -120,20 +144,70 @@ $canSync = !empty($this->data['can_sync']);
   background:var(--csd-bg); border-radius:10px; border:1px dashed var(--csd-line);
 }
 .crm-sales-dash table{width:100%; border-collapse:collapse; font-size:13px;}
+.crm-sales-dash table.tbl-clientes{
+  table-layout:auto !important; width:100% !important;
+}
+.crm-sales-dash .tbl-clientes th,
+.crm-sales-dash .tbl-clientes td{
+  overflow:visible !important;
+  text-overflow:clip !important;
+  vertical-align:top !important;
+  font-size:12px !important;
+  padding:8px 6px !important;
+}
 .crm-sales-dash thead th{
   text-align:left; font-size:11px; text-transform:uppercase; letter-spacing:.03em;
   color:var(--csd-ink-mute); font-weight:700; padding:0 8px 8px; border-bottom:1px solid var(--csd-line);
 }
-.crm-sales-dash tbody td{padding:9px 8px; border-bottom:1px solid var(--csd-bg); color:var(--csd-ink-soft);}
-.crm-sales-dash tbody td.num{text-align:right; color:var(--csd-ink); font-weight:600;}
+.crm-sales-dash .table-scroll thead th{
+  position:sticky; top:0; z-index:1; background:var(--csd-surface); padding-top:4px !important;
+  white-space:normal !important; line-height:1.2;
+}
+.crm-sales-dash tbody td{padding:9px 8px; border-bottom:1px solid var(--csd-bg); color:var(--csd-ink-soft); vertical-align:top;}
+.crm-sales-dash .tbl-clientes td.num,
+.crm-sales-dash .tbl-clientes th.col-num,
+.crm-sales-dash .tbl-clientes tfoot td.num{
+  text-align:right !important;
+  color:var(--csd-ink);
+  font-weight:600;
+  font-variant-numeric:tabular-nums;
+  white-space:nowrap !important;
+  overflow:visible !important;
+  text-overflow:clip !important;
+  width:1%;
+  min-width:9.75rem;
+  padding-left:8px !important;
+  padding-right:4px !important;
+}
 .crm-sales-dash tbody td.neg{color:var(--csd-red);}
+.crm-sales-dash .tbl-clientes .col-grupo{
+  width:1%; white-space:nowrap !important;
+  font-size:9px !important; font-weight:500; line-height:1.2;
+  text-align:left !important; color:var(--csd-ink-mute);
+  overflow:visible !important; text-overflow:clip !important;
+}
 .crm-sales-dash .name-cell{
   color:var(--csd-ink); font-weight:600;
-  max-width:280px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  white-space:normal !important; overflow:visible !important;
+  text-overflow:clip !important; line-height:1.3;
+  word-break:break-word; overflow-wrap:anywhere;
+  text-align:left !important;
 }
+.crm-sales-dash .cliente-code{
+  display:inline-block; font-family:ui-monospace,Consolas,monospace; font-size:11px !important;
+  font-weight:700; color:var(--csd-ink-mute); margin-right:6px; white-space:nowrap;
+}
+.crm-sales-dash .cliente-nome{font-weight:600; white-space:normal;}
 .crm-sales-dash .bar-mini{height:5px; border-radius:3px; background:var(--csd-green-tint); margin-top:5px; overflow:hidden;}
 .crm-sales-dash .bar-mini span{display:block; height:100%; background:var(--csd-green); border-radius:3px;}
-.crm-sales-dash .table-scroll{max-height:320px; overflow-y:auto;}
+.crm-sales-dash .table-scroll{max-height:320px; overflow-y:auto; overflow-x:auto; scrollbar-width:thin;}
+.crm-sales-dash .table-scroll::-webkit-scrollbar{width:8px; height:8px;}
+.crm-sales-dash .table-scroll::-webkit-scrollbar-thumb{background:#C5CBC3; border-radius:8px;}
+.crm-sales-dash .tbl-clientes tfoot td{
+  position:sticky; bottom:0; background:var(--csd-surface); border-top:1px solid var(--csd-line);
+  font-weight:700; padding:8px 6px !important; font-size:12px !important;
+  white-space:nowrap !important; overflow:visible !important; text-overflow:clip !important;
+}
 .crm-sales-dash .csd-legend{display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--csd-ink-soft); margin-bottom:8px;}
 .crm-sales-dash .csd-legend .item{display:flex; align-items:center; cursor:pointer; padding:3px 6px; border-radius:6px;}
 .crm-sales-dash .csd-legend .item:hover{background:var(--csd-bg);}
@@ -244,22 +318,54 @@ $canSync = !empty($this->data['can_sync']);
 
     <section class="csd-kpi-row">
       <div class="csd-kpi c-green">
-        <p class="label">Faturamento líquido</p>
+        <p class="label">
+          Faturamento líquido
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipFat" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipFat" role="tooltip">
+          <strong>O que entra neste card</strong>
+          Soma das notas de saída (faturas SAP OINV) menos as notas de devolução (ORIN) no período e nos filtros. É valor em reais, não quantidade.
+          <strong style="margin-top:8px;">Clientes ativos</strong>
+          Parceiros distintos (código SAP) que tiveram pelo menos uma fatura no período — quem só devolveu não entra.
+        </div>
         <p class="value" id="kpiFaturamento">—</p>
         <p class="delta" id="kpiFaturamentoDelta"></p>
       </div>
       <div class="csd-kpi c-red">
-        <p class="label">Devoluções</p>
+        <p class="label">
+          Devoluções
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipDev" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipDev" role="tooltip">
+          <strong>Valor</strong>
+          Soma em reais das notas de devolução (crédito / ORIN) no período. Não é quantidade de produto.
+          <strong style="margin-top:8px;">Contagem no rodapé do card</strong>
+          São <em>linhas de item</em> dessas notas (cada linha da NF de devolução conta 1). Não é o número de notas fiscais e nem a quantidade de unidades devolvidas.
+        </div>
         <p class="value" id="kpiDevolucao">—</p>
         <p class="delta" id="kpiDevolucaoDelta"></p>
       </div>
       <div class="csd-kpi c-orange">
-        <p class="label">Taxa de devolução</p>
+        <p class="label">
+          Taxa de devolução
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipTaxa" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipTaxa" role="tooltip">
+          <strong>Como é calculada</strong>
+          Valor devolvido ÷ faturamento bruto (só faturas, sem abater devolução) × 100. Meta de referência neste painel: 10%.
+        </div>
         <p class="value" id="kpiTaxaDevolucao">—</p>
         <p class="delta" id="kpiTaxaDevolucaoDelta"></p>
       </div>
       <div class="csd-kpi c-blue">
-        <p class="label">Ticket médio</p>
+        <p class="label">
+          Ticket médio
+          <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipTicket" title="O que é este indicador?">i</button>
+        </p>
+        <div class="csd-kpi-tip" id="tipTicket" role="tooltip">
+          <strong>Como é calculado</strong>
+          Faturamento líquido ÷ quantidade de clientes ativos (parceiros distintos com fatura no período). Não é ticket por nota fiscal.
+        </div>
         <p class="value" id="kpiTicket">—</p>
         <p class="delta" id="kpiTicketDelta"></p>
       </div>
@@ -307,11 +413,19 @@ $canSync = !empty($this->data['can_sync']);
     <section class="csd-grid">
       <div class="csd-panel">
         <h2>Top clientes</h2>
-        <p class="panel-sub">Ordenado por faturamento líquido</p>
+        <p class="panel-sub" id="subTopClientes">Todos os clientes do período · ordenado por faturamento líquido</p>
         <div class="table-scroll">
-          <table>
-            <thead><tr><th>Cliente</th><th>Grupo</th><th style="text-align:right;">Líquido</th><th style="text-align:right;">Devolução</th></tr></thead>
+          <table class="tbl-clientes">
+            <thead>
+              <tr>
+                <th>Parceiro</th>
+                <th class="col-grupo">Grupo</th>
+                <th class="col-num">Líquido</th>
+                <th class="col-num">Devolução</th>
+              </tr>
+            </thead>
             <tbody id="tblClientes"></tbody>
+            <tfoot id="tblClientesFoot"></tfoot>
           </table>
         </div>
       </div>
@@ -334,4 +448,4 @@ $canSync = !empty($this->data['can_sync']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=8"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=13"></script>

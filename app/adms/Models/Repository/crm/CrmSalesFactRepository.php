@@ -213,28 +213,30 @@ class CrmSalesFactRepository extends DbConnection
     }
 
     /**
+     * Todos os clientes do recorte, ordenados por líquido (sem limite de linhas).
+     *
      * @param array<string, string|null> $dims
-     * @return list<array{cliente: string, grupo: string, liquido: float, devolucao: float}>
+     * @return list<array{card_code: string, cliente: string, grupo: string, liquido: float, devolucao: float}>
      */
-    public function fetchTopClientes(string $from, string $to, array $dims, int $limit = 10): array
+    public function fetchTopClientes(string $from, string $to, array $dims): array
     {
         [$where, $params] = $this->buildWhere($from, $to, $dims, null);
-        $limit = max(1, min(50, $limit));
         $sql = "SELECT
-                    cliente,
+                    card_code,
+                    MAX(cliente) AS cliente,
                     MAX(grupo_cliente) AS grupo,
                     SUM(valor_liquido) AS liquido,
                     SUM(CASE WHEN tipo_documento = 'Devolucao' THEN ABS(valor_liquido) ELSE 0 END) AS devolucao
                 FROM crm_sales_fact_daily
                 WHERE {$where}
-                GROUP BY cliente
-                ORDER BY liquido DESC
-                LIMIT {$limit}";
+                GROUP BY card_code
+                ORDER BY liquido DESC";
         $stmt = $this->getConnection()->prepare($sql);
         $stmt->execute($params);
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $out[] = [
+                'card_code' => (string) ($row['card_code'] ?? ''),
                 'cliente' => (string) ($row['cliente'] ?? ''),
                 'grupo' => (string) ($row['grupo'] ?? ''),
                 'liquido' => (float) ($row['liquido'] ?? 0),

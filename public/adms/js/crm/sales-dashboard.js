@@ -67,7 +67,16 @@
     if (abs >= 1000) return sinal + 'R$ ' + (abs / 1000).toFixed(0) + 'k';
     return sinal + 'R$ ' + Math.round(abs);
   };
-  const fmtMoeda = (v) => (v < 0 ? '-' : '') + 'R$ ' + Math.abs(Math.round(v)).toLocaleString('pt-BR');
+  const fmtMoeda = (v) => Number(v || 0).toLocaleString('pt-BR', {
+    style: 'currency',
+    currency: 'BRL',
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
+  const fmtMoedaTabela = (v) => Number(v || 0).toLocaleString('pt-BR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  });
 
   function showError(msg) {
     const el = document.getElementById('csdError');
@@ -303,33 +312,76 @@
     return { max: max * 1.12, clipped: false };
   }
 
+  function contrastInk(hex) {
+    const h = String(hex || '').replace('#', '');
+    if (h.length < 6) return '#fff';
+    const r = parseInt(h.slice(0, 2), 16);
+    const g = parseInt(h.slice(2, 4), 16);
+    const b = parseInt(h.slice(4, 6), 16);
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.62 ? '#1B241E' : '#FFFFFF';
+  }
+
   const barValueLabelsPlugin = {
     id: 'csdBarValueLabels',
     afterDatasetsDraw: function (chart) {
       const meta = chart.getDatasetMeta(0);
       if (!meta || meta.hidden) return;
       const raw = chart.data.datasets[0].data || [];
+      const colors = chart.data.datasets[0].backgroundColor;
       const horizontal = chart.options.indexAxis === 'y';
       const ctx = chart.ctx;
-      const axisMax = horizontal ? chart.scales.x.max : chart.scales.y.max;
+      const area = chart.chartArea;
+      if (!area) return;
       ctx.save();
-      ctx.font = '600 11px system-ui,Segoe UI,sans-serif';
-      ctx.fillStyle = '#3D4841';
+      ctx.font = '600 10px system-ui,Segoe UI,sans-serif';
+      ctx.textBaseline = 'middle';
       meta.data.forEach(function (el, i) {
         const val = Number(raw[i]) || 0;
         if (!el || !Number.isFinite(val)) return;
-        const clipped = chart.$csdClipped && val > axisMax * 0.999;
-        const text = fmtMoedaCompacta(val) + (clipped ? ' ▸' : '');
-        const pos = el.tooltipPosition();
+        const text = fmtMoeda(val);
+        const textW = ctx.measureText(text).width;
+        const pad = 8;
         if (horizontal) {
-          ctx.textAlign = 'left';
-          ctx.textBaseline = 'middle';
-          const x = Math.min(pos.x + 6, chart.chartArea.right - 4);
-          ctx.fillText(text, x, pos.y);
+          const p = typeof el.getProps === 'function'
+            ? el.getProps(['x', 'y', 'base'], true)
+            : el;
+          const visStart = Math.max(Math.min(p.x, p.base), area.left);
+          const visEnd = Math.min(Math.max(p.x, p.base), area.right);
+          const visW = visEnd - visStart;
+          const y = p.y;
+          const roomOutside = area.right - visEnd;
+          const fitsInside = visW >= textW + pad * 2;
+          const fitsOutside = roomOutside >= textW + pad + 4;
+          if (fitsInside || !fitsOutside) {
+            const fill = Array.isArray(colors) ? colors[i] : colors;
+            ctx.fillStyle = contrastInk(fill);
+            ctx.textAlign = visW >= textW + pad * 2 ? 'right' : 'left';
+            const xInside = visW >= textW + pad * 2
+              ? visEnd - pad
+              : visStart + pad;
+            ctx.fillText(text, xInside, y);
+          } else {
+            ctx.fillStyle = '#3D4841';
+            ctx.textAlign = 'left';
+            ctx.fillText(text, visEnd + 6, y);
+          }
         } else {
-          ctx.textAlign = 'center';
-          ctx.textBaseline = 'bottom';
-          ctx.fillText(text, pos.x, pos.y - 4);
+          const barTop = Math.max(el.y, area.top);
+          const barH = Math.abs(el.base - el.y);
+          const fitsInside = barH >= 16 && el.width >= textW + pad * 2;
+          if (fitsInside) {
+            const fill = Array.isArray(colors) ? colors[i] : colors;
+            ctx.fillStyle = contrastInk(fill);
+            ctx.textAlign = 'center';
+            ctx.fillText(text, el.x, barTop + 10);
+          } else {
+            ctx.fillStyle = '#3D4841';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'bottom';
+            ctx.fillText(text, el.x, barTop - 4);
+            ctx.textBaseline = 'middle';
+          }
         }
       });
       ctx.restore();
@@ -363,7 +415,7 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { left: 2, right: 56, top: 8, bottom: 8 } },
+        layout: { padding: { left: 2, right: 92, top: 8, bottom: 8 } },
         onClick: onClickChart(campoFiltro),
         plugins: {
           legend: { display: false },
@@ -510,13 +562,13 @@
     sincronizarToolbar();
     renderChips();
 
-    document.getElementById('kpiFaturamento').textContent = fmtMoedaCompacta(kpis.faturamento_liquido || 0);
-    document.getElementById('kpiDevolucao').textContent = fmtMoedaCompacta(kpis.devolucoes || 0);
+    document.getElementById('kpiFaturamento').textContent = fmtMoeda(kpis.faturamento_liquido || 0);
+    document.getElementById('kpiDevolucao').textContent = fmtMoeda(kpis.devolucoes || 0);
     document.getElementById('kpiTaxaDevolucao').textContent =
-      ((kpis.taxa_devolucao || 0).toFixed(1).replace('.', ',')) + '%';
-    document.getElementById('kpiTicket').textContent = fmtMoedaCompacta(kpis.ticket_medio || 0);
-    document.getElementById('kpiFaturamentoDelta').textContent = (kpis.clientes_ativos || 0) + ' clientes ativos';
-    document.getElementById('kpiDevolucaoDelta').textContent = (kpis.qtd_devolucoes || 0) + ' devoluções no período';
+      ((kpis.taxa_devolucao || 0).toFixed(2).replace('.', ',')) + '%';
+    document.getElementById('kpiTicket').textContent = fmtMoeda(kpis.ticket_medio || 0);
+    document.getElementById('kpiFaturamentoDelta').textContent = (kpis.clientes_ativos || 0) + ' clientes ativos (parceiros com fatura)';
+    document.getElementById('kpiDevolucaoDelta').textContent = (kpis.qtd_devolucoes || 0) + ' linhas de item em notas de devolução';
     document.getElementById('kpiTaxaDevolucaoDelta').textContent =
       (kpis.taxa_devolucao || 0) > 10 ? 'Acima da meta de 10%' : 'Dentro da meta de 10%';
     document.getElementById('kpiTicketDelta').textContent = 'Por cliente ativo';
@@ -605,16 +657,38 @@
     const clienteVals = clientes.map((c) => c.liquido);
     const clienteScale = adaptiveAxisMax(clienteVals);
     const maxClienteVisual = clienteScale.max || 1;
+    const subEl = document.getElementById('subTopClientes');
+    if (subEl) {
+      subEl.textContent = clientes.length
+        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · role para ver todos'
+        : 'Nenhum cliente no recorte';
+    }
     document.getElementById('tblClientes').innerHTML = clientes.length
       ? clientes.map((info) => {
         const pct = Math.max(4, Math.min(100, Math.round(info.liquido / maxClienteVisual * 100)));
-        const clipped = clienteScale.clipped && info.liquido > maxClienteVisual * 0.999;
-        return '<tr><td class="name-cell" title="' + escapeHtml(info.cliente) + '">' + escapeHtml(info.cliente) +
-          '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td><td>' + escapeHtml(info.grupo) + '</td>' +
-          '<td class="num">' + fmtMoeda(info.liquido) + (clipped ? ' ▸' : '') + '</td>' +
-          '<td class="num neg">' + (info.devolucao > 0 ? '-' + fmtMoeda(info.devolucao) : '—') + '</td></tr>';
+        const code = String(info.card_code || '').trim();
+        const nome = String(info.cliente || '').trim() || '—';
+        const parceiro = (code ? '<span class="cliente-code">' + escapeHtml(code) + '</span>' : '') +
+          '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
+        return '<tr><td class="name-cell" title="' + escapeHtml((code ? code + ' · ' : '') + nome) + '">' + parceiro +
+          '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td>' +
+          '<td class="col-grupo" title="' + escapeHtml(info.grupo || '') + '">' + escapeHtml(info.grupo || '—') + '</td>' +
+          '<td class="num col-num">' + fmtMoedaTabela(info.liquido) + '</td>' +
+          '<td class="num col-num neg">' + (info.devolucao > 0 ? fmtMoedaTabela(-Math.abs(info.devolucao)) : '—') + '</td></tr>';
       }).join('')
       : '<tr><td colspan="4" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
+    const foot = document.getElementById('tblClientesFoot');
+    if (foot) {
+      if (!clientes.length) {
+        foot.innerHTML = '';
+      } else {
+        const totLiq = clientes.reduce((s, c) => s + Number(c.liquido || 0), 0);
+        const totDev = clientes.reduce((s, c) => s + Number(c.devolucao || 0), 0);
+        foot.innerHTML = '<tr><td colspan="2">Total</td>' +
+          '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
+          '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
+      }
+    }
   }
 
   function escapeHtml(s) {
@@ -757,6 +831,34 @@
   if (btnSync) {
     btnSync.addEventListener('click', sincronizarSap);
   }
+
+  function fecharKpiTips(exceto) {
+    root.querySelectorAll('.csd-kpi-info').forEach((btn) => {
+      const tip = document.getElementById(btn.getAttribute('aria-controls') || '');
+      if (btn === excepto) return;
+      btn.setAttribute('aria-expanded', 'false');
+      if (tip) tip.classList.remove('is-open');
+    });
+  }
+  root.querySelectorAll('.csd-kpi-info').forEach((btn) => {
+    btn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      const tip = document.getElementById(btn.getAttribute('aria-controls') || '');
+      const open = btn.getAttribute('aria-expanded') === 'true';
+      fecharKpiTips();
+      if (!open && tip) {
+        btn.setAttribute('aria-expanded', 'true');
+        tip.classList.add('is-open');
+      }
+    });
+  });
+  root.querySelectorAll('.csd-kpi-tip').forEach((tip) => {
+    tip.addEventListener('click', (ev) => ev.stopPropagation());
+  });
+  document.addEventListener('click', () => fecharKpiTips());
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') fecharKpiTips();
+  });
 
   sincronizarToolbar();
   carregar();
