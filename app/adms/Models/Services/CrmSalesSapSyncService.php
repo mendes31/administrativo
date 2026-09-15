@@ -39,6 +39,9 @@ class CrmSalesSapSyncService
 
     /** Série SAP excluída na query de indicadores de venda (SeqCode 34). */
     public const EXCLUDED_SEQ_CODE = 34;
+    /** Janela de sync: meses grandes estouram o limite de linhas da API SAP e perdem notas. */
+    private const CHUNK_DAYS = 7;
+    private const SAP_PAGE_SIZE = 500;
 
     private SapReportApiService $sap;
     private CrmSalesFactRepository $repo;
@@ -171,15 +174,10 @@ class CrmSalesSapSyncService
         ];
 
         try {
-            $cursor = $range['from']->modify('first day of this month');
-            $endMonth = $range['to']->modify('first day of this month');
-
-            while ($cursor <= $endMonth) {
+            $cursor = $range['from'];
+            while ($cursor <= $range['to']) {
                 $chunkFrom = $cursor;
-                $chunkTo = $cursor->modify('last day of this month');
-                if ($chunkFrom < $range['from']) {
-                    $chunkFrom = $range['from'];
-                }
+                $chunkTo = $cursor->add(new DateInterval('P' . (self::CHUNK_DAYS - 1) . 'D'));
                 if ($chunkTo > $range['to']) {
                     $chunkTo = $range['to'];
                 }
@@ -204,7 +202,7 @@ class CrmSalesSapSyncService
                 // desatualizado ou filtro que falhou). Só reescreve quando há fatos novos.
                 if ($mapped === []) {
                     $stats['months_processed']++;
-                    $cursor = $cursor->add(new DateInterval('P1M'));
+                    $cursor = $chunkTo->add(new DateInterval('P1D'));
                     continue;
                 }
 
@@ -212,7 +210,7 @@ class CrmSalesSapSyncService
                 $stats['rows_upserted'] += $this->repo->upsertBatch($mapped);
 
                 $stats['months_processed']++;
-                $cursor = $cursor->add(new DateInterval('P1M'));
+                $cursor = $chunkTo->add(new DateInterval('P1D'));
             }
 
             $stats['success'] = true;
@@ -431,25 +429,78 @@ class CrmSalesSapSyncService
         DateTimeImmutable $from,
         DateTimeImmutable $to
     ): array {
-        $sql = $this->buildAggregatedSql($source, $from, $to);
-        $result = $this->sap->execute($sql);
-        $data = $result['data'] ?? [];
-        return is_array($data) ? $data : [];
+        return array_merge(
+            $this->fetchAggregatedPaged($source, $from, $to, 'Fatura'),
+            $this->fetchAggregatedPaged($source, $from, $to, 'Devolucao')
+        );
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    private function fetchAggregatedPaged(
+        string $source,
+        DateTimeImmutable $from,
+        DateTimeImmutable $to,
+        string $tipoDocumento
+    ): array {
+        $all = [];
+        $offset = 0;
+        $firstKey = null;
+        $pages = 0;
+        do {
+            $sql = $this->buildAggregatedSql($source, $from, $to, $tipoDocumento)
+                . ' ORDER BY "DocDate", "CardCode", "ItemCode", "CodUtilizacao"'
+                . ' LIMIT ' . self::SAP_PAGE_SIZE . ' OFFSET ' . $offset;
+            try {
+                $result = $this->sap->execute($sql);
+            } catch (Exception $e) {
+                if ($offset > 0) {
+                    throw $e;
+                }
+                $result = $this->sap->execute(
+                    $this->buildAggregatedSql($source, $from, $to, $tipoDocumento)
+                );
+                $page = $result['data'] ?? [];
+                return is_array($page) ? $page : [];
+            }
+            $page = $result['data'] ?? [];
+            if (!is_array($page) || $page === []) {
+                break;
+            }
+            $pageKey = json_encode($page[0] ?? null);
+            if ($offset > 0 && $pageKey === $firstKey) {
+                break;
+            }
+            if ($offset === 0) {
+                $firstKey = $pageKey;
+            }
+            foreach ($page as $row) {
+                $all[] = $row;
+            }
+            $offset += self::SAP_PAGE_SIZE;
+            $pages++;
+        } while (count($page) >= self::SAP_PAGE_SIZE && $pages < 40);
+
+        return $all;
     }
 
     private function buildAggregatedSql(
         string $source,
         DateTimeImmutable $from,
-        DateTimeImmutable $to
+        DateTimeImmutable $to,
+        string $tipoDocumento
     ): string {
         $dateFilter = 'T0."DocDate" >= ' . $this->quoteDate($from)
             . ' AND T0."DocDate" <= ' . $this->quoteDate($to);
+        $tipoSql = $tipoDocumento === 'Devolucao' ? 'Devolucao' : 'Fatura';
 
         if ($source === 'view') {
             $base = 'SELECT * FROM "' . self::VIEW_NAME . '" T0 WHERE ' . $dateFilter
+                . ' AND T0."TipoDocumento" = \'' . $tipoSql . '\''
                 . ' AND ' . $this->itemGroupFilterViewSql('T0');
         } else {
-            $base = $this->cteBody($dateFilter);
+            $base = $this->cteBody($dateFilter, $tipoSql === 'Devolucao');
         }
 
         return 'SELECT
@@ -485,39 +536,12 @@ class CrmSalesSapSyncService
             IFNULL(src."CodUtilizacao", 0)';
     }
 
-    private function cteBody(string $dateFilter): string
+    private function cteBody(string $dateFilter, bool $devolucao): string
     {
         $itemFilter = $this->itemGroupFilterSql('T4', 'T6');
         $docFilter = $this->documentFilterSql();
-        $selectFatura = 'SELECT
-    \'Fatura\' AS "TipoDocumento",
-    T0."DocDate" AS "DocDate",
-    TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
-    T0."CardCode" AS "CardCode",
-    T2."CardName" AS "Cliente",
-    T3."SlpName" AS "Vendedor",
-    T5."GroupName" AS "GrupoCliente",
-    IFNULL(NULLIF(T8."descript", \'\'), IFNULL(NULLIF(T2."State1", \'\'), \'Sem região\')) AS "Regiao",
-    T6."ItmsGrpNam" AS "GrupoItem",
-    IFNULL(T1."ItemCode", \'\') AS "ItemCode",
-    IFNULL(T1."Dscription", \'\') AS "DescricaoItem",
-    IFNULL(T1."Usage", 0) AS "CodUtilizacao",
-    IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
-    ' . $this->lineNetSql(1) . ' AS "ValorLiquidoSinalizado",
-    T1."Quantity" AS "QuantidadeLiq",
-    (T1."Price" * T1."Quantity") AS "ValorBrutoSinalizado",
-    ' . $this->lineDiscountSql(1) . ' AS "ValorDescontoSinalizado"
-FROM OINV T0
-INNER JOIN INV1 T1 ON T1."DocEntry" = T0."DocEntry"
-INNER JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
-LEFT JOIN OSLP T3 ON T3."SlpCode" = T0."SlpCode"
-LEFT JOIN OITM T4 ON T4."ItemCode" = T1."ItemCode"
-LEFT JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
-LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
-LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
-LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
-WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
-        $selectDev = 'SELECT
+        if ($devolucao) {
+            return 'SELECT
     \'Devolucao\' AS "TipoDocumento",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
@@ -545,9 +569,36 @@ LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
 WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
-        return $selectFatura . '
-UNION ALL
-' . $selectDev;
+        }
+
+        return 'SELECT
+    \'Fatura\' AS "TipoDocumento",
+    T0."DocDate" AS "DocDate",
+    TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
+    T0."CardCode" AS "CardCode",
+    T2."CardName" AS "Cliente",
+    T3."SlpName" AS "Vendedor",
+    T5."GroupName" AS "GrupoCliente",
+    IFNULL(NULLIF(T8."descript", \'\'), IFNULL(NULLIF(T2."State1", \'\'), \'Sem região\')) AS "Regiao",
+    T6."ItmsGrpNam" AS "GrupoItem",
+    IFNULL(T1."ItemCode", \'\') AS "ItemCode",
+    IFNULL(T1."Dscription", \'\') AS "DescricaoItem",
+    IFNULL(T1."Usage", 0) AS "CodUtilizacao",
+    IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
+    ' . $this->lineNetSql(1) . ' AS "ValorLiquidoSinalizado",
+    T1."Quantity" AS "QuantidadeLiq",
+    (T1."Price" * T1."Quantity") AS "ValorBrutoSinalizado",
+    ' . $this->lineDiscountSql(1) . ' AS "ValorDescontoSinalizado"
+FROM OINV T0
+INNER JOIN INV1 T1 ON T1."DocEntry" = T0."DocEntry"
+INNER JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
+LEFT JOIN OSLP T3 ON T3."SlpCode" = T0."SlpCode"
+LEFT JOIN OITM T4 ON T4."ItemCode" = T1."ItemCode"
+LEFT JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
+LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
+LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
+LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
+WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
     }
 
     /**
@@ -655,6 +706,11 @@ UNION ALL
         ];
     }
 
+    private function quoteDate(DateTimeImmutable $d): string
+    {
+        return 'TO_DATE(\'' . $d->format('Y-m-d') . '\', \'YYYY-MM-DD\')';
+    }
+
     private function normalizeDate(mixed $value): ?string
     {
         if ($value === null || $value === '') {
@@ -664,19 +720,20 @@ UNION ALL
             return $value->format('Y-m-d');
         }
         $s = trim((string) $value);
+        if (preg_match('#/Date\((\d+)\)#', $s, $m)) {
+            $n = (int) $m[1];
+            if ($n > 10000000000) {
+                $n = intdiv($n, 1000);
+            }
+            return gmdate('Y-m-d', $n) ?: null;
+        }
         if (preg_match('/^(\d{4}-\d{2}-\d{2})/', $s, $m)) {
             return $m[1];
         }
-        // HANA às vezes devolve /Date(ms)/ ou timestamp
-        if (preg_match('/(\d{4})(\d{2})(\d{2})/', $s, $m)) {
+        if (preg_match('/^(\d{4})(\d{2})(\d{2})$/', $s, $m)) {
             return $m[1] . '-' . $m[2] . '-' . $m[3];
         }
         $ts = strtotime($s);
         return $ts ? date('Y-m-d', $ts) : null;
-    }
-
-    private function quoteDate(DateTimeImmutable $d): string
-    {
-        return "'" . $d->format('Y-m-d') . "'";
     }
 }

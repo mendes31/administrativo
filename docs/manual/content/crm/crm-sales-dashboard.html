@@ -86,6 +86,8 @@
     <dd>O recorte é OITB <em>104</em> (400 - PROD ACABADO) e <em>106</em> (700 - MAT. USO/CONS). Não use 400/700 como código. Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
     <dt>O total não bate com a query de indicadores do SAP</dt>
     <dd>A query SAP de indicadores filtra <code>Usage IN (15,16,24,47,78)</code> e <strong>não</strong> restringe grupo de item; o painel faz o contrário: grupos 104/106 e todas as utilizações (naturezas no Portal). Também usa UNION (vendedor só com devolução aparece) e ticket por cliente, não por nota. Depois de alterar DiscSum/DocType/SeqCode, recrie a VIEW HANA e rode <code>--full</code>.</dd>
+    <dt>Faltam notas de um vendedor (ex.: TERCEIROS) no mês</dt>
+    <dd>A API SAP corta resultado grande. O sync agora busca fatura e devolução em janelas de 7 dias com paginação. Rode <code>php scripts/sync_crm_sales_sap.php --full</code> de novo. Se ainda faltar cliente, a nota pode estar fora de OITB 104/106 ou com utilização Ignorar.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
     <dd>Confirme a Configuração SAP API. Em produção, crie a VIEW <code>VW_CRM_VENDAS_LINHA</code> (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) e conceda SELECT — o CTE fallback deixa o <code>--full</code> bem mais lento.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>

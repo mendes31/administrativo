@@ -126,6 +126,14 @@ class CrmSalesDashboardService
         $warning = $unclassified > 0
             ? $unclassified . ' utilização(ões) SAP ainda não classificada(s); até classificar, entram como venda. Use CRM → Utilizações de venda SAP.'
             : null;
+        $cacheDates = $this->repo->minMaxDates();
+        $cacheTo = $cacheDates['max'] ?? null;
+        if (is_string($cacheTo) && $cacheTo !== '' && $to > $cacheTo) {
+            $cacheMsg = 'O cache de vendas só vai até '
+                . (DateTimeImmutable::createFromFormat('!Y-m-d', substr($cacheTo, 0, 10))?->format('d/m/Y') ?: $cacheTo)
+                . '. Notas depois dessa data não entram nos cards. Rode php scripts/sync_crm_sales_sap.php --full.';
+            $warning = $warning !== null ? $warning . ' ' . $cacheMsg : $cacheMsg;
+        }
 
         $evolucao = $this->repo->fetchGroupSum($from, $to, $dims, 'ano_mes', 'ano_mes', true);
         $porGrupoCliente = $this->repo->fetchGroupSum($from, $to, $dims, 'grupo_cliente', 'grupo_cliente');
