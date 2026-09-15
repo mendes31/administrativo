@@ -6,10 +6,9 @@
 -- Pré-requisito: usuário da API SAP com SELECT nesta VIEW.
 -- Executar no schema da company (SBO). Se a VIEW já existir, DROP antes.
 --
--- Recorte: grupos de item Produto acabado e Materiais de uso/consumo (brindes).
--- Códigos OITB: 104 (nome "400 - PROD ACABADO") e 106 (nome "700 - MAT. USO/CONS").
+-- Recorte: OITB 104 e 106. Todas as utilizações entram (natureza no Portal).
+-- Alinhado à query de indicadores: DocType = I, SeqCode <> 34, LineTotal − DiscSum (rateado na linha).
 -- Não filtrar por 400/700 em ItmsGrpCod — esses números não existem como código.
--- Todas as utilizações (OUSG) entram; a natureza comercial é classificada no Portal.
 --
 -- Nota HANA: CREATE VIEW não aceita CTE (WITH ... AS). Use UNION ALL direto.
 -- =============================================================================
@@ -51,10 +50,12 @@ SELECT
     T1."DiscPrcnt"                                     AS "DescontoPercentual",
     (T1."Price" * T1."Quantity")                       AS "ValorBruto",
     (T1."Price" * T1."Quantity")                       AS "ValorBrutoSinalizado",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal")    AS "ValorDesconto",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal")    AS "ValorDescontoSinalizado",
-    T1."LineTotal"                                     AS "ValorLiquido",
-    T1."LineTotal"                                     AS "ValorLiquidoSinalizado",
+    ((T1."Price" * T1."Quantity") - T1."LineTotal")
+        + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorDesconto",
+    ((T1."Price" * T1."Quantity") - T1."LineTotal")
+        + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorDescontoSinalizado",
+    T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorLiquido",
+    T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorLiquidoSinalizado",
     IFNULL(T1."StockPrice", 0.0) * T1."Quantity"       AS "CustoTotal",
     (T1."LineTotal" - (IFNULL(T1."StockPrice", 0.0) * T1."Quantity")) AS "MargemBruta",
     T0."DocCur"                                        AS "Moeda",
@@ -70,6 +71,8 @@ LEFT  JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT  JOIN OBPL T7 ON T7."BPLId" = T0."BPLId"
 LEFT  JOIN OUSG T9 ON T9."ID" = T1."Usage"
 WHERE T0."CANCELED" = 'N'
+  AND T0."DocType" = 'I'
+  AND IFNULL(T0."SeqCode", 0) <> 34
   AND (
         T4."ItmsGrpCod" IN (104, 106)
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%PROD ACABADO%'
@@ -113,10 +116,12 @@ SELECT
     T1."DiscPrcnt"                                     AS "DescontoPercentual",
     (T1."Price" * T1."Quantity")                       AS "ValorBruto",
     (T1."Price" * T1."Quantity" * -1)                  AS "ValorBrutoSinalizado",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal")    AS "ValorDesconto",
-    (((T1."Price" * T1."Quantity") - T1."LineTotal") * -1) AS "ValorDescontoSinalizado",
-    T1."LineTotal"                                     AS "ValorLiquido",
-    (T1."LineTotal" * -1)                              AS "ValorLiquidoSinalizado",
+    ((T1."Price" * T1."Quantity") - T1."LineTotal")
+        + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorDesconto",
+    (((T1."Price" * T1."Quantity") - T1."LineTotal")
+        + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0)) * -1 AS "ValorDescontoSinalizado",
+    T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorLiquido",
+    (T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0)) * -1 AS "ValorLiquidoSinalizado",
     (IFNULL(T1."StockPrice", 0.0) * T1."Quantity") * -1 AS "CustoTotal",
     ((T1."LineTotal" * -1) - ((IFNULL(T1."StockPrice", 0.0) * T1."Quantity") * -1)) AS "MargemBruta",
     T0."DocCur"                                        AS "Moeda",
@@ -132,6 +137,8 @@ LEFT  JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT  JOIN OBPL T7 ON T7."BPLId" = T0."BPLId"
 LEFT  JOIN OUSG T9 ON T9."ID" = T1."Usage"
 WHERE T0."CANCELED" = 'N'
+  AND T0."DocType" = 'I'
+  AND IFNULL(T0."SeqCode", 0) <> 34
   AND (
         T4."ItmsGrpCod" IN (104, 106)
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%PROD ACABADO%'

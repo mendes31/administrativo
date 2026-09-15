@@ -19,6 +19,11 @@ use Throwable;
  * - incremental: desde o último sucesso (overlap de 3 dias) — botão web + 1º acesso do dia
  * - today: só o dia corrente (opcional/CLI)
  *
+ * Recorte alinhado à query de indicadores de venda, sem Usage IN:
+ * - CANCELED = N, DocType = I, SeqCode <> 34
+ * - Valor: LineTotal − DiscSum (rateado na linha)
+ * - Grupos OITB 104 e 106; todas as utilizações (natureza no Portal)
+ *
  * Agendamento recomendado:
  * - Lazy: no 1º acesso do dia ao endpoint de dados, dispara incremental (com lock)
  * - Manual: botão "Atualizar agora" = só incremental
@@ -31,6 +36,9 @@ class CrmSalesSapSyncService
     public const INCREMENTAL_OVERLAP_DAYS = 3;
     /** Códigos OITB (não usar 400/700 — esses números só aparecem no nome do grupo). */
     public const ITEM_GROUP_CODES = [104, 106];
+
+    /** Série SAP excluída na query de indicadores de venda (SeqCode 34). */
+    public const EXCLUDED_SEQ_CODE = 34;
 
     private SapReportApiService $sap;
     private CrmSalesFactRepository $repo;
@@ -391,6 +399,30 @@ class CrmSalesSapSyncService
             . ')';
     }
 
+    /** Notas de item, não canceladas, fora da série 34 (query de indicadores). */
+    private function documentFilterSql(): string
+    {
+        return 'T0."CANCELED" = \'N\''
+            . ' AND T0."DocType" = \'I\''
+            . ' AND IFNULL(T0."SeqCode", 0) <> ' . self::EXCLUDED_SEQ_CODE;
+    }
+
+    /** LineTotal menos rateio do DiscSum da nota. */
+    private function lineNetSql(int $sinal): string
+    {
+        $share = 'IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0)';
+        $net = 'T1."LineTotal" - IFNULL(' . $share . ', 0)';
+        return $sinal < 0 ? '(' . $net . ') * -1' : $net;
+    }
+
+    private function lineDiscountSql(int $sinal): string
+    {
+        $line = '((T1."Price" * T1."Quantity") - T1."LineTotal")';
+        $share = 'IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0)';
+        $expr = $line . ' + ' . $share;
+        return $sinal < 0 ? '(' . $expr . ') * -1' : $expr;
+    }
+
     /**
      * @return list<array<string, mixed>>
      */
@@ -456,6 +488,7 @@ class CrmSalesSapSyncService
     private function cteBody(string $dateFilter): string
     {
         $itemFilter = $this->itemGroupFilterSql('T4', 'T6');
+        $docFilter = $this->documentFilterSql();
         $selectFatura = 'SELECT
     \'Fatura\' AS "TipoDocumento",
     T0."DocDate" AS "DocDate",
@@ -470,10 +503,10 @@ class CrmSalesSapSyncService
     IFNULL(T1."Dscription", \'\') AS "DescricaoItem",
     IFNULL(T1."Usage", 0) AS "CodUtilizacao",
     IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
-    T1."LineTotal" AS "ValorLiquidoSinalizado",
+    ' . $this->lineNetSql(1) . ' AS "ValorLiquidoSinalizado",
     T1."Quantity" AS "QuantidadeLiq",
     (T1."Price" * T1."Quantity") AS "ValorBrutoSinalizado",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal") AS "ValorDescontoSinalizado"
+    ' . $this->lineDiscountSql(1) . ' AS "ValorDescontoSinalizado"
 FROM OINV T0
 INNER JOIN INV1 T1 ON T1."DocEntry" = T0."DocEntry"
 INNER JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
@@ -483,7 +516,7 @@ LEFT JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
 LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
-WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter . ' AND ' . $itemFilter;
+WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
         $selectDev = 'SELECT
     \'Devolucao\' AS "TipoDocumento",
     T0."DocDate" AS "DocDate",
@@ -498,10 +531,10 @@ WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter . ' AND ' . $itemFilter;
     IFNULL(T1."Dscription", \'\') AS "DescricaoItem",
     IFNULL(T1."Usage", 0) AS "CodUtilizacao",
     IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
-    (T1."LineTotal" * -1) AS "ValorLiquidoSinalizado",
+    ' . $this->lineNetSql(-1) . ' AS "ValorLiquidoSinalizado",
     (T1."Quantity" * -1) AS "QuantidadeLiq",
     (T1."Price" * T1."Quantity" * -1) AS "ValorBrutoSinalizado",
-    (((T1."Price" * T1."Quantity") - T1."LineTotal") * -1) AS "ValorDescontoSinalizado"
+    ' . $this->lineDiscountSql(-1) . ' AS "ValorDescontoSinalizado"
 FROM ORIN T0
 INNER JOIN RIN1 T1 ON T1."DocEntry" = T0."DocEntry"
 INNER JOIN OCRD T2 ON T2."CardCode" = T0."CardCode"
@@ -511,7 +544,7 @@ LEFT JOIN OITB T6 ON T6."ItmsGrpCod" = T4."ItmsGrpCod"
 LEFT JOIN OCRG T5 ON T5."GroupCode" = T2."GroupCode"
 LEFT JOIN OTER T8 ON T8."territryID" = T2."Territory"
 LEFT JOIN OUSG T9 ON T9."ID" = T1."Usage"
-WHERE T0."CANCELED" = \'N\' AND ' . $dateFilter . ' AND ' . $itemFilter;
+WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
         return $selectFatura . '
 UNION ALL
 ' . $selectDev;

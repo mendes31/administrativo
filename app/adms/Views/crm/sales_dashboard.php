@@ -399,7 +399,7 @@ $canUsages = !empty($this->data['can_usages']);
         </p>
         <div class="csd-kpi-tip" id="tipFat" role="tooltip">
           <strong>O que entra neste card</strong>
-          Soma das notas de saída (faturas SAP OINV) menos as notas de devolução (ORIN) no período e nos filtros, só de <em>venda</em> (produto acabado e materiais de uso/consumo). Bonificações e brindes ficam nos grupos abaixo. É valor em reais, não quantidade.
+          Soma das faturas SAP (OINV) menos as devoluções (ORIN) no período e nos filtros, só de <em>venda</em>. Valor = LineTotal − desconto de rodapé (DiscSum) da nota, nos grupos OITB 104 e 106. Notas de serviço, canceladas e da série 34 ficam de fora. Bonificações e brindes ficam nos grupos abaixo.
           <strong style="margin-top:8px;">Clientes ativos</strong>
           Parceiros distintos (código SAP) que tiveram pelo menos uma fatura no período — quem só devolveu não entra.
         </div>
@@ -652,7 +652,7 @@ $canUsages = !empty($this->data['can_usages']);
     </section>
 
     <footer class="csd-note">
-      Fonte: cache MySQL sincronizado a partir do SAP Business One (HANA), só grupos OITB <strong>104</strong> (400 - PROD ACABADO) e <strong>106</strong> (700 - MAT. USO/CONS). Todas as utilizações entram; a natureza (venda, bonificação, brinde) é classificada no Portal.
+      Fonte: cache MySQL a partir do SAP (HANA). Recorte: OITB <strong>104</strong> e <strong>106</strong>, DocType = I, não canceladas, SeqCode ≠ 34, valor LineTotal − DiscSum. Sem filtro de utilização no SAP; a natureza (venda, bonificação, brinde, ignorar) é classificada no Portal.
       Preferência pela VIEW <code>VW_CRM_VENDAS_LINHA</code> no sync; se indisponível ou desatualizada, o sync usa CTE com filtro de data.
       Painel: <strong id="csdSource">MySQL</strong>. Este painel é independente do Dashboard CRM de pipeline.
     </footer>

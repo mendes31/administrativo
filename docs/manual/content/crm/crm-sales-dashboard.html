@@ -1,12 +1,12 @@
 <h1>Dashboard de Vendas SAP (CRM)</h1>
 
 <h2>Função no sistema</h2>
-<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN) restrito aos grupos de item <strong>Produto acabado (400)</strong> e <strong>Materiais de uso e consumo (700)</strong> — os brindes estão neste último. Todas as utilizações SAP entram; a natureza (venda, bonificação, brinde) é classificada no Portal. KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA (não consulta o SAP a cada filtro). É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
+<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN) restrito aos grupos de item OITB <strong>104</strong> (nome 400 - PROD ACABADO) e <strong>106</strong> (nome 700 - MAT. USO/CONS). Alinha a query de indicadores de venda no cabeçalho da nota (<code>DocType = I</code>, não cancelada, <code>SeqCode &lt;&gt; 34</code>, valor <code>LineTotal − DiscSum</code>), mas <strong>não</strong> aplica o <code>Usage IN (15,16,24,47,78)</code>: todas as utilizações entram e a natureza (venda, bonificação, brinde, ignorar) é classificada no Portal. KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA. É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Faturamento líquido</dt>
-    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> (não classificada conta como venda). Bonificação e brinde ficam nos cards próprios. Só grupos OITB <em>104</em> (nome 400 - PROD ACABADO) e <em>106</em> (nome 700 - MAT. USO/CONS).</dd>
+    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> (não classificada conta como venda). O valor de cada linha é o LineTotal menos a parcela do desconto de rodapé da nota (DiscSum). Bonificação e brinde ficam nos cards próprios. Só grupos OITB <em>104</em> e <em>106</em>; notas de serviço, canceladas e da série 34 ficam de fora.</dd>
     <dt>Itens vendidos / itens bonificados / itens de brinde</dt>
     <dd>Quantidade SAP líquida (fatura − devolução) das linhas de venda, de bonificação ou de brinde, respectivamente. Bonificação e brinde não se misturam.</dd>
     <dt>Bonificações</dt>
@@ -14,7 +14,7 @@
     <dt>Brindes</dt>
     <dd>Valor líquido das utilizações classificadas como brinde (em geral no grupo 700). O rodapé mostra linhas de item e o percentual sobre o faturamento líquido. Não entra no faturamento.</dd>
     <dt>% Desconto</dt>
-    <dd>Desconto em reais das linhas de venda ÷ valor bruto de venda (preço × quantidade) × 100.</dd>
+    <dd>Desconto em reais das linhas de venda (desconto da linha + parcela do DiscSum) ÷ valor bruto de venda (preço × quantidade) × 100.</dd>
     <dt>% Bonificações</dt>
     <dd>Valor de bonificações ÷ faturamento líquido de venda × 100 (sem brindes).</dd>
     <dt>Utilização (OUSG)</dt>
@@ -43,7 +43,7 @@
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>. Se a VIEW HANA já existir, recrie-a com o script atualizado (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) — senão o sync usa CTE.</li>
+    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>. Recrie a VIEW HANA (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) sempre que o recorte mudar (grupos, DocType, SeqCode, DiscSum); senão o sync usa CTE ou uma VIEW antiga.</li>
     <li>Acesse <strong>CRM → Dashboard de Vendas SAP</strong>.</li>
     <li>Classifique as utilizações em <strong>CRM → Utilizações de venda SAP</strong> (venda, bonificação, brinde ou ignorar). Até classificar, entram como venda.</li>
     <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
@@ -82,6 +82,8 @@
     <dd>Após a migration que inclui o item no cache, rode <code>php scripts/sync_crm_sales_sap.php --full</code>. O sync incremental não reconstrói o histórico antigo.</dd>
     <dt>Ainda vejo matéria-prima / serviços no ranking de itens</dt>
     <dd>O recorte é OITB <em>104</em> (400 - PROD ACABADO) e <em>106</em> (700 - MAT. USO/CONS). Não use 400/700 como código. Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
+    <dt>O total não bate com a query de indicadores do SAP</dt>
+    <dd>A query SAP de indicadores filtra <code>Usage IN (15,16,24,47,78)</code> e <strong>não</strong> restringe grupo de item; o painel faz o contrário: grupos 104/106 e todas as utilizações (naturezas no Portal). Também usa UNION (vendedor só com devolução aparece) e ticket por cliente, não por nota. Depois de alterar DiscSum/DocType/SeqCode, recrie a VIEW HANA e rode <code>--full</code>.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
     <dd>Confirme a Configuração SAP API. Em produção, crie a VIEW <code>VW_CRM_VENDAS_LINHA</code> (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) e conceda SELECT — o CTE fallback deixa o <code>--full</code> bem mais lento.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>
