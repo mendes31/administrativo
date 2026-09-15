@@ -652,7 +652,7 @@ $canUsages = !empty($this->data['can_usages']);
     </section>
 
     <footer class="csd-note">
-      Fonte: cache MySQL sincronizado a partir do SAP Business One (HANA), só grupos de item <strong>400 Produto acabado</strong> e <strong>700 Materiais de uso/consumo</strong>. Todas as utilizações entram; a natureza (venda, bonificação, brinde) é classificada no Portal.
+      Fonte: cache MySQL sincronizado a partir do SAP Business One (HANA), só grupos OITB <strong>104</strong> (400 - PROD ACABADO) e <strong>106</strong> (700 - MAT. USO/CONS). Todas as utilizações entram; a natureza (venda, bonificação, brinde) é classificada no Portal.
       Preferência pela VIEW <code>VW_CRM_VENDAS_LINHA</code> no sync; se indisponível ou desatualizada, o sync usa CTE com filtro de data.
       Painel: <strong id="csdSource">MySQL</strong>. Este painel é independente do Dashboard CRM de pipeline.
     </footer>

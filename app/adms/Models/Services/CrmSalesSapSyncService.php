@@ -29,8 +29,8 @@ class CrmSalesSapSyncService
     public const VIEW_NAME = 'VW_CRM_VENDAS_LINHA';
     public const LOOKBACK_MONTHS = 36;
     public const INCREMENTAL_OVERLAP_DAYS = 3;
-    /** Códigos OITB reais (104/106) e os números do nome SAP (400/700) se existirem noutro ambiente. */
-    public const ITEM_GROUP_CODES = [104, 106, 400, 700];
+    /** Códigos OITB (não usar 400/700 — esses números só aparecem no nome do grupo). */
+    public const ITEM_GROUP_CODES = [104, 106];
 
     private SapReportApiService $sap;
     private CrmSalesFactRepository $repo;

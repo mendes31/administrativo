@@ -6,7 +6,7 @@
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Faturamento líquido</dt>
-    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> (não classificada conta como venda). Bonificação e brinde ficam nos cards próprios. Só Produto acabado e Materiais de uso/consumo (no SAP desta empresa, códigos 104 e 106; os rótulos 400/700 são o nome do grupo).</dd>
+    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> (não classificada conta como venda). Bonificação e brinde ficam nos cards próprios. Só grupos OITB <em>104</em> (nome 400 - PROD ACABADO) e <em>106</em> (nome 700 - MAT. USO/CONS).</dd>
     <dt>Itens vendidos / itens bonificados / itens de brinde</dt>
     <dd>Quantidade SAP líquida (fatura − devolução) das linhas de venda, de bonificação ou de brinde, respectivamente. Bonificação e brinde não se misturam.</dd>
     <dt>Bonificações</dt>
@@ -81,7 +81,7 @@
     <dt>Lista de itens vazia / ranking some</dt>
     <dd>Após a migration que inclui o item no cache, rode <code>php scripts/sync_crm_sales_sap.php --full</code>. O sync incremental não reconstrói o histórico antigo.</dd>
     <dt>Ainda vejo matéria-prima / serviços no ranking de itens</dt>
-    <dd>O recorte é Produto acabado (OITB 104 / nome 400) e Materiais de uso/consumo (OITB 106 / nome 700, inclusive BPX). Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
+    <dd>O recorte é OITB <em>104</em> (400 - PROD ACABADO) e <em>106</em> (700 - MAT. USO/CONS). Não use 400/700 como código. Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
     <dd>Confirme a Configuração SAP API. Em produção, crie a VIEW <code>VW_CRM_VENDAS_LINHA</code> (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) e conceda SELECT — o CTE fallback deixa o <code>--full</code> bem mais lento.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>

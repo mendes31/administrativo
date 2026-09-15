@@ -7,7 +7,8 @@
 -- Executar no schema da company (SBO). Se a VIEW já existir, DROP antes.
 --
 -- Recorte: grupos de item Produto acabado e Materiais de uso/consumo (brindes).
--- No SAP desta empresa os códigos OITB são 104 e 106; os rótulos 400/700 são o nome.
+-- Códigos OITB: 104 (nome "400 - PROD ACABADO") e 106 (nome "700 - MAT. USO/CONS").
+-- Não filtrar por 400/700 em ItmsGrpCod — esses números não existem como código.
 -- Todas as utilizações (OUSG) entram; a natureza comercial é classificada no Portal.
 --
 -- Nota HANA: CREATE VIEW não aceita CTE (WITH ... AS). Use UNION ALL direto.
@@ -70,7 +71,7 @@ LEFT  JOIN OBPL T7 ON T7."BPLId" = T0."BPLId"
 LEFT  JOIN OUSG T9 ON T9."ID" = T1."Usage"
 WHERE T0."CANCELED" = 'N'
   AND (
-        T4."ItmsGrpCod" IN (104, 106, 400, 700)
+        T4."ItmsGrpCod" IN (104, 106)
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%PROD ACABADO%'
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO/CONS%'
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO E CONSUMO%'
@@ -132,7 +133,7 @@ LEFT  JOIN OBPL T7 ON T7."BPLId" = T0."BPLId"
 LEFT  JOIN OUSG T9 ON T9."ID" = T1."Usage"
 WHERE T0."CANCELED" = 'N'
   AND (
-        T4."ItmsGrpCod" IN (104, 106, 400, 700)
+        T4."ItmsGrpCod" IN (104, 106)
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%PROD ACABADO%'
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO/CONS%'
         OR UPPER(IFNULL(T6."ItmsGrpNam", '')) LIKE '%USO E CONSUMO%'
