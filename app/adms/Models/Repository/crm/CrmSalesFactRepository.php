@@ -251,6 +251,8 @@ class CrmSalesFactRepository extends DbConnection
                         COUNT(DISTINCT CASE WHEN f.tipo_documento = 'Fatura' THEN f.card_code END) AS clientes_ativos,
                         SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN f.qtd_linhas ELSE 0 END) AS qtd_devolucoes,
                         0 AS itens_vendidos,
+                        0 AS itens_faturados,
+                        0 AS itens_devolvidos,
                         0 AS valor_bonificacoes,
                         0 AS valor_brindes,
                         0 AS qtd_bonificacoes,
@@ -269,6 +271,8 @@ class CrmSalesFactRepository extends DbConnection
                         COUNT(DISTINCT CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.card_code END) AS clientes_ativos,
                         SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Devolucao' THEN f.qtd_linhas ELSE 0 END) AS qtd_devolucoes,
                         SUM(CASE WHEN {$nat} = 'venda' THEN f.quantidade ELSE 0 END) AS itens_vendidos,
+                        SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.quantidade ELSE 0 END) AS itens_faturados,
+                        SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Devolucao' THEN ABS(f.quantidade) ELSE 0 END) AS itens_devolvidos,
                         SUM(CASE WHEN {$nat} = 'bonificacao' THEN f.valor_liquido ELSE 0 END) AS valor_bonificacoes,
                         SUM(CASE WHEN {$nat} = 'brinde' THEN f.valor_liquido ELSE 0 END) AS valor_brindes,
                         SUM(CASE

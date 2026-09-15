@@ -6,9 +6,13 @@
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Faturamento líquido</dt>
-    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> ou <em>devolução comercial</em> (não classificada conta como venda). O valor de cada linha é o LineTotal menos a parcela do desconto de rodapé da nota (DiscSum). Bonificação e brinde ficam nos cards próprios. Só grupos OITB <em>104</em> e <em>106</em>; notas de serviço, canceladas e da série 34 ficam de fora.</dd>
-    <dt>Itens vendidos / itens bonificados / itens de brinde</dt>
-    <dd>Quantidade SAP líquida (fatura − devolução) das linhas de venda, de bonificação ou de brinde, respectivamente. Bonificação e brinde não se misturam.</dd>
+    <dd>Já é faturas menos devoluções: não some o card Devoluções a este valor. O rodapé mostra a conta (faturas − devoluções) e os clientes ativos. LineTotal − DiscSum; OITB 104/106; só venda e devolução comercial.</dd>
+    <dt>Devoluções (R$ e unidades)</dt>
+    <dd>Valor das notas de crédito (ORIN) — este montante já foi abatido no líquido. O rodapé mostra as <em>unidades devolvidas</em> (quantidade SAP) e as linhas de item. Não é quantidade de notas.</dd>
+    <dt>Itens vendidos</dt>
+    <dd>Quantidade líquida (faturados − devolvidos) da natureza venda. O rodapé mostra as duas parcelas. Bonificação e brinde não se misturam.</dd>
+    <dt>Itens bonificados / itens de brinde</dt>
+    <dd>Quantidade líquida (fatura − devolução) só daquela natureza. Pode ficar negativa se, no período, devolveu mais do que saiu.</dd>
     <dt>Bonificações</dt>
     <dd>Valor líquido das utilizações classificadas como bonificação. O rodapé conta linhas de item, não notas. Não entra no faturamento.</dd>
     <dt>Brindes</dt>
@@ -20,7 +24,7 @@
     <dt>Utilização (OUSG)</dt>
     <dd>Código de uso da linha da nota. Classifique em <em>Utilizações de venda SAP</em>. Novos códigos entram sozinhos após o sync.</dd>
     <dt>Linhas de item em devolução</dt>
-    <dd>Contagem no card Devoluções: cada linha da nota de crédito/devolução conta 1. Entram utilizações Venda e Devolução comercial (E Dev Venda). Não é quantidade de notas e nem de unidades do produto.</dd>
+    <dd>No card Devoluções, além das unidades, o rodapé ainda mostra quantas linhas de item existem nas notas de crédito. Não é quantidade de NF.</dd>
     <dt>Clientes ativos</dt>
     <dd>Parceiros SAP distintos com pelo menos uma fatura no período.</dd>
     <dt>Ticket médio</dt>
@@ -58,7 +62,7 @@
 <div class="help-field"><strong>Período</strong> Presets: mês atual, mês anterior, últimos 3/6/12/24/36 meses, ano atual (YTD), ano anterior; ou <em>Personalizado</em> com data início e data fim (máx. 36 meses). Padrão: últimos 12 meses.</div>
 <div class="help-field"><strong>Data início / Data fim</strong> Visíveis só no período personalizado; aplicadas ao clicar em <strong>Atualizar</strong> (<code>date_from</code>/<code>date_to</code> na API).</div>
 <div class="help-field"><strong>Vendedor / Grupo / Região</strong> Cada campo aceita várias opções ao mesmo tempo. Abra a lista, marque as caixas (há busca) ou clique nos gráficos. Vazio = todos. Vendedor = <code>OSLP.SlpName</code>; grupo = <code>OCRG.GroupName</code>; região = território SAP (<code>OTER.descript</code>) ou UF (<code>OCRD.State1</code>); sem ambos: “Sem região”.</div>
-<div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> com a regra. Faturamento líquido = faturas − devoluções das linhas de <em>venda</em>. Devoluções (valor) = reais em ORIN de venda; a contagem é de <em>linhas de item</em>, não de notas. Taxa = devolvido ÷ faturamento bruto. Ticket = líquido ÷ clientes ativos. Valores em reais com centavos.</div>
+<div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> e um rodapé dizendo se o valor já abate devolução. Líquido = faturas − devoluções (não some os dois cards). Devoluções = reais já saídos do líquido; o rodapé mostra unidades devolvidas. Taxa = devolvido ÷ faturas (não usa o líquido). Ticket = líquido ÷ clientes.</div>
 <div class="help-field"><strong>KPIs</strong> Quatro grupos: <em>Faturamento</em> (líquido, devoluções, taxa, ticket); <em>Venda e desconto</em> (itens vendidos, desconto em R$, % desconto); <em>Bonificação</em> (valor, itens, %); <em>Brindes</em> (valor, itens, %). Bonificação e brinde dependem da classificação em <em>Utilizações de venda SAP</em>.</div>
 <div class="help-field"><strong>Classificar utilizações</strong> Atalho para <em>crm-list-sales-usages</em>. Sem classificar, bonificação/brinde infla o faturamento (tratados como venda).</div>
 <div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Clique nas linhas para marcar um ou mais clientes (as linhas ficam destacadas; os KPIs somam só os marcados). Clique de novo ou no chip para desfazer. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte da lista.</div>

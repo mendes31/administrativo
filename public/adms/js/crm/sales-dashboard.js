@@ -755,25 +755,35 @@
     document.getElementById('kpiDevolucao').textContent = fmtMoeda(kpis.devolucoes || 0);
     document.getElementById('kpiTaxaDevolucao').textContent = fmtPct(kpis.taxa_devolucao || 0);
     document.getElementById('kpiTicket').textContent = fmtMoeda(kpis.ticket_medio || 0);
-    document.getElementById('kpiFaturamentoDelta').textContent = (kpis.clientes_ativos || 0) + ' clientes ativos (parceiros com fatura)';
-    document.getElementById('kpiDevolucaoDelta').textContent = (kpis.qtd_devolucoes || 0) + ' linhas de item em notas de devolução';
+    document.getElementById('kpiFaturamentoDelta').textContent =
+      'Já é faturas − devoluções (' + fmtMoeda(kpis.faturamento_bruto || 0) +
+      ' − ' + fmtMoeda(kpis.devolucoes || 0) + '). ' +
+      (kpis.clientes_ativos || 0) + ' clientes ativos';
+    document.getElementById('kpiDevolucaoDelta').textContent =
+      fmtQtdItem(kpis.itens_devolvidos || 0) + ' un. devolvidas · ' +
+      (kpis.qtd_devolucoes || 0) + ' linhas — valor já saiu do líquido';
     document.getElementById('kpiTaxaDevolucaoDelta').textContent =
-      (kpis.taxa_devolucao || 0) > 10 ? 'Acima da meta de 10%' : 'Dentro da meta de 10%';
-    document.getElementById('kpiTicketDelta').textContent = 'Por cliente ativo';
+      'Devolvido ÷ faturas (não usa o líquido)' +
+      ((kpis.taxa_devolucao || 0) > 10 ? ' · acima da meta de 10%' : ' · dentro da meta de 10%');
+    document.getElementById('kpiTicketDelta').textContent =
+      'Líquido ÷ ' + (kpis.clientes_ativos || 0) + ' clientes (não é por nota)';
 
     const setTxt = (id, txt) => {
       const el = document.getElementById(id);
       if (el) el.textContent = txt;
     };
     setTxt('kpiItensVendidos', fmtQtd(kpis.itens_vendidos || 0));
+    setTxt('kpiItensVendidosDelta',
+      fmtQtdItem(kpis.itens_faturados || 0) + ' faturados − ' +
+      fmtQtdItem(kpis.itens_devolvidos || 0) + ' devolvidos');
     setTxt('kpiDesconto', fmtMoeda(kpis.desconto || 0));
     setTxt('kpiPctDesconto', fmtPct(kpis.pct_desconto || 0));
     setTxt('kpiBonificacoes', fmtMoeda(kpis.valor_bonificacoes || 0));
-    setTxt('kpiBonificacoesDelta', (kpis.qtd_bonificacoes || 0) + ' linhas de item');
+    setTxt('kpiBonificacoesDelta', 'Líquido · não entra no faturamento · ' + (kpis.qtd_bonificacoes || 0) + ' linhas');
     setTxt('kpiItensBonificados', fmtQtd(kpis.itens_bonificados || 0));
     setTxt('kpiPctBonificacoes', fmtPct(kpis.pct_bonificacoes || 0));
     setTxt('kpiBrindes', fmtMoeda(kpis.valor_brindes || 0));
-    setTxt('kpiBrindesDelta', (kpis.qtd_brindes || 0) + ' linhas de item');
+    setTxt('kpiBrindesDelta', 'Líquido · não entra no faturamento · ' + (kpis.qtd_brindes || 0) + ' linhas');
     setTxt('kpiItensBrindes', fmtQtd(kpis.itens_brindes || 0));
     setTxt('kpiPctBrindes', fmtPct(kpis.pct_brindes || 0));
 

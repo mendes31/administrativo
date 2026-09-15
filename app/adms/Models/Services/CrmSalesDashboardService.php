@@ -111,6 +111,8 @@ class CrmSalesDashboardService
         $taxa = $bruto > 0 ? ($devolucoes / $bruto * 100) : 0.0;
         $ticket = $clientes > 0 ? ($liquido / $clientes) : 0.0;
         $itensVendidos = (float) ($kpisRow['itens_vendidos'] ?? 0);
+        $itensFaturados = (float) ($kpisRow['itens_faturados'] ?? 0);
+        $itensDevolvidos = (float) ($kpisRow['itens_devolvidos'] ?? 0);
         $valorBonif = (float) ($kpisRow['valor_bonificacoes'] ?? 0);
         $valorBrindes = (float) ($kpisRow['valor_brindes'] ?? 0);
         $qtdBonif = (int) ($kpisRow['qtd_bonificacoes'] ?? 0);
@@ -161,6 +163,8 @@ class CrmSalesDashboardService
                 'qtd_devolucoes' => $qtdDev,
                 'faturamento_bruto' => $bruto,
                 'itens_vendidos' => $itensVendidos,
+                'itens_faturados' => $itensFaturados,
+                'itens_devolvidos' => $itensDevolvidos,
                 'valor_bonificacoes' => $valorBonif,
                 'valor_brindes' => $valorBrindes,
                 'qtd_bonificacoes' => $qtdBonif,
@@ -200,6 +204,8 @@ class CrmSalesDashboardService
             'qtd_devolucoes' => 0,
             'faturamento_bruto' => 0,
             'itens_vendidos' => 0,
+            'itens_faturados' => 0,
+            'itens_devolvidos' => 0,
             'valor_bonificacoes' => 0,
             'valor_brindes' => 0,
             'qtd_bonificacoes' => 0,

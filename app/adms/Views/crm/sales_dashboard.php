@@ -181,7 +181,7 @@ $canUsages = !empty($this->data['can_usages']);
   font-size:1.05rem; font-weight:700; margin:0; letter-spacing:-0.02em;
   font-variant-numeric:tabular-nums; line-height:1.25; word-break:break-word;
 }
-.crm-sales-dash .csd-kpi .delta{font-size:12px; font-weight:600; margin-top:6px;}
+.crm-sales-dash .csd-kpi .delta{font-size:12px; font-weight:600; margin-top:6px; line-height:1.35;}
 .crm-sales-dash .csd-kpi.c-green .value,.crm-sales-dash .csd-kpi.c-green .delta{color:var(--csd-green-dark);}
 .crm-sales-dash .csd-kpi.c-red .value,.crm-sales-dash .csd-kpi.c-red .delta{color:#8A2323;}
 .crm-sales-dash .csd-kpi.c-orange .value,.crm-sales-dash .csd-kpi.c-orange .delta{color:#8A4413;}
@@ -454,10 +454,10 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipFat" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipFat" role="tooltip">
-          <strong>O que entra neste card</strong>
-          Soma das faturas SAP (OINV) menos as devoluções (ORIN) no período e nos filtros, só de <em>venda</em> e <em>devolução comercial</em>. Valor = LineTotal − DiscSum, grupos OITB 104 e 106. Notas de serviço, canceladas e da série 34 ficam de fora. Bonificações, brindes e utilizações Ignorar não entram.
-          <strong style="margin-top:8px;">Clientes ativos</strong>
-          Parceiros distintos (código SAP) que tiveram pelo menos uma fatura no período — quem só devolveu não entra.
+          <strong>Já abate as devoluções</strong>
+          Este valor é faturas menos devoluções (não some de novo o card Devoluções). Conta: faturas R$ (card de referência no rodapé) − devoluções R$ = este líquido. Só utilizações Venda e Devolução comercial; LineTotal − DiscSum; OITB 104 e 106. Bonificação, brinde e Ignorar ficam fora.
+          <strong style="margin-top:8px;">Clientes ativos (rodapé)</strong>
+          Parceiros distintos com pelo menos uma fatura — quem só devolveu não entra.
         </div>
         <p class="value" id="kpiFaturamento">—</p>
         <p class="delta" id="kpiFaturamentoDelta"></p>
@@ -468,10 +468,10 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipDev" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipDev" role="tooltip">
-          <strong>Valor</strong>
-          Soma em reais das notas de crédito (ORIN) no período, das utilizações <em>Venda</em> ou <em>Devolução comercial</em> (ex.: E Dev Venda). Se E Dev Venda estiver como Ignorar, este card fica zerado.
-          <strong style="margin-top:8px;">Contagem no rodapé do card</strong>
-          São <em>linhas de item</em> dessas notas (cada linha da NF de devolução conta 1). Não é o número de notas fiscais e nem a quantidade de unidades devolvidas.
+          <strong>Este valor já saiu do faturamento líquido</strong>
+          Soma em reais das notas de crédito (ORIN) de Venda ou Devolução comercial. Não some este card ao líquido — o líquido já é faturas menos isto.
+          <strong style="margin-top:8px;">Rodapé</strong>
+          Quantidade de unidades devolvidas (quantidade SAP) e quantas linhas de item existem nessas notas.
         </div>
         <p class="value" id="kpiDevolucao">—</p>
         <p class="delta" id="kpiDevolucaoDelta"></p>
@@ -482,8 +482,8 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipTaxa" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipTaxa" role="tooltip">
-          <strong>Como é calculada</strong>
-          Valor devolvido ÷ faturamento bruto (só faturas, sem abater devolução) × 100. Meta de referência neste painel: 10%.
+          <strong>Não usa o faturamento líquido</strong>
+          Valor deste card Devoluções ÷ valor das faturas (antes de abater devolução) × 100. Meta de referência: 10%.
         </div>
         <p class="value" id="kpiTaxaDevolucao">—</p>
         <p class="delta" id="kpiTaxaDevolucaoDelta"></p>
@@ -494,8 +494,8 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipTicket" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipTicket" role="tooltip">
-          <strong>Como é calculado</strong>
-          Faturamento líquido ÷ quantidade de clientes ativos (parceiros distintos com fatura no período). Não é ticket por nota fiscal.
+          <strong>Usa o líquido (já com devolução abatida)</strong>
+          Faturamento líquido ÷ clientes ativos (parceiros com fatura). Não é ticket por nota fiscal.
         </div>
         <p class="value" id="kpiTicket">—</p>
         <p class="delta" id="kpiTicketDelta"></p>
@@ -512,11 +512,11 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensVend" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipItensVend" role="tooltip">
-          <strong>O que entra neste card</strong>
-          Quantidade líquida (fatura − devolução) das linhas classificadas como <em>venda</em> nos grupos Produto acabado e Materiais de uso/consumo.
+          <strong>Já abate as unidades devolvidas</strong>
+          Quantidade líquida: unidades faturadas menos unidades devolvidas, só natureza venda. O rodapé mostra as duas parcelas.
         </div>
         <p class="value" id="kpiItensVendidos">—</p>
-        <p class="delta">Unidades (quantidade SAP)</p>
+        <p class="delta" id="kpiItensVendidosDelta">Unidades líquidas</p>
       </div>
       <div class="csd-kpi c-red">
         <p class="label">
@@ -524,11 +524,11 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipDesc" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipDesc" role="tooltip">
-          <strong>O que entra neste card</strong>
-          Soma do desconto concedido nas linhas de <em>venda</em>: (preço antes do desconto da linha × quantidade − total da linha) + parcela do desconto de rodapé da nota (DiscSum). Líquido de devoluções.
+          <strong>Já abate o desconto das devoluções</strong>
+          Desconto concedido nas linhas de venda: (preço antes do desconto da linha × quantidade − LineTotal) + parcela do DiscSum. Faturas menos o desconto das notas de crédito.
         </div>
         <p class="value" id="kpiDesconto">—</p>
-        <p class="delta">Só linhas de venda</p>
+        <p class="delta">Líquido (já abate devolução)</p>
       </div>
       <div class="csd-kpi c-red">
         <p class="label">
@@ -536,11 +536,11 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctDesc" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipPctDesc" role="tooltip">
-          <strong>Como é calculado</strong>
-          Desconto concedido ÷ valor bruto de venda (preço antes do desconto da linha × quantidade, líquido de devoluções) × 100.
+          <strong>Usa valores já líquidos</strong>
+          Desconto concedido (já abate devolução) ÷ bruto de venda (preço antes do desconto × quantidade, também líquido) × 100.
         </div>
         <p class="value" id="kpiPctDesconto">—</p>
-        <p class="delta">Sobre o bruto de venda</p>
+        <p class="delta">Sobre o bruto líquido</p>
       </div>
       </section>
     </div>
@@ -554,8 +554,8 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipBonifVal" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipBonifVal" role="tooltip">
-          <strong>O que entra neste card</strong>
-          Valor líquido das utilizações classificadas como <em>bonificação</em> (não inclui brinde). Não entra no faturamento. O rodapé conta <em>linhas de item</em>, não notas.
+          <strong>Não entra no faturamento</strong>
+          Valor líquido das utilizações bonificação (fatura − devolução de bonificação). Não some este card ao faturamento líquido.
         </div>
         <p class="value" id="kpiBonificacoes">—</p>
         <p class="delta" id="kpiBonificacoesDelta"></p>
@@ -566,11 +566,11 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensBon" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipItensBon" role="tooltip">
-          <strong>O que entra neste card</strong>
+          <strong>Já abate devolução de bonificação</strong>
           Quantidade líquida das linhas classificadas como bonificação.
         </div>
         <p class="value" id="kpiItensBonificados">—</p>
-        <p class="delta">Unidades (quantidade SAP)</p>
+        <p class="delta">Unidades líquidas</p>
       </div>
       <div class="csd-kpi c-orange">
         <p class="label">
@@ -578,8 +578,8 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctBonif" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipPctBonif" role="tooltip">
-          <strong>Como é calculado</strong>
-          Valor de bonificações ÷ faturamento líquido de venda × 100. Brindes não entram neste percentual.
+          <strong>Sobre o líquido de venda</strong>
+          Valor de bonificações ÷ faturamento líquido × 100. Brindes não entram. Não some bonificação no faturamento.
         </div>
         <p class="value" id="kpiPctBonificacoes">—</p>
         <p class="delta">Sobre o faturamento líquido</p>
@@ -596,8 +596,8 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipBrindesVal" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipBrindesVal" role="tooltip">
-          <strong>O que entra neste card</strong>
-          Valor líquido das utilizações classificadas como <em>brinde</em> (não inclui bonificação). Não entra no faturamento. O rodapé conta <em>linhas de item</em>, não notas.
+          <strong>Não entra no faturamento</strong>
+          Valor líquido das utilizações brinde (fatura − devolução de brinde). Não some este card ao faturamento líquido.
         </div>
         <p class="value" id="kpiBrindes">—</p>
         <p class="delta" id="kpiBrindesDelta"></p>
@@ -608,11 +608,11 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensBrinde" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipItensBrinde" role="tooltip">
-          <strong>O que entra neste card</strong>
-          Quantidade líquida das linhas classificadas como brinde (em geral materiais de uso e consumo).
+          <strong>Já abate devolução de brinde</strong>
+          Quantidade líquida das linhas classificadas como brinde. Pode ficar negativa se, no período, devolveu mais do que faturou.
         </div>
         <p class="value" id="kpiItensBrindes">—</p>
-        <p class="delta">Unidades (quantidade SAP)</p>
+        <p class="delta">Unidades líquidas</p>
       </div>
       <div class="csd-kpi c-purple">
         <p class="label">
@@ -620,8 +620,8 @@ $canUsages = !empty($this->data['can_usages']);
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctBrindes" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipPctBrindes" role="tooltip">
-          <strong>Como é calculado</strong>
-          Valor de brindes ÷ faturamento líquido de venda × 100. Bonificações não entram neste percentual.
+          <strong>Sobre o líquido de venda</strong>
+          Valor de brindes ÷ faturamento líquido × 100. Bonificações não entram. Não some brinde no faturamento.
         </div>
         <p class="value" id="kpiPctBrindes">—</p>
         <p class="delta">Sobre o faturamento líquido</p>
@@ -716,4 +716,4 @@ $canUsages = !empty($this->data['can_usages']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=21"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=22"></script>
