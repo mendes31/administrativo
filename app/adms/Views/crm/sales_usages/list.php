@@ -22,16 +22,22 @@ $dashUrl = htmlspecialchars(($_ENV['URL_ADM'] ?? '') . 'crm-sales-dashboard', EN
     </div>
 
     <p class="text-muted">
-        O sync SAP traz <strong>todas</strong> as utilizações (OUSG). Aqui você define se cada uma é venda, bonificação, brinde ou deve ser ignorada.
-        Utilizações novas entram como <em>não classificada</em> e, até você classificar, entram nos cards de faturamento como venda.
+        O sync SAP traz <strong>todas</strong> as utilizações (OUSG). Aqui você define a natureza comercial de cada uma.
+        <strong>Não existe opção “entrada”</strong> nem um tipo de documento separado na classificação: entrada/saída já vem no SAP (OINV = fatura, ORIN = nota de crédito).
+        A natureza só diz se a linha entra no faturamento, nas devoluções, em bonificação/brinde ou some dos cards.
         Alterar a natureza <strong>não exige</strong> nova sincronização.
     </p>
 
     <div class="alert alert-info">
-        Utilizações cujo nome começa com <strong>E</strong> (ex.: E Amostra, E Demonstração, E Outras entradas) são <em>entradas</em> no SAP, não o fluxo comercial de saída.
-        No dashboard elas só aparecem se a linha estiver numa fatura (OINV) ou devolução (ORIN).
-        Recomendação: classifique como <strong>Ignorar</strong>, exceto <strong>E Dev Venda</strong> — essa é a devolução comercial e deve permanecer como <strong>Venda</strong> para somar no card de devoluções.
-        Use o botão <em>Sugerir entradas (E*)</em> e revise antes de salvar outras alterações.
+        <strong>Como parametrizar utilizações que começam com E (entradas)</strong>
+        <ul class="mb-2 mt-2">
+            <li><strong>E Dev Venda</strong> → <em>Devolução comercial</em>. É a devolução de venda já lançada em nota de crédito (ORIN). Entra no card Devoluções e abate o faturamento líquido. Não use Ignorar — senão o card de devoluções fica zerado.</li>
+            <li><strong>Demais E*</strong> (E Amostra, E Demonstração, E Outras entradas, E Amostra Importação) → <em>Ignorar</em>. Não são venda comercial.</li>
+        </ul>
+        Saídas comerciais (S Venda, S Cob Indus, Suframa, Complemento de Valor) → <em>Venda</em>.
+        Remessa de bonificação/brinde → <em>Bonificação</em> / <em>Brinde</em>.
+        Transferência, feira, perda, faturamento antecipado → <em>Ignorar</em>.
+        Use <em>Sugerir entradas (E*)</em> e revise antes de salvar o restante.
     </div>
 
     <?php if ($unclassified > 0): ?>
@@ -77,7 +83,9 @@ $dashUrl = htmlspecialchars(($_ENV['URL_ADM'] ?? '') . 'crm-sales-dashboard', EN
                                             <?= $name !== '' ? $name : 'Sem utilização' ?>
                                             <?php if ($isEntrada): ?>
                                                 <span class="badge text-bg-warning ms-1">Entrada</span>
-                                                <?php if ($sug === 'venda'): ?>
+                                                <?php if ($sug === 'devolucao'): ?>
+                                                    <span class="badge text-bg-success">sugerir devolução</span>
+                                                <?php elseif ($sug === 'venda'): ?>
                                                     <span class="badge text-bg-success">sugerir venda</span>
                                                 <?php elseif ($sug === 'ignorar'): ?>
                                                     <span class="badge text-bg-secondary">sugerir ignorar</span>
@@ -104,7 +112,7 @@ $dashUrl = htmlspecialchars(($_ENV['URL_ADM'] ?? '') . 'crm-sales-dashboard', EN
                             <i class="fas fa-save me-1"></i>Salvar naturezas
                         </button>
                         <button type="submit" class="btn btn-outline-warning" name="acao" value="sugerir_entradas"
-                            onclick="return confirm('Aplicar agora: E Dev Venda = Venda; demais utilizações iniciadas com E = Ignorar?');">
+                            onclick="return confirm('Aplicar agora: E Dev Venda = Devolução comercial; demais utilizações iniciadas com E = Ignorar?');">
                             <i class="fas fa-magic me-1"></i>Sugerir entradas (E*)
                         </button>
                     </div>

@@ -14,6 +14,7 @@ class CrmSalesUsageNatureRepository extends DbConnection
 {
     public const NATURES = [
         'venda' => 'Venda',
+        'devolucao' => 'Devolução comercial',
         'bonificacao' => 'Bonificação',
         'brinde' => 'Brinde',
         'ignorar' => 'Ignorar (não entra nos KPIs)',
@@ -112,8 +113,8 @@ class CrmSalesUsageNatureRepository extends DbConnection
     }
 
     /**
-     * E Dev Venda permanece como venda (é devolução comercial já em ORIN).
-     * Demais entradas E* devem ser ignoradas nos KPIs.
+     * E Dev Venda = devolução comercial (nota de crédito ORIN).
+     * Demais entradas E* não entram nos KPIs.
      */
     public static function suggestEntradasNature(string $usageName): ?string
     {
@@ -121,7 +122,7 @@ class CrmSalesUsageNatureRepository extends DbConnection
             return null;
         }
         if (preg_match('/dev\s*venda/iu', $usageName)) {
-            return 'venda';
+            return 'devolucao';
         }
         return 'ignorar';
     }

@@ -585,6 +585,7 @@ class CrmSalesFactRepository extends DbConnection
 
     /**
      * nao_classificada (e NULL) entram como venda até o cadastro classificar.
+     * devolucao (E Dev Venda) entra no mesmo recorte de venda: ORIN no card Devoluções e no líquido.
      */
     private function natureSql(): string
     {

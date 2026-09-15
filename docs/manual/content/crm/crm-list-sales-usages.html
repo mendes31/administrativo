@@ -1,16 +1,16 @@
 <h1>Utilizações de venda SAP (CRM)</h1>
 
 <h2>Função no sistema</h2>
-<p>Define a <strong>natureza comercial</strong> de cada utilização do SAP Business One (tabela OUSG) usada no Dashboard de Vendas: venda, bonificação, brinde ou ignorar. O sync traz todas as utilizações; a classificação fica no Portal e altera os cards na hora, sem nova sincronização.</p>
+<p>Define a <strong>natureza comercial</strong> de cada utilização do SAP Business One (tabela OUSG) usada no Dashboard de Vendas. O sync traz todas as utilizações; a classificação fica no Portal e altera os cards na hora, sem nova sincronização. Não há opção “Entrada”: entrada/saída já está no tipo de documento SAP (fatura OINV ou nota de crédito ORIN).</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Utilização (OUSG)</dt>
-    <dd>Campo <em>Usage</em> da linha da nota SAP (INV1/RIN1). Cada código pode ser venda, brinde, bonificação etc. Novos códigos no SAP aparecem sozinhos após o sync.</dd>
+    <dd>Campo <em>Usage</em> da linha da nota SAP (INV1/RIN1). Cada código pode ser venda, devolução comercial, brinde, bonificação etc. Novos códigos no SAP aparecem sozinhos após o sync.</dd>
     <dt>Natureza</dt>
-    <dd>Como o dashboard trata aquela utilização: <em>Venda</em> entra nos cards de faturamento; <em>Bonificação</em> e <em>Brinde</em> têm cards separados (valor, quantidade e percentual); <em>Ignorar</em> some de todos os KPIs; <em>Não classificada</em> conta como venda até você classificar.</dd>
+    <dd><em>Venda</em> entra nos cards de faturamento (fatura menos crédito). <em>Devolução comercial</em> é para E Dev Venda: entra no card Devoluções e abate o líquido (é a nota de crédito, não um tipo extra de documento). <em>Bonificação</em> e <em>Brinde</em> têm cards separados. <em>Ignorar</em> some de todos os KPIs. <em>Não classificada</em> conta como venda até você classificar.</dd>
     <dt>Utilização iniciada com E</dt>
-    <dd>No SAP da empresa, nomes que começam com E são <em>entradas</em>. Classifique como Ignorar, exceto E Dev Venda (devolução comercial → Venda). Há um botão <em>Sugerir entradas (E*)</em> na tela de utilizações.</dd>
+    <dd>No SAP da empresa, nomes que começam com E são <em>entradas</em>. Parametrize assim: E Dev Venda → Devolução comercial; demais E* → Ignorar. O botão <em>Sugerir entradas (E*)</em> aplica essa regra.</dd>
 </dl>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>CrmListSalesUsages</em> (a migration copia o ACL a partir de <em>CrmSalesDashboard</em>).</p>
@@ -19,17 +19,18 @@
 <ol>
     <li>Rode o sync SAP (<code>php scripts/sync_crm_sales_sap.php --full</code> na primeira vez) para popular as utilizações encontradas nas notas.</li>
     <li>Acesse <strong>CRM → Utilizações de venda SAP</strong> (ou o atalho <em>Classificar utilizações</em> no dashboard).</li>
-    <li>Para cada código, escolha a natureza no seletor (venda, bonificação, brinde ou ignorar).</li>
-    <li>Para códigos cujo nome começa com <strong>E</strong> (entradas), use <strong>Sugerir entradas (E*)</strong>: E Dev Venda vira venda; as demais viram ignorar. Revise e ajuste se necessário.</li>
+    <li>Para cada código, escolha a natureza no seletor.</li>
+    <li>Para códigos cujo nome começa com <strong>E</strong>, use <strong>Sugerir entradas (E*)</strong>: E Dev Venda vira Devolução comercial; as demais viram Ignorar. Revise e ajuste se necessário.</li>
     <li>Clique em <strong>Salvar naturezas</strong>.</li>
-    <li>Volte ao Dashboard de Vendas SAP: faturamento, itens vendidos, bonificações e percentuais já usam a nova classificação.</li>
+    <li>Volte ao Dashboard de Vendas SAP: faturamento, devoluções, itens, bonificações e percentuais já usam a nova classificação (sem sync).</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Código</strong> ID da utilização no SAP (<code>OUSG.ID</code> / <code>INV1.Usage</code>).</div>
 <div class="help-field"><strong>Utilização (SAP)</strong> Nome cadastrado no Business One (<code>OUSG.Usage</code>).</div>
-<div class="help-field"><strong>Natureza no dashboard</strong> Venda, Bonificação, Brinde, Ignorar ou Não classificada.</div>
-<div class="help-field"><strong>Sugerir entradas (E*)</strong> Aplica a regra: nomes iniciados com E (exceto E Dev Venda) passam a Ignorar; E Dev Venda permanece Venda. Não grava o restante do formulário — só as linhas E*.</div>
+<div class="help-field"><strong>Natureza no dashboard</strong> Venda, Devolução comercial, Bonificação, Brinde, Ignorar ou Não classificada.</div>
+<div class="help-field"><strong>Parametrização das entradas (E*)</strong> E Dev Venda = Devolução comercial. E Amostra, E Demonstração, E Outras entradas, E Amostra Importação = Ignorar. Não classifique entrada como Venda — infla o faturamento.</div>
+<div class="help-field"><strong>Sugerir entradas (E*)</strong> Aplica só as linhas E*. Não grava o restante do formulário.</div>
 <div class="help-field"><strong>Salvar naturezas</strong> Grava todas as linhas do formulário de uma vez (token CSRF).</div>
 
 <h2>Problemas comuns</h2>
@@ -40,8 +41,12 @@
     <dd>Esperado: o SAP criou um código. Ela entra como não classificada (conta como venda) até você escolher a natureza. O dashboard avisa quantas estão pendentes.</dd>
     <dt>Alterei a natureza e o número não mudou</dt>
     <dd>Recarregue o dashboard (Atualizar). Não é preciso sync. Confira se filtrou o período em que essa utilização existe.</dd>
+    <dt>Não vejo opção Devolução / Entrada</dt>
+    <dd>Entrada não é natureza: o SAP já separa fatura (OINV) e nota de crédito (ORIN). Use <em>Devolução comercial</em> só em E Dev Venda. As outras entradas vão para Ignorar.</dd>
+    <dt>Card de devoluções zerado</dt>
+    <dd>E Dev Venda (código 42) estava como Ignorar. Classifique como Devolução comercial (ou use Sugerir entradas). Não precisa de <code>--full</code>.</dd>
     <dt>Devo classificar as utilizações que começam com E?</dt>
-    <dd>Sim: são entradas. Use Ignorar (não misturam no faturamento). Exceção: E Dev Venda deve ficar como Venda, porque já está nas notas de crédito (ORIN) e precisa somar no card de devoluções.</dd>
+    <dd>Sim. Demais E* = Ignorar. Só E Dev Venda = Devolução comercial, para somar no card de devoluções e abater o líquido.</dd>
     <dt>Não vejo o menu</dt>
     <dd>Execute <code>vendor/bin/phinx migrate</code> e confirme a permissão <em>CrmListSalesUsages</em>.</dd>
 </dl>

@@ -399,7 +399,7 @@ $canUsages = !empty($this->data['can_usages']);
         </p>
         <div class="csd-kpi-tip" id="tipFat" role="tooltip">
           <strong>O que entra neste card</strong>
-          Soma das faturas SAP (OINV) menos as devoluções (ORIN) no período e nos filtros, só de <em>venda</em>. Valor = LineTotal − desconto de rodapé (DiscSum) da nota, nos grupos OITB 104 e 106. Notas de serviço, canceladas e da série 34 ficam de fora. Bonificações e brindes ficam nos grupos abaixo.
+          Soma das faturas SAP (OINV) menos as devoluções (ORIN) no período e nos filtros, só de <em>venda</em> e <em>devolução comercial</em>. Valor = LineTotal − DiscSum, grupos OITB 104 e 106. Notas de serviço, canceladas e da série 34 ficam de fora. Bonificações, brindes e utilizações Ignorar não entram.
           <strong style="margin-top:8px;">Clientes ativos</strong>
           Parceiros distintos (código SAP) que tiveram pelo menos uma fatura no período — quem só devolveu não entra.
         </div>
@@ -413,7 +413,7 @@ $canUsages = !empty($this->data['can_usages']);
         </p>
         <div class="csd-kpi-tip" id="tipDev" role="tooltip">
           <strong>Valor</strong>
-          Soma em reais das notas de devolução (crédito / ORIN) no período. Não é quantidade de produto.
+          Soma em reais das notas de crédito (ORIN) no período, das utilizações <em>Venda</em> ou <em>Devolução comercial</em> (ex.: E Dev Venda). Se E Dev Venda estiver como Ignorar, este card fica zerado.
           <strong style="margin-top:8px;">Contagem no rodapé do card</strong>
           São <em>linhas de item</em> dessas notas (cada linha da NF de devolução conta 1). Não é o número de notas fiscais e nem a quantidade de unidades devolvidas.
         </div>
@@ -652,7 +652,7 @@ $canUsages = !empty($this->data['can_usages']);
     </section>
 
     <footer class="csd-note">
-      Fonte: cache MySQL a partir do SAP (HANA). Recorte: OITB <strong>104</strong> e <strong>106</strong>, DocType = I, não canceladas, SeqCode ≠ 34, valor LineTotal − DiscSum. Sem filtro de utilização no SAP; a natureza (venda, bonificação, brinde, ignorar) é classificada no Portal.
+      Fonte: cache MySQL a partir do SAP (HANA). Recorte: OITB <strong>104</strong> e <strong>106</strong>, DocType = I, não canceladas, SeqCode ≠ 34, valor LineTotal − DiscSum. Sem filtro de utilização no SAP; a natureza (venda, devolução comercial, bonificação, brinde, ignorar) é classificada no Portal.
       Preferência pela VIEW <code>VW_CRM_VENDAS_LINHA</code> no sync; se indisponível ou desatualizada, o sync usa CTE com filtro de data.
       Painel: <strong id="csdSource">MySQL</strong>. Este painel é independente do Dashboard CRM de pipeline.
     </footer>

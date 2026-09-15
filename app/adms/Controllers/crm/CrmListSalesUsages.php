@@ -62,7 +62,7 @@ class CrmListSalesUsages
         if ($acao === 'sugerir_entradas') {
             $ok = $repo->applyEntradasSuggestion();
             $_SESSION['msg'] = $ok > 0
-                ? "Sugestão aplicada em {$ok} utilização(ões) iniciadas com E: E Dev Venda → venda; demais entradas → ignorar. Revise e salve se quiser ajustar."
+                ? "Sugestão aplicada em {$ok} utilização(ões) iniciadas com E: E Dev Venda → Devolução comercial; demais entradas → Ignorar. Revise e salve se quiser ajustar."
                 : 'Nenhuma utilização iniciada com E precisava de alteração (já classificadas ou inexistentes).';
             $_SESSION['msg_type'] = $ok > 0 ? 'success' : 'warning';
             header('Location: ' . ($_ENV['URL_ADM'] ?? '') . 'crm-list-sales-usages');

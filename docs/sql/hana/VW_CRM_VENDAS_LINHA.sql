@@ -6,7 +6,7 @@
 -- Pré-requisito: usuário da API SAP com SELECT nesta VIEW.
 -- Executar no schema da company (SBO). Se a VIEW já existir, DROP antes.
 --
--- Recorte: OITB 104 e 106. Todas as utilizações entram (natureza no Portal).
+-- Recorte: OITB 104 e 106. Todas as utilizações entram (natureza no Portal, inclusive Devolução comercial = E Dev Venda).
 -- Alinhado à query de indicadores: DocType = I, SeqCode <> 34, LineTotal − DiscSum (rateado na linha).
 -- Não filtrar por 400/700 em ItmsGrpCod — esses números não existem como código.
 --

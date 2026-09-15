@@ -1,12 +1,12 @@
 <h1>Dashboard de Vendas SAP (CRM)</h1>
 
 <h2>Função no sistema</h2>
-<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN) restrito aos grupos de item OITB <strong>104</strong> (nome 400 - PROD ACABADO) e <strong>106</strong> (nome 700 - MAT. USO/CONS). Alinha a query de indicadores de venda no cabeçalho da nota (<code>DocType = I</code>, não cancelada, <code>SeqCode &lt;&gt; 34</code>, valor <code>LineTotal − DiscSum</code>), mas <strong>não</strong> aplica o <code>Usage IN (15,16,24,47,78)</code>: todas as utilizações entram e a natureza (venda, bonificação, brinde, ignorar) é classificada no Portal. KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA. É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
+<p>Painel comercial com faturamento líquido SAP Business One (faturas OINV e devoluções ORIN) restrito aos grupos de item OITB <strong>104</strong> (nome 400 - PROD ACABADO) e <strong>106</strong> (nome 700 - MAT. USO/CONS). Alinha a query de indicadores de venda no cabeçalho da nota (<code>DocType = I</code>, não cancelada, <code>SeqCode &lt;&gt; 34</code>, valor <code>LineTotal − DiscSum</code>), mas <strong>não</strong> aplica o <code>Usage IN (15,16,24,47,78)</code>: todas as utilizações entram e a natureza (venda, devolução comercial, bonificação, brinde, ignorar) é classificada no Portal. KPIs, gráficos Chart.js e filtros cruzados. Os dados vêm de um <strong>cache MySQL</strong> sincronizado a partir do HANA. É <strong>independente</strong> do Dashboard CRM de pipeline/oportunidades.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Faturamento líquido</dt>
-    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> (não classificada conta como venda). O valor de cada linha é o LineTotal menos a parcela do desconto de rodapé da nota (DiscSum). Bonificação e brinde ficam nos cards próprios. Só grupos OITB <em>104</em> e <em>106</em>; notas de serviço, canceladas e da série 34 ficam de fora.</dd>
+    <dd>Soma de linhas de fatura (OINV) menos devoluções (ORIN) das utilizações classificadas como <em>venda</em> ou <em>devolução comercial</em> (não classificada conta como venda). O valor de cada linha é o LineTotal menos a parcela do desconto de rodapé da nota (DiscSum). Bonificação e brinde ficam nos cards próprios. Só grupos OITB <em>104</em> e <em>106</em>; notas de serviço, canceladas e da série 34 ficam de fora.</dd>
     <dt>Itens vendidos / itens bonificados / itens de brinde</dt>
     <dd>Quantidade SAP líquida (fatura − devolução) das linhas de venda, de bonificação ou de brinde, respectivamente. Bonificação e brinde não se misturam.</dd>
     <dt>Bonificações</dt>
@@ -20,7 +20,7 @@
     <dt>Utilização (OUSG)</dt>
     <dd>Código de uso da linha da nota. Classifique em <em>Utilizações de venda SAP</em>. Novos códigos entram sozinhos após o sync.</dd>
     <dt>Linhas de item em devolução</dt>
-    <dd>Contagem no card Devoluções: cada linha da nota de crédito/devolução conta 1. Não é quantidade de notas e nem de unidades do produto.</dd>
+    <dd>Contagem no card Devoluções: cada linha da nota de crédito/devolução conta 1. Entram utilizações Venda e Devolução comercial (E Dev Venda). Não é quantidade de notas e nem de unidades do produto.</dd>
     <dt>Clientes ativos</dt>
     <dd>Parceiros SAP distintos com pelo menos uma fatura no período.</dd>
     <dt>Ticket médio</dt>
@@ -78,6 +78,8 @@
     <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez (obrigatório após a migration de utilizações, que esvazia o cache). Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
     <dt>Bonificações zeradas / tudo no faturamento</dt>
     <dd>As utilizações ainda estão como não classificadas. Abra <strong>Utilizações de venda SAP</strong> e marque bonificação/brinde.</dd>
+    <dt>Card de devoluções zerado</dt>
+    <dd>E Dev Venda precisa estar como <em>Devolução comercial</em> (não Ignorar). A classificação muda na hora, sem <code>--full</code>.</dd>
     <dt>Lista de itens vazia / ranking some</dt>
     <dd>Após a migration que inclui o item no cache, rode <code>php scripts/sync_crm_sales_sap.php --full</code>. O sync incremental não reconstrói o histórico antigo.</dd>
     <dt>Ainda vejo matéria-prima / serviços no ranking de itens</dt>
