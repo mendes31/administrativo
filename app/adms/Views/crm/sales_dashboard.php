@@ -525,7 +525,7 @@ $canUsages = !empty($this->data['can_usages']);
         </p>
         <div class="csd-kpi-tip" id="tipDesc" role="tooltip">
           <strong>O que entra neste card</strong>
-          Soma do desconto em reais nas linhas de <em>venda</em> (preço × quantidade − total da linha), líquido de devoluções.
+          Soma do desconto concedido nas linhas de <em>venda</em>: (preço antes do desconto da linha × quantidade − total da linha) + parcela do desconto de rodapé da nota (DiscSum). Líquido de devoluções.
         </div>
         <p class="value" id="kpiDesconto">—</p>
         <p class="delta">Só linhas de venda</p>
@@ -537,7 +537,7 @@ $canUsages = !empty($this->data['can_usages']);
         </p>
         <div class="csd-kpi-tip" id="tipPctDesc" role="tooltip">
           <strong>Como é calculado</strong>
-          Desconto ÷ valor bruto de venda (preço × quantidade, líquido de devoluções) × 100.
+          Desconto concedido ÷ valor bruto de venda (preço antes do desconto da linha × quantidade, líquido de devoluções) × 100.
         </div>
         <p class="value" id="kpiPctDesconto">—</p>
         <p class="delta">Sobre o bruto de venda</p>

@@ -14,7 +14,7 @@
     <dt>Brindes</dt>
     <dd>Valor líquido das utilizações classificadas como brinde (em geral no grupo 700). O rodapé mostra linhas de item e o percentual sobre o faturamento líquido. Não entra no faturamento.</dd>
     <dt>% Desconto</dt>
-    <dd>Desconto em reais das linhas de venda (desconto da linha + parcela do DiscSum) ÷ valor bruto de venda (preço × quantidade) × 100.</dd>
+    <dd>Desconto concedido nas linhas de venda: preço unitário <em>antes</em> do desconto da linha (<code>PriceBefDi</code>) × quantidade − LineTotal, mais a parcela do desconto de rodapé da nota (DiscSum). O <code>Price</code> do SAP já vem com o desconto da linha — usá-lo no lugar de PriceBefDi deixa o card quase zerado (só arredondamento). % = esse desconto ÷ bruto (PriceBefDi × quantidade) × 100.</dd>
     <dt>% Bonificações</dt>
     <dd>Valor de bonificações ÷ faturamento líquido de venda × 100 (sem brindes).</dd>
     <dt>Utilização (OUSG)</dt>
@@ -72,6 +72,8 @@
 <dl>
     <dt>Não vejo o menu</dt>
     <dd>Execute <code>vendor/bin/phinx migrate</code> e confirme permissão <em>CrmSalesDashboard</em> no nível de acesso.</dd>
+    <dt>Desconto / % desconto muito baixo (ex.: centavos ou 0,3%)</dt>
+    <dd>O <code>Price</code> do SAP já inclui o desconto da linha. O sync agora usa o preço antes do desconto (<code>PriceBefDi</code>) mais o DiscSum. Rode <code>php scripts/sync_crm_sales_sap.php --full</code> para recalcular o cache.</dd>
     <dt>Cache vazio / aviso de sincronização</dt>
     <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez (obrigatório após a migration de utilizações, que esvazia o cache). Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
     <dt>Bonificações zeradas / tudo no faturamento</dt>

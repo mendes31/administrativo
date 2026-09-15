@@ -348,9 +348,22 @@ class CrmSalesSapSyncService
         return $sinal < 0 ? '(' . $net . ') * -1' : $net;
     }
 
+    /** Preço unitário antes do desconto da linha (Price no SAP já é líquido). */
+    private function lineGrossSql(): string
+    {
+        return 'IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity"';
+    }
+
+    private function lineGrossSignedSql(int $sinal): string
+    {
+        $gross = $this->lineGrossSql();
+        return $sinal < 0 ? '(' . $gross . ') * -1' : $gross;
+    }
+
+    /** Desconto da linha (PriceBefDi × qtd − LineTotal) + parcela do DiscSum. */
     private function lineDiscountSql(int $sinal): string
     {
-        $line = '((T1."Price" * T1."Quantity") - T1."LineTotal")';
+        $line = '(' . $this->lineGrossSql() . ' - T1."LineTotal")';
         $share = 'IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0)';
         $expr = $line . ' + ' . $share;
         return $sinal < 0 ? '(' . $expr . ') * -1' : $expr;
@@ -482,7 +495,7 @@ class CrmSalesSapSyncService
     IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
     ' . $this->lineNetSql(-1) . ' AS "ValorLiquidoSinalizado",
     (T1."Quantity" * -1) AS "QuantidadeLiq",
-    (T1."Price" * T1."Quantity" * -1) AS "ValorBrutoSinalizado",
+    ' . $this->lineGrossSignedSql(-1) . ' AS "ValorBrutoSinalizado",
     ' . $this->lineDiscountSql(-1) . ' AS "ValorDescontoSinalizado"
 FROM ORIN T0
 INNER JOIN RIN1 T1 ON T1."DocEntry" = T0."DocEntry"
@@ -512,7 +525,7 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
     IFNULL(T9."Usage", \'Sem utilização\') AS "Utilizacao",
     ' . $this->lineNetSql(1) . ' AS "ValorLiquidoSinalizado",
     T1."Quantity" AS "QuantidadeLiq",
-    (T1."Price" * T1."Quantity") AS "ValorBrutoSinalizado",
+    ' . $this->lineGrossSignedSql(1) . ' AS "ValorBrutoSinalizado",
     ' . $this->lineDiscountSql(1) . ' AS "ValorDescontoSinalizado"
 FROM OINV T0
 INNER JOIN INV1 T1 ON T1."DocEntry" = T0."DocEntry"

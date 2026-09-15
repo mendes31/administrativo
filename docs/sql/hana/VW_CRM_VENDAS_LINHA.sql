@@ -46,13 +46,13 @@ SELECT
     T1."WhsCode"                                       AS "Deposito",
     T1."Quantity"                                      AS "Quantidade",
     T1."Quantity"                                      AS "QuantidadeLiq",
-    T1."Price"                                         AS "PrecoUnitario",
+    T1."PriceBefDi"                                    AS "PrecoUnitario",
     T1."DiscPrcnt"                                     AS "DescontoPercentual",
-    (T1."Price" * T1."Quantity")                       AS "ValorBruto",
-    (T1."Price" * T1."Quantity")                       AS "ValorBrutoSinalizado",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal")
+    (IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") AS "ValorBruto",
+    (IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") AS "ValorBrutoSinalizado",
+    ((IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") - T1."LineTotal")
         + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorDesconto",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal")
+    ((IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") - T1."LineTotal")
         + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorDescontoSinalizado",
     T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorLiquido",
     T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorLiquidoSinalizado",
@@ -112,13 +112,13 @@ SELECT
     T1."WhsCode"                                       AS "Deposito",
     T1."Quantity"                                      AS "Quantidade",
     (T1."Quantity" * -1)                               AS "QuantidadeLiq",
-    T1."Price"                                         AS "PrecoUnitario",
+    T1."PriceBefDi"                                    AS "PrecoUnitario",
     T1."DiscPrcnt"                                     AS "DescontoPercentual",
-    (T1."Price" * T1."Quantity")                       AS "ValorBruto",
-    (T1."Price" * T1."Quantity" * -1)                  AS "ValorBrutoSinalizado",
-    ((T1."Price" * T1."Quantity") - T1."LineTotal")
+    (IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") AS "ValorBruto",
+    (IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity" * -1) AS "ValorBrutoSinalizado",
+    ((IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") - T1."LineTotal")
         + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorDesconto",
-    (((T1."Price" * T1."Quantity") - T1."LineTotal")
+    (((IFNULL(NULLIF(T1."PriceBefDi", 0), T1."Price") * T1."Quantity") - T1."LineTotal")
         + IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0)) * -1 AS "ValorDescontoSinalizado",
     T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0) AS "ValorLiquido",
     (T1."LineTotal" - IFNULL(IFNULL(T0."DiscSum", 0) * T1."LineTotal" / NULLIF(SUM(T1."LineTotal") OVER (PARTITION BY T0."DocEntry"), 0), 0)) * -1 AS "ValorLiquidoSinalizado",
