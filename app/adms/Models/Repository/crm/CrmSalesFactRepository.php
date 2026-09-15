@@ -597,7 +597,7 @@ class CrmSalesFactRepository extends DbConnection
     }
 
     /**
-     * @param array<string, string|null> $dims
+     * @param array<string, string|list<string>|null> $dims
      * @return array{0: string, 1: array<string, string>}
      */
     private function buildWhere(string $from, string $to, array $dims, ?string $ignoreDim): array
@@ -619,13 +619,48 @@ class CrmSalesFactRepository extends DbConnection
             if ($ignoreDim === $key) {
                 continue;
             }
-            $val = $dims[$key] ?? null;
-            if ($val !== null && $val !== '') {
+            $clean = $this->normalizeDimValues($dims[$key] ?? null);
+            if ($clean === []) {
+                continue;
+            }
+            if (count($clean) === 1) {
                 $ph = ':' . $key;
                 $parts[] = "{$col} = {$ph}";
-                $params[$ph] = $val;
+                $params[$ph] = $clean[0];
+                continue;
             }
+            $placeholders = [];
+            foreach ($clean as $i => $item) {
+                $ph = ':' . $key . '_' . $i;
+                $placeholders[] = $ph;
+                $params[$ph] = $item;
+            }
+            $parts[] = $col . ' IN (' . implode(', ', $placeholders) . ')';
         }
         return [implode(' AND ', $parts), $params];
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function normalizeDimValues(mixed $val): array
+    {
+        if ($val === null || $val === '' || $val === []) {
+            return [];
+        }
+        if (!is_array($val)) {
+            $val = [$val];
+        }
+        $clean = [];
+        foreach ($val as $item) {
+            if ($item === null || is_array($item)) {
+                continue;
+            }
+            $s = trim((string) $item);
+            if ($s !== '') {
+                $clean[$s] = $s;
+            }
+        }
+        return array_values($clean);
     }
 }

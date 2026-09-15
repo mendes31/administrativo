@@ -54,19 +54,54 @@ $canUsages = !empty($this->data['can_usages']);
 .crm-sales-dash .csd-toolbar-actions{
   display:flex; flex-wrap:nowrap; align-items:flex-end; gap:6px; flex:0 0 auto;
 }
-.crm-sales-dash .csd-toolbar label{
+.crm-sales-dash .csd-toolbar-fields > label,
+.crm-sales-dash .csd-toolbar-fields > .csd-field,
+.crm-sales-dash .csd-custom-dates > label{
   display:flex; flex-direction:column; gap:2px; font-size:10px; font-weight:600;
-  color:var(--csd-ink-mute); text-transform:uppercase; letter-spacing:.03em; margin:0;
+  color:var(--csd-ink-mute); margin:0;
   min-width:0; flex:1 1 108px; max-width:160px;
 }
+.crm-sales-dash .csd-toolbar-fields > label,
+.crm-sales-dash .csd-toolbar-fields > .csd-field > span,
+.crm-sales-dash .csd-custom-dates > label{
+  text-transform:uppercase; letter-spacing:.03em;
+}
 .crm-sales-dash .csd-toolbar select,
-.crm-sales-dash .csd-toolbar input[type="date"]{
+.crm-sales-dash .csd-toolbar input[type="date"],
+.crm-sales-dash .csd-ms-btn{
   font-family:inherit; font-size:12px; color:var(--csd-ink); border:1px solid var(--csd-line);
   background:var(--csd-bg); border-radius:6px; padding:5px 7px; min-width:0; width:100%;
   outline:none; height:30px;
 }
 .crm-sales-dash .csd-toolbar select:focus,
-.crm-sales-dash .csd-toolbar input[type="date"]:focus{border-color:var(--csd-green); box-shadow:0 0 0 2px var(--csd-green-tint);}
+.crm-sales-dash .csd-toolbar input[type="date"]:focus,
+.crm-sales-dash .csd-ms-btn:focus{border-color:var(--csd-green); box-shadow:0 0 0 2px var(--csd-green-tint);}
+.crm-sales-dash .csd-ms{position:relative; width:100%;}
+.crm-sales-dash .csd-ms-btn{
+  text-align:left; cursor:pointer; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  padding-right:18px; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath fill='%2355605A' d='M0 0l5 6 5-6z'/%3E%3C/svg%3E");
+  background-repeat:no-repeat; background-position:right 8px center;
+}
+.crm-sales-dash .csd-ms-btn.has-value{border-color:#F3CFA3; background-color:var(--csd-orange-tint);}
+.crm-sales-dash .csd-ms-panel{
+  display:none; position:fixed; z-index:50; background:#fff; border:1px solid var(--csd-line);
+  border-radius:8px; box-shadow:var(--csd-shadow); max-height:280px; min-width:240px;
+  padding:8px; flex-direction:column; gap:6px;
+}
+.crm-sales-dash .csd-ms-panel.is-open{display:flex;}
+.crm-sales-dash .csd-ms-panel input[type="search"]{
+  font-family:inherit; font-size:12px; border:1px solid var(--csd-line); border-radius:6px;
+  padding:6px 8px; width:100%; height:28px; background:#fff;
+}
+.crm-sales-dash .csd-ms-list{overflow:auto; max-height:210px; display:flex; flex-direction:column; gap:2px;}
+.crm-sales-dash .csd-ms-opt{
+  display:flex; align-items:flex-start; gap:8px; font-size:12px; font-weight:500;
+  color:var(--csd-ink); padding:5px 6px; border-radius:6px; cursor:pointer;
+  text-transform:none; letter-spacing:0;
+}
+.crm-sales-dash .csd-ms-opt:hover{background:var(--csd-bg);}
+.crm-sales-dash .csd-ms-opt input{margin-top:2px; flex:0 0 auto;}
+.crm-sales-dash .csd-ms-empty{font-size:12px; color:var(--csd-ink-mute); padding:8px;}
 .crm-sales-dash .csd-custom-dates{display:none; gap:6px; flex-wrap:nowrap; align-items:flex-end; flex:0 0 auto;}
 .crm-sales-dash .csd-custom-dates.is-visible{display:flex;}
 .crm-sales-dash .csd-custom-dates label{flex:0 0 118px; max-width:118px;}
@@ -329,7 +364,7 @@ $canUsages = !empty($this->data['can_usages']);
     <div class="csd-banner">
       <div>
         <h1>Dashboard de vendas SAP</h1>
-        <p>Produto acabado e materiais de uso/consumo · faturamento, bonificações e brindes · clique nos gráficos para filtrar</p>
+        <p>Produto acabado e materiais de uso/consumo · faturamento, bonificações e brindes · clique nos gráficos para marcar um ou mais filtros</p>
       </div>
       <div class="csd-periodo-tag" id="periodoResumo">Carregando período…</div>
     </div>
@@ -363,15 +398,36 @@ $canUsages = !empty($this->data['can_usages']);
             <input type="date" id="fDateTo" autocomplete="off">
           </label>
         </div>
-        <label>Vendedor
-          <select id="fVendedor"><option value="">Todos</option></select>
-        </label>
-        <label>Grupo
-          <select id="fGrupoCliente"><option value="">Todos</option></select>
-        </label>
-        <label>Região
-          <select id="fRegiao"><option value="">Todas</option></select>
-        </label>
+        <div class="csd-field">
+          <span>Vendedor</span>
+          <div class="csd-ms" data-ms="vendedor">
+            <button type="button" class="csd-ms-btn" id="fVendedorBtn" aria-haspopup="listbox" aria-expanded="false">Todos</button>
+            <div class="csd-ms-panel" id="fVendedorPanel">
+              <input type="search" id="fVendedorSearch" placeholder="Buscar vendedor" autocomplete="off">
+              <div class="csd-ms-list" id="fVendedorList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="csd-field">
+          <span>Grupo</span>
+          <div class="csd-ms" data-ms="grupo_cliente">
+            <button type="button" class="csd-ms-btn" id="fGrupoClienteBtn" aria-haspopup="listbox" aria-expanded="false">Todos</button>
+            <div class="csd-ms-panel" id="fGrupoClientePanel">
+              <input type="search" id="fGrupoClienteSearch" placeholder="Buscar grupo" autocomplete="off">
+              <div class="csd-ms-list" id="fGrupoClienteList"></div>
+            </div>
+          </div>
+        </div>
+        <div class="csd-field">
+          <span>Região</span>
+          <div class="csd-ms" data-ms="regiao">
+            <button type="button" class="csd-ms-btn" id="fRegiaoBtn" aria-haspopup="listbox" aria-expanded="false">Todas</button>
+            <div class="csd-ms-panel" id="fRegiaoPanel">
+              <input type="search" id="fRegiaoSearch" placeholder="Buscar região" autocomplete="off">
+              <div class="csd-ms-list" id="fRegiaoList"></div>
+            </div>
+          </div>
+        </div>
         <button type="button" id="btnLimpar">Limpar</button>
         <button type="button" id="btnAtualizar">Atualizar</button>
       </div>
@@ -576,14 +632,14 @@ $canUsages = !empty($this->data['can_usages']);
     <section class="csd-grid">
       <div class="csd-panel">
         <h2>Evolução mensal</h2>
-        <p class="panel-sub">Faturamento líquido · clique em um ponto para isolar o mês</p>
+        <p class="panel-sub">Faturamento líquido · clique para marcar um ou mais meses</p>
         <div class="csd-chart" style="height:250px;">
           <canvas id="chartEvolucao" aria-label="Evolução mensal do faturamento líquido"></canvas>
         </div>
       </div>
       <div class="csd-panel">
         <h2>Vendas por grupo de cliente</h2>
-        <p class="panel-sub">Participação no faturamento líquido</p>
+        <p class="panel-sub">Participação no faturamento líquido · clique para marcar um ou mais grupos</p>
         <div id="legendGrupo" class="csd-legend"></div>
         <div class="csd-chart" style="height:190px;">
           <canvas id="chartGrupoCliente" aria-label="Participação por grupo de cliente"></canvas>
@@ -594,7 +650,7 @@ $canUsages = !empty($this->data['can_usages']);
     <section class="csd-grid-2">
       <div class="csd-panel">
         <h2>Top vendedores</h2>
-        <p class="panel-sub">Faturamento líquido · top 10 visíveis, role para ver mais</p>
+        <p class="panel-sub">Faturamento líquido · clique para marcar um ou mais · top 10 visíveis, role para ver mais</p>
         <div class="csd-chart csd-chart-scroll">
           <div class="csd-chart-inner">
             <canvas id="chartVendedores" aria-label="Faturamento por vendedor"></canvas>
@@ -603,7 +659,7 @@ $canUsages = !empty($this->data['can_usages']);
       </div>
       <div class="csd-panel">
         <h2>Vendas por região</h2>
-        <p class="panel-sub">Por UF · top 10 visíveis, role para ver mais</p>
+        <p class="panel-sub">Por UF · clique para marcar uma ou mais · top 10 visíveis, role para ver mais</p>
         <div class="csd-chart csd-chart-scroll">
           <div class="csd-chart-inner">
             <canvas id="chartRegiao" aria-label="Faturamento por região"></canvas>
@@ -660,4 +716,4 @@ $canUsages = !empty($this->data['can_usages']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=20"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=21"></script>

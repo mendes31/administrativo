@@ -51,16 +51,57 @@
     periodo: '12',
     date_from: '',
     date_to: '',
-    vendedor: null,
-    grupo_cliente: null,
-    regiao: null,
-    grupo_item: null,
-    ano_mes: null,
-    card_code: null,
-    card_label: null,
-    item_code: null,
-    item_label: null
+    vendedor: [],
+    grupo_cliente: [],
+    regiao: [],
+    grupo_item: [],
+    ano_mes: [],
+    card_code: [],
+    card_labels: {},
+    item_code: [],
+    item_labels: {}
   };
+  const MULTI_FILTERS = [
+    { campo: 'vendedor', btn: 'fVendedorBtn', panel: 'fVendedorPanel', list: 'fVendedorList', search: 'fVendedorSearch', empty: 'Todos', opcao: 'vendedores' },
+    { campo: 'grupo_cliente', btn: 'fGrupoClienteBtn', panel: 'fGrupoClientePanel', list: 'fGrupoClienteList', search: 'fGrupoClienteSearch', empty: 'Todos', opcao: 'grupos_cliente' },
+    { campo: 'regiao', btn: 'fRegiaoBtn', panel: 'fRegiaoPanel', list: 'fRegiaoList', search: 'fRegiaoSearch', empty: 'Todas', opcao: 'regioes' }
+  ];
+  let msDebounce = null;
+
+  function valoresFiltro(campo) {
+    const v = filtro[campo];
+    if (v == null || v === '') return [];
+    return Array.isArray(v) ? v.filter((x) => x != null && x !== '') : [v];
+  }
+
+  function filtroAtivo(campo) {
+    return valoresFiltro(campo).length > 0;
+  }
+
+  function filtroTem(campo, valor) {
+    return valoresFiltro(campo).indexOf(valor) >= 0;
+  }
+
+  function setListaFiltro(campo, lista) {
+    const uniq = [];
+    (lista || []).forEach((v) => {
+      if (v != null && v !== '' && uniq.indexOf(v) < 0) uniq.push(v);
+    });
+    filtro[campo] = uniq;
+  }
+
+  function rotuloLista(campo, emptyLabel) {
+    const vals = valoresFiltro(campo);
+    if (!vals.length) return emptyLabel;
+    if (vals.length === 1) return labelFiltro(campo, vals[0]);
+    return vals.length + ' selecionados';
+  }
+
+  function labelFiltro(campo, valor) {
+    if (campo === 'card_code') return (filtro.card_labels && filtro.card_labels[valor]) || valor;
+    if (campo === 'item_code') return (filtro.item_labels && filtro.item_labels[valor]) || valor;
+    return valor;
+  }
   let charts = {};
   let abortCtrl = null;
   let opcoesCache = null;
@@ -153,27 +194,83 @@
     }
   }
 
-  function preencherSelect(id, itens, selecionado) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    const current = selecionado == null ? el.value : selecionado;
-    el.innerHTML = '<option value="">' + (id === 'fRegiao' ? 'Todas' : 'Todos') + '</option>';
-    (itens || []).forEach((v) => {
-      const opt = document.createElement('option');
-      opt.value = v;
-      opt.textContent = v;
-      el.appendChild(opt);
+  function preencherMulti(cfg, itens) {
+    const list = document.getElementById(cfg.list);
+    const search = document.getElementById(cfg.search);
+    if (!list) return;
+    const q = ((search && search.value) || '').trim().toLowerCase();
+    const selected = valoresFiltro(cfg.campo);
+    const rows = (itens || []).filter((v) => !q || String(v).toLowerCase().indexOf(q) >= 0);
+    if (!rows.length) {
+      list.innerHTML = '<div class="csd-ms-empty">Nenhuma opção</div>';
+      atualizarBotaoMulti(cfg);
+      return;
+    }
+    list.innerHTML = rows.map((v) => {
+      const checked = selected.indexOf(v) >= 0 ? ' checked' : '';
+      return '<label class="csd-ms-opt"><input type="checkbox" value="' + escapeHtml(v) + '"' + checked + '>' +
+        '<span>' + escapeHtml(v) + '</span></label>';
+    }).join('');
+    list.querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener('change', () => {
+        const atual = valoresFiltro(cfg.campo).slice();
+        const val = cb.value;
+        const i = atual.indexOf(val);
+        if (cb.checked && i < 0) atual.push(val);
+        if (!cb.checked && i >= 0) atual.splice(i, 1);
+        setListaFiltro(cfg.campo, atual);
+        atualizarBotaoMulti(cfg);
+        atualizarResumoFiltros();
+        aplicarFiltrosDebounced();
+      });
     });
-    el.value = current || '';
+    atualizarBotaoMulti(cfg);
+  }
+
+  function atualizarBotaoMulti(cfg) {
+    const btn = document.getElementById(cfg.btn);
+    if (!btn) return;
+    const txt = rotuloLista(cfg.campo, cfg.empty);
+    btn.textContent = txt;
+    btn.title = valoresFiltro(cfg.campo).join(', ') || cfg.empty;
+    btn.classList.toggle('has-value', filtroAtivo(cfg.campo));
+  }
+
+  function fecharPaineisMulti(exceto) {
+    MULTI_FILTERS.forEach((cfg) => {
+      const panel = document.getElementById(cfg.panel);
+      const btn = document.getElementById(cfg.btn);
+      if (!panel || cfg === exceto) return;
+      panel.classList.remove('is-open');
+      if (btn) btn.setAttribute('aria-expanded', 'false');
+    });
+  }
+
+  function posicionarPainelMulti(btn, panel) {
+    const r = btn.getBoundingClientRect();
+    const width = Math.max(r.width, 260);
+    let left = r.left;
+    if (left + width > window.innerWidth - 8) {
+      left = Math.max(8, window.innerWidth - width - 8);
+    }
+    panel.style.left = left + 'px';
+    panel.style.top = (r.bottom + 4) + 'px';
+    panel.style.minWidth = width + 'px';
+  }
+
+  function aplicarFiltrosDebounced() {
+    if (msDebounce) clearTimeout(msDebounce);
+    msDebounce = setTimeout(() => {
+      msDebounce = null;
+      carregar();
+    }, 350);
   }
 
   function sincronizarToolbar() {
     document.getElementById('fPeriodo').value = String(filtro.periodo || '12');
     document.getElementById('fDateFrom').value = filtro.date_from || '';
     document.getElementById('fDateTo').value = filtro.date_to || '';
-    document.getElementById('fVendedor').value = filtro.vendedor || '';
-    document.getElementById('fGrupoCliente').value = filtro.grupo_cliente || '';
-    document.getElementById('fRegiao').value = filtro.regiao || '';
+    MULTI_FILTERS.forEach(atualizarBotaoMulti);
     toggleCustomDates();
     atualizarResumoFiltros();
   }
@@ -186,11 +283,11 @@
     if (periodoEl && periodoEl.selectedIndex >= 0) {
       partes.push(periodoEl.options[periodoEl.selectedIndex].text);
     }
-    if (filtro.vendedor) partes.push(filtro.vendedor);
-    if (filtro.grupo_cliente) partes.push(filtro.grupo_cliente);
-    if (filtro.regiao) partes.push(filtro.regiao);
-    if (filtro.card_code) partes.push(filtro.card_label || filtro.card_code);
-    if (filtro.item_code) partes.push(filtro.item_label || filtro.item_code);
+    if (filtroAtivo('vendedor')) partes.push(rotuloLista('vendedor', 'Vendedor'));
+    if (filtroAtivo('grupo_cliente')) partes.push(rotuloLista('grupo_cliente', 'Grupo'));
+    if (filtroAtivo('regiao')) partes.push(rotuloLista('regiao', 'Região'));
+    if (filtroAtivo('card_code')) partes.push(rotuloLista('card_code', 'Cliente'));
+    if (filtroAtivo('item_code')) partes.push(rotuloLista('item_code', 'Item'));
     el.textContent = partes.join(' · ');
   }
 
@@ -207,41 +304,51 @@
     atualizarResumoFiltros();
   }
 
-  function chipTexto(campo) {
-    if (campo === 'card_code') return filtro.card_label || filtro.card_code;
-    if (campo === 'item_code') return filtro.item_label || filtro.item_code;
-    return filtro[campo];
-  }
-
   function renderChips() {
     const campos = ['vendedor', 'grupo_cliente', 'regiao', 'grupo_item', 'ano_mes', 'card_code', 'item_code'];
-    const ativos = campos.filter((c) => filtro[c]);
     const el = document.getElementById('chipsRow');
-    el.innerHTML = ativos.map((c) =>
-      '<span class="csd-chip">' + rotulos[c] + ': ' + escapeHtml(chipTexto(c)) +
-      '<button type="button" data-campo="' + c + '" aria-label="Remover filtro">×</button></span>'
-    ).join('');
+    const html = [];
+    campos.forEach((c) => {
+      valoresFiltro(c).forEach((valor) => {
+        html.push(
+          '<span class="csd-chip">' + rotulos[c] + ': ' + escapeHtml(labelFiltro(c, valor)) +
+          '<button type="button" data-campo="' + c + '" data-valor="' + escapeHtml(valor) +
+          '" aria-label="Remover filtro">×</button></span>'
+        );
+      });
+    });
+    el.innerHTML = html.join('');
     el.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
         const campo = btn.getAttribute('data-campo');
-        filtro[campo] = null;
-        if (campo === 'card_code') filtro.card_label = null;
-        if (campo === 'item_code') filtro.item_label = null;
+        const valor = btn.getAttribute('data-valor');
+        removerValorFiltro(campo, valor);
         sincronizarToolbar();
+        if (opcoesCache) {
+          MULTI_FILTERS.forEach((cfg) => {
+            if (cfg.campo === campo) preencherMulti(cfg, opcoesCache[cfg.opcao] || []);
+          });
+        }
         carregar();
       });
     });
   }
 
+  function removerValorFiltro(campo, valor) {
+    setListaFiltro(campo, valoresFiltro(campo).filter((v) => v !== valor));
+    if (campo === 'card_code' && filtro.card_labels) delete filtro.card_labels[valor];
+    if (campo === 'item_code' && filtro.item_labels) delete filtro.item_labels[valor];
+  }
+
   function corCategoria(campo, valor, corPadrao) {
-    if (!filtro[campo]) return corPadrao;
-    return filtro[campo] === valor ? COR_SELECIONADO : COR_DIM;
+    if (!filtroAtivo(campo)) return corPadrao;
+    return filtroTem(campo, valor) ? COR_SELECIONADO : COR_DIM;
   }
 
   function corBarra(campo, valor, index) {
     const base = PALETA_BARRAS[index % PALETA_BARRAS.length];
-    if (!filtro[campo]) return base;
-    return filtro[campo] === valor ? COR_SELECIONADO : COR_DIM;
+    if (!filtroAtivo(campo)) return base;
+    return filtroTem(campo, valor) ? COR_SELECIONADO : COR_DIM;
   }
 
   function truncLabel(s, max) {
@@ -506,22 +613,37 @@
   }
 
   function toggleFiltro(campo, valor) {
-    filtro[campo] = filtro[campo] === valor ? null : valor;
+    if (msDebounce) {
+      clearTimeout(msDebounce);
+      msDebounce = null;
+    }
+    if (!valor) return;
+    const atual = valoresFiltro(campo).slice();
+    const i = atual.indexOf(valor);
+    if (i >= 0) atual.splice(i, 1);
+    else atual.push(valor);
+    setListaFiltro(campo, atual);
+    if (i >= 0) {
+      if (campo === 'card_code' && filtro.card_labels) delete filtro.card_labels[valor];
+      if (campo === 'item_code' && filtro.item_labels) delete filtro.item_labels[valor];
+    }
     sincronizarToolbar();
+    if (opcoesCache) {
+      MULTI_FILTERS.forEach((cfg) => {
+        if (cfg.campo === campo) preencherMulti(cfg, opcoesCache[cfg.opcao] || []);
+      });
+    }
     carregar();
   }
 
   function toggleFiltroComLabel(campo, valor, labelCampo, labelValor) {
     if (!valor) return;
-    if (filtro[campo] === valor) {
-      filtro[campo] = null;
-      if (labelCampo) filtro[labelCampo] = null;
-    } else {
-      filtro[campo] = valor;
-      if (labelCampo) filtro[labelCampo] = labelValor || valor;
+    const mapKey = campo === 'card_code' ? 'card_labels' : (campo === 'item_code' ? 'item_labels' : labelCampo);
+    if (!filtroTem(campo, valor) && mapKey && labelValor) {
+      filtro[mapKey] = filtro[mapKey] || {};
+      filtro[mapKey][valor] = labelValor;
     }
-    sincronizarToolbar();
-    carregar();
+    toggleFiltro(campo, valor);
   }
 
   function onClickChart(campo) {
@@ -541,13 +663,16 @@
       if (filtro.date_from) params.set('date_from', filtro.date_from);
       if (filtro.date_to) params.set('date_to', filtro.date_to);
     }
-    if (filtro.vendedor) params.set('vendedor', filtro.vendedor);
-    if (filtro.grupo_cliente) params.set('grupo_cliente', filtro.grupo_cliente);
-    if (filtro.regiao) params.set('regiao', filtro.regiao);
-    if (filtro.grupo_item) params.set('grupo_item', filtro.grupo_item);
-    if (filtro.ano_mes) params.set('ano_mes', filtro.ano_mes);
-    if (filtro.card_code) params.set('card_code', filtro.card_code);
-    if (filtro.item_code) params.set('item_code', filtro.item_code);
+    const appendList = (key, campo) => {
+      valoresFiltro(campo).forEach((v) => params.append(key, v));
+    };
+    appendList('vendedor[]', 'vendedor');
+    appendList('grupo_cliente[]', 'grupo_cliente');
+    appendList('regiao[]', 'regiao');
+    appendList('grupo_item[]', 'grupo_item');
+    appendList('ano_mes[]', 'ano_mes');
+    appendList('card_code[]', 'card_code');
+    appendList('item_code[]', 'item_code');
     return params.toString();
   }
 
@@ -608,13 +733,9 @@
     if (data.filtros_opcoes && (opcoesPeriodoKey !== pKey || !opcoesCache)) {
       opcoesCache = data.filtros_opcoes;
       opcoesPeriodoKey = pKey;
-      preencherSelect('fVendedor', opcoesCache.vendedores || [], filtro.vendedor);
-      preencherSelect('fGrupoCliente', opcoesCache.grupos_cliente || [], filtro.grupo_cliente);
-      preencherSelect('fRegiao', opcoesCache.regioes || [], filtro.regiao);
-    } else {
-      document.getElementById('fVendedor').value = filtro.vendedor || '';
-      document.getElementById('fGrupoCliente').value = filtro.grupo_cliente || '';
-      document.getElementById('fRegiao').value = filtro.regiao || '';
+    }
+    if (opcoesCache) {
+      MULTI_FILTERS.forEach((cfg) => preencherMulti(cfg, opcoesCache[cfg.opcao] || []));
     }
 
     document.getElementById('periodoResumo').textContent =
@@ -676,7 +797,7 @@
           fill: true,
           tension: 0.35,
           borderWidth: 2,
-          pointRadius: evolucao.map((x) => (filtro.ano_mes === x.label ? 6 : 3)),
+          pointRadius: evolucao.map((x) => (filtroTem('ano_mes', x.label) ? 6 : 3)),
           pointBackgroundColor: evolucao.map((x) => corCategoria('ano_mes', x.label, COR_BASE))
         }]
       },
@@ -695,7 +816,7 @@
     const grupos = series.grupo_cliente || [];
     const totalGrupos = grupos.reduce((s, g) => s + g.valor, 0) || 1;
     document.getElementById('legendGrupo').innerHTML = grupos.map((g, i) =>
-      '<span class="item' + (filtro.grupo_cliente && filtro.grupo_cliente !== g.label ? ' dim' : '') +
+      '<span class="item' + (filtroAtivo('grupo_cliente') && !filtroTem('grupo_cliente', g.label) ? ' dim' : '') +
       '" data-valor="' + g.label.replace(/"/g, '&quot;') + '"><span class="dot" style="background:' +
       PALETA_GRUPO[i % PALETA_GRUPO.length] + '"></span>' + g.label + ' · ' +
       Math.round(g.valor / totalGrupos * 100) + '%</span>'
@@ -710,9 +831,7 @@
         datasets: [{
           data: grupos.map((g) => g.valor),
           backgroundColor: grupos.map((g, i) =>
-            filtro.grupo_cliente
-              ? corCategoria('grupo_cliente', g.label, PALETA_GRUPO[i % PALETA_GRUPO.length])
-              : PALETA_GRUPO[i % PALETA_GRUPO.length]
+            corCategoria('grupo_cliente', g.label, PALETA_GRUPO[i % PALETA_GRUPO.length])
           ),
           borderColor: '#fff',
           borderWidth: 2
@@ -740,7 +859,7 @@
     const subEl = document.getElementById('subTopClientes');
     if (subEl) {
       subEl.textContent = clientes.length
-        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · clique na linha para filtrar (de novo para limpar)'
+        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · clique para marcar um ou mais'
         : 'Nenhum cliente no recorte';
     }
     document.getElementById('tblClientes').innerHTML = clientes.length
@@ -750,7 +869,7 @@
         const nome = String(info.cliente || '').trim() || '—';
         const parceiro = (code ? '<span class="cliente-code">' + escapeHtml(code) + '</span>' : '') +
           '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
-        const sel = filtro.card_code && filtro.card_code === code ? ' class="is-selected"' : '';
+        const sel = filtroTem('card_code', code) ? ' class="is-selected"' : '';
         const label = (code ? code + ' · ' : '') + nome;
         return '<tr' + sel + ' data-card-code="' + escapeHtml(code) + '" data-card-label="' + escapeHtml(label) + '">' +
           '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
@@ -780,7 +899,7 @@
     const subItens = document.getElementById('subTopItens');
     if (subItens) {
       subItens.textContent = itens.length
-        ? itens.length + ' item(ns) · ordenado por faturamento líquido · clique na linha para filtrar (de novo para limpar)'
+        ? itens.length + ' item(ns) · ordenado por faturamento líquido · clique para marcar um ou mais'
         : 'Nenhum item no recorte';
     }
     const tblItens = document.getElementById('tblItens');
@@ -792,7 +911,7 @@
           const nome = String(info.item_name || '').trim() || '—';
           const parceiro = (code ? '<span class="cliente-code">' + escapeHtml(code) + '</span>' : '') +
             '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
-          const sel = filtro.item_code && filtro.item_code === code ? ' class="is-selected"' : '';
+          const sel = filtroTem('item_code', code) ? ' class="is-selected"' : '';
           const label = (code ? code + ' · ' : '') + nome;
           return '<tr' + sel + ' data-item-code="' + escapeHtml(code) + '" data-item-label="' + escapeHtml(label) + '">' +
             '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
@@ -918,18 +1037,6 @@
     filtro.date_to = e.target.value || '';
     opcoesCache = null;
   });
-  document.getElementById('fVendedor').addEventListener('change', (e) => {
-    filtro.vendedor = e.target.value || null;
-    carregar();
-  });
-  document.getElementById('fGrupoCliente').addEventListener('change', (e) => {
-    filtro.grupo_cliente = e.target.value || null;
-    carregar();
-  });
-  document.getElementById('fRegiao').addEventListener('change', (e) => {
-    filtro.regiao = e.target.value || null;
-    carregar();
-  });
   const tblClientes = document.getElementById('tblClientes');
   if (tblClientes) {
     tblClientes.addEventListener('click', (e) => {
@@ -937,7 +1044,7 @@
       if (!tr) return;
       const code = tr.getAttribute('data-card-code');
       if (!code) return;
-      toggleFiltroComLabel('card_code', code, 'card_label', tr.getAttribute('data-card-label') || code);
+      toggleFiltroComLabel('card_code', code, 'card_labels', tr.getAttribute('data-card-label') || code);
     });
   }
   const tblItens = document.getElementById('tblItens');
@@ -947,23 +1054,54 @@
       if (!tr) return;
       const code = tr.getAttribute('data-item-code');
       if (!code) return;
-      toggleFiltroComLabel('item_code', code, 'item_label', tr.getAttribute('data-item-label') || code);
+      toggleFiltroComLabel('item_code', code, 'item_labels', tr.getAttribute('data-item-label') || code);
     });
   }
+
+  function initMultiFilters() {
+    MULTI_FILTERS.forEach((cfg) => {
+      const btn = document.getElementById(cfg.btn);
+      const panel = document.getElementById(cfg.panel);
+      const search = document.getElementById(cfg.search);
+      if (!btn || !panel) return;
+      btn.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        const open = panel.classList.contains('is-open');
+        fecharPaineisMulti();
+        if (!open) {
+          panel.classList.add('is-open');
+          btn.setAttribute('aria-expanded', 'true');
+          posicionarPainelMulti(btn, panel);
+          if (search) {
+            search.value = '';
+            if (opcoesCache) preencherMulti(cfg, opcoesCache[cfg.opcao] || []);
+            search.focus();
+          }
+        }
+      });
+      panel.addEventListener('click', (ev) => ev.stopPropagation());
+      if (search) {
+        search.addEventListener('input', () => {
+          if (opcoesCache) preencherMulti(cfg, opcoesCache[cfg.opcao] || []);
+        });
+      }
+    });
+  }
+  initMultiFilters();
   document.getElementById('btnLimpar').addEventListener('click', () => {
     filtro = {
       periodo: '12',
       date_from: '',
       date_to: '',
-      vendedor: null,
-      grupo_cliente: null,
-      regiao: null,
-      grupo_item: null,
-      ano_mes: null,
-      card_code: null,
-      card_label: null,
-      item_code: null,
-      item_label: null
+      vendedor: [],
+      grupo_cliente: [],
+      regiao: [],
+      grupo_item: [],
+      ano_mes: [],
+      card_code: [],
+      card_labels: {},
+      item_code: [],
+      item_labels: {}
     };
     opcoesCache = null;
     opcoesPeriodoKey = '';
@@ -1019,10 +1157,22 @@
   root.querySelectorAll('.csd-kpi-tip').forEach((tip) => {
     tip.addEventListener('click', (ev) => ev.stopPropagation());
   });
-  document.addEventListener('click', () => fecharKpiTips());
-  document.addEventListener('keydown', (ev) => {
-    if (ev.key === 'Escape') fecharKpiTips();
+  document.addEventListener('click', () => {
+    fecharKpiTips();
+    fecharPaineisMulti();
   });
+  document.addEventListener('keydown', (ev) => {
+    if (ev.key === 'Escape') {
+      fecharKpiTips();
+      fecharPaineisMulti();
+    }
+  });
+  window.addEventListener('resize', () => fecharPaineisMulti());
+  window.addEventListener('scroll', (ev) => {
+    const t = ev.target;
+    if (t && t.closest && t.closest('.csd-ms-panel')) return;
+    fecharPaineisMulti();
+  }, true);
 
   sincronizarToolbar();
   carregar();

@@ -36,7 +36,7 @@
     <dt>Sync no 1º acesso do dia</dt>
     <dd>Ao abrir o painel pela primeira vez no dia, o sistema sincroniza o incremento automaticamente (com lock para não duplicar). Demais acessos/filtros no mesmo dia leem só o cache.</dd>
     <dt>Cross-filter</dt>
-    <dd>Clique em barra, fatia, ponto ou em uma linha das tabelas Top clientes / Itens vendidos aplica o filtro ao painel inteiro; clique de novo ou use os chips para remover.</dd>
+    <dd>Clique em barra, fatia, ponto ou em uma linha das tabelas aplica o filtro ao painel; clique de novo para desmarcar. Dá para marcar <strong>vários</strong> vendedores, grupos, regiões, meses, clientes ou itens ao mesmo tempo (lista com caixas na barra, ou cliques sucessivos nos gráficos/tabelas). Os chips laranja removem um a um.</dd>
 </dl>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>; classificação de utilizações via <em>CrmListSalesUsages</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
@@ -48,8 +48,8 @@
     <li>Classifique as utilizações em <strong>CRM → Utilizações de venda SAP</strong> (venda, bonificação, brinde ou ignorar). Até classificar, entram como venda.</li>
     <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
     <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
-    <li>Opcionalmente filtre por vendedor, grupo de cliente ou região na barra de ferramentas (use <strong>Expandir filtros</strong> se estiver recolhida). Com a barra aberta, todos os campos e botões ficam na mesma linha.</li>
-    <li>Clique em gráficos (evolução, grupo de cliente, vendedor, região) ou em uma linha de <strong>Top clientes</strong> / <strong>Itens vendidos</strong> para refinar; clique de novo ou use chips / <strong>Limpar</strong>.</li>
+    <li>Opcionalmente filtre por um ou mais vendedores, grupos de cliente ou regiões na barra (caixas de seleção; use <strong>Expandir filtros</strong> se estiver recolhida).</li>
+    <li>Clique em gráficos (evolução, grupo de cliente, vendedor, região) ou em linhas de <strong>Top clientes</strong> / <strong>Itens vendidos</strong> para ir somando filtros; clique de novo ou use chips / <strong>Limpar</strong>.</li>
     <li>Para forçar atualização no meio do dia, use <strong>Atualizar agora (incremental)</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
     <li>Confira no rodapé/meta a data da última sincronização (fonte do sync: CTE).</li>
 </ol>
@@ -57,15 +57,13 @@
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Período</strong> Presets: mês atual, mês anterior, últimos 3/6/12/24/36 meses, ano atual (YTD), ano anterior; ou <em>Personalizado</em> com data início e data fim (máx. 36 meses). Padrão: últimos 12 meses.</div>
 <div class="help-field"><strong>Data início / Data fim</strong> Visíveis só no período personalizado; aplicadas ao clicar em <strong>Atualizar</strong> (<code>date_from</code>/<code>date_to</code> na API).</div>
-<div class="help-field"><strong>Vendedor</strong> Nome do vendedor SAP (<code>OSLP.SlpName</code>).</div>
-<div class="help-field"><strong>Grupo de cliente</strong> Grupo do PN (<code>OCRG.GroupName</code>).</div>
-<div class="help-field"><strong>Região</strong> Preferência pelo território SAP (<code>OTER.descript</code>); se vazio no cadastro do PN, usa a <strong>UF</strong> (<code>OCRD.State1</code>). Sem ambos: “Sem região”.</div>
+<div class="help-field"><strong>Vendedor / Grupo / Região</strong> Cada campo aceita várias opções ao mesmo tempo. Abra a lista, marque as caixas (há busca) ou clique nos gráficos. Vazio = todos. Vendedor = <code>OSLP.SlpName</code>; grupo = <code>OCRG.GroupName</code>; região = território SAP (<code>OTER.descript</code>) ou UF (<code>OCRD.State1</code>); sem ambos: “Sem região”.</div>
 <div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> com a regra. Faturamento líquido = faturas − devoluções das linhas de <em>venda</em>. Devoluções (valor) = reais em ORIN de venda; a contagem é de <em>linhas de item</em>, não de notas. Taxa = devolvido ÷ faturamento bruto. Ticket = líquido ÷ clientes ativos. Valores em reais com centavos.</div>
 <div class="help-field"><strong>KPIs</strong> Quatro grupos: <em>Faturamento</em> (líquido, devoluções, taxa, ticket); <em>Venda e desconto</em> (itens vendidos, desconto em R$, % desconto); <em>Bonificação</em> (valor, itens, %); <em>Brindes</em> (valor, itens, %). Bonificação e brinde dependem da classificação em <em>Utilizações de venda SAP</em>.</div>
 <div class="help-field"><strong>Classificar utilizações</strong> Atalho para <em>crm-list-sales-usages</em>. Sem classificar, bonificação/brinde infla o faturamento (tratados como venda).</div>
-<div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Clique na linha para filtrar o painel por aquele cliente: a tabela fica só com ele (e os demais widgets acompanham). Clique de novo ou no chip para desfazer. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte filtrado.</div>
-<div class="help-field"><strong>Filtros</strong> Barra compacta com período, vendedor, grupo de cliente e região. <em>Expandir/Colapsar filtros</em> recolhe os campos; ao expandir, tudo permanece numa única linha. O texto de ajuda da barra foi removido — o clique nos gráficos continua filtrando.</div>
-<div class="help-field"><strong>Itens vendidos</strong> Ranking dos SKUs do recorte (só natureza venda), ordenado por líquido decrescente, com rolagem. Clique na linha para filtrar o painel por aquele item: a tabela fica só com ele. Código SAP, descrição, quantidade líquida, líquido e devolução (sem coluna de grupo de item). O rodapé soma o recorte filtrado.</div>
+<div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Clique nas linhas para marcar um ou mais clientes (as linhas ficam destacadas; os KPIs somam só os marcados). Clique de novo ou no chip para desfazer. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte da lista.</div>
+<div class="help-field"><strong>Filtros</strong> Barra compacta com período e listas de múltipla escolha (vendedor, grupo de cliente, região). <em>Expandir/Colapsar filtros</em> recolhe os campos. Clique nos gráficos e nas tabelas soma filtros do mesmo tipo.</div>
+<div class="help-field"><strong>Itens vendidos</strong> Ranking dos SKUs do recorte (só natureza venda), ordenado por líquido decrescente, com rolagem. Clique nas linhas para marcar um ou mais itens. Código SAP, descrição, quantidade líquida, líquido e devolução. O rodapé soma a lista visível.</div>
 <div class="help-field"><strong>API dados</strong> Endpoint <code>crm-sales-dashboard-data</code> agrega só no MySQL (resposta rápida ao trocar filtros).</div>
 <div class="help-field"><strong>API sync</strong> Endpoint <code>crm-sales-dashboard-sync</code> — somente <code>incremental</code> na web. Full sync apenas via CLI.</div>
 <div class="help-field"><strong>CLI / cron</strong> <code>php scripts/sync_crm_sales_sap.php</code> (incremental), <code>--full</code> (36 meses). Cron opcional se não quiser depender do 1º acesso do dia.</div>
@@ -93,7 +91,7 @@
     <dt>Painel rápido, mas números “atrasados”</dt>
     <dd>Esperado: o painel lê MySQL. Use <strong>Atualizar agora (incremental)</strong> ou abra o painel (1º acesso do dia). Cancelamentos/ajustes recentes entram no overlap de 3 dias.</dd>
     <dt>Só aparece 1 cliente / 1 item na tabela</dt>
-    <dd>Esperado se você clicou na linha: o filtro isola aquele parceiro ou SKU. Clique de novo na linha, no chip laranja ou em <strong>Limpar</strong> para voltar à listagem completa.</dd>
+    <dd>A lista completa continua visível; a linha marcada fica destacada. Clique em outras linhas para somar ao filtro, ou no chip / <strong>Limpar</strong> para voltar aos totais gerais.</dd>
     <dt>Só aparecem 10 clientes no Top clientes (ou poucos itens no ranking)</dt>
     <dd>A lista traz todos; a caixa tem altura fixa com rolagem. Role para baixo — o cabeçalho e o total ficam fixos. Confira se há filtro ativo no painel.</dd>
     <dt>Barras com valor muito alto (ex.: TERCEIROS / SP)</dt>

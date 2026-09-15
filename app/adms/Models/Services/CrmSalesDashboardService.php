@@ -34,13 +34,13 @@ class CrmSalesDashboardService
      *   periodo?: int|string,
      *   date_from?: string,
      *   date_to?: string,
-     *   vendedor?: string|null,
-     *   grupo_cliente?: string|null,
-     *   regiao?: string|null,
-     *   grupo_item?: string|null,
-     *   ano_mes?: string|null,
-     *   card_code?: string|null,
-     *   item_code?: string|null
+     *   vendedor?: string|list<string>|null,
+     *   grupo_cliente?: string|list<string>|null,
+     *   regiao?: string|list<string>|null,
+     *   grupo_item?: string|list<string>|null,
+     *   ano_mes?: string|list<string>|null,
+     *   card_code?: string|list<string>|null,
+     *   item_code?: string|list<string>|null
      * } $filters
      */
     public function getDashboardData(array $filters): array
@@ -53,13 +53,13 @@ class CrmSalesDashboardService
 
         $range = $this->resolveDateRange($filters);
         $dims = [
-            'vendedor' => $this->trimOrNull($filters['vendedor'] ?? null),
-            'grupo_cliente' => $this->trimOrNull($filters['grupo_cliente'] ?? null),
-            'regiao' => $this->trimOrNull($filters['regiao'] ?? null),
-            'grupo_item' => $this->trimOrNull($filters['grupo_item'] ?? null),
-            'ano_mes' => $this->trimOrNull($filters['ano_mes'] ?? null),
-            'card_code' => $this->trimOrNull($filters['card_code'] ?? null),
-            'item_code' => $this->trimOrNull($filters['item_code'] ?? null),
+            'vendedor' => $this->toList($filters['vendedor'] ?? null),
+            'grupo_cliente' => $this->toList($filters['grupo_cliente'] ?? null),
+            'regiao' => $this->toList($filters['regiao'] ?? null),
+            'grupo_item' => $this->toList($filters['grupo_item'] ?? null),
+            'ano_mes' => $this->toList($filters['ano_mes'] ?? null),
+            'card_code' => $this->toList($filters['card_code'] ?? null),
+            'item_code' => $this->toList($filters['item_code'] ?? null),
         ];
 
         $from = $range['from']->format('Y-m-d');
@@ -81,7 +81,7 @@ class CrmSalesDashboardService
                     'date_to' => $to,
                     'meses' => $meses,
                 ],
-                'filtros_ativos' => array_filter($dims, static fn ($v) => $v !== null),
+                'filtros_ativos' => array_filter($dims, static fn ($v) => $v !== null && $v !== []),
                 'filtros_opcoes' => [
                     'vendedores' => [],
                     'grupos_cliente' => [],
@@ -126,21 +126,13 @@ class CrmSalesDashboardService
         $warning = $unclassified > 0
             ? $unclassified . ' utilização(ões) SAP ainda não classificada(s); até classificar, entram como venda. Use CRM → Utilizações de venda SAP.'
             : null;
-        $cacheDates = $this->repo->minMaxDates();
-        $cacheTo = $cacheDates['max'] ?? null;
-        if (is_string($cacheTo) && $cacheTo !== '' && $to > $cacheTo) {
-            $cacheMsg = 'O cache de vendas só vai até '
-                . (DateTimeImmutable::createFromFormat('!Y-m-d', substr($cacheTo, 0, 10))?->format('d/m/Y') ?: $cacheTo)
-                . '. Notas depois dessa data não entram nos cards. Rode php scripts/sync_crm_sales_sap.php --full.';
-            $warning = $warning !== null ? $warning . ' ' . $cacheMsg : $cacheMsg;
-        }
 
         $evolucao = $this->repo->fetchGroupSum($from, $to, $dims, 'ano_mes', 'ano_mes', true);
         $porGrupoCliente = $this->repo->fetchGroupSum($from, $to, $dims, 'grupo_cliente', 'grupo_cliente');
         $porVendedor = $this->repo->fetchGroupSum($from, $to, $dims, 'vendedor', 'vendedor');
         $porRegiao = $this->repo->fetchGroupSum($from, $to, $dims, 'regiao', 'regiao');
-        $topClientes = $this->repo->fetchTopClientes($from, $to, $dims);
-        $topItens = $this->repo->fetchTopItens($from, $to, $dims);
+        $topClientes = $this->repo->fetchTopClientes($from, $to, $dims, 'card_code');
+        $topItens = $this->repo->fetchTopItens($from, $to, $dims, 'item_code');
         $opcoes = $this->repo->fetchFilterOptions($from, $to);
 
         $meses = $this->listAnoMesInRange($range);
@@ -158,7 +150,7 @@ class CrmSalesDashboardService
                 'date_to' => $to,
                 'meses' => $meses,
             ],
-            'filtros_ativos' => array_filter($dims, static fn ($v) => $v !== null),
+            'filtros_ativos' => array_filter($dims, static fn ($v) => $v !== null && $v !== []),
             'filtros_opcoes' => $opcoes,
             'kpis' => [
                 'faturamento_liquido' => $liquido,
@@ -367,12 +359,28 @@ class CrmSalesDashboardService
         return $out;
     }
 
-    private function trimOrNull(mixed $value): ?string
+    /**
+     * @return list<string>|null
+     */
+    private function toList(mixed $value): ?array
     {
-        if ($value === null) {
+        if ($value === null || $value === '') {
             return null;
         }
-        $s = trim((string) $value);
-        return $s === '' ? null : $s;
+        if (!is_array($value)) {
+            $value = [$value];
+        }
+        $out = [];
+        foreach ($value as $item) {
+            if ($item === null || is_array($item)) {
+                continue;
+            }
+            $s = trim((string) $item);
+            if ($s !== '') {
+                $out[$s] = $s;
+            }
+        }
+        $list = array_values($out);
+        return $list === [] ? null : $list;
     }
 }
