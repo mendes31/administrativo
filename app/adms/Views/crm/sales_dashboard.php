@@ -653,7 +653,7 @@ $canUsages = !empty($this->data['can_usages']);
 
     <footer class="csd-note">
       Fonte: cache MySQL a partir do SAP (HANA). Recorte: OITB <strong>104</strong> e <strong>106</strong>, DocType = I, não canceladas, SeqCode ≠ 34, valor LineTotal − DiscSum. Sem filtro de utilização no SAP; a natureza (venda, devolução comercial, bonificação, brinde, ignorar) é classificada no Portal.
-      Preferência pela VIEW <code>VW_CRM_VENDAS_LINHA</code> no sync; se indisponível ou desatualizada, o sync usa CTE com filtro de data.
+      O sync lê OINV/ORIN via CTE na API SAP (não usa VIEW no HANA).
       Painel: <strong id="csdSource">MySQL</strong>. Este painel é independente do Dashboard CRM de pipeline.
     </footer>
   </div>

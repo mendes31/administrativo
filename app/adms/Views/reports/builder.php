@@ -306,7 +306,7 @@ $csrfToken = CSRFHelper::generateCSRFToken('form_dynamic_report');
                                 <li><code>SELECT name, email FROM adms_users WHERE status = 'Ativo'</code> → Usuários ativos (Local)</li>
                                 <li><code>SELECT TOP 100 * FROM OITM</code> → Itens (SAP B1) 🔷 — sempre use TOP em SAP</li>
                                 <li><code>SELECT CardCode, CardName, Balance FROM OCRD WHERE CardType = 'C'</code> → Clientes (SAP B1) 🔷</li>
-                                <li><code>SELECT TOP 50 * FROM "VW_CRM_VENDAS_LINHA" ORDER BY "DocDate" DESC</code> → Vendas CRM (SAP) 🔷</li>
+                                <li><code>SELECT TOP 50 DocNum, DocDate, CardCode, DocTotal FROM OINV ORDER BY DocDate DESC</code> → Faturas (SAP B1) 🔷</li>
                                 <li><code>SELECT DocNum, DocDate, DocTotal FROM OINV WHERE MONTH(DocDate) = MONTH(CURRENT_DATE)</code> → NFs do mês (SAP B1) 🔷</li>
                             </ul>
                         </div>

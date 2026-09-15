@@ -23,6 +23,7 @@ use Throwable;
  * - CANCELED = N, DocType = I, SeqCode <> 34
  * - Valor: LineTotal − DiscSum (rateado na linha)
  * - Grupos OITB 104 e 106; todas as utilizações (natureza no Portal)
+ * - Fonte SAP: sempre CTE (OINV/ORIN). Não consulta VIEW no HANA.
  *
  * Agendamento recomendado:
  * - Lazy: no 1º acesso do dia ao endpoint de dados, dispara incremental (com lock)
@@ -31,7 +32,6 @@ use Throwable;
  */
 class CrmSalesSapSyncService
 {
-    public const VIEW_NAME = 'VW_CRM_VENDAS_LINHA';
     public const LOOKBACK_MONTHS = 36;
     public const INCREMENTAL_OVERLAP_DAYS = 3;
     /** Códigos OITB (não usar 400/700 — esses números só aparecem no nome do grupo). */
@@ -46,8 +46,6 @@ class CrmSalesSapSyncService
     private SapReportApiService $sap;
     private CrmSalesFactRepository $repo;
     private CrmSalesUsageNatureRepository $usageRepo;
-    private ?bool $viewAvailable = null;
-    private ?bool $viewHasUsage = null;
 
     public function __construct(
         ?SapReportApiService $sap = null,
@@ -150,7 +148,7 @@ class CrmSalesSapSyncService
         }
 
         $range = $this->resolveSyncRange($mode);
-        $source = $this->resolveSource();
+        $source = 'cte';
 
         $runId = $this->repo->createSyncRun([
             'sync_mode' => $mode,
@@ -183,7 +181,7 @@ class CrmSalesSapSyncService
                 }
 
                 // Busca no SAP antes de apagar o MySQL — evita buraco se a API falhar
-                $rows = $this->fetchAggregatedChunk($source, $chunkFrom, $chunkTo);
+                $rows = $this->fetchAggregatedChunk($chunkFrom, $chunkTo);
                 $stats['rows_fetched'] += count($rows);
 
                 $mapped = [];
@@ -323,58 +321,6 @@ class CrmSalesSapSyncService
         return ['from' => $from, 'to' => $hoje];
     }
 
-    public function isViewAvailable(): bool
-    {
-        if ($this->viewAvailable !== null) {
-            return $this->viewAvailable;
-        }
-
-        try {
-            $this->sap->execute(
-                'SELECT TOP 1 1 AS "ok" FROM "' . self::VIEW_NAME . '"'
-            );
-            $this->viewAvailable = true;
-        } catch (Exception $e) {
-            $this->viewAvailable = false;
-            error_log(
-                'CrmSalesSapSync: VIEW ' . self::VIEW_NAME .
-                ' indisponível, usando CTE. ' . $e->getMessage()
-            );
-        }
-
-        return $this->viewAvailable;
-    }
-
-    /**
-     * VIEW só é usada se já tiver CodUtilizacao (script HANA atualizado).
-     */
-    private function resolveSource(): string
-    {
-        if ($this->isViewAvailable() && $this->viewHasUsageColumn()) {
-            return 'view';
-        }
-        return 'cte';
-    }
-
-    private function viewHasUsageColumn(): bool
-    {
-        if ($this->viewHasUsage !== null) {
-            return $this->viewHasUsage;
-        }
-        try {
-            $this->sap->execute(
-                'SELECT TOP 1 "CodUtilizacao" FROM "' . self::VIEW_NAME . '"'
-            );
-            $this->viewHasUsage = true;
-        } catch (Exception $e) {
-            $this->viewHasUsage = false;
-            error_log(
-                'CrmSalesSapSync: VIEW sem CodUtilizacao, usando CTE. ' . $e->getMessage()
-            );
-        }
-        return $this->viewHasUsage;
-    }
-
     private function itemGroupFilterSql(string $itemAlias = 'T4', string $groupAlias = 'T6'): string
     {
         $codes = implode(', ', self::ITEM_GROUP_CODES);
@@ -383,17 +329,6 @@ class CrmSalesSapSyncService
             . ' OR UPPER(IFNULL(' . $groupAlias . '."ItmsGrpNam", \'\')) LIKE \'%PROD ACABADO%\''
             . ' OR UPPER(IFNULL(' . $groupAlias . '."ItmsGrpNam", \'\')) LIKE \'%USO/CONS%\''
             . ' OR UPPER(IFNULL(' . $groupAlias . '."ItmsGrpNam", \'\')) LIKE \'%USO E CONSUMO%\''
-            . ')';
-    }
-
-    private function itemGroupFilterViewSql(string $alias = 'T0'): string
-    {
-        $codes = implode(', ', self::ITEM_GROUP_CODES);
-        return '('
-            . $alias . '."CodGrupoItem" IN (' . $codes . ')'
-            . ' OR UPPER(IFNULL(' . $alias . '."GrupoItem", \'\')) LIKE \'%PROD ACABADO%\''
-            . ' OR UPPER(IFNULL(' . $alias . '."GrupoItem", \'\')) LIKE \'%USO/CONS%\''
-            . ' OR UPPER(IFNULL(' . $alias . '."GrupoItem", \'\')) LIKE \'%USO E CONSUMO%\''
             . ')';
     }
 
@@ -425,13 +360,12 @@ class CrmSalesSapSyncService
      * @return list<array<string, mixed>>
      */
     private function fetchAggregatedChunk(
-        string $source,
         DateTimeImmutable $from,
         DateTimeImmutable $to
     ): array {
         return array_merge(
-            $this->fetchAggregatedPaged($source, $from, $to, 'Fatura'),
-            $this->fetchAggregatedPaged($source, $from, $to, 'Devolucao')
+            $this->fetchAggregatedPaged($from, $to, 'Fatura'),
+            $this->fetchAggregatedPaged($from, $to, 'Devolucao')
         );
     }
 
@@ -439,7 +373,6 @@ class CrmSalesSapSyncService
      * @return list<array<string, mixed>>
      */
     private function fetchAggregatedPaged(
-        string $source,
         DateTimeImmutable $from,
         DateTimeImmutable $to,
         string $tipoDocumento
@@ -449,7 +382,7 @@ class CrmSalesSapSyncService
         $firstKey = null;
         $pages = 0;
         do {
-            $sql = $this->buildAggregatedSql($source, $from, $to, $tipoDocumento)
+            $sql = $this->buildAggregatedSql($from, $to, $tipoDocumento)
                 . ' ORDER BY "DocDate", "CardCode", "ItemCode", "CodUtilizacao"'
                 . ' LIMIT ' . self::SAP_PAGE_SIZE . ' OFFSET ' . $offset;
             try {
@@ -459,7 +392,7 @@ class CrmSalesSapSyncService
                     throw $e;
                 }
                 $result = $this->sap->execute(
-                    $this->buildAggregatedSql($source, $from, $to, $tipoDocumento)
+                    $this->buildAggregatedSql($from, $to, $tipoDocumento)
                 );
                 $page = $result['data'] ?? [];
                 return is_array($page) ? $page : [];
@@ -486,7 +419,6 @@ class CrmSalesSapSyncService
     }
 
     private function buildAggregatedSql(
-        string $source,
         DateTimeImmutable $from,
         DateTimeImmutable $to,
         string $tipoDocumento
@@ -494,14 +426,7 @@ class CrmSalesSapSyncService
         $dateFilter = 'T0."DocDate" >= ' . $this->quoteDate($from)
             . ' AND T0."DocDate" <= ' . $this->quoteDate($to);
         $tipoSql = $tipoDocumento === 'Devolucao' ? 'Devolucao' : 'Fatura';
-
-        if ($source === 'view') {
-            $base = 'SELECT * FROM "' . self::VIEW_NAME . '" T0 WHERE ' . $dateFilter
-                . ' AND T0."TipoDocumento" = \'' . $tipoSql . '\''
-                . ' AND ' . $this->itemGroupFilterViewSql('T0');
-        } else {
-            $base = $this->cteBody($dateFilter, $tipoSql === 'Devolucao');
-        }
+        $base = $this->cteBody($dateFilter, $tipoSql === 'Devolucao');
 
         return 'SELECT
             src."DocDate" AS "DocDate",

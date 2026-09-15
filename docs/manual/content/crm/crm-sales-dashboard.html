@@ -29,8 +29,8 @@
     <dd>Competência mensal do documento (<code>YYYY-MM</code>), usada na evolução e no isolamento de mês.</dd>
     <dt>Cache MySQL</dt>
     <dd>Tabela <code>crm_sales_fact_daily</code> com fatos diários agregados por cliente, item e dimensões comerciais. O painel lê só este cache.</dd>
-    <dt>VIEW <code>VW_CRM_VENDAS_LINHA</code></dt>
-    <dd>Objeto no HANA usado na <em>sincronização</em> (não no carregamento do painel). Sem ela, o sync usa CTE com filtro de data — mais lento na carga inicial.</dd>
+    <dt>Sync (CTE HANA)</dt>
+    <dd>A sincronização envia CTE sobre OINV/ORIN pela API SAP. Não consulta VIEW no HANA. O script <code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code> é só referência do recorte (Query Manager), opcional.</dd>
     <dt>Atualizar agora (incremental)</dt>
     <dd>Botão que dispara sync <strong>incremental</strong> (HANA → MySQL, overlap de ~3 dias). A carga completa (36 meses) é só via CLI <code>--full</code>.</dd>
     <dt>Sync no 1º acesso do dia</dt>
@@ -43,7 +43,7 @@
 
 <h2>Fluxo principal</h2>
 <ol>
-    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>. Recrie a VIEW HANA (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) sempre que o recorte mudar (grupos, DocType, SeqCode, DiscSum); senão o sync usa CTE ou uma VIEW antiga.</li>
+    <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>.</li>
     <li>Acesse <strong>CRM → Dashboard de Vendas SAP</strong>.</li>
     <li>Classifique as utilizações em <strong>CRM → Utilizações de venda SAP</strong> (venda, bonificação, brinde ou ignorar). Até classificar, entram como venda.</li>
     <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
@@ -51,7 +51,7 @@
     <li>Opcionalmente filtre por vendedor, grupo de cliente ou região na barra de ferramentas (use <strong>Expandir filtros</strong> se estiver recolhida). Com a barra aberta, todos os campos e botões ficam na mesma linha.</li>
     <li>Clique em gráficos (evolução, grupo de cliente, vendedor, região) ou em uma linha de <strong>Top clientes</strong> / <strong>Itens vendidos</strong> para refinar; clique de novo ou use chips / <strong>Limpar</strong>.</li>
     <li>Para forçar atualização no meio do dia, use <strong>Atualizar agora (incremental)</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
-    <li>Confira no rodapé/meta a data da última sincronização e a fonte do sync (VIEW ou CTE).</li>
+    <li>Confira no rodapé/meta a data da última sincronização (fonte do sync: CTE).</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -85,11 +85,11 @@
     <dt>Ainda vejo matéria-prima / serviços no ranking de itens</dt>
     <dd>O recorte é OITB <em>104</em> (400 - PROD ACABADO) e <em>106</em> (700 - MAT. USO/CONS). Não use 400/700 como código. Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
     <dt>O total não bate com a query de indicadores do SAP</dt>
-    <dd>A query SAP de indicadores filtra <code>Usage IN (15,16,24,47,78)</code> e <strong>não</strong> restringe grupo de item; o painel faz o contrário: grupos 104/106 e todas as utilizações (naturezas no Portal). Também usa UNION (vendedor só com devolução aparece) e ticket por cliente, não por nota. Depois de alterar DiscSum/DocType/SeqCode, recrie a VIEW HANA e rode <code>--full</code>.</dd>
+    <dd>A query SAP de indicadores filtra <code>Usage IN (15,16,24,47,78)</code> e <strong>não</strong> restringe grupo de item; o painel faz o contrário: grupos 104/106 e todas as utilizações (naturezas no Portal). Também usa UNION (vendedor só com devolução aparece) e ticket por cliente, não por nota. Depois de alterar DiscSum/DocType/SeqCode, rode <code>--full</code>.</dd>
     <dt>Faltam notas de um vendedor (ex.: TERCEIROS) no mês</dt>
     <dd>A API SAP corta resultado grande. O sync agora busca fatura e devolução em janelas de 7 dias com paginação. Rode <code>php scripts/sync_crm_sales_sap.php --full</code> de novo. Se ainda faltar cliente, a nota pode estar fora de OITB 104/106 ou com utilização Ignorar.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
-    <dd>Confirme a Configuração SAP API. Em produção, crie a VIEW <code>VW_CRM_VENDAS_LINHA</code> (<code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code>) e conceda SELECT — o CTE fallback deixa o <code>--full</code> bem mais lento.</dd>
+    <dd>Confirme a Configuração SAP API. O sync usa CTE (OINV/ORIN) em janelas de 7 dias; não envia query contra VIEW no HANA. Se o <code>--full</code> falhar por timeout, verifique a API e rode de novo.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>
     <dd>Esperado: o painel lê MySQL. Use <strong>Atualizar agora (incremental)</strong> ou abra o painel (1º acesso do dia). Cancelamentos/ajustes recentes entram no overlap de 3 dias.</dd>
     <dt>Só aparece 1 cliente / 1 item na tabela</dt>

@@ -3,8 +3,8 @@
 -- Dashboard de Vendas CRM (Portal Administrativo)
 -- SAP Business One | SAP HANA (identificadores entre aspas — case-sensitive)
 -- =============================================================================
--- Pré-requisito: usuário da API SAP com SELECT nesta VIEW.
--- Executar no schema da company (SBO). Se a VIEW já existir, DROP antes.
+-- Referência do recorte (opcional). O Portal NÃO consulta esta VIEW: o sync envia
+-- só CTE (OINV/ORIN) pela API SAP. Criar no HANA é opcional, para Query Manager.
 --
 -- Recorte: OITB 104 e 106. Todas as utilizações entram (natureza no Portal, inclusive Devolução comercial = E Dev Venda).
 -- Alinhado à query de indicadores: DocType = I, SeqCode <> 34, LineTotal − DiscSum (rateado na linha).
