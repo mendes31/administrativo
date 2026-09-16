@@ -340,6 +340,10 @@ $canUsages = !empty($this->data['can_usages']);
   background:var(--csd-orange-tint); border:1px solid #F3CFA3; color:#8A4413;
   border-radius:var(--csd-radius); padding:12px 14px; margin-bottom:12px; display:none;
 }
+.crm-sales-dash .csd-ok{
+  background:var(--csd-green-tint); border:1px solid #B7DCC6; color:var(--csd-green-dark);
+  border-radius:var(--csd-radius); padding:12px 14px; margin-bottom:12px; display:none;
+}
 @media (max-width:1000px){
   .crm-sales-dash .csd-grid,.crm-sales-dash .csd-grid-2{grid-template-columns:1fr;}
   .crm-sales-dash .csd-kpi-row,
@@ -370,6 +374,7 @@ $canUsages = !empty($this->data['can_usages']);
     </div>
 
     <div class="csd-error" id="csdError" role="alert"></div>
+    <div class="csd-ok" id="csdOk" role="status"></div>
     <div class="csd-warn" id="csdWarn" role="status"></div>
 
     <div class="csd-toolbar" id="csdToolbar">
@@ -433,7 +438,7 @@ $canUsages = !empty($this->data['can_usages']);
       </div>
       <div class="csd-toolbar-actions">
         <?php if ($canSync): ?>
-        <button type="button" id="btnSyncSap" class="csd-btn-primary" title="Sincroniza apenas o incremento (últimos dias desde o último sync)">Sync incremental</button>
+        <button type="button" id="btnSyncSap" class="csd-btn-primary" title="Consulta no SAP só os últimos dias (com 3 dias de sobreposição). Não recarrega o histórico completo.">Sync incremental</button>
         <?php endif; ?>
         <?php if ($canUsages && $usagesUrl !== ''): ?>
         <a href="<?= $usagesUrl ?>" class="csd-link-usages">Classificar utilizações</a>
@@ -708,12 +713,11 @@ $canUsages = !empty($this->data['can_usages']);
     </section>
 
     <footer class="csd-note">
-      Fonte: cache MySQL a partir do SAP (HANA). Recorte: OITB <strong>104</strong> e <strong>106</strong>, DocType = I, não canceladas, SeqCode ≠ 34, valor LineTotal − DiscSum. Sem filtro de utilização no SAP; a natureza (venda, devolução comercial, bonificação, brinde, ignorar) é classificada no Portal.
-      O sync lê OINV/ORIN via CTE na API SAP (não usa VIEW no HANA).
-      Painel: <strong id="csdSource">MySQL</strong>. Este painel é independente do Dashboard CRM de pipeline.
+      Fonte: cache MySQL a partir do SAP. Recorte: grupos de item <strong>104</strong> e <strong>106</strong>, notas de item não canceladas (exceto série 34), valor LineTotal − DiscSum. A natureza (venda, devolução comercial, bonificação, brinde, ignorar) é classificada no Portal.
+      A sincronização lê faturas e devoluções no SAP. Painel: <strong id="csdSource">cache MySQL</strong>. Independente do Dashboard CRM de pipeline.
     </footer>
   </div>
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=22"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=23"></script>

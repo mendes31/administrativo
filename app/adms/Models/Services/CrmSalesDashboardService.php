@@ -98,7 +98,7 @@ class CrmSalesDashboardService
                 'top_itens' => [],
                 'usages_unclassified' => $this->usageRepo->countUnclassified(),
                 'sync' => $this->formatSyncMeta($sync, $rowCount),
-                'warning' => 'Cache vazio. Execute a sincronização (CLI --full ou botão Atualizar agora).',
+                'warning' => 'Cache vazio. Na primeira carga use o comando --full no servidor; depois o botão Sync incremental.',
             ];
         }
 

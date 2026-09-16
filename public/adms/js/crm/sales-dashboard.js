@@ -157,6 +157,25 @@
     el.textContent = msg;
   }
 
+  function showOk(msg) {
+    const el = document.getElementById('csdOk');
+    if (!el) return;
+    if (!msg) {
+      el.style.display = 'none';
+      el.textContent = '';
+      return;
+    }
+    el.style.display = 'block';
+    el.textContent = msg;
+  }
+
+  function fonteSapLabel(source) {
+    const s = String(source || '').toLowerCase();
+    if (!s) return null;
+    if (s === 'cte' || s === 'view') return 'fonte: notas de venda e devolução no SAP';
+    return 'fonte SAP: ' + source;
+  }
+
   function setLoading(on, label) {
     root.classList.toggle('csd-loading', !!on);
     const spin = document.getElementById('csdSpinnerText');
@@ -708,9 +727,11 @@
     const parts = [
       'Cache MySQL',
       sync.last_success_at ? ('atualizado em ' + fmtDt(sync.last_success_at)) : 'ainda não sincronizado',
-      sync.last_source ? ('fonte SAP: ' + String(sync.last_source).toUpperCase()) : null,
-      sync.rows_cached != null ? (Number(sync.rows_cached).toLocaleString('pt-BR') + ' fatos') : null,
-      (sync.cache_from && sync.cache_to) ? (fmtDt(sync.cache_from) + ' → ' + fmtDt(sync.cache_to)) : null
+      fonteSapLabel(sync.last_source),
+      sync.rows_cached != null ? (Number(sync.rows_cached).toLocaleString('pt-BR') + ' linhas no cache') : null,
+      (sync.cache_from && sync.cache_to)
+        ? ('vendas de ' + fmtDt(sync.cache_from) + ' a ' + fmtDt(sync.cache_to))
+        : null
     ].filter(Boolean);
     el.textContent = parts.join(' · ');
   }
@@ -740,13 +761,13 @@
 
     document.getElementById('periodoResumo').textContent =
       meses.length ? (meses[0] + ' a ' + meses[meses.length - 1]) : 'Sem período';
-    document.getElementById('csdSource').textContent =
-      'MySQL cache' + (data.sync && data.sync.last_source
-        ? (' (sync via ' + String(data.sync.last_source).toUpperCase() + ')')
-        : '');
+    document.getElementById('csdSource').textContent = 'cache MySQL (SAP)';
 
     renderSyncMeta(data.sync || null);
-    showWarn(data.warning || (data.cache_empty ? 'Cache vazio. Execute a sincronização SAP.' : ''));
+    showOk(data.info || '');
+    showWarn(data.warning || (data.cache_empty
+      ? 'Cache vazio. Na primeira carga use o comando --full no servidor; depois o botão Sync incremental.'
+      : ''));
 
     sincronizarToolbar();
     renderChips();
@@ -964,7 +985,7 @@
     if (!validarPeriodoCustom()) return;
     if (abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
-    setLoading(true, skipAutoSync ? 'Carregando dashboard…' : 'Carregando (sync diário se necessário)…');
+    setLoading(true, skipAutoSync ? 'Carregando dashboard…' : 'Carregando (atualiza o SAP no 1º acesso do dia, se preciso)…');
     showError('');
     try {
       let url = apiUrl + '?' + buildQuery();
@@ -994,9 +1015,10 @@
     if (!canSync || !syncUrl) return;
     const btn = document.getElementById('btnSyncSap');
     if (btn) btn.disabled = true;
-    setLoading(true, 'Sincronizando incremento SAP → MySQL…');
+    setLoading(true, 'Atualizando os últimos dias a partir do SAP…');
     showError('');
     showWarn('');
+    showOk('');
     try {
       const res = await fetch(syncUrl, {
         method: 'POST',
@@ -1013,8 +1035,9 @@
       }
       opcoesCache = null;
       opcoesPeriodoKey = '';
-      showWarn(data.message || 'Sincronização incremental concluída.');
+      const syncMsg = data.message || 'Sincronização incremental concluída.';
       await carregar(true);
+      showOk(syncMsg);
     } catch (err) {
       showError(err.message || 'Falha na sincronização SAP.');
       setLoading(false);

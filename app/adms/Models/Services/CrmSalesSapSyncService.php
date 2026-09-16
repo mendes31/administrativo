@@ -128,7 +128,8 @@ class CrmSalesSapSyncService
      *   date_to: string|null,
      *   rows_fetched: int,
      *   rows_upserted: int,
-     *   months_processed: int
+     *   months_processed: int,
+     *   days_in_range: int
      * }
      */
     public function sync(string $mode = 'incremental'): array
@@ -169,6 +170,7 @@ class CrmSalesSapSyncService
             'rows_fetched' => 0,
             'rows_upserted' => 0,
             'months_processed' => 0,
+            'days_in_range' => 0,
         ];
 
         try {
@@ -212,15 +214,11 @@ class CrmSalesSapSyncService
             }
 
             $stats['success'] = true;
-            $stats['message'] = sprintf(
-                'Sync %s OK (%s): %d fatos em %d mês(es), período %s a %s.',
-                $mode,
-                $source,
-                $stats['rows_upserted'],
-                $stats['months_processed'],
-                $stats['date_from'],
-                $stats['date_to']
+            $stats['days_in_range'] = $this->countInclusiveDays(
+                (string) $stats['date_from'],
+                (string) $stats['date_to']
             );
+            $stats['message'] = $this->buildSuccessMessage($stats);
 
             $now = date('Y-m-d H:i:s');
             $this->repo->finishSyncRun($runId, [
@@ -319,6 +317,88 @@ class CrmSalesSapSyncService
         }
 
         return ['from' => $from, 'to' => $hoje];
+    }
+
+    /**
+     * Texto exibido no painel e no CLI — sem jargão (cte/mês/fato).
+     *
+     * @param array<string, mixed> $stats
+     */
+    private function buildSuccessMessage(array $stats): string
+    {
+        $mode = (string) ($stats['sync_mode'] ?? 'incremental');
+        $from = $this->formatBrDate((string) ($stats['date_from'] ?? ''));
+        $to = $this->formatBrDate((string) ($stats['date_to'] ?? ''));
+        $rows = (int) ($stats['rows_upserted'] ?? 0);
+        $linhas = number_format($rows, 0, ',', '.') . ($rows === 1 ? ' linha' : ' linhas');
+        $days = (int) ($stats['days_in_range'] ?? $this->countInclusiveDays(
+            (string) ($stats['date_from'] ?? ''),
+            (string) ($stats['date_to'] ?? '')
+        ));
+        $dias = $days . ($days === 1 ? ' dia' : ' dias');
+
+        if ($mode === 'full') {
+            return sprintf(
+                'Sincronização completa concluída: %s gravadas no cache, de %s a %s (%s).',
+                $linhas,
+                $from,
+                $to,
+                $dias
+            );
+        }
+
+        if ($mode === 'today') {
+            if ($rows === 0) {
+                return sprintf('Sincronização do dia concluída: nenhuma linha nova em %s.', $to);
+            }
+            return sprintf(
+                'Sincronização do dia concluída: %s atualizadas no cache em %s.',
+                $linhas,
+                $to
+            );
+        }
+
+        $overlap = self::INCREMENTAL_OVERLAP_DAYS;
+        $janela = sprintf(
+            '%s; inclui %d %s de sobreposição para apanhar notas atrasadas',
+            $dias,
+            $overlap,
+            $overlap === 1 ? 'dia' : 'dias'
+        );
+
+        if ($rows === 0) {
+            return sprintf(
+                'Sincronização incremental concluída: nenhuma linha nova de %s a %s (%s).',
+                $from,
+                $to,
+                $janela
+            );
+        }
+
+        return sprintf(
+            'Sincronização incremental concluída: atualizou %s do cache de %s a %s (%s).',
+            $linhas,
+            $from,
+            $to,
+            $janela
+        );
+    }
+
+    private function formatBrDate(string $ymd): string
+    {
+        $dt = DateTimeImmutable::createFromFormat('!Y-m-d', substr($ymd, 0, 10));
+        return $dt instanceof DateTimeImmutable ? $dt->format('d/m/Y') : $ymd;
+    }
+
+    private function countInclusiveDays(string $from, string $to): int
+    {
+        $a = DateTimeImmutable::createFromFormat('!Y-m-d', substr($from, 0, 10));
+        $b = DateTimeImmutable::createFromFormat('!Y-m-d', substr($to, 0, 10));
+        if (!$a instanceof DateTimeImmutable || !$b instanceof DateTimeImmutable) {
+            return 0;
+        }
+
+        return (int) $a->diff($b)->days + 1;
     }
 
     private function itemGroupFilterSql(string $itemAlias = 'T4', string $groupAlias = 'T6'): string

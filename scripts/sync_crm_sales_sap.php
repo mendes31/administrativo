@@ -12,7 +12,7 @@ declare(strict_types=1);
  *
  * No Portal:
  *   - 1º acesso do dia ao dashboard dispara incremental automaticamente
- *   - botão "Atualizar agora" = só incremental (nunca full)
+ *   - botão "Sync incremental" = só incremental (nunca full)
  *
  * Cron opcional (madrugada), se preferir não depender do 1º acesso:
  *   30 2 * * * cd /path/to/administrativo && php scripts/sync_crm_sales_sap.php >> storage/logs/crm_sales_sync.log 2>&1
@@ -40,8 +40,7 @@ try {
     $result = $service->sync($mode);
     echo ($result['success'] ? 'OK' : 'FALHA') . ': ' . ($result['message'] ?? '') . "\n";
     echo sprintf(
-        "Fonte: %s | Fetch: %d | Upsert: %d | Meses: %d | Período: %s → %s\n",
-        $result['source'] ?? '-',
+        "Fonte: notas SAP | Consultadas: %d | Linhas no cache (recorte): %d | Janelas: %d | Período: %s → %s\n",
         $result['rows_fetched'] ?? 0,
         $result['rows_upserted'] ?? 0,
         $result['months_processed'] ?? 0,

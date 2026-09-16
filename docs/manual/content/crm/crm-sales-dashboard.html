@@ -32,11 +32,11 @@
     <dt>AnoMes</dt>
     <dd>Competência mensal do documento (<code>YYYY-MM</code>), usada na evolução e no isolamento de mês.</dd>
     <dt>Cache MySQL</dt>
-    <dd>Tabela <code>crm_sales_fact_daily</code> com fatos diários agregados por cliente, item e dimensões comerciais. O painel lê só este cache.</dd>
-    <dt>Sync (CTE HANA)</dt>
-    <dd>A sincronização envia CTE sobre OINV/ORIN pela API SAP. Não consulta VIEW no HANA. O script <code>docs/sql/hana/VW_CRM_VENDAS_LINHA.sql</code> é só referência do recorte (Query Manager), opcional.</dd>
-    <dt>Atualizar agora (incremental)</dt>
-    <dd>Botão que dispara sync <strong>incremental</strong> (HANA → MySQL, overlap de ~3 dias). A carga completa (36 meses) é só via CLI <code>--full</code>.</dd>
+    <dd>Tabela <code>crm_sales_fact_daily</code> com linhas diárias agregadas por cliente, item e dimensões comerciais (não é uma nota fiscal por linha). O painel lê só este cache. O rodapé mostra quantas linhas existem no total e o intervalo das <em>datas de venda</em> gravadas — isso é diferente da janela da última sincronização.</dd>
+    <dt>Sincronização SAP</dt>
+    <dd>Consulta faturas e devoluções no SAP e regrava o cache MySQL. A faixa de datas da mensagem é o que foi <em>consultado agora</em> (no incremental, os últimos dias com 3 dias de sobreposição). Não é o tamanho do cache nem “um mês de vendas”.</dd>
+    <dt>Sync incremental</dt>
+    <dd>Botão que consulta só o recorte recente no SAP (sobreposição de 3 dias). A carga completa (36 meses) é só via CLI <code>--full</code>.</dd>
     <dt>Sync no 1º acesso do dia</dt>
     <dd>Ao abrir o painel pela primeira vez no dia, o sistema sincroniza o incremento automaticamente (com lock para não duplicar). Demais acessos/filtros no mesmo dia leem só o cache.</dd>
     <dt>Cross-filter</dt>
@@ -54,8 +54,8 @@
     <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
     <li>Opcionalmente filtre por um ou mais vendedores, grupos de cliente ou regiões na barra (caixas de seleção; use <strong>Expandir filtros</strong> se estiver recolhida).</li>
     <li>Clique em gráficos (evolução, grupo de cliente, vendedor, região) ou em linhas de <strong>Top clientes</strong> / <strong>Itens vendidos</strong> para ir somando filtros; clique de novo ou use chips / <strong>Limpar</strong>.</li>
-    <li>Para forçar atualização no meio do dia, use <strong>Atualizar agora (incremental)</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
-    <li>Confira no rodapé/meta a data da última sincronização (fonte do sync: CTE).</li>
+    <li>Para forçar atualização no meio do dia, use <strong>Sync incremental</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
+    <li>Confira a faixa verde (janela consultada agora) e o rodapé (data da última atualização, total de linhas e datas das vendas no cache).</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -68,8 +68,9 @@
 <div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Clique nas linhas para marcar um ou mais clientes (as linhas ficam destacadas; os KPIs somam só os marcados). Clique de novo ou no chip para desfazer. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte da lista.</div>
 <div class="help-field"><strong>Filtros</strong> Barra compacta com período e listas de múltipla escolha (vendedor, grupo de cliente, região). <em>Expandir/Colapsar filtros</em> recolhe os campos. Clique nos gráficos e nas tabelas soma filtros do mesmo tipo.</div>
 <div class="help-field"><strong>Itens vendidos</strong> Ranking dos SKUs do recorte (só natureza venda), ordenado por líquido decrescente, com rolagem. Clique nas linhas para marcar um ou mais itens. Código SAP, descrição, quantidade líquida, líquido e devolução. O rodapé soma a lista visível.</div>
+<div class="help-field"><strong>Mensagem após o sync</strong> Faixa verde: quantas linhas do cache foram regravadas e de qual data a qual data o SAP foi consultado (em dias, com 3 dias de sobreposição). Não é o tamanho do cache. O rodapé traz o total de linhas e as datas das vendas já gravadas.</div>
 <div class="help-field"><strong>API dados</strong> Endpoint <code>crm-sales-dashboard-data</code> agrega só no MySQL (resposta rápida ao trocar filtros).</div>
-<div class="help-field"><strong>API sync</strong> Endpoint <code>crm-sales-dashboard-sync</code> — somente <code>incremental</code> na web. Full sync apenas via CLI.</div>
+<div class="help-field"><strong>API sync</strong> Endpoint <code>crm-sales-dashboard-sync</code> — somente incremental na web (botão <em>Sync incremental</em>). Full sync apenas via CLI.</div>
 <div class="help-field"><strong>CLI / cron</strong> <code>php scripts/sync_crm_sales_sap.php</code> (incremental), <code>--full</code> (36 meses). Cron opcional se não quiser depender do 1º acesso do dia.</div>
 
 <h2>Problemas comuns</h2>
@@ -79,7 +80,7 @@
     <dt>Desconto / % desconto muito baixo (ex.: centavos ou 0,3%)</dt>
     <dd>O <code>Price</code> do SAP já inclui o desconto da linha. O sync agora usa o preço antes do desconto (<code>PriceBefDi</code>) mais o DiscSum. Rode <code>php scripts/sync_crm_sales_sap.php --full</code> para recalcular o cache.</dd>
     <dt>Cache vazio / aviso de sincronização</dt>
-    <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez (obrigatório após a migration de utilizações, que esvazia o cache). Depois o 1º acesso do dia e o botão incremental mantêm o cache.</dd>
+    <dd>Rode <code>php scripts/sync_crm_sales_sap.php --full</code> uma vez (obrigatório após a migration de utilizações, que esvazia o cache). Depois o 1º acesso do dia e o botão <strong>Sync incremental</strong> mantêm o cache.</dd>
     <dt>Bonificações zeradas / tudo no faturamento</dt>
     <dd>As utilizações ainda estão como não classificadas. Abra <strong>Utilizações de venda SAP</strong> e marque bonificação/brinde.</dd>
     <dt>Card de devoluções zerado</dt>
@@ -87,15 +88,17 @@
     <dt>Lista de itens vazia / ranking some</dt>
     <dd>Após a migration que inclui o item no cache, rode <code>php scripts/sync_crm_sales_sap.php --full</code>. O sync incremental não reconstrói o histórico antigo.</dd>
     <dt>Ainda vejo matéria-prima / serviços no ranking de itens</dt>
-    <dd>O recorte é OITB <em>104</em> (400 - PROD ACABADO) e <em>106</em> (700 - MAT. USO/CONS). Não use 400/700 como código. Se o cache estiver vazio, clique em Atualizar agora ou rode <code>--full</code>.</dd>
+    <dd>O recorte é OITB <em>104</em> (400 - PROD ACABADO) e <em>106</em> (700 - MAT. USO/CONS). Não use 400/700 como código. Se o cache estiver vazio, clique em <strong>Sync incremental</strong> ou rode <code>--full</code>.</dd>
     <dt>O total não bate com a query de indicadores do SAP</dt>
     <dd>A query SAP de indicadores filtra <code>Usage IN (15,16,24,47,78)</code> e <strong>não</strong> restringe grupo de item; o painel faz o contrário: grupos 104/106 e todas as utilizações (naturezas no Portal). Também usa UNION (vendedor só com devolução aparece) e ticket por cliente, não por nota. Depois de alterar DiscSum/DocType/SeqCode, rode <code>--full</code>.</dd>
     <dt>Faltam notas de um vendedor (ex.: TERCEIROS) no mês</dt>
     <dd>A API SAP corta resultado grande. O sync agora busca fatura e devolução em janelas de 7 dias com paginação. Rode <code>php scripts/sync_crm_sales_sap.php --full</code> de novo. Se ainda faltar cliente, a nota pode estar fora de OITB 104/106 ou com utilização Ignorar.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
-    <dd>Confirme a Configuração SAP API. O sync usa CTE (OINV/ORIN) em janelas de 7 dias; não envia query contra VIEW no HANA. Se o <code>--full</code> falhar por timeout, verifique a API e rode de novo.</dd>
+    <dd>Confirme a Configuração SAP API. O sync consulta faturas e devoluções (OINV/ORIN) em janelas de 7 dias; não envia query contra VIEW no HANA. Se o <code>--full</code> falhar por timeout, verifique a API e rode de novo.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>
-    <dd>Esperado: o painel lê MySQL. Use <strong>Atualizar agora (incremental)</strong> ou abra o painel (1º acesso do dia). Cancelamentos/ajustes recentes entram no overlap de 3 dias.</dd>
+    <dd>Esperado: o painel lê MySQL. Use <strong>Sync incremental</strong> ou abra o painel (1º acesso do dia). Cancelamentos e notas lançadas com atraso entram na sobreposição de 3 dias.</dd>
+    <dt>A faixa verde cita poucos dias, mas o rodapé tem milhares de linhas</dt>
+    <dd>São coisas diferentes. A faixa descreve só o recorte <em>reconsultado agora</em> no SAP. O rodapé mostra o cache inteiro (todas as linhas e as datas das vendas gravadas).</dd>
     <dt>Só aparece 1 cliente / 1 item na tabela</dt>
     <dd>A lista completa continua visível; a linha marcada fica destacada. Clique em outras linhas para somar ao filtro, ou no chip / <strong>Limpar</strong> para voltar aos totais gerais.</dd>
     <dt>Só aparecem 10 clientes no Top clientes (ou poucos itens no ranking)</dt>

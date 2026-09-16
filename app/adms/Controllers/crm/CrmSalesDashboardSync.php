@@ -8,7 +8,7 @@ use App\adms\Models\Services\CrmSalesSapSyncService;
 use Exception;
 
 /**
- * Dispara sincronização do cache MySQL de vendas SAP (botão "Atualizar agora").
+ * Dispara sincronização do cache MySQL de vendas SAP (botão "Sync incremental").
  * Somente incremental na web (full só via CLI).
  */
 class CrmSalesDashboardSync

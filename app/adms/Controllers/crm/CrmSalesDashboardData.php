@@ -61,13 +61,12 @@ class CrmSalesDashboardData
             $payload['auto_sync'] = $autoSync;
 
             if (is_array($autoSync) && !empty($autoSync['ran']) && !empty($autoSync['result']['success'])) {
-                $msg = (string) ($autoSync['result']['message'] ?? 'Sincronização diária automática concluída.');
-                if (empty($payload['warning'])) {
-                    $payload['warning'] = $msg;
-                }
+                $payload['info'] = (string) ($autoSync['result']['message']
+                    ?? 'Sincronização automática do dia concluída.');
             } elseif (is_array($autoSync) && ($autoSync['reason'] ?? '') === 'error') {
-                $payload['warning'] = 'Falha no sync automático do dia: ' . ($autoSync['error'] ?? 'erro desconhecido')
-                    . '. Exibindo cache anterior.';
+                $payload['warning'] = 'Falha na sincronização automática do dia: '
+                    . ($autoSync['error'] ?? 'erro desconhecido')
+                    . '. Exibindo o cache anterior.';
             }
 
             echo json_encode($payload, JSON_UNESCAPED_UNICODE);
