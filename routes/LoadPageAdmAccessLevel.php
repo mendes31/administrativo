@@ -295,6 +295,25 @@ class LoadPageAdmAccessLevel
                 'request_uri' => $requestUri,
             ]);
 
+            $isAjax = (
+                !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
+                strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest'
+            ) || (
+                isset($_SERVER['HTTP_ACCEPT']) &&
+                str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+            );
+
+            if ($isAjax) {
+                header('Content-Type: application/json; charset=utf-8');
+                http_response_code(401);
+                echo json_encode([
+                    'success' => false,
+                    'logout' => true,
+                    'error' => 'Sessão expirada. Recarregue a página e faça login.',
+                ], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+
             // Guardar URL de retorno para, após o login, voltar para a página que o usuário estava
             if (empty($_SESSION['return_url'])) {
                 \App\adms\Helpers\ReturnUrlHelper::storeFromCurrentRequest();

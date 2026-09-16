@@ -6,7 +6,6 @@ namespace App\adms\Controllers\crm;
 
 use App\adms\Models\Services\CrmSalesDashboardService;
 use App\adms\Models\Services\CrmSalesSapSyncService;
-use Exception;
 use Throwable;
 
 /**
@@ -70,7 +69,7 @@ class CrmSalesDashboardData
             }
 
             echo json_encode($payload, JSON_UNESCAPED_UNICODE);
-        } catch (Exception $e) {
+        } catch (Throwable $e) {
             http_response_code(500);
             echo json_encode([
                 'success' => false,

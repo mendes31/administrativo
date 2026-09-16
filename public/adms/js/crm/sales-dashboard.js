@@ -1039,6 +1039,22 @@
       .replace(/"/g, '&quot;');
   }
 
+  async function parseJsonResponse(res) {
+    const text = await res.text();
+    const trimmed = (text || '').replace(/^\uFEFF/, '').trim();
+    if (!trimmed) {
+      throw new Error('A API não devolveu dados. Recarregue a página.');
+    }
+    try {
+      return JSON.parse(trimmed);
+    } catch (err) {
+      if (trimmed.charAt(0) === '<') {
+        throw new Error('A API devolveu uma página HTML em vez de JSON. Recarregue a página e, se o aviso continuar, faça login de novo.');
+      }
+      throw new Error(err.message || 'Resposta inválida da API.');
+    }
+  }
+
   async function carregar(skipAutoSync) {
     if (!apiUrl) {
       showError('URL da API não configurada.');
@@ -1056,10 +1072,14 @@
       }
       const res = await fetch(url, {
         credentials: 'same-origin',
-        headers: { Accept: 'application/json' },
+        cache: 'no-store',
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
         signal: abortCtrl.signal
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok || !data.success) {
         throw new Error(data.error || ('Erro HTTP ' + res.status));
       }
@@ -1085,13 +1105,15 @@
       const res = await fetch(syncUrl, {
         method: 'POST',
         credentials: 'same-origin',
+        cache: 'no-store',
         headers: {
           Accept: 'application/json',
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
         },
         body: JSON.stringify({ mode: 'incremental' })
       });
-      const data = await res.json();
+      const data = await parseJsonResponse(res);
       if (!res.ok || !data.success) {
         throw new Error(data.error || data.message || ('Erro HTTP ' + res.status));
       }

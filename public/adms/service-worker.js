@@ -1,4 +1,4 @@
-const CACHE_NAME = 'tiaraju-pwa-v5';
+const CACHE_NAME = 'tiaraju-pwa-v6';
 const URL_PREFIX = '/administrativo/';
 
 // Rotas e assets principais para cache inicial
@@ -14,6 +14,7 @@ const PRECACHE_URLS = [
 ];
 
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(PRECACHE_URLS);
@@ -32,7 +33,7 @@ self.addEventListener('activate', (event) => {
           return null;
         })
       )
-    )
+    ).then(() => self.clients.claim())
   );
 });
 
@@ -51,10 +52,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  const accept = request.headers.get('Accept') || '';
+  const isApi = request.url.includes('-data')
+    || request.url.includes('-sync')
+    || accept.includes('application/json');
+  if (isApi) {
+    return;
+  }
+
   event.respondWith(
     fetch(request)
       .then((response) => {
-        if (!response || !response.ok) {
+        if (!response || !response.ok || response.redirected) {
+          return response;
+        }
+        const ct = response.headers.get('content-type') || '';
+        if (ct.includes('text/html') || ct.includes('application/json')) {
           return response;
         }
         const clone = response.clone();
