@@ -37,6 +37,8 @@
     <dd>Quantidade de notas de venda menos quantidade de notas de devolução no recorte da natureza da lista. Em clientes, vendedores e região é só natureza venda. Na aba de itens, acompanha a aba ativa (venda, bonificação ou brinde). Não é número de parcelas. A mesma NF pode contar em mais de uma aba se tiver linhas de naturezas diferentes. No item, conta as notas que têm aquele SKU; o total da lista pode repetir a mesma NF se ela tiver vários produtos.</dd>
     <dt>Listagem de notas</dt>
     <dd>Duplo clique em vendedor (gráfico), cliente, item ou nos cards de Bonificação/Brindes abre uma página com <strong>uma linha por nota</strong>, sem prestações. O valor é só das linhas da natureza pedida (a NF pode ter venda e remessa no mesmo documento). Respeita o período e os filtros ativos.</dd>
+    <dt>Vs o mesmo período do ano anterior</dt>
+    <dd>Variação percentual do faturamento líquido no intervalo atual comparado ao mesmo intervalo deslocado um ano (datas e, se houver filtro de mês, o mês equivalente). Só aparece no rodapé do card Líquido quando o cache tem base no ano anterior. Sem custo nem margem.</dd>
     <dt>Sincronização SAP</dt>
     <dd>Consulta faturas e devoluções no SAP e regrava o cache MySQL. A faixa de datas da mensagem é o que foi <em>consultado agora</em> (no incremental, os últimos dias com 3 dias de sobreposição). Não é o tamanho do cache nem “um mês de vendas”.</dd>
     <dt>Sync incremental</dt>
@@ -47,12 +49,13 @@
     <dd>Clique simples em barra, fatia, ponto ou linha das tabelas aplica o filtro ao painel; clique de novo para desmarcar. Duplo clique em <strong>vendedor, cliente ou item</strong> abre a listagem de notas da natureza da lista (nos gráficos de vendedor/cliente, sempre venda). Dá para marcar <strong>vários</strong> vendedores, grupos, regiões, meses, clientes ou itens ao mesmo tempo. Os chips laranja removem um a um.</dd>
 </dl>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>; listagem de notas via <em>CrmSalesInvoices</em>; classificação de utilizações via <em>CrmListSalesUsages</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>; listagem de notas via <em>CrmSalesInvoices</em>; classificação de utilizações via <em>CrmListSalesUsages</em>; análises irmãs via <em>CrmSalesCarteira</em>, <em>CrmSalesVendedores</em> e <em>CrmSalesProdutos</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
 
 <h2>Fluxo principal</h2>
 <ol>
     <li>Na primeira vez, execute a migration e o sync completo: <code>vendor/bin/phinx migrate</code> e <code>php scripts/sync_crm_sales_sap.php --full</code>.</li>
     <li>Acesse <strong>CRM → Dashboard de Vendas SAP</strong>.</li>
+    <li>Use os atalhos <strong>Carteira</strong>, <strong>Força de vendas</strong> e <strong>Produto</strong> para análises irmãs (levam o recorte da URL). Custo e margem não entram nessas telas.</li>
     <li>Classifique as utilizações em <strong>CRM → Utilizações de venda SAP</strong> (venda, bonificação, brinde ou ignorar). Até classificar, entram como venda.</li>
     <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
     <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
@@ -69,7 +72,8 @@
 <div class="help-field"><strong>Período</strong> Presets: mês atual, mês anterior, últimos 3/6/12/24/36 meses, ano atual (YTD), ano anterior; ou <em>Personalizado</em> com data início e data fim (máx. 36 meses). Padrão: últimos 12 meses.</div>
 <div class="help-field"><strong>Data início / Data fim</strong> Visíveis só no período personalizado; aplicadas ao clicar em <strong>Atualizar</strong> (<code>date_from</code>/<code>date_to</code> na API).</div>
 <div class="help-field"><strong>Vendedor / Grupo / Região</strong> Cada campo aceita várias opções ao mesmo tempo. Abra a lista, marque as caixas (há busca) ou clique nos gráficos. Vazio = todos. Vendedor = <code>OSLP.SlpName</code>; grupo = <code>OCRG.GroupName</code>; região = território SAP (<code>OTER.descript</code>) ou UF (<code>OCRD.State1</code>); sem ambos: “Sem região”.</div>
-<div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> e um rodapé dizendo se o valor já abate devolução. Líquido = faturas − devoluções (não some os dois cards). Devoluções = reais já saídos do líquido; o rodapé mostra unidades devolvidas. Taxa = devolvido ÷ faturas (não usa o líquido). Ticket = líquido ÷ clientes.</div>
+<div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> e um rodapé dizendo se o valor já abate devolução. Líquido = faturas − devoluções (não some os dois cards). O rodapé do líquido também pode mostrar a variação vs o mesmo período do ano anterior, quando o cache tem base. Devoluções = reais já saídos do líquido; o rodapé mostra unidades devolvidas. Taxa = devolvido ÷ faturas (não usa o líquido). Ticket = líquido ÷ clientes.</div>
+<div class="help-field"><strong>Análises irmãs</strong> Atalhos no topo: <em>Carteira</em> (Pareto e novos), <em>Força de vendas</em> (scorecard) e <em>Produto</em> (ABC de SKU). Não acrescentam tabelas neste cockpit. Sem custo/margem.</div>
 <div class="help-field"><strong>KPIs</strong> Quatro grupos: <em>Faturamento</em> (líquido, devoluções, taxa, ticket); <em>Venda e desconto</em> (itens vendidos, desconto em R$ com bruto sem desconto no rodapé, % desconto); <em>Bonificação</em> (valor, itens, %); <em>Brindes</em> (valor, itens, %). Bonificação e brinde dependem da classificação em <em>Utilizações de venda SAP</em>.</div>
 <div class="help-field"><strong>Classificar utilizações</strong> Atalho para <em>crm-list-sales-usages</em>. Sem classificar, bonificação/brinde infla o faturamento (tratados como venda).</div>
 <div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Coluna <em>NFs</em> = faturas − devoluções. Clique nas linhas para marcar um ou mais clientes; duplo clique abre as notas. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte da lista.</div>
@@ -85,6 +89,10 @@
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Não aparece a variação vs ano anterior</dt>
+    <dd>O cache não tem faturamento no mesmo intervalo do ano passado (janela máxima de 36 meses) ou o líquido anterior é zero. Não é um card extra — só o rodapé do líquido.</dd>
+    <dt>Onde estão custo e margem?</dt>
+    <dd>Não são exibidos no cockpit nem nas telas irmãs enquanto os custos SAP não estiverem corretos.</dd>
     <dt>Não vejo o menu</dt>
     <dd>Execute <code>vendor/bin/phinx migrate</code> e confirme permissão <em>CrmSalesDashboard</em> no nível de acesso.</dd>
     <dt>Desconto / % desconto muito baixo (ex.: centavos ou 0,3%)</dt>

@@ -127,6 +127,19 @@ $canUsages = !empty($this->data['can_usages']);
   text-decoration:none;
 }
 .crm-sales-dash .csd-link-usages:hover{text-decoration:underline;}
+.crm-sales-dash .csd-sales-nav{
+  display:flex; flex-wrap:wrap; gap:6px; margin:0 0 12px;
+}
+.crm-sales-dash .csd-sales-nav a{
+  display:inline-flex; align-items:center; text-decoration:none !important;
+  font-size:12px; font-weight:600; color:var(--csd-ink-soft);
+  border:1px solid var(--csd-line); background:var(--csd-surface);
+  border-radius:20px; padding:6px 12px;
+}
+.crm-sales-dash .csd-sales-nav a:hover{background:var(--csd-green-tint); color:var(--csd-green-dark);}
+.crm-sales-dash .csd-sales-nav a.is-active{
+  background:var(--csd-green); border-color:var(--csd-green); color:#fff;
+}
 .crm-sales-dash .csd-sync-meta{
   font-size:12px; color:var(--csd-ink-mute); margin-bottom:12px;
 }
@@ -405,6 +418,8 @@ $canUsages = !empty($this->data['can_usages']);
       <div class="csd-periodo-tag" id="periodoResumo">Carregando período…</div>
     </div>
 
+    <?php include './app/adms/Views/partials/sales_nav.php'; ?>
+
     <div class="csd-error" id="csdError" role="alert"></div>
     <div class="csd-ok" id="csdOk" role="status"></div>
     <div class="csd-warn" id="csdWarn" role="status"></div>
@@ -495,6 +510,8 @@ $canUsages = !empty($this->data['can_usages']);
           Este valor é faturas menos devoluções (não some de novo o card Devoluções). Conta: faturas R$ (card de referência no rodapé) − devoluções R$ = este líquido. Só utilizações Venda e Devolução comercial; LineTotal − DiscSum; OITB 104 e 106. Bonificação, brinde e Ignorar ficam fora.
           <strong style="margin-top:8px;">Clientes ativos (rodapé)</strong>
           Parceiros distintos com pelo menos uma fatura — quem só devolveu não entra.
+          <strong style="margin-top:8px;">Vs ano anterior</strong>
+          O rodapé também mostra a variação percentual do líquido no mesmo intervalo deslocado um ano, quando o cache tem base. Sem custo nem margem.
         </div>
         <p class="value" id="kpiFaturamento">—</p>
         <p class="delta" id="kpiFaturamentoDelta"></p>
@@ -767,4 +784,4 @@ $canUsages = !empty($this->data['can_usages']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=32"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=33"></script>

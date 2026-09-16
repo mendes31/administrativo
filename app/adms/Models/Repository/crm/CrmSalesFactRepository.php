@@ -533,7 +533,9 @@ class CrmSalesFactRepository extends DbConnection
                     MAX(f.grupo_item) AS grupo,
                     SUM(f.quantidade) AS quantidade,
                     SUM(f.valor_liquido) AS liquido,
-                    SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao
+                    SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao,
+                    SUM(f.valor_desconto) AS desconto,
+                    SUM(f.valor_bruto) AS valor_bruto
                     {$nfsSelect}
                 FROM {$fromSql}
                 WHERE {$where}
@@ -553,6 +555,100 @@ class CrmSalesFactRepository extends DbConnection
                 'quantidade' => (float) ($row['quantidade'] ?? 0),
                 'liquido' => (float) ($row['liquido'] ?? 0),
                 'devolucao' => (float) ($row['devolucao'] ?? 0),
+                'desconto' => (float) ($row['desconto'] ?? 0),
+                'valor_bruto' => (float) ($row['valor_bruto'] ?? 0),
+            ];
+            if ($this->hasDocNumColumns()) {
+                $item['qtd_nfs'] = (int) ($row['qtd_nfs'] ?? 0);
+            }
+            $out[] = $item;
+        }
+        return $out;
+    }
+
+    /**
+     * Primeira fatura de venda no cache (não é a primeira NF histórica da empresa se o cache for parcial).
+     *
+     * @param array<string, string|list<string>|null> $dims
+     * @return array<string, string> card_code => Y-m-d
+     */
+    public function fetchFirstSaleDates(array $dims): array
+    {
+        $span = $this->minMaxDates();
+        $from = (string) ($span['min'] ?? '2000-01-01');
+        $to = (string) ($span['max'] ?? '2099-12-31');
+        if ($from === '' || $to === '') {
+            return [];
+        }
+        [$where, $params] = $this->buildWhere($from, $to, $dims, 'ano_mes');
+        $fromSql = $this->fromFactSql();
+        $natureFilter = $this->natureFilterSql('venda');
+        $sql = "SELECT f.card_code, MIN(f.doc_date) AS primeira
+                FROM {$fromSql}
+                WHERE {$where}
+                  {$natureFilter}
+                  AND f.tipo_documento = 'Fatura'
+                  AND f.card_code IS NOT NULL
+                  AND f.card_code <> ''
+                GROUP BY f.card_code";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $code = trim((string) ($row['card_code'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $out[$code] = (string) ($row['primeira'] ?? '');
+        }
+        return $out;
+    }
+
+    /**
+     * Scorecard por vendedor (venda + remessa, sem custo/margem).
+     *
+     * @param array<string, string|list<string>|null> $dims
+     * @return list<array<string, mixed>>
+     */
+    public function fetchSellerScorecard(string $from, string $to, array $dims): array
+    {
+        [$where, $params] = $this->buildWhere($from, $to, $dims, null);
+        $fromSql = $this->fromFactSql();
+        $nat = $this->hasUsageJoin() ? $this->natureSql() : "'venda'";
+        $nfsSelect = $this->hasDocNumColumns()
+            ? ", (COUNT(DISTINCT CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.doc_entry END)
+                - COUNT(DISTINCT CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Devolucao' THEN f.doc_entry END)) AS qtd_nfs"
+            : '';
+        $sql = "SELECT
+                    IFNULL(f.vendedor, '') AS vendedor,
+                    SUM(CASE WHEN {$nat} = 'venda' THEN f.valor_liquido ELSE 0 END) AS liquido,
+                    SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.valor_liquido ELSE 0 END) AS faturas,
+                    SUM(CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao,
+                    SUM(CASE WHEN {$nat} = 'venda' THEN f.valor_desconto ELSE 0 END) AS desconto,
+                    SUM(CASE WHEN {$nat} = 'venda' THEN f.valor_bruto ELSE 0 END) AS valor_bruto,
+                    SUM(CASE WHEN {$nat} = 'bonificacao' THEN f.valor_liquido ELSE 0 END) AS bonificacao,
+                    SUM(CASE WHEN {$nat} = 'brinde' THEN f.valor_liquido ELSE 0 END) AS brinde,
+                    COUNT(DISTINCT CASE WHEN {$nat} = 'venda' AND f.tipo_documento = 'Fatura' THEN f.card_code END) AS clientes
+                    {$nfsSelect}
+                FROM {$fromSql}
+                WHERE {$where}
+                  AND IFNULL(f.vendedor, '') <> ''
+                GROUP BY IFNULL(f.vendedor, '')
+                ORDER BY liquido DESC";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute($params);
+        $out = [];
+        while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
+            $item = [
+                'vendedor' => (string) ($row['vendedor'] ?? ''),
+                'liquido' => (float) ($row['liquido'] ?? 0),
+                'faturas' => (float) ($row['faturas'] ?? 0),
+                'devolucao' => (float) ($row['devolucao'] ?? 0),
+                'desconto' => (float) ($row['desconto'] ?? 0),
+                'valor_bruto' => (float) ($row['valor_bruto'] ?? 0),
+                'bonificacao' => (float) ($row['bonificacao'] ?? 0),
+                'brinde' => (float) ($row['brinde'] ?? 0),
+                'clientes' => (int) ($row['clientes'] ?? 0),
             ];
             if ($this->hasDocNumColumns()) {
                 $item['qtd_nfs'] = (int) ($row['qtd_nfs'] ?? 0);

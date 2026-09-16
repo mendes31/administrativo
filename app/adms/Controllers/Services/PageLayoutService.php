@@ -357,6 +357,9 @@ class PageLayoutService
             'CrmSalesDashboard',
             'CrmSalesDashboardData',
             'CrmSalesDashboardSync',
+            'CrmSalesCarteira',
+            'CrmSalesVendedores',
+            'CrmSalesProdutos',
             'CrmKanbanPipeline',
             // Parceiros
             'CrmListPartners',

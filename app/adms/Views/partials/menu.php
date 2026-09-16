@@ -441,6 +441,24 @@ $menus = [
                 'icon' => 'fas fa-chart-area'
             ],
             [
+                'label' => 'Carteira (Vendas SAP)',
+                'url' => $_ENV['URL_ADM'] . 'crm-sales-carteira',
+                'permission' => 'CrmSalesCarteira',
+                'icon' => 'fas fa-users'
+            ],
+            [
+                'label' => 'Força de vendas (SAP)',
+                'url' => $_ENV['URL_ADM'] . 'crm-sales-vendedores',
+                'permission' => 'CrmSalesVendedores',
+                'icon' => 'fas fa-user-tie'
+            ],
+            [
+                'label' => 'Produto (Vendas SAP)',
+                'url' => $_ENV['URL_ADM'] . 'crm-sales-produtos',
+                'permission' => 'CrmSalesProdutos',
+                'icon' => 'fas fa-boxes'
+            ],
+            [
                 'label' => 'Utilizações de venda SAP',
                 'url' => $_ENV['URL_ADM'] . 'crm-list-sales-usages',
                 'permission' => 'CrmListSalesUsages',

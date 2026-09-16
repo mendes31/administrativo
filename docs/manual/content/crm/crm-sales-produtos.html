@@ -1,0 +1,41 @@
+<h1>Produto (Vendas SAP)</h1>
+
+<h2>Função no sistema</h2>
+<p>Tela irmã do Dashboard de Vendas SAP para o <strong>mix de produtos</strong> no mesmo recorte: classificação Pareto ABC dos SKUs vendidos, percentual de desconto, taxa de devolução e participação dos grupos de item OITB 104 (produto acabado) e 106 (materiais de uso/consumo). Não mistura bonificação/brinde e não mostra custo nem margem.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Classe ABC</dt>
+    <dd>SKUs ordenados pelo líquido de venda. A = até 80% acumulado; B até 95%; C o restante. Líquido ≤ 0 vai para C.</dd>
+    <dt>% desconto</dt>
+    <dd>Desconto da linha de venda ÷ bruto sem desconto (PriceBefDi × quantidade).</dd>
+    <dt>Taxa de devolução</dt>
+    <dd>Valor devolvido do SKU ÷ (líquido + devolução) × 100, só natureza venda.</dd>
+    <dt>Mix por grupo</dt>
+    <dd>Faturamento líquido de venda por nome de grupo de item (104/106 no recorte do cache).</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesProdutos</em> (ACL copiada de <em>CrmSalesDashboard</em>). A navegação entre as telas irmãs usa também <em>CrmSalesDashboard</em>, <em>CrmSalesCarteira</em> e <em>CrmSalesVendedores</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <strong>CRM → Produto (Vendas SAP)</strong> ou o atalho no cockpit (leva os filtros da URL).</li>
+    <li>Ajuste período e dimensões e clique em <strong>Atualizar</strong>.</li>
+    <li>Leia o mix por grupo e a lista ABC (rolagem).</li>
+    <li>Para bonificados e brindes, volte ao <strong>Cockpit</strong> (abas do ranking de itens).</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período / Vendedor / Grupo / Região</strong> Barra compacta igual ao cockpit: datas só no personalizado; listas com busca. Filtros de item/mês herdados da URL do cockpit ficam nos chips e podem ser removidos. <strong>Limpar</strong> zera o recorte desta tela.</div>
+<div class="help-field"><strong>Líquido de venda</strong> Soma do líquido positivo dos SKUs da natureza venda.</div>
+<div class="help-field"><strong>Lista</strong> Código e nome completo do item (sem corte), grupo, quantidade, líquido, share, acumulado, % desconto, taxa de devolução e NFs daquele SKU.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>Rode <code>vendor/bin/phinx migrate</code> e confira <em>CrmSalesProdutos</em>.</dd>
+    <dt>Não aparecem bonificados</dt>
+    <dd>Esperado: esta tela é só venda. Use as abas Bonificados/Brindes no cockpit.</dd>
+    <dt>Onde está o custo do SKU?</dt>
+    <dd>Não entra nesta tela: os custos SAP ainda não estão corretos.</dd>
+</dl>

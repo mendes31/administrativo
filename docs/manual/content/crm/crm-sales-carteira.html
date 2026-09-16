@@ -1,0 +1,48 @@
+<h1>Carteira de clientes (Vendas SAP)</h1>
+
+<h2>Função no sistema</h2>
+<p>Tela irmã do Dashboard de Vendas SAP para analisar a <strong>carteira de clientes</strong> no mesmo recorte (período, vendedor, grupo e região): concentração dos 10 maiores, clientes novos versus recorrentes e classificação Pareto ABC. Não mostra custo nem margem — os custos SAP ainda não são confiáveis.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Classe ABC (Pareto)</dt>
+    <dd>Clientes ordenados pelo faturamento líquido (venda). Classe A acumula até 80% do líquido positivo; B até 95%; C o restante. Quem só devolveu (líquido ≤ 0) fica em C.</dd>
+    <dt>Cliente novo</dt>
+    <dd>Primeira fatura de venda encontrada no <em>cache</em> cai no período filtrado. O cache guarda no máximo 36 meses: não é a primeira NF histórica da empresa se o cliente já comprava antes da janela sincronizada.</dd>
+    <dt>Recorrente</dt>
+    <dd>Já tinha fatura de venda no cache antes do início do período.</dd>
+    <dt>Top 10</dt>
+    <dd>Participação dos dez maiores clientes no líquido positivo do recorte.</dd>
+    <dt>Share / Acum.</dt>
+    <dd>Participação do cliente no líquido positivo e percentual acumulado na ordem ABC.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesCarteira</em> (a migration copia a ACL de <em>CrmSalesDashboard</em>). A navegação entre Cockpit, Carteira, Força de vendas e Produto também exige as permissões correspondentes (<em>CrmSalesDashboard</em>, <em>CrmSalesVendedores</em>, <em>CrmSalesProdutos</em>).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <strong>CRM → Carteira (Vendas SAP)</strong> ou, no cockpit, o atalho <strong>Carteira</strong> (leva os filtros da URL).</li>
+    <li>Ajuste período, vendedor, grupo e região se precisar e clique em <strong>Atualizar</strong>.</li>
+    <li>Leia os cards: quantidade de clientes, novos, recorrentes e concentração do top 10.</li>
+    <li>Confira o resumo das classes A/B/C e a lista completa (rolagem).</li>
+    <li>Use os atalhos <strong>Cockpit</strong>, <strong>Força de vendas</strong> e <strong>Produto</strong> para mudar de análise sem perder o recorte.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período</strong> Os mesmos presets do cockpit (mês atual, últimos 3–36 meses, YTD, personalizado). Data início/fim só aparecem no personalizado. Máximo 36 meses.</div>
+<div class="help-field"><strong>Vendedor / Grupo / Região</strong> Listas compactas com busca, iguais ao cockpit. Clique para marcar várias opções; o botão mostra “Todos” ou quantos estão marcados. Os chips laranja removem um a um. Vazio = todos.</div>
+<div class="help-field"><strong>Clientes no recorte</strong> Parceiros com líquido de venda no intervalo. O rodapé mostra o líquido positivo somado.</div>
+<div class="help-field"><strong>Novos no período</strong> Quantidade e valor dos clientes cuja primeira fatura no cache está no intervalo.</div>
+<div class="help-field"><strong>Lista</strong> Código e nome completo do cliente (sem corte), grupo, tipo (novo/recorrente), data da 1ª fatura no cache, líquido, share, acumulado, devolução e NFs (faturas − devoluções de venda). Nomes longos quebram linha; a tabela rola na horizontal se precisar.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu / atalho</dt>
+    <dd>Execute <code>vendor/bin/phinx migrate</code> e confira a permissão <em>CrmSalesCarteira</em>.</dd>
+    <dt>Todos aparecem como novos</dt>
+    <dd>O cache pode ter sido recarregado há pouco. “Novo” depende da primeira fatura <em>no cache</em>, não no SAP desde a fundação da empresa.</dd>
+    <dt>Números diferentes do cockpit</dt>
+    <dd>A carteira soma só líquido positivo nos cards de concentração/ABC. Clientes com líquido negativo entram na lista em classe C.</dd>
+    <dt>Onde está a margem?</dt>
+    <dd>Não entra nesta tela: os custos SAP ainda não estão corretos.</dd>
+</dl>

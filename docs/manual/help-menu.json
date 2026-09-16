@@ -576,6 +576,21 @@
                 },
                 {
                     "type": "topic",
+                    "topic_id": "crm-sales-carteira",
+                    "title": "Carteira de clientes (Vendas SAP)"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "crm-sales-vendedores",
+                    "title": "Força de vendas (Vendas SAP)"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "crm-sales-produtos",
+                    "title": "Produto (Vendas SAP)"
+                },
+                {
+                    "type": "topic",
                     "topic_id": "crm-sales-invoices",
                     "title": "Notas fiscais (Vendas SAP)"
                 },

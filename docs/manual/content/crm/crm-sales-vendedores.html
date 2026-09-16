@@ -1,0 +1,44 @@
+<h1>Força de vendas (Vendas SAP)</h1>
+
+<h2>Função no sistema</h2>
+<p>Tela irmã do Dashboard de Vendas SAP com o <strong>scorecard por vendedor</strong> no mesmo recorte: líquido, participação, desconto, taxa de devolução, ticket, clientes, NFs, bonificação e brinde. Não mostra custo nem margem.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Líquido</dt>
+    <dd>Faturas menos devoluções da natureza venda (mesma regra do cockpit).</dd>
+    <dt>% desconto</dt>
+    <dd>Desconto concedido nas linhas de venda ÷ bruto sem desconto (PriceBefDi × quantidade), já líquido de devolução.</dd>
+    <dt>Taxa de devolução</dt>
+    <dd>Valor das devoluções de venda ÷ valor das faturas de venda × 100. Não usa o líquido.</dd>
+    <dt>Ticket</dt>
+    <dd>Líquido ÷ clientes com fatura daquele vendedor. Não é valor médio por nota.</dd>
+    <dt>Bonificação / Brinde</dt>
+    <dd>Valor líquido dessas naturezas no vendedor. Não entram no faturamento.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesVendedores</em> (ACL copiada de <em>CrmSalesDashboard</em> na migration). A navegação entre as telas irmãs usa também <em>CrmSalesDashboard</em>, <em>CrmSalesCarteira</em> e <em>CrmSalesProdutos</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <strong>CRM → Força de vendas (SAP)</strong> ou o atalho no cockpit (leva os filtros da URL).</li>
+    <li>Ajuste período e dimensões e clique em <strong>Atualizar</strong>.</li>
+    <li>Compare os vendedores na tabela (rolagem se a lista for longa).</li>
+    <li>Troque para Cockpit, Carteira ou Produto pelos atalhos no topo.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período / Vendedor / Grupo / Região</strong> Barra compacta igual ao cockpit: datas só no personalizado; vendedor, grupo e região em listas com busca. Vendedor na barra restringe a lista; vazio mostra todos os vendedores do recorte. <strong>Limpar</strong> zera o recorte desta tela.</div>
+<div class="help-field"><strong>Share</strong> Participação do vendedor no líquido total da tela. O nome do vendedor aparece completo (quebra de linha se for longo).</div>
+<div class="help-field"><strong>NFs</strong> Faturas distintas menos devoluções distintas, só natureza venda.</div>
+<div class="help-field"><strong>Clientes</strong> Parceiros distintos com fatura de venda naquele vendedor.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo o menu</dt>
+    <dd>Rode <code>vendor/bin/phinx migrate</code> e confira <em>CrmSalesVendedores</em>.</dd>
+    <dt>Bonificação zerada</dt>
+    <dd>Classifique as utilizações em <strong>Utilizações de venda SAP</strong>. Até classificar, entram como venda.</dd>
+    <dt>Onde está a margem por vendedor?</dt>
+    <dd>Não entra nesta tela: os custos SAP ainda não estão corretos.</dd>
+</dl>

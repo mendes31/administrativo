@@ -641,6 +641,21 @@
                     "file": "crm/crm-sales-dashboard.html"
                 },
                 {
+                    "id": "crm-sales-carteira",
+                    "title": "Carteira de clientes (Vendas SAP)",
+                    "file": "crm/crm-sales-carteira.html"
+                },
+                {
+                    "id": "crm-sales-vendedores",
+                    "title": "Força de vendas (Vendas SAP)",
+                    "file": "crm/crm-sales-vendedores.html"
+                },
+                {
+                    "id": "crm-sales-produtos",
+                    "title": "Produto (Vendas SAP)",
+                    "file": "crm/crm-sales-produtos.html"
+                },
+                {
                     "id": "crm-sales-invoices",
                     "title": "Notas fiscais do Dashboard de Vendas SAP",
                     "file": "crm/crm-sales-invoices.html"

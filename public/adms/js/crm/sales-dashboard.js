@@ -721,6 +721,15 @@
     };
   }
 
+  function atualizarNavAnalises(qs) {
+    const suffix = qs ? ('?' + qs) : '';
+    root.querySelectorAll('[data-sales-nav]').forEach((a) => {
+      const base = a.getAttribute('data-sales-nav') || '';
+      if (!base) return;
+      a.setAttribute('href', base + suffix);
+    });
+  }
+
   function persistirFiltroNaUrl(extraParams) {
     const params = extraParams ? new URLSearchParams(extraParams.toString()) : new URLSearchParams(buildQuery());
     params.delete('origem');
@@ -729,6 +738,7 @@
     if (itensTab && itensTab !== 'venda') params.set('natureza', itensTab);
     else params.delete('natureza');
     const qs = params.toString();
+    atualizarNavAnalises(qs);
     const next = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
     const cur = window.location.pathname + window.location.search + window.location.hash;
     if (next === cur) return;
@@ -864,7 +874,11 @@
     document.getElementById('kpiFaturamentoDelta').textContent =
       'Já é faturas − devoluções (' + fmtMoeda(kpis.faturamento_bruto || 0) +
       ' − ' + fmtMoeda(kpis.devolucoes || 0) + '). ' +
-      (kpis.clientes_ativos || 0) + ' clientes ativos';
+      (kpis.clientes_ativos || 0) + ' clientes ativos' +
+      (kpis.yoy_disponivel
+        ? (' · ' + (Number(kpis.yoy_pct) > 0 ? '+' : '') +
+          fmtPct(Number(kpis.yoy_pct)) + ' vs o mesmo período do ano anterior')
+        : '');
     document.getElementById('kpiDevolucaoDelta').textContent =
       fmtQtdItem(kpis.itens_devolvidos || 0) + ' un. devolvidas · ' +
       (kpis.qtd_devolucoes || 0) + ' linhas — valor já saiu do líquido';
@@ -1521,6 +1535,7 @@
   }
 
   hidratarFiltroDaUrl();
+  atualizarNavAnalises(new URLSearchParams(buildQuery()).toString());
   sincronizarItensTabUi();
   sincronizarToolbar();
   carregar();

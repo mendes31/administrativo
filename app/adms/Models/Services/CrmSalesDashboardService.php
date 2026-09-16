@@ -186,7 +186,7 @@ class CrmSalesDashboardService
                 'pct_desconto' => round($pctDesconto, 2),
                 'pct_bonificacoes' => round($pctBonif, 2),
                 'pct_brindes' => round($pctBrindes, 2),
-            ],
+            ] + $this->yoyLiquido($range, $dims, $liquido),
             'series' => [
                 'evolucao' => $evolucaoCompleta,
                 'grupo_cliente' => $porGrupoCliente,
@@ -344,6 +344,329 @@ class CrmSalesDashboardService
             'pct_desconto' => 0,
             'pct_bonificacoes' => 0,
             'pct_brindes' => 0,
+            'liquido_ano_anterior' => 0,
+            'yoy_pct' => null,
+            'yoy_disponivel' => false,
+        ];
+    }
+
+    /**
+     * Carteira: Pareto ABC, novos/recorrentes e concentração (sem custo).
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function getCarteiraData(array $filters): array
+    {
+        $base = $this->analyticsBase($filters);
+        if ($base['cache_empty']) {
+            return $base + [
+                'clientes' => [],
+                'abc' => $this->emptyAbcResumo(),
+                'novos' => 0,
+                'recorrentes' => 0,
+                'valor_novos' => 0.0,
+                'valor_recorrentes' => 0.0,
+                'top10_share' => 0.0,
+                'top10_valor' => 0.0,
+                'clientes_ativos' => 0,
+                'faturamento_liquido' => 0.0,
+            ];
+        }
+
+        $from = $base['from'];
+        $to = $base['to'];
+        $dims = $base['dims'];
+        $rows = $this->withAbc($this->repo->fetchTopClientes($from, $to, $dims));
+        $first = $this->repo->fetchFirstSaleDates($dims);
+        $novos = 0;
+        $recorrentes = 0;
+        $valorNovos = 0.0;
+        $valorRec = 0.0;
+        $total = 0.0;
+        foreach ($rows as &$row) {
+            $code = (string) ($row['card_code'] ?? '');
+            $primeira = (string) ($first[$code] ?? '');
+            $novo = $primeira !== '' && $primeira >= $from && $primeira <= $to;
+            $row['primeira'] = $primeira;
+            $row['tipo_carteira'] = $novo ? 'novo' : 'recorrente';
+            $liq = (float) ($row['liquido'] ?? 0);
+            $total += $liq > 0 ? $liq : 0;
+            if ($novo) {
+                $novos++;
+                $valorNovos += $liq;
+            } else {
+                $recorrentes++;
+                $valorRec += $liq;
+            }
+        }
+        unset($row);
+
+        $top10Valor = 0.0;
+        foreach (array_slice($rows, 0, 10) as $row) {
+            $v = (float) ($row['liquido'] ?? 0);
+            if ($v > 0) {
+                $top10Valor += $v;
+            }
+        }
+
+        return $base + [
+            'clientes' => $rows,
+            'abc' => $this->summarizeAbc($rows),
+            'novos' => $novos,
+            'recorrentes' => $recorrentes,
+            'valor_novos' => $valorNovos,
+            'valor_recorrentes' => $valorRec,
+            'top10_share' => $total > 0 ? round($top10Valor / $total * 100, 1) : 0.0,
+            'top10_valor' => $top10Valor,
+            'clientes_ativos' => count($rows),
+            'faturamento_liquido' => $total,
+        ];
+    }
+
+    /**
+     * Força de vendas: scorecard por vendedor (sem custo/margem).
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function getVendedoresData(array $filters): array
+    {
+        $base = $this->analyticsBase($filters);
+        if ($base['cache_empty']) {
+            return $base + ['vendedores' => [], 'faturamento_liquido' => 0.0];
+        }
+
+        $rows = $this->repo->fetchSellerScorecard($base['from'], $base['to'], $base['dims']);
+        $total = 0.0;
+        foreach ($rows as &$row) {
+            $liq = (float) ($row['liquido'] ?? 0);
+            $fat = (float) ($row['faturas'] ?? 0);
+            $dev = (float) ($row['devolucao'] ?? 0);
+            $desc = (float) ($row['desconto'] ?? 0);
+            $bruto = (float) ($row['valor_bruto'] ?? 0);
+            $cli = (int) ($row['clientes'] ?? 0);
+            $total += $liq;
+            $row['pct_desconto'] = $bruto > 0 ? round($desc / $bruto * 100, 2) : 0.0;
+            $row['taxa_devolucao'] = $fat > 0 ? round($dev / $fat * 100, 2) : 0.0;
+            $row['ticket'] = $cli > 0 ? ($liq / $cli) : 0.0;
+        }
+        unset($row);
+        foreach ($rows as &$row) {
+            $liq = (float) ($row['liquido'] ?? 0);
+            $row['pct_share'] = $total > 0 ? round($liq / $total * 100, 2) : 0.0;
+        }
+        unset($row);
+
+        return $base + [
+            'vendedores' => $rows,
+            'faturamento_liquido' => $total,
+        ];
+    }
+
+    /**
+     * Produto: ABC de SKU, desconto/devolução e mix 104/106 (sem custo).
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function getProdutosData(array $filters): array
+    {
+        $base = $this->analyticsBase($filters);
+        if ($base['cache_empty']) {
+            return $base + [
+                'itens' => [],
+                'abc' => $this->emptyAbcResumo(),
+                'mix' => [],
+                'faturamento_liquido' => 0.0,
+            ];
+        }
+
+        $from = $base['from'];
+        $to = $base['to'];
+        $dims = $base['dims'];
+        $itens = $this->withAbc($this->repo->fetchTopItens($from, $to, $dims, null, 'venda'));
+        $total = 0.0;
+        foreach ($itens as &$row) {
+            $liq = (float) ($row['liquido'] ?? 0);
+            $dev = (float) ($row['devolucao'] ?? 0);
+            $desc = (float) ($row['desconto'] ?? 0);
+            $bruto = (float) ($row['valor_bruto'] ?? 0);
+            $fat = $liq + $dev;
+            $total += $liq > 0 ? $liq : 0;
+            $row['pct_desconto'] = $bruto > 0 ? round($desc / $bruto * 100, 2) : 0.0;
+            $row['taxa_devolucao'] = $fat > 0 ? round($dev / $fat * 100, 2) : 0.0;
+        }
+        unset($row);
+
+        return $base + [
+            'itens' => $itens,
+            'abc' => $this->summarizeAbc($itens),
+            'mix' => $this->repo->fetchGroupSum($from, $to, $dims, 'grupo_item', 'grupo_item'),
+            'faturamento_liquido' => $total,
+        ];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    private function analyticsBase(array $filters): array
+    {
+        if (!$this->repo->tableExists()) {
+            throw new Exception(
+                'Cache de vendas CRM não instalado. Execute a migration e a sincronização SAP.'
+            );
+        }
+
+        $range = $this->resolveDateRange($filters);
+        $dims = [
+            'vendedor' => $this->toList($filters['vendedor'] ?? null),
+            'grupo_cliente' => $this->toList($filters['grupo_cliente'] ?? null),
+            'regiao' => $this->toList($filters['regiao'] ?? null),
+            'grupo_item' => $this->toList($filters['grupo_item'] ?? null),
+            'ano_mes' => $this->toList($filters['ano_mes'] ?? null),
+            'card_code' => $this->toList($filters['card_code'] ?? null),
+            'item_code' => $this->toList($filters['item_code'] ?? null),
+        ];
+        $from = $range['from']->format('Y-m-d');
+        $to = $range['to']->format('Y-m-d');
+        $rowCount = $this->repo->countRows();
+        $empty = $rowCount === 0;
+        $opcoes = $empty ? ['vendedores' => [], 'grupos_cliente' => [], 'regioes' => []]
+            : $this->repo->fetchFilterOptions($from, $to);
+
+        return [
+            'success' => true,
+            'cache_empty' => $empty,
+            'periodo' => [
+                'chave' => $range['chave'],
+                'inicio' => $range['from']->format('Y-m'),
+                'fim' => $range['to']->format('Y-m'),
+                'date_from' => $from,
+                'date_to' => $to,
+            ],
+            'filtros' => array_filter($dims, static fn ($v) => $v !== null && $v !== []),
+            'filtros_opcoes' => $opcoes,
+            'from' => $from,
+            'to' => $to,
+            'dims' => $dims,
+            'warning' => $empty
+                ? 'Cache vazio. Na primeira carga use o comando --full no servidor.'
+                : null,
+        ];
+    }
+
+    /**
+     * @param array{from: DateTimeImmutable, to: DateTimeImmutable} $range
+     * @param array<string, string|list<string>|null> $dims
+     * @return array{liquido_ano_anterior: float, yoy_pct: float|null, yoy_disponivel: bool}
+     */
+    private function yoyLiquido(array $range, array $dims, float $liquido): array
+    {
+        $fromAnt = $range['from']->modify('-1 year');
+        $toAnt = $range['to']->modify('-1 year');
+        $row = $this->repo->fetchKpis(
+            $fromAnt->format('Y-m-d'),
+            $toAnt->format('Y-m-d'),
+            $this->dimsShiftedYear($dims)
+        );
+        $ant = (float) ($row['liquido'] ?? 0);
+        $disponivel = abs($ant) >= 0.01;
+        return [
+            'liquido_ano_anterior' => $ant,
+            'yoy_pct' => $disponivel ? round(($liquido - $ant) / $ant * 100, 1) : null,
+            'yoy_disponivel' => $disponivel,
+        ];
+    }
+
+    /**
+     * @param array<string, string|list<string>|null> $dims
+     * @return array<string, string|list<string>|null>
+     */
+    private function dimsShiftedYear(array $dims): array
+    {
+        $meses = $dims['ano_mes'] ?? null;
+        if (!is_array($meses) || $meses === []) {
+            return $dims;
+        }
+        $shifted = [];
+        foreach ($meses as $m) {
+            $dt = DateTimeImmutable::createFromFormat('!Y-m', (string) $m);
+            $shifted[] = $dt ? $dt->modify('-1 year')->format('Y-m') : (string) $m;
+        }
+        $dims['ano_mes'] = $shifted;
+        return $dims;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function withAbc(array $rows, string $valueKey = 'liquido'): array
+    {
+        $total = 0.0;
+        foreach ($rows as $row) {
+            $v = (float) ($row[$valueKey] ?? 0);
+            if ($v > 0) {
+                $total += $v;
+            }
+        }
+        $cum = 0.0;
+        foreach ($rows as &$row) {
+            $v = (float) ($row[$valueKey] ?? 0);
+            if ($v > 0 && $total > 0) {
+                $cum += $v;
+                $pctAcum = $cum / $total * 100;
+                $classe = $pctAcum <= 80 ? 'A' : ($pctAcum <= 95 ? 'B' : 'C');
+            } else {
+                $pctAcum = $total > 0 ? 100.0 : 0.0;
+                $classe = 'C';
+            }
+            $row['pct_share'] = $total > 0 && $v > 0 ? round($v / $total * 100, 2) : 0.0;
+            $row['pct_acum'] = round($pctAcum, 2);
+            $row['classe_abc'] = $classe;
+        }
+        unset($row);
+        return $rows;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, array{qtd: int, valor: float, share: float}>
+     */
+    private function summarizeAbc(array $rows, string $valueKey = 'liquido'): array
+    {
+        $resumo = $this->emptyAbcResumo();
+        $total = 0.0;
+        foreach ($rows as $row) {
+            $v = (float) ($row[$valueKey] ?? 0);
+            if ($v > 0) {
+                $total += $v;
+            }
+            $classe = (string) ($row['classe_abc'] ?? 'C');
+            if (!isset($resumo[$classe])) {
+                $classe = 'C';
+            }
+            $resumo[$classe]['qtd']++;
+            $resumo[$classe]['valor'] += $v;
+        }
+        foreach ($resumo as &$item) {
+            $item['share'] = $total > 0 ? round($item['valor'] / $total * 100, 1) : 0.0;
+        }
+        unset($item);
+        return $resumo;
+    }
+
+    /**
+     * @return array<string, array{qtd: int, valor: float, share: float}>
+     */
+    private function emptyAbcResumo(): array
+    {
+        return [
+            'A' => ['qtd' => 0, 'valor' => 0.0, 'share' => 0.0],
+            'B' => ['qtd' => 0, 'valor' => 0.0, 'share' => 0.0],
+            'C' => ['qtd' => 0, 'valor' => 0.0, 'share' => 0.0],
         ];
     }
 
