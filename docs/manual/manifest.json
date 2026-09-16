@@ -641,6 +641,11 @@
                     "file": "crm/crm-sales-dashboard.html"
                 },
                 {
+                    "id": "crm-sales-invoices",
+                    "title": "Notas fiscais do Dashboard de Vendas SAP",
+                    "file": "crm/crm-sales-invoices.html"
+                },
+                {
                     "id": "crm-list-sales-usages",
                     "title": "Utilizações de venda SAP (CRM)",
                     "file": "crm/crm-list-sales-usages.html"

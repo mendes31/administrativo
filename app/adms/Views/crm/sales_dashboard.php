@@ -2,6 +2,7 @@
 /** @var array $this->data */
 $apiUrl = htmlspecialchars($this->data['api_url'] ?? '', ENT_QUOTES, 'UTF-8');
 $syncUrl = htmlspecialchars($this->data['sync_url'] ?? '', ENT_QUOTES, 'UTF-8');
+$invoicesUrl = htmlspecialchars($this->data['invoices_url'] ?? '', ENT_QUOTES, 'UTF-8');
 $usagesUrl = htmlspecialchars($this->data['usages_url'] ?? '', ENT_QUOTES, 'UTF-8');
 $canSync = !empty($this->data['can_sync']);
 $canUsages = !empty($this->data['can_usages']);
@@ -196,6 +197,13 @@ $canUsages = !empty($this->data['can_usages']);
 }
 .crm-sales-dash .csd-panel h2{font-size:15px; font-weight:700; margin:0 0 2px;}
 .crm-sales-dash .csd-panel .panel-sub{font-size:12px; color:var(--csd-ink-mute); margin:0 0 10px;}
+.crm-sales-dash .csd-panel-sub-row{
+  display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;
+}
+.crm-sales-dash .csd-nfs-legend{
+  font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--csd-ink-mute); white-space:nowrap; padding-right:22px;
+}
 .crm-sales-dash .csd-chart{position:relative; width:100%; cursor:pointer;}
 .crm-sales-dash .csd-chart-scroll{
   height:360px; max-height:360px; min-height:360px;
@@ -260,8 +268,9 @@ $canUsages = !empty($this->data['can_usages']);
   text-align:left !important; color:var(--csd-ink-mute);
   overflow:visible !important; text-overflow:clip !important;
 }
-.crm-sales-dash .tbl-clientes .col-qtd{
-  min-width:5.5rem !important;
+.crm-sales-dash .tbl-clientes .col-nfs{
+  width:1%; min-width:3.6rem !important; text-align:right !important;
+  font-variant-numeric:tabular-nums; font-weight:600;
 }
 .crm-sales-dash table.tbl-itens{
   table-layout:fixed !important;
@@ -271,6 +280,12 @@ $canUsages = !empty($this->data['can_usages']);
 .crm-sales-dash .tbl-itens tfoot td.num{
   min-width:0 !important;
   width:6.75rem;
+}
+.crm-sales-dash .tbl-itens th.col-nfs,
+.crm-sales-dash .tbl-itens td.col-nfs,
+.crm-sales-dash .tbl-itens tfoot td.col-nfs{
+  width:3.4rem !important; min-width:0 !important; text-align:right !important;
+  font-variant-numeric:tabular-nums; font-weight:600;
 }
 .crm-sales-dash .tbl-itens .col-qtd{width:5.1rem; min-width:0 !important;}
 .crm-sales-dash .table-scroll.itens-scroll{overflow-x:hidden;}
@@ -361,6 +376,7 @@ $canUsages = !empty($this->data['can_usages']);
   <div class="crm-sales-dash" id="crmSalesDash"
        data-api-url="<?= $apiUrl ?>"
        data-sync-url="<?= $syncUrl ?>"
+       data-invoices-url="<?= $invoicesUrl ?>"
        data-usages-url="<?= $usagesUrl ?>"
        data-can-sync="<?= $canSync ? '1' : '0' ?>">
     <div class="csd-overlay" aria-live="polite"><div class="csd-spinner" id="csdSpinnerText">Carregando…</div></div>
@@ -368,7 +384,7 @@ $canUsages = !empty($this->data['can_usages']);
     <div class="csd-banner">
       <div>
         <h1>Dashboard de vendas SAP</h1>
-        <p>Produto acabado e materiais de uso/consumo · faturamento, bonificações e brindes · clique nos gráficos para marcar um ou mais filtros</p>
+        <p>Produto acabado e materiais de uso/consumo · clique para filtrar · duplo clique em vendedor, cliente ou item para ver as notas</p>
       </div>
       <div class="csd-periodo-tag" id="periodoResumo">Carregando período…</div>
     </div>
@@ -655,7 +671,10 @@ $canUsages = !empty($this->data['can_usages']);
     <section class="csd-grid-2">
       <div class="csd-panel">
         <h2>Top vendedores</h2>
-        <p class="panel-sub">Faturamento líquido · clique para marcar um ou mais · top 10 visíveis, role para ver mais</p>
+        <p class="panel-sub csd-panel-sub-row">
+          <span>Faturamento líquido · clique para filtrar · duplo clique para ver as notas · top 10 visíveis, role para ver mais</span>
+          <span class="csd-nfs-legend" data-nfs-legend="chartVendedores">NFs</span>
+        </p>
         <div class="csd-chart csd-chart-scroll">
           <div class="csd-chart-inner">
             <canvas id="chartVendedores" aria-label="Faturamento por vendedor"></canvas>
@@ -664,7 +683,10 @@ $canUsages = !empty($this->data['can_usages']);
       </div>
       <div class="csd-panel">
         <h2>Vendas por região</h2>
-        <p class="panel-sub">Por UF · clique para marcar uma ou mais · top 10 visíveis, role para ver mais</p>
+        <p class="panel-sub csd-panel-sub-row">
+          <span>Por UF · clique para marcar uma ou mais · top 10 visíveis, role para ver mais</span>
+          <span class="csd-nfs-legend" data-nfs-legend="chartRegiao">NFs</span>
+        </p>
         <div class="csd-chart csd-chart-scroll">
           <div class="csd-chart-inner">
             <canvas id="chartRegiao" aria-label="Faturamento por região"></canvas>
@@ -683,6 +705,7 @@ $canUsages = !empty($this->data['can_usages']);
               <tr>
                 <th>Parceiro</th>
                 <th class="col-grupo">Grupo</th>
+                <th class="col-num col-nfs">NFs</th>
                 <th class="col-num">Líquido</th>
                 <th class="col-num">Devolução</th>
               </tr>
@@ -700,6 +723,7 @@ $canUsages = !empty($this->data['can_usages']);
             <thead>
               <tr>
                 <th>Item</th>
+                <th class="col-num col-nfs">NFs</th>
                 <th class="col-num col-qtd">Qtd</th>
                 <th class="col-num">Líquido</th>
                 <th class="col-num">Devolução</th>
@@ -720,4 +744,4 @@ $canUsages = !empty($this->data['can_usages']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=23"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=26"></script>

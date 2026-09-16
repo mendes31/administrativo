@@ -24,6 +24,7 @@ class CrmSalesDashboard
                 'CrmSalesDashboardData',
                 'CrmSalesDashboardSync',
                 'CrmListSalesUsages',
+                'CrmSalesInvoices',
             ],
         ];
 
@@ -32,6 +33,7 @@ class CrmSalesDashboard
         $base = $_ENV['URL_ADM'] ?? '';
         $this->data['api_url'] = $base . 'crm-sales-dashboard-data';
         $this->data['sync_url'] = $base . 'crm-sales-dashboard-sync';
+        $this->data['invoices_url'] = $base . 'crm-sales-invoices';
         $this->data['usages_url'] = $base . 'crm-list-sales-usages';
         $perms = $this->data['buttonPermission'] ?? [];
         $this->data['can_sync'] = is_array($perms) && in_array('CrmSalesDashboardSync', $perms, true);

@@ -1,0 +1,52 @@
+<h1>Notas fiscais do Dashboard de Vendas SAP</h1>
+
+<h2>Função no sistema</h2>
+<p>Lista as notas de venda (OINV) e de devolução (ORIN) do recorte do Dashboard de Vendas SAP: uma linha por documento, sem prestações/parcelas. Abre com duplo clique em vendedor, cliente ou item no painel, respeitando período e filtros.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Documento</dt>
+    <dd>Número da nota no SAP (<code>DocNum</code>). Prefixo NS para venda e NC para devolução. Não é parcela (1 de 3, 2 de 3…).</dd>
+    <dt>Tipo</dt>
+    <dd>Venda = fatura (OINV). Devolução = nota de crédito (ORIN). As duas aparecem na mesma lista.</dd>
+    <dt>Valor</dt>
+    <dd>No vendedor/cliente: total da nota no recorte do painel (LineTotal − DiscSum, grupos 104/106, natureza venda). No item: só o valor daquele SKU na nota.</dd>
+    <dt>NFs líquidas</dt>
+    <dd>Quantidade de notas de venda menos quantidade de notas de devolução no recorte. Os três cards no topo da listagem mostram vendas, devoluções e esse líquido. Não conta parcelas.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesInvoices</em> (a migration copia a ACL de <em>CrmSalesDashboard</em>). A tela também exige <em>CrmSalesDashboard</em> no botão de voltar.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Rode a migration e <code>php scripts/sync_crm_sales_sap.php --full</code> se o cache ainda não tiver número de nota.</li>
+    <li>Abra <strong>CRM → Dashboard de Vendas SAP</strong> e escolha o período/filtros.</li>
+    <li>Dê duplo clique em um vendedor (gráfico Top vendedores), em um cliente (Top clientes) ou em um item (Itens vendidos).</li>
+    <li>Confira os três totais (vendas, devoluções e NFs líquidas) e a lista: documento, tipo, data, cliente, vendedor e valor. No item, também a quantidade.</li>
+    <li>Use Anterior/Próxima se houver mais de 200 notas.</li>
+    <li>Voltar ao dashboard devolve os mesmos filtros.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Notas de venda / devolução / NFs líquidas</strong> Contagem de documentos distintos no recorte. Líquidas = vendas − devoluções (a mesma regra da coluna NFs do dashboard).</div>
+<div class="help-field"><strong>Documento</strong> NS/NC + número SAP. Uma linha por <code>DocEntry</code>.</div>
+<div class="help-field"><strong>Tipo</strong> Venda ou Devolução.</div>
+<div class="help-field"><strong>Data</strong> Data de lançamento da nota (<code>DocDate</code>), no intervalo do painel.</div>
+<div class="help-field"><strong>Cliente / Vendedor</strong> Parceiro e vendedor SAP da nota.</div>
+<div class="help-field"><strong>Qtd</strong> Só na origem item: quantidade daquele SKU na nota (devolução vem negativa).</div>
+<div class="help-field"><strong>Valor</strong> Soma das linhas do cache daquela nota no recorte (não inclui parcelas INV6).</div>
+<div class="help-field"><strong>Filtros na URL</strong> Os mesmos do dashboard (<code>periodo</code>, <code>vendedor[]</code>, <code>card_code[]</code>, <code>item_code[]</code>, etc.). Sem vendedor/cliente/item a tela pede para abrir pelo duplo clique.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Lista vazia / aviso de cache sem número de nota</dt>
+    <dd>A migration do DocNum esvazia o cache. Rode <code>php scripts/sync_crm_sales_sap.php --full</code>.</dd>
+    <dt>Aparecem menos linhas que no SAP (prestações)</dt>
+    <dd>Esperado: o SAP de análise de vendas lista cada parcela. Aqui a NS 18706 (1 de 3, 2 de 3, 3 de 3) vira <strong>uma</strong> linha com o total da nota.</dd>
+    <dt>Valor diferente do SAP</dt>
+    <dd>O painel só soma grupos OITB 104/106 e natureza venda. Itens de outros grupos ou utilização Ignorar/bonificação/brinde não entram.</dd>
+    <dt>Não abre pelo menu</dt>
+    <dd>A entrada principal é o duplo clique no dashboard. Se a página aparecer no menu, use-a só com os filtros na URL.</dd>
+    <dt>Sem permissão</dt>
+    <dd>Execute <code>vendor/bin/phinx migrate</code> e confira <em>CrmSalesInvoices</em> no nível de acesso.</dd>
+</dl>

@@ -191,6 +191,106 @@ class CrmSalesDashboardService
     }
 
     /**
+     * Listagem de notas (sem parcelas) para o drill-down do dashboard.
+     *
+     * @param array<string, mixed> $filters
+     * @return array<string, mixed>
+     */
+    public function getInvoicesData(array $filters, int $page = 1, int $perPage = 200): array
+    {
+        if (!$this->repo->tableExists()) {
+            throw new Exception(
+                'Cache de vendas CRM não instalado. Execute a migration e a sincronização SAP.'
+            );
+        }
+
+        $range = $this->resolveDateRange($filters);
+        $dims = [
+            'vendedor' => $this->toList($filters['vendedor'] ?? null),
+            'grupo_cliente' => $this->toList($filters['grupo_cliente'] ?? null),
+            'regiao' => $this->toList($filters['regiao'] ?? null),
+            'grupo_item' => $this->toList($filters['grupo_item'] ?? null),
+            'ano_mes' => $this->toList($filters['ano_mes'] ?? null),
+            'card_code' => $this->toList($filters['card_code'] ?? null),
+            'item_code' => $this->toList($filters['item_code'] ?? null),
+        ];
+
+        $origem = trim((string) ($filters['origem'] ?? ''));
+        $hasDrill = ($dims['vendedor'] ?? []) !== []
+            || ($dims['card_code'] ?? []) !== []
+            || ($dims['item_code'] ?? []) !== [];
+
+        $from = $range['from']->format('Y-m-d');
+        $to = $range['to']->format('Y-m-d');
+        $perPage = max(1, min(500, $perPage));
+        $page = max(1, $page);
+        $offset = ($page - 1) * $perPage;
+
+        $hasDoc = $this->repo->hasDocNumColumns();
+        $result = $hasDoc && $hasDrill
+            ? $this->repo->fetchInvoices($from, $to, $dims, $perPage, $offset)
+            : [
+                'rows' => [],
+                'total_rows' => 0,
+                'total_valor' => 0.0,
+                'total_quantidade' => 0.0,
+                'qtd_venda' => 0,
+                'qtd_devolucao' => 0,
+                'qtd_nfs' => 0,
+            ];
+
+        $totalRows = (int) $result['total_rows'];
+        $pages = $perPage > 0 ? (int) max(1, (int) ceil($totalRows / $perPage)) : 1;
+        if ($page > $pages) {
+            $page = $pages;
+        }
+
+        $warning = null;
+        if (!$hasDoc) {
+            $warning = 'O cache ainda não tem número de nota. Rode php scripts/sync_crm_sales_sap.php --full após a migration.';
+        } elseif (!$hasDrill) {
+            $warning = 'Abra esta tela com duplo clique em um vendedor, cliente ou item no Dashboard de Vendas SAP.';
+        } elseif ($this->repo->countRows() === 0) {
+            $warning = 'Cache vazio. Na primeira carga use o comando --full no servidor.';
+        }
+
+        $titulo = 'Notas fiscais';
+        if ($origem === 'vendedor' && !empty($dims['vendedor'])) {
+            $titulo = 'Notas de ' . implode(', ', $dims['vendedor']);
+        } elseif ($origem === 'card_code' && !empty($dims['card_code'])) {
+            $titulo = 'Notas do cliente';
+        } elseif ($origem === 'item_code' && !empty($dims['item_code'])) {
+            $titulo = 'Notas do item';
+        }
+
+        return [
+            'success' => true,
+            'titulo' => $titulo,
+            'origem' => $origem,
+            'escopo_item' => !empty($dims['item_code']),
+            'has_doc_num' => $hasDoc,
+            'has_drill' => $hasDrill,
+            'periodo' => [
+                'chave' => $range['chave'],
+                'date_from' => $from,
+                'date_to' => $to,
+            ],
+            'filtros' => array_filter($dims, static fn ($v) => $v !== null && $v !== []),
+            'rows' => $result['rows'],
+            'total_rows' => $totalRows,
+            'total_valor' => (float) $result['total_valor'],
+            'total_quantidade' => (float) $result['total_quantidade'],
+            'qtd_venda' => (int) ($result['qtd_venda'] ?? 0),
+            'qtd_devolucao' => (int) ($result['qtd_devolucao'] ?? 0),
+            'qtd_nfs' => (int) ($result['qtd_nfs'] ?? 0),
+            'page' => $page,
+            'per_page' => $perPage,
+            'pages' => $pages,
+            'warning' => $warning,
+        ];
+    }
+
+    /**
      * @return array<string, int|float>
      */
     private function emptyKpis(): array
@@ -236,6 +336,7 @@ class CrmSalesDashboardService
             'rows_cached' => $rowCount,
             'cache_from' => $dates['min'],
             'cache_to' => $dates['max'],
+            'has_doc_num' => $this->repo->hasDocNumColumns(),
             'message' => $sync['message'] ?? null,
         ];
     }

@@ -24,6 +24,7 @@ use Throwable;
  * - Valor: LineTotal − DiscSum (rateado na linha)
  * - Grupos OITB 104 e 106; todas as utilizações (natureza no Portal)
  * - Fonte SAP: sempre CTE (OINV/ORIN). Não consulta VIEW no HANA.
+ * - Grão: dia × tipo × DocEntry/DocNum × cliente × vendedor × item × utilização
  *
  * Agendamento recomendado:
  * - Lazy: no 1º acesso do dia ao endpoint de dados, dispara incremental (com lock)
@@ -525,6 +526,8 @@ class CrmSalesSapSyncService
             src."DocDate" AS "DocDate",
             src."AnoMes" AS "AnoMes",
             src."TipoDocumento" AS "TipoDocumento",
+            src."DocEntry" AS "DocEntry",
+            src."DocNum" AS "DocNum",
             src."CardCode" AS "CardCode",
             MAX(src."Cliente") AS "Cliente",
             IFNULL(src."Vendedor", \'\') AS "Vendedor",
@@ -545,6 +548,8 @@ class CrmSalesSapSyncService
             src."DocDate",
             src."AnoMes",
             src."TipoDocumento",
+            src."DocEntry",
+            src."DocNum",
             src."CardCode",
             IFNULL(src."Vendedor", \'\'),
             IFNULL(src."GrupoCliente", \'\'),
@@ -561,6 +566,8 @@ class CrmSalesSapSyncService
         if ($devolucao) {
             return 'SELECT
     \'Devolucao\' AS "TipoDocumento",
+    T0."DocEntry" AS "DocEntry",
+    T0."DocNum" AS "DocNum",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
     T0."CardCode" AS "CardCode",
@@ -591,6 +598,8 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
 
         return 'SELECT
     \'Fatura\' AS "TipoDocumento",
+    T0."DocEntry" AS "DocEntry",
+    T0."DocNum" AS "DocNum",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
     T0."CardCode" AS "CardCode",
@@ -689,9 +698,14 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
             $usageName = 'Sem utilização';
         }
 
+        $docEntry = max(0, (int) ($get($raw, 'DocEntry') ?? 0));
+        $docNum = max(0, (int) ($get($raw, 'DocNum') ?? 0));
+
         $grain = implode('|', [
             $docDate,
             $tipo,
+            (string) $docEntry,
+            (string) $docNum,
             $cardCode,
             $vendedor,
             $grupoCli,
@@ -706,6 +720,8 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
             'doc_date' => $docDate,
             'ano_mes' => $anoMes,
             'tipo_documento' => $tipo,
+            'doc_entry' => $docEntry,
+            'doc_num' => $docNum,
             'card_code' => $cardCode,
             'cliente' => mb_substr(trim((string) ($get($raw, 'Cliente') ?? '')), 0, 255),
             'vendedor' => mb_substr($vendedor, 0, 150),

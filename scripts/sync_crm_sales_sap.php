@@ -6,7 +6,7 @@ declare(strict_types=1);
  *
  * Uso:
  *   php scripts/sync_crm_sales_sap.php                # incremental (cron opcional)
- *   php scripts/sync_crm_sales_sap.php --full         # últimos 36 meses (1ª vez / após migration de utilizações)
+ *   php scripts/sync_crm_sales_sap.php --full         # últimos 36 meses (1ª vez / após migration de utilizações ou do número da nota)
  *   php scripts/sync_crm_sales_sap.php --today        # só o dia corrente
  *   php scripts/sync_crm_sales_sap.php --incremental  # explícito
  *

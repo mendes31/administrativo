@@ -66,6 +66,25 @@ class CrmSalesFactRepository extends DbConnection
         return $has;
     }
 
+    public function hasDocNumColumns(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        if (!$this->tableExists()) {
+            $has = false;
+            return $has;
+        }
+        try {
+            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM crm_sales_fact_daily LIKE 'doc_num'");
+            $has = (bool) $stmt->fetchColumn();
+        } catch (\Throwable) {
+            $has = false;
+        }
+        return $has;
+    }
+
     public function countRows(): int
     {
         if (!$this->tableExists()) {
@@ -120,8 +139,36 @@ class CrmSalesFactRepository extends DbConnection
         $now = date('Y-m-d H:i:s');
         $withUsage = $this->hasUsageColumns();
         $withItem = $this->hasItemColumns();
+        $withDoc = $this->hasDocNumColumns();
 
-        if ($withUsage && $withItem) {
+        if ($withUsage && $withItem && $withDoc) {
+            $sql = 'INSERT INTO crm_sales_fact_daily (
+                        grain_hash, doc_date, ano_mes, tipo_documento, doc_num, doc_entry,
+                        card_code, cliente,
+                        vendedor, grupo_cliente, regiao, grupo_item, item_code, item_name,
+                        usage_id, usage_name,
+                        valor_liquido, quantidade, valor_bruto, valor_desconto, qtd_linhas,
+                        synced_at, created_at, updated_at
+                    ) VALUES (
+                        :grain_hash, :doc_date, :ano_mes, :tipo_documento, :doc_num, :doc_entry,
+                        :card_code, :cliente,
+                        :vendedor, :grupo_cliente, :regiao, :grupo_item, :item_code, :item_name,
+                        :usage_id, :usage_name,
+                        :valor_liquido, :quantidade, :valor_bruto, :valor_desconto, :qtd_linhas,
+                        :synced_at, :created_at, :updated_at
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        cliente = VALUES(cliente),
+                        item_name = VALUES(item_name),
+                        usage_name = VALUES(usage_name),
+                        valor_liquido = VALUES(valor_liquido),
+                        quantidade = VALUES(quantidade),
+                        valor_bruto = VALUES(valor_bruto),
+                        valor_desconto = VALUES(valor_desconto),
+                        qtd_linhas = VALUES(qtd_linhas),
+                        synced_at = VALUES(synced_at),
+                        updated_at = VALUES(updated_at)';
+        } elseif ($withUsage && $withItem) {
             $sql = 'INSERT INTO crm_sales_fact_daily (
                         grain_hash, doc_date, ano_mes, tipo_documento, card_code, cliente,
                         vendedor, grupo_cliente, regiao, grupo_item, item_code, item_name,
@@ -210,6 +257,10 @@ class CrmSalesFactRepository extends DbConnection
                     ':created_at' => $now,
                     ':updated_at' => $now,
                 ];
+                if ($withDoc) {
+                    $params[':doc_num'] = (int) ($row['doc_num'] ?? 0);
+                    $params[':doc_entry'] = (int) ($row['doc_entry'] ?? 0);
+                }
                 if ($withUsage) {
                     $params[':usage_id'] = (int) ($row['usage_id'] ?? 0);
                     $params[':usage_name'] = (string) ($row['usage_name'] ?? '');
@@ -325,7 +376,10 @@ class CrmSalesFactRepository extends DbConnection
         $order = $orderAsc ? "{$col} ASC" : 'valor DESC';
         $fromSql = $this->fromFactSql();
         $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
-        $sql = "SELECT {$col} AS label, SUM(f.valor_liquido) AS valor
+        $nfsSelect = $this->hasDocNumColumns()
+            ? ', ' . $this->nfsNetSql() . ' AS qtd_nfs'
+            : '';
+        $sql = "SELECT {$col} AS label, SUM(f.valor_liquido) AS valor{$nfsSelect}
                 FROM {$fromSql}
                 WHERE {$where}
                   {$vendaOnly}
@@ -341,10 +395,14 @@ class CrmSalesFactRepository extends DbConnection
             if ($label === '') {
                 continue;
             }
-            $out[] = [
+            $item = [
                 'label' => $label,
                 'valor' => (float) ($row['valor'] ?? 0),
             ];
+            if ($this->hasDocNumColumns()) {
+                $item['qtd_nfs'] = (int) ($row['qtd_nfs'] ?? 0);
+            }
+            $out[] = $item;
         }
         return $out;
     }
@@ -353,19 +411,23 @@ class CrmSalesFactRepository extends DbConnection
      * Todos os clientes do recorte, ordenados por líquido (sem limite de linhas).
      *
      * @param array<string, string|null> $dims
-     * @return list<array{card_code: string, cliente: string, grupo: string, liquido: float, devolucao: float}>
+     * @return list<array{card_code: string, cliente: string, grupo: string, liquido: float, devolucao: float, qtd_nfs?: int}>
      */
     public function fetchTopClientes(string $from, string $to, array $dims, ?string $ignoreDim = null): array
     {
         [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
         $fromSql = $this->fromFactSql();
         $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $nfsSelect = $this->hasDocNumColumns()
+            ? ', ' . $this->nfsNetSql() . ' AS qtd_nfs'
+            : '';
         $sql = "SELECT
                     f.card_code,
                     MAX(f.cliente) AS cliente,
                     MAX(f.grupo_cliente) AS grupo,
                     SUM(f.valor_liquido) AS liquido,
                     SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao
+                    {$nfsSelect}
                 FROM {$fromSql}
                 WHERE {$where}
                   {$vendaOnly}
@@ -375,13 +437,17 @@ class CrmSalesFactRepository extends DbConnection
         $stmt->execute($params);
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $out[] = [
+            $item = [
                 'card_code' => (string) ($row['card_code'] ?? ''),
                 'cliente' => (string) ($row['cliente'] ?? ''),
                 'grupo' => (string) ($row['grupo'] ?? ''),
                 'liquido' => (float) ($row['liquido'] ?? 0),
                 'devolucao' => (float) ($row['devolucao'] ?? 0),
             ];
+            if ($this->hasDocNumColumns()) {
+                $item['qtd_nfs'] = (int) ($row['qtd_nfs'] ?? 0);
+            }
+            $out[] = $item;
         }
         return $out;
     }
@@ -390,7 +456,7 @@ class CrmSalesFactRepository extends DbConnection
      * Todos os itens do recorte, ordenados por líquido (sem limite de linhas).
      *
      * @param array<string, string|null> $dims
-     * @return list<array{item_code: string, item_name: string, grupo: string, quantidade: float, liquido: float, devolucao: float}>
+     * @return list<array{item_code: string, item_name: string, grupo: string, quantidade: float, liquido: float, devolucao: float, qtd_nfs?: int}>
      */
     public function fetchTopItens(string $from, string $to, array $dims, ?string $ignoreDim = null): array
     {
@@ -400,6 +466,9 @@ class CrmSalesFactRepository extends DbConnection
         [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
         $fromSql = $this->fromFactSql();
         $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $nfsSelect = $this->hasDocNumColumns()
+            ? ', ' . $this->nfsNetSql() . ' AS qtd_nfs'
+            : '';
         $sql = "SELECT
                     f.item_code,
                     MAX(f.item_name) AS item_name,
@@ -407,6 +476,7 @@ class CrmSalesFactRepository extends DbConnection
                     SUM(f.quantidade) AS quantidade,
                     SUM(f.valor_liquido) AS liquido,
                     SUM(CASE WHEN f.tipo_documento = 'Devolucao' THEN ABS(f.valor_liquido) ELSE 0 END) AS devolucao
+                    {$nfsSelect}
                 FROM {$fromSql}
                 WHERE {$where}
                   {$vendaOnly}
@@ -418,7 +488,7 @@ class CrmSalesFactRepository extends DbConnection
         $stmt->execute($params);
         $out = [];
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
-            $out[] = [
+            $item = [
                 'item_code' => (string) ($row['item_code'] ?? ''),
                 'item_name' => (string) ($row['item_name'] ?? ''),
                 'grupo' => (string) ($row['grupo'] ?? ''),
@@ -426,8 +496,103 @@ class CrmSalesFactRepository extends DbConnection
                 'liquido' => (float) ($row['liquido'] ?? 0),
                 'devolucao' => (float) ($row['devolucao'] ?? 0),
             ];
+            if ($this->hasDocNumColumns()) {
+                $item['qtd_nfs'] = (int) ($row['qtd_nfs'] ?? 0);
+            }
+            $out[] = $item;
         }
         return $out;
+    }
+
+    /**
+     * Uma linha por nota (DocEntry + tipo), sem parcelas.
+     * Com filtro de item, valor/qtd são só desse item na nota; senão, total da NF no recorte do painel.
+     *
+     * @param array<string, string|list<string>|null> $dims
+     * @return array{rows: list<array<string, mixed>>, total_rows: int, total_valor: float, total_quantidade: float}
+     */
+    public function fetchInvoices(
+        string $from,
+        string $to,
+        array $dims,
+        int $limit = 200,
+        int $offset = 0
+    ): array {
+        $empty = [
+            'rows' => [],
+            'total_rows' => 0,
+            'total_valor' => 0.0,
+            'total_quantidade' => 0.0,
+            'qtd_venda' => 0,
+            'qtd_devolucao' => 0,
+            'qtd_nfs' => 0,
+        ];
+        if (!$this->hasDocNumColumns()) {
+            return $empty;
+        }
+
+        [$where, $params] = $this->buildWhere($from, $to, $dims, null);
+        $fromSql = $this->fromFactSql();
+        $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $grouped = "SELECT
+                    f.tipo_documento,
+                    f.doc_entry,
+                    MAX(f.doc_num) AS doc_num,
+                    MAX(f.doc_date) AS doc_date,
+                    MAX(f.card_code) AS card_code,
+                    MAX(f.cliente) AS cliente,
+                    MAX(f.vendedor) AS vendedor,
+                    SUM(f.valor_liquido) AS valor,
+                    SUM(f.quantidade) AS quantidade
+                FROM {$fromSql}
+                WHERE {$where}
+                  {$vendaOnly}
+                  AND f.doc_num > 0
+                GROUP BY f.tipo_documento, f.doc_entry";
+
+        $countSql = "SELECT COUNT(*) AS total_rows,
+                            COALESCE(SUM(g.valor), 0) AS total_valor,
+                            COALESCE(SUM(g.quantidade), 0) AS total_quantidade,
+                            SUM(CASE WHEN g.tipo_documento = 'Fatura' THEN 1 ELSE 0 END) AS qtd_venda,
+                            SUM(CASE WHEN g.tipo_documento = 'Devolucao' THEN 1 ELSE 0 END) AS qtd_devolucao
+                     FROM ({$grouped}) g";
+        $countStmt = $this->getConnection()->prepare($countSql);
+        $countStmt->execute($params);
+        $totals = $countStmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        $limit = max(1, min(500, $limit));
+        $offset = max(0, $offset);
+        $listSql = "{$grouped}
+                    ORDER BY doc_date DESC, doc_num DESC, tipo_documento ASC
+                    LIMIT {$limit} OFFSET {$offset}";
+        $listStmt = $this->getConnection()->prepare($listSql);
+        $listStmt->execute($params);
+        $rows = [];
+        while ($row = $listStmt->fetch(PDO::FETCH_ASSOC)) {
+            $rows[] = [
+                'tipo_documento' => (string) ($row['tipo_documento'] ?? ''),
+                'doc_entry' => (int) ($row['doc_entry'] ?? 0),
+                'doc_num' => (int) ($row['doc_num'] ?? 0),
+                'doc_date' => (string) ($row['doc_date'] ?? ''),
+                'card_code' => (string) ($row['card_code'] ?? ''),
+                'cliente' => (string) ($row['cliente'] ?? ''),
+                'vendedor' => (string) ($row['vendedor'] ?? ''),
+                'valor' => (float) ($row['valor'] ?? 0),
+                'quantidade' => (float) ($row['quantidade'] ?? 0),
+            ];
+        }
+
+        $qtdVenda = (int) ($totals['qtd_venda'] ?? 0);
+        $qtdDev = (int) ($totals['qtd_devolucao'] ?? 0);
+        return [
+            'rows' => $rows,
+            'total_rows' => (int) ($totals['total_rows'] ?? 0),
+            'total_valor' => (float) ($totals['total_valor'] ?? 0),
+            'total_quantidade' => (float) ($totals['total_quantidade'] ?? 0),
+            'qtd_venda' => $qtdVenda,
+            'qtd_devolucao' => $qtdDev,
+            'qtd_nfs' => $qtdVenda - $qtdDev,
+        ];
     }
 
     public function fetchFilterOptions(string $from, string $to): array
@@ -598,6 +763,13 @@ class CrmSalesFactRepository extends DbConnection
             WHEN n.natureza IN ('bonificacao', 'brinde') THEN n.natureza
             ELSE 'venda'
         END";
+    }
+
+    /** Faturas distintas menos devoluções distintas (mesmo recorte de venda do líquido). */
+    private function nfsNetSql(): string
+    {
+        return "(COUNT(DISTINCT CASE WHEN f.tipo_documento = 'Fatura' THEN f.doc_entry END)
+            - COUNT(DISTINCT CASE WHEN f.tipo_documento = 'Devolucao' THEN f.doc_entry END))";
     }
 
     /**

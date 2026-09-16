@@ -6,6 +6,7 @@
 
   const apiUrl = root.getAttribute('data-api-url') || '';
   const syncUrl = root.getAttribute('data-sync-url') || '';
+  const invoicesUrl = root.getAttribute('data-invoices-url') || '';
   const canSync = root.getAttribute('data-can-sync') === '1';
   const COR_BASE = '#1B7A49';
   const COR_SELECIONADO = '#E67E2E';
@@ -503,7 +504,7 @@
 
   const barValueLabelsPlugin = {
     id: 'csdBarValueLabels',
-    afterDatasetsDraw: function (chart) {
+    afterDraw: function (chart, _args, opts) {
       const meta = chart.getDatasetMeta(0);
       if (!meta || meta.hidden) return;
       const raw = chart.data.datasets[0].data || [];
@@ -512,6 +513,7 @@
       const ctx = chart.ctx;
       const area = chart.chartArea;
       if (!area) return;
+      const nfsList = opts && opts.nfs ? opts.nfs : null;
       ctx.save();
       ctx.font = '600 10px system-ui,Segoe UI,sans-serif';
       ctx.textBaseline = 'middle';
@@ -521,17 +523,18 @@
         const text = fmtMoeda(val);
         const textW = ctx.measureText(text).width;
         const pad = 8;
+        let y = 0;
         if (horizontal) {
           const p = typeof el.getProps === 'function'
             ? el.getProps(['x', 'y', 'base'], true)
             : el;
+          y = p.y;
           const visStart = Math.max(Math.min(p.x, p.base), area.left);
           const visEnd = Math.min(Math.max(p.x, p.base), area.right);
           const visW = visEnd - visStart;
-          const y = p.y;
           const roomOutside = area.right - visEnd;
           const fitsInside = visW >= textW + pad * 2;
-          const fitsOutside = roomOutside >= textW + pad + 4;
+          const fitsOutside = !nfsList && roomOutside >= textW + pad + 4;
           if (fitsInside || !fitsOutside) {
             const fill = Array.isArray(colors) ? colors[i] : colors;
             ctx.fillStyle = contrastInk(fill);
@@ -562,13 +565,26 @@
             ctx.textBaseline = 'middle';
           }
         }
+        if (horizontal && nfsList && nfsList[i] != null) {
+          ctx.font = '600 11px system-ui,Segoe UI,sans-serif';
+          ctx.fillStyle = '#55605A';
+          ctx.textAlign = 'right';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(Number(nfsList[i]).toLocaleString('pt-BR'), chart.width - 8, y);
+          ctx.font = '600 10px system-ui,Segoe UI,sans-serif';
+        }
       });
       ctx.restore();
     }
   };
 
-  function createHorizontalBarChart(canvasId, rows, campoFiltro, labelMaxLen) {
+  function createHorizontalBarChart(canvasId, rows, campoFiltro, labelMaxLen, abrirNotasNoDuplo, mostrarNfs) {
     emptySeriesMessage(canvasId, rows.length ? '' : 'Sem dados para os filtros aplicados');
+    const nfsLegend = document.querySelector('[data-nfs-legend="' + canvasId + '"]');
+    const showNfs = !!mostrarNfs && rows.some((r) => r.qtd_nfs != null);
+    if (nfsLegend) {
+      nfsLegend.hidden = !showNfs;
+    }
     if (!rows.length) return null;
 
     const contentH = setBarChartViewport(canvasId, rows.length);
@@ -594,14 +610,23 @@
         indexAxis: 'y',
         responsive: true,
         maintainAspectRatio: false,
-        layout: { padding: { left: 2, right: 92, top: 8, bottom: 8 } },
-        onClick: onClickChart(campoFiltro),
+        layout: { padding: { left: 2, right: showNfs ? 56 : 92, top: 8, bottom: 8 } },
+        onClick: onClickChart(campoFiltro, !!abrirNotasNoDuplo),
         plugins: {
           legend: { display: false },
+          csdBarValueLabels: {
+            nfs: showNfs ? rows.map((r) => r.qtd_nfs) : null
+          },
           tooltip: {
             callbacks: {
               title: (items) => (items[0] && items[0].label) || '',
-              label: (c) => fmtMoeda(c.parsed.x)
+              label: (c) => {
+                const row = rows[c.dataIndex] || {};
+                const nfs = row.qtd_nfs != null
+                  ? ' · ' + Number(row.qtd_nfs).toLocaleString('pt-BR') + ' NF(s)'
+                  : '';
+                return fmtMoeda(c.parsed.x) + nfs;
+              }
             }
           }
         },
@@ -665,14 +690,41 @@
     toggleFiltro(campo, valor);
   }
 
-  function onClickChart(campo) {
+  function onClickChart(campo, abrirNotasNoDuplo) {
+    let timer = null;
     return (evt, elements, chart) => {
       if (!elements.length) return;
       const idx = elements[0].index;
       const label = chart.data.labels[idx];
       if (!label) return;
-      toggleFiltro(campo, label);
+      if (!abrirNotasNoDuplo || !invoicesUrl) {
+        toggleFiltro(campo, label);
+        return;
+      }
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+        abrirNotas(campo, label);
+        return;
+      }
+      timer = setTimeout(() => {
+        timer = null;
+        toggleFiltro(campo, label);
+      }, 280);
     };
+  }
+
+  function abrirNotas(campo, valor) {
+    if (!invoicesUrl || !valor) return;
+    const params = new URLSearchParams(buildQuery());
+    const key = campo === 'card_code' ? 'card_code[]'
+      : (campo === 'item_code' ? 'item_code[]'
+        : (campo === 'vendedor' ? 'vendedor[]' : campo + '[]'));
+    if (valoresFiltro(campo).indexOf(valor) < 0) {
+      params.append(key, valor);
+    }
+    params.set('origem', campo);
+    window.location.href = invoicesUrl + (invoicesUrl.indexOf('?') >= 0 ? '&' : '?') + params.toString();
   }
 
   function buildQuery() {
@@ -878,10 +930,10 @@
     });
 
     const vendedores = series.vendedores || [];
-    charts.vendedores = createHorizontalBarChart('chartVendedores', vendedores, 'vendedor', 36);
+    charts.vendedores = createHorizontalBarChart('chartVendedores', vendedores, 'vendedor', 36, true, true);
 
     const regioes = series.regiao || [];
-    charts.regiao = createHorizontalBarChart('chartRegiao', regioes, 'regiao', 12);
+    charts.regiao = createHorizontalBarChart('chartRegiao', regioes, 'regiao', 12, false, true);
 
     const clientes = data.top_clientes || [];
     const clienteVals = clientes.map((c) => c.liquido);
@@ -890,7 +942,7 @@
     const subEl = document.getElementById('subTopClientes');
     if (subEl) {
       subEl.textContent = clientes.length
-        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · clique para marcar um ou mais'
+        ? clientes.length + ' cliente(s) · ordenado por faturamento líquido · clique para filtrar · duplo clique para ver as notas'
         : 'Nenhum cliente no recorte';
     }
     document.getElementById('tblClientes').innerHTML = clientes.length
@@ -902,14 +954,16 @@
           '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
         const sel = filtroTem('card_code', code) ? ' class="is-selected"' : '';
         const label = (code ? code + ' · ' : '') + nome;
+        const nfsTxt = info.qtd_nfs != null ? String(info.qtd_nfs) : '—';
         return '<tr' + sel + ' data-card-code="' + escapeHtml(code) + '" data-card-label="' + escapeHtml(label) + '">' +
           '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
           '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td>' +
           '<td class="col-grupo" title="' + escapeHtml(info.grupo || '') + '">' + escapeHtml(info.grupo || '—') + '</td>' +
+          '<td class="num col-num col-nfs">' + nfsTxt + '</td>' +
           '<td class="num col-num">' + fmtMoedaTabela(info.liquido) + '</td>' +
           '<td class="num col-num neg">' + (info.devolucao > 0 ? fmtMoedaTabela(-Math.abs(info.devolucao)) : '—') + '</td></tr>';
       }).join('')
-      : '<tr><td colspan="4" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
+      : '<tr><td colspan="5" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
     const foot = document.getElementById('tblClientesFoot');
     if (foot) {
       if (!clientes.length) {
@@ -917,7 +971,10 @@
       } else {
         const totLiq = clientes.reduce((s, c) => s + Number(c.liquido || 0), 0);
         const totDev = clientes.reduce((s, c) => s + Number(c.devolucao || 0), 0);
+        const totNfs = clientes.reduce((s, c) => s + (c.qtd_nfs != null ? Number(c.qtd_nfs) : 0), 0);
+        const hasNfs = clientes.some((c) => c.qtd_nfs != null);
         foot.innerHTML = '<tr><td colspan="2">Total</td>' +
+          '<td class="num col-num col-nfs">' + (hasNfs ? totNfs : '—') + '</td>' +
           '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
           '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
       }
@@ -930,7 +987,7 @@
     const subItens = document.getElementById('subTopItens');
     if (subItens) {
       subItens.textContent = itens.length
-        ? itens.length + ' item(ns) · ordenado por faturamento líquido · clique para marcar um ou mais'
+        ? itens.length + ' item(ns) · ordenado por faturamento líquido · clique para filtrar · duplo clique para ver as notas'
         : 'Nenhum item no recorte';
     }
     const tblItens = document.getElementById('tblItens');
@@ -944,14 +1001,16 @@
             '<span class="cliente-nome">' + escapeHtml(nome) + '</span>';
           const sel = filtroTem('item_code', code) ? ' class="is-selected"' : '';
           const label = (code ? code + ' · ' : '') + nome;
+          const nfsTxt = info.qtd_nfs != null ? String(info.qtd_nfs) : '—';
           return '<tr' + sel + ' data-item-code="' + escapeHtml(code) + '" data-item-label="' + escapeHtml(label) + '">' +
             '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
             '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td>' +
+            '<td class="num col-num col-nfs">' + nfsTxt + '</td>' +
             '<td class="num col-num col-qtd">' + fmtQtdItem(info.quantidade) + '</td>' +
             '<td class="num col-num">' + fmtMoedaTabela(info.liquido) + '</td>' +
             '<td class="num col-num neg">' + (info.devolucao > 0 ? fmtMoedaTabela(-Math.abs(info.devolucao)) : '—') + '</td></tr>';
         }).join('')
-        : '<tr><td colspan="4" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
+        : '<tr><td colspan="5" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
     }
     const footItens = document.getElementById('tblItensFoot');
     if (footItens) {
@@ -961,7 +1020,10 @@
         const totQtd = itens.reduce((s, c) => s + Number(c.quantidade || 0), 0);
         const totLiq = itens.reduce((s, c) => s + Number(c.liquido || 0), 0);
         const totDev = itens.reduce((s, c) => s + Number(c.devolucao || 0), 0);
+        const totNfs = itens.reduce((s, c) => s + (c.qtd_nfs != null ? Number(c.qtd_nfs) : 0), 0);
+        const hasNfs = itens.some((c) => c.qtd_nfs != null);
         footItens.innerHTML = '<tr><td>Total</td>' +
+          '<td class="num col-num col-nfs">' + (hasNfs ? totNfs : '—') + '</td>' +
           '<td class="num col-num col-qtd">' + fmtQtdItem(totQtd) + '</td>' +
           '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
           '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
@@ -1072,23 +1134,55 @@
   });
   const tblClientes = document.getElementById('tblClientes');
   if (tblClientes) {
+    let tClientes = null;
     tblClientes.addEventListener('click', (e) => {
       const tr = e.target.closest('tr');
       if (!tr) return;
       const code = tr.getAttribute('data-card-code');
       if (!code) return;
-      toggleFiltroComLabel('card_code', code, 'card_labels', tr.getAttribute('data-card-label') || code);
+      const label = tr.getAttribute('data-card-label') || code;
+      if (!invoicesUrl) {
+        toggleFiltroComLabel('card_code', code, 'card_labels', label);
+        return;
+      }
+      if (tClientes) {
+        clearTimeout(tClientes);
+        tClientes = null;
+        abrirNotas('card_code', code);
+        return;
+      }
+      tClientes = setTimeout(() => {
+        tClientes = null;
+        toggleFiltroComLabel('card_code', code, 'card_labels', label);
+      }, 280);
     });
+    tblClientes.addEventListener('dblclick', (e) => e.preventDefault());
   }
   const tblItens = document.getElementById('tblItens');
   if (tblItens) {
+    let tItens = null;
     tblItens.addEventListener('click', (e) => {
       const tr = e.target.closest('tr');
       if (!tr) return;
       const code = tr.getAttribute('data-item-code');
       if (!code) return;
-      toggleFiltroComLabel('item_code', code, 'item_labels', tr.getAttribute('data-item-label') || code);
+      const label = tr.getAttribute('data-item-label') || code;
+      if (!invoicesUrl) {
+        toggleFiltroComLabel('item_code', code, 'item_labels', label);
+        return;
+      }
+      if (tItens) {
+        clearTimeout(tItens);
+        tItens = null;
+        abrirNotas('item_code', code);
+        return;
+      }
+      tItens = setTimeout(() => {
+        tItens = null;
+        toggleFiltroComLabel('item_code', code, 'item_labels', label);
+      }, 280);
     });
+    tblItens.addEventListener('dblclick', (e) => e.preventDefault());
   }
 
   function initMultiFilters() {
@@ -1207,6 +1301,27 @@
     fecharPaineisMulti();
   }, true);
 
+  function hidratarFiltroDaUrl() {
+    const p = new URLSearchParams(window.location.search);
+    if (![...p.keys()].length) return;
+    const periodo = p.get('periodo');
+    if (periodo) filtro.periodo = periodo;
+    if (p.get('date_from')) filtro.date_from = p.get('date_from');
+    if (p.get('date_to')) filtro.date_to = p.get('date_to');
+    const list = (key, campo) => {
+      const vals = p.getAll(key).concat(p.getAll(key.replace('[]', '')));
+      if (vals.length) setListaFiltro(campo, vals);
+    };
+    list('vendedor[]', 'vendedor');
+    list('grupo_cliente[]', 'grupo_cliente');
+    list('regiao[]', 'regiao');
+    list('grupo_item[]', 'grupo_item');
+    list('ano_mes[]', 'ano_mes');
+    list('card_code[]', 'card_code');
+    list('item_code[]', 'item_code');
+  }
+
+  hidratarFiltroDaUrl();
   sincronizarToolbar();
   carregar();
 })();
