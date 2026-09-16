@@ -68,6 +68,12 @@
     { campo: 'regiao', btn: 'fRegiaoBtn', panel: 'fRegiaoPanel', list: 'fRegiaoList', search: 'fRegiaoSearch', empty: 'Todas', opcao: 'regioes' }
   ];
   let msDebounce = null;
+  let lastPayload = null;
+  let itensTab = 'venda';
+
+  function normalizeNatureza(value) {
+    return value === 'bonificacao' || value === 'brinde' ? value : 'venda';
+  }
 
   function valoresFiltro(campo) {
     const v = filtro[campo];
@@ -686,6 +692,7 @@
     if (!filtroTem(campo, valor) && mapKey && labelValor) {
       filtro[mapKey] = filtro[mapKey] || {};
       filtro[mapKey][valor] = labelValor;
+      lembrarLabelsFiltro();
     }
     toggleFiltro(campo, valor);
   }
@@ -704,7 +711,7 @@
       if (timer) {
         clearTimeout(timer);
         timer = null;
-        abrirNotas(campo, label);
+        abrirNotas(campo, label, 'venda');
         return;
       }
       timer = setTimeout(() => {
@@ -714,16 +721,41 @@
     };
   }
 
-  function abrirNotas(campo, valor) {
-    if (!invoicesUrl || !valor) return;
+  function persistirFiltroNaUrl(extraParams) {
+    const params = extraParams ? new URLSearchParams(extraParams.toString()) : new URLSearchParams(buildQuery());
+    params.delete('origem');
+    params.delete('page');
+    params.delete('skip_auto_sync');
+    if (itensTab && itensTab !== 'venda') params.set('natureza', itensTab);
+    else params.delete('natureza');
+    const qs = params.toString();
+    const next = window.location.pathname + (qs ? '?' + qs : '') + window.location.hash;
+    const cur = window.location.pathname + window.location.search + window.location.hash;
+    if (next === cur) return;
+    try {
+      history.replaceState(null, '', next);
+    } catch (e) { /* ignore */ }
+  }
+
+  function abrirNotas(campo, valor, natureza) {
+    if (!invoicesUrl) return;
+    const nat = normalizeNatureza(natureza != null ? natureza : itensTab);
     const params = new URLSearchParams(buildQuery());
-    const key = campo === 'card_code' ? 'card_code[]'
-      : (campo === 'item_code' ? 'item_code[]'
-        : (campo === 'vendedor' ? 'vendedor[]' : campo + '[]'));
-    if (valoresFiltro(campo).indexOf(valor) < 0) {
-      params.append(key, valor);
+    if (campo && valor) {
+      const key = campo === 'card_code' ? 'card_code[]'
+        : (campo === 'item_code' ? 'item_code[]'
+          : (campo === 'vendedor' ? 'vendedor[]' : campo + '[]'));
+      if (valoresFiltro(campo).indexOf(valor) < 0) {
+        params.append(key, valor);
+      }
+      persistirFiltroNaUrl(params);
+      params.set('origem', campo);
+    } else {
+      persistirFiltroNaUrl();
+      params.set('origem', nat);
     }
-    params.set('origem', campo);
+    if (nat !== 'venda') params.set('natureza', nat);
+    else params.delete('natureza');
     window.location.href = invoicesUrl + (invoicesUrl.indexOf('?') >= 0 ? '&' : '?') + params.toString();
   }
 
@@ -789,6 +821,7 @@
   }
 
   function renderFromPayload(data) {
+    lastPayload = data;
     const meses = (data.periodo && data.periodo.meses) || [];
     const kpis = data.kpis || {};
     const series = data.series || {};
@@ -850,6 +883,8 @@
       fmtQtdItem(kpis.itens_faturados || 0) + ' faturados − ' +
       fmtQtdItem(kpis.itens_devolvidos || 0) + ' devolvidos');
     setTxt('kpiDesconto', fmtMoeda(kpis.desconto || 0));
+    setTxt('kpiDescontoDelta',
+      'Bruto sem desconto: ' + fmtMoeda(kpis.valor_bruto_venda || 0));
     setTxt('kpiPctDesconto', fmtPct(kpis.pct_desconto || 0));
     setTxt('kpiBonificacoes', fmtMoeda(kpis.valor_bonificacoes || 0));
     setTxt('kpiBonificacoesDelta', 'Líquido · não entra no faturamento · ' + (kpis.qtd_bonificacoes || 0) + ' linhas');
@@ -980,21 +1015,70 @@
       }
     }
 
-    const itens = data.top_itens || [];
+    const itensVenda = data.top_itens || [];
+    const itensBonif = data.top_itens_bonificacao || [];
+    const itensBrinde = data.top_itens_brinde || [];
+    renderItensTabela(data);
+    aplicarLabelsDasListas(clientes, itensVenda.concat(itensBonif, itensBrinde));
+    sincronizarToolbar();
+    renderChips();
+  }
+
+  function itensDaAba(data, tab) {
+    if (tab === 'bonificacao') return data.top_itens_bonificacao || [];
+    if (tab === 'brinde') return data.top_itens_brinde || [];
+    return data.top_itens || [];
+  }
+
+  function sincronizarItensTabUi() {
+    document.querySelectorAll('#crmSalesDash [data-itens-tab]').forEach((btn) => {
+      const on = btn.getAttribute('data-itens-tab') === itensTab;
+      btn.classList.toggle('is-active', on);
+      btn.setAttribute('aria-selected', on ? 'true' : 'false');
+    });
+    const tit = document.getElementById('titTopItens');
+    if (tit) {
+      tit.textContent = itensTab === 'bonificacao'
+        ? 'Itens bonificados'
+        : (itensTab === 'brinde' ? 'Itens de brinde' : 'Itens vendidos');
+    }
+    const scroll = document.getElementById('itensScroll');
+    if (scroll) scroll.classList.toggle('is-wide', itensTab !== 'venda');
+  }
+
+  function renderItensTabela(data) {
+    const itens = itensDaAba(data || {}, itensTab);
+    sincronizarItensTabUi();
+    const extra = itensTab !== 'venda';
     const itemVals = itens.map((c) => c.liquido);
     const itemScale = adaptiveAxisMax(itemVals);
     const maxItemVisual = itemScale.max || 1;
     const subItens = document.getElementById('subTopItens');
     if (subItens) {
-      subItens.textContent = itens.length
-        ? itens.length + ' item(ns) · ordenado por faturamento líquido · clique para filtrar · duplo clique para ver as notas'
-        : 'Nenhum item no recorte';
+      if (!itens.length) {
+        subItens.textContent = extra
+          ? 'Nenhum item nesta natureza no recorte'
+          : 'Nenhum item no recorte';
+      } else if (itensTab === 'bonificacao') {
+        subItens.textContent = itens.length + ' item(ns) · só bonificação · valor das linhas desta natureza · clique filtra · duplo clique abre as notas';
+      } else if (itensTab === 'brinde') {
+        subItens.textContent = itens.length + ' item(ns) · só brinde · valor das linhas desta natureza · clique filtra · duplo clique abre as notas';
+      } else {
+        subItens.textContent = itens.length + ' item(ns) · só venda · ordenado por faturamento líquido · clique para filtrar · duplo clique para ver as notas';
+      }
+    }
+    const head = document.getElementById('tblItensHead');
+    if (head) {
+      head.innerHTML = extra
+        ? '<tr><th>Item</th><th class="col-num col-nfs">NFs</th><th class="col-num col-qtd">Qtd</th><th class="col-num">Valor</th><th class="col-num col-vs">vs venda</th><th class="col-num">Devolução</th></tr>'
+        : '<tr><th>Item</th><th class="col-num col-nfs">NFs</th><th class="col-num col-qtd">Qtd</th><th class="col-num">Líquido</th><th class="col-num">Devolução</th></tr>';
     }
     const tblItens = document.getElementById('tblItens');
+    const colCount = extra ? 6 : 5;
     if (tblItens) {
       tblItens.innerHTML = itens.length
         ? itens.map((info) => {
-          const pct = Math.max(4, Math.min(100, Math.round(info.liquido / maxItemVisual * 100)));
+          const pct = Math.max(4, Math.min(100, Math.round(Math.abs(info.liquido) / maxItemVisual * 100)));
           const code = String(info.item_code || '').trim();
           const nome = String(info.item_name || '').trim() || '—';
           const parceiro = (code ? '<span class="cliente-code">' + escapeHtml(code) + '</span>' : '') +
@@ -1002,15 +1086,22 @@
           const sel = filtroTem('item_code', code) ? ' class="is-selected"' : '';
           const label = (code ? code + ' · ' : '') + nome;
           const nfsTxt = info.qtd_nfs != null ? String(info.qtd_nfs) : '—';
+          const vsVenda = info.pct_qtd_vs_venda == null
+            ? 'sem venda'
+            : (fmtPct(info.pct_qtd_vs_venda));
+          const vsCol = extra
+            ? '<td class="num col-num col-vs">' + vsVenda + '</td>'
+            : '';
           return '<tr' + sel + ' data-item-code="' + escapeHtml(code) + '" data-item-label="' + escapeHtml(label) + '">' +
             '<td class="name-cell" title="' + escapeHtml(label) + '">' + parceiro +
             '<div class="bar-mini"><span style="width:' + pct + '%"></span></div></td>' +
             '<td class="num col-num col-nfs">' + nfsTxt + '</td>' +
             '<td class="num col-num col-qtd">' + fmtQtdItem(info.quantidade) + '</td>' +
             '<td class="num col-num">' + fmtMoedaTabela(info.liquido) + '</td>' +
+            vsCol +
             '<td class="num col-num neg">' + (info.devolucao > 0 ? fmtMoedaTabela(-Math.abs(info.devolucao)) : '—') + '</td></tr>';
         }).join('')
-        : '<tr><td colspan="5" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
+        : '<tr><td colspan="' + colCount + '" style="text-align:center;color:var(--csd-ink-mute);padding:20px;">Sem resultados para os filtros aplicados</td></tr>';
     }
     const footItens = document.getElementById('tblItensFoot');
     if (footItens) {
@@ -1022,13 +1113,55 @@
         const totDev = itens.reduce((s, c) => s + Number(c.devolucao || 0), 0);
         const totNfs = itens.reduce((s, c) => s + (c.qtd_nfs != null ? Number(c.qtd_nfs) : 0), 0);
         const hasNfs = itens.some((c) => c.qtd_nfs != null);
-        footItens.innerHTML = '<tr><td>Total</td>' +
-          '<td class="num col-num col-nfs">' + (hasNfs ? totNfs : '—') + '</td>' +
-          '<td class="num col-num col-qtd">' + fmtQtdItem(totQtd) + '</td>' +
-          '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
-          '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
+        footItens.innerHTML = extra
+          ? '<tr><td>Total</td>' +
+            '<td class="num col-num col-nfs">' + (hasNfs ? totNfs : '—') + '</td>' +
+            '<td class="num col-num col-qtd">' + fmtQtdItem(totQtd) + '</td>' +
+            '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
+            '<td class="num col-num col-vs"></td>' +
+            '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>'
+          : '<tr><td>Total</td>' +
+            '<td class="num col-num col-nfs">' + (hasNfs ? totNfs : '—') + '</td>' +
+            '<td class="num col-num col-qtd">' + fmtQtdItem(totQtd) + '</td>' +
+            '<td class="num col-num">' + fmtMoedaTabela(totLiq) + '</td>' +
+            '<td class="num col-num neg">' + (totDev > 0 ? fmtMoedaTabela(-Math.abs(totDev)) : '—') + '</td></tr>';
       }
     }
+  }
+
+  function aplicarLabelsDasListas(clientes, itens) {
+    filtro.card_labels = filtro.card_labels || {};
+    filtro.item_labels = filtro.item_labels || {};
+    (clientes || []).forEach((c) => {
+      const code = String(c.card_code || '').trim();
+      if (!code || !filtroTem('card_code', code)) return;
+      const nome = String(c.cliente || '').trim();
+      filtro.card_labels[code] = (code ? code + ' · ' : '') + (nome || code);
+    });
+    (itens || []).forEach((c) => {
+      const code = String(c.item_code || '').trim();
+      if (!code || !filtroTem('item_code', code)) return;
+      const nome = String(c.item_name || '').trim();
+      filtro.item_labels[code] = (code ? code + ' · ' : '') + (nome || code);
+    });
+    lembrarLabelsFiltro();
+  }
+
+  function lembrarLabelsFiltro() {
+    try {
+      sessionStorage.setItem('crmSalesFiltroLabels', JSON.stringify({
+        card_labels: filtro.card_labels || {},
+        item_labels: filtro.item_labels || {}
+      }));
+    } catch (e) { /* ignore */ }
+  }
+
+  function restaurarLabelsFiltro() {
+    try {
+      const o = JSON.parse(sessionStorage.getItem('crmSalesFiltroLabels') || '{}');
+      filtro.card_labels = Object.assign({}, o.card_labels || {}, filtro.card_labels || {});
+      filtro.item_labels = Object.assign({}, o.item_labels || {}, filtro.item_labels || {});
+    } catch (e) { /* ignore */ }
   }
 
   function escapeHtml(s) {
@@ -1061,6 +1194,7 @@
       return;
     }
     if (!validarPeriodoCustom()) return;
+    persistirFiltroNaUrl();
     if (abortCtrl) abortCtrl.abort();
     abortCtrl = new AbortController();
     setLoading(true, skipAutoSync ? 'Carregando dashboard…' : 'Carregando (atualiza o SAP no 1º acesso do dia, se preciso)…');
@@ -1170,7 +1304,7 @@
       if (tClientes) {
         clearTimeout(tClientes);
         tClientes = null;
-        abrirNotas('card_code', code);
+        abrirNotas('card_code', code, 'venda');
         return;
       }
       tClientes = setTimeout(() => {
@@ -1196,7 +1330,7 @@
       if (tItens) {
         clearTimeout(tItens);
         tItens = null;
-        abrirNotas('item_code', code);
+        abrirNotas('item_code', code, itensTab);
         return;
       }
       tItens = setTimeout(() => {
@@ -1206,6 +1340,45 @@
     });
     tblItens.addEventListener('dblclick', (e) => e.preventDefault());
   }
+
+  document.querySelectorAll('#crmSalesDash [data-itens-tab]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      const tab = normalizeNatureza(btn.getAttribute('data-itens-tab'));
+      if (tab === itensTab) return;
+      itensTab = tab;
+      persistirFiltroNaUrl();
+      if (lastPayload) renderItensTabela(lastPayload);
+      else sincronizarItensTabUi();
+    });
+  });
+
+  (function bindKpiNaturezaDrill() {
+    const timers = {};
+    document.querySelectorAll('#crmSalesDash [data-open-natureza]').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        if (e.target.closest('.csd-kpi-info, .csd-kpi-tip')) return;
+        const nat = normalizeNatureza(el.getAttribute('data-open-natureza'));
+        itensTab = nat;
+        persistirFiltroNaUrl();
+        if (lastPayload) renderItensTabela(lastPayload);
+        else sincronizarItensTabUi();
+        if (!invoicesUrl) return;
+        if (timers[nat]) {
+          clearTimeout(timers[nat]);
+          timers[nat] = null;
+          abrirNotas('', '', nat);
+          return;
+        }
+        timers[nat] = setTimeout(() => {
+          timers[nat] = null;
+        }, 280);
+      });
+      el.addEventListener('dblclick', (e) => {
+        if (e.target.closest('.csd-kpi-info, .csd-kpi-tip')) return;
+        e.preventDefault();
+      });
+    });
+  }());
 
   function initMultiFilters() {
     MULTI_FILTERS.forEach((cfg) => {
@@ -1252,6 +1425,8 @@
       item_code: [],
       item_labels: {}
     };
+    try { sessionStorage.removeItem('crmSalesFiltroLabels'); } catch (e) { /* ignore */ }
+    itensTab = 'venda';
     opcoesCache = null;
     opcoesPeriodoKey = '';
     sincronizarToolbar();
@@ -1341,9 +1516,12 @@
     list('ano_mes[]', 'ano_mes');
     list('card_code[]', 'card_code');
     list('item_code[]', 'item_code');
+    itensTab = normalizeNatureza(p.get('natureza'));
+    restaurarLabelsFiltro();
   }
 
   hidratarFiltroDaUrl();
+  sincronizarItensTabUi();
   sincronizarToolbar();
   carregar();
 })();

@@ -85,6 +85,25 @@ class CrmSalesFactRepository extends DbConnection
         return $has;
     }
 
+    public function hasSerialColumn(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        if (!$this->tableExists()) {
+            $has = false;
+            return $has;
+        }
+        try {
+            $stmt = $this->getConnection()->query("SHOW COLUMNS FROM crm_sales_fact_daily LIKE 'doc_serial'");
+            $has = (bool) $stmt->fetchColumn();
+        } catch (\Throwable $e) {
+            $has = false;
+        }
+        return $has;
+    }
+
     public function countRows(): int
     {
         if (!$this->tableExists()) {
@@ -140,8 +159,37 @@ class CrmSalesFactRepository extends DbConnection
         $withUsage = $this->hasUsageColumns();
         $withItem = $this->hasItemColumns();
         $withDoc = $this->hasDocNumColumns();
+        $withSerial = $withDoc && $this->hasSerialColumn();
 
-        if ($withUsage && $withItem && $withDoc) {
+        if ($withUsage && $withItem && $withDoc && $withSerial) {
+            $sql = 'INSERT INTO crm_sales_fact_daily (
+                        grain_hash, doc_date, ano_mes, tipo_documento, doc_num, doc_entry, doc_serial,
+                        card_code, cliente,
+                        vendedor, grupo_cliente, regiao, grupo_item, item_code, item_name,
+                        usage_id, usage_name,
+                        valor_liquido, quantidade, valor_bruto, valor_desconto, qtd_linhas,
+                        synced_at, created_at, updated_at
+                    ) VALUES (
+                        :grain_hash, :doc_date, :ano_mes, :tipo_documento, :doc_num, :doc_entry, :doc_serial,
+                        :card_code, :cliente,
+                        :vendedor, :grupo_cliente, :regiao, :grupo_item, :item_code, :item_name,
+                        :usage_id, :usage_name,
+                        :valor_liquido, :quantidade, :valor_bruto, :valor_desconto, :qtd_linhas,
+                        :synced_at, :created_at, :updated_at
+                    )
+                    ON DUPLICATE KEY UPDATE
+                        cliente = VALUES(cliente),
+                        item_name = VALUES(item_name),
+                        usage_name = VALUES(usage_name),
+                        doc_serial = VALUES(doc_serial),
+                        valor_liquido = VALUES(valor_liquido),
+                        quantidade = VALUES(quantidade),
+                        valor_bruto = VALUES(valor_bruto),
+                        valor_desconto = VALUES(valor_desconto),
+                        qtd_linhas = VALUES(qtd_linhas),
+                        synced_at = VALUES(synced_at),
+                        updated_at = VALUES(updated_at)';
+        } elseif ($withUsage && $withItem && $withDoc) {
             $sql = 'INSERT INTO crm_sales_fact_daily (
                         grain_hash, doc_date, ano_mes, tipo_documento, doc_num, doc_entry,
                         card_code, cliente,
@@ -260,6 +308,9 @@ class CrmSalesFactRepository extends DbConnection
                 if ($withDoc) {
                     $params[':doc_num'] = (int) ($row['doc_num'] ?? 0);
                     $params[':doc_entry'] = (int) ($row['doc_entry'] ?? 0);
+                }
+                if ($withSerial) {
+                    $params[':doc_serial'] = (int) ($row['doc_serial'] ?? 0);
                 }
                 if ($withUsage) {
                     $params[':usage_id'] = (int) ($row['usage_id'] ?? 0);
@@ -458,14 +509,21 @@ class CrmSalesFactRepository extends DbConnection
      * @param array<string, string|null> $dims
      * @return list<array{item_code: string, item_name: string, grupo: string, quantidade: float, liquido: float, devolucao: float, qtd_nfs?: int}>
      */
-    public function fetchTopItens(string $from, string $to, array $dims, ?string $ignoreDim = null): array
+    public function fetchTopItens(
+        string $from,
+        string $to,
+        array $dims,
+        ?string $ignoreDim = null,
+        string $natureza = 'venda'
+    ): array
     {
         if (!$this->hasItemColumns()) {
             return [];
         }
+        $natureza = $this->normalizeNatureza($natureza);
         [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
         $fromSql = $this->fromFactSql();
-        $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $natureFilter = $this->natureFilterSql($natureza);
         $nfsSelect = $this->hasDocNumColumns()
             ? ', ' . $this->nfsNetSql() . ' AS qtd_nfs'
             : '';
@@ -479,7 +537,7 @@ class CrmSalesFactRepository extends DbConnection
                     {$nfsSelect}
                 FROM {$fromSql}
                 WHERE {$where}
-                  {$vendaOnly}
+                  {$natureFilter}
                   AND f.item_code IS NOT NULL
                   AND f.item_code <> ''
                 GROUP BY f.item_code
@@ -506,7 +564,8 @@ class CrmSalesFactRepository extends DbConnection
 
     /**
      * Uma linha por nota (DocEntry + tipo), sem parcelas.
-     * Com filtro de item, valor/qtd são só desse item na nota; senão, total da NF no recorte do painel.
+     * Valor/qtd são só das linhas da natureza (venda, bonificação ou brinde).
+     * Com filtro de item, restringe ainda àquele SKU.
      *
      * @param array<string, string|list<string>|null> $dims
      * @return array{rows: list<array<string, mixed>>, total_rows: int, total_valor: float, total_quantidade: float}
@@ -516,7 +575,8 @@ class CrmSalesFactRepository extends DbConnection
         string $to,
         array $dims,
         int $limit = 200,
-        int $offset = 0
+        int $offset = 0,
+        string $natureza = 'venda'
     ): array {
         $empty = [
             'rows' => [],
@@ -531,13 +591,18 @@ class CrmSalesFactRepository extends DbConnection
             return $empty;
         }
 
+        $natureza = $this->normalizeNatureza($natureza);
         [$where, $params] = $this->buildWhere($from, $to, $dims, null);
         $fromSql = $this->fromFactSql();
-        $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
+        $natureFilter = $this->natureFilterSql($natureza);
+        $serialSelect = $this->hasSerialColumn()
+            ? ', MAX(f.doc_serial) AS doc_serial'
+            : ', 0 AS doc_serial';
         $grouped = "SELECT
                     f.tipo_documento,
                     f.doc_entry,
-                    MAX(f.doc_num) AS doc_num,
+                    MAX(f.doc_num) AS doc_num
+                    {$serialSelect},
                     MAX(f.doc_date) AS doc_date,
                     MAX(f.card_code) AS card_code,
                     MAX(f.cliente) AS cliente,
@@ -546,7 +611,7 @@ class CrmSalesFactRepository extends DbConnection
                     SUM(f.quantidade) AS quantidade
                 FROM {$fromSql}
                 WHERE {$where}
-                  {$vendaOnly}
+                  {$natureFilter}
                   AND f.doc_num > 0
                 GROUP BY f.tipo_documento, f.doc_entry";
 
@@ -573,6 +638,7 @@ class CrmSalesFactRepository extends DbConnection
                 'tipo_documento' => (string) ($row['tipo_documento'] ?? ''),
                 'doc_entry' => (int) ($row['doc_entry'] ?? 0),
                 'doc_num' => (int) ($row['doc_num'] ?? 0),
+                'doc_serial' => (int) ($row['doc_serial'] ?? 0),
                 'doc_date' => (string) ($row['doc_date'] ?? ''),
                 'card_code' => (string) ($row['card_code'] ?? ''),
                 'cliente' => (string) ($row['cliente'] ?? ''),
@@ -763,6 +829,21 @@ class CrmSalesFactRepository extends DbConnection
             WHEN n.natureza IN ('bonificacao', 'brinde') THEN n.natureza
             ELSE 'venda'
         END";
+    }
+
+    public function normalizeNatureza(mixed $value): string
+    {
+        $v = trim((string) $value);
+        return in_array($v, ['venda', 'bonificacao', 'brinde'], true) ? $v : 'venda';
+    }
+
+    private function natureFilterSql(string $natureza): string
+    {
+        $natureza = $this->normalizeNatureza($natureza);
+        if (!$this->hasUsageJoin()) {
+            return $natureza === 'venda' ? '' : ' AND 1=0';
+        }
+        return " AND {$this->natureSql()} = '{$natureza}'";
     }
 
     /** Faturas distintas menos devoluções distintas (mesmo recorte de venda do líquido). */

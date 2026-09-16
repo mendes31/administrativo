@@ -1,18 +1,22 @@
 <h1>Notas fiscais do Dashboard de Vendas SAP</h1>
 
 <h2>Função no sistema</h2>
-<p>Lista as notas de venda (OINV) e de devolução (ORIN) do recorte do Dashboard de Vendas SAP: uma linha por documento, sem prestações/parcelas. Abre com duplo clique em vendedor, cliente ou item no painel, respeitando período e filtros.</p>
+<p>Lista as notas de venda (OINV) e de devolução (ORIN) do recorte do Dashboard de Vendas SAP: uma linha por documento, sem prestações/parcelas. Abre com duplo clique em vendedor, cliente, item ou nos cards de Bonificação/Brindes. O valor é só das linhas da natureza pedida (venda, bonificação ou brinde).</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Documento</dt>
-    <dd>Número da nota no SAP (<code>DocNum</code>). Prefixo NS para venda e NC para devolução. Não é parcela (1 de 3, 2 de 3…).</dd>
+    <dd>Número interno da nota no SAP (<code>DocNum</code>). Prefixo NS para venda e NC para devolução. Não é parcela (1 de 3, 2 de 3…).</dd>
+    <dt>Serial NF</dt>
+    <dd>Número de série da nota fiscal no SAP (<code>OINV.Serial</code> / <code>ORIN.Serial</code>), o que aparece no documento fiscal. Independente do DocNum. Notas antigas no cache podem ficar em branco até um sync <code>--full</code>.</dd>
     <dt>Tipo</dt>
-    <dd>Venda = fatura (OINV). Devolução = nota de crédito (ORIN). As duas aparecem na mesma lista.</dd>
+    <dd>Na lista de venda: Venda = fatura (OINV), Devolução = nota de crédito (ORIN). Nas listas de bonificação/brinde o selo segue a natureza (Bonificação/Brinde) ou Devolução.</dd>
     <dt>Valor</dt>
-    <dd>No vendedor/cliente: total da nota no recorte do painel (LineTotal − DiscSum, grupos 104/106, natureza venda). No item: só o valor daquele SKU na nota.</dd>
+    <dd>Soma só das linhas da natureza na nota (grupos 104/106). Não é o total da NF se ela misturar venda e remessa. Com filtro de item, só aquele SKU.</dd>
     <dt>NFs líquidas</dt>
-    <dd>Quantidade de notas de venda menos quantidade de notas de devolução no recorte. Os três cards no topo da listagem mostram vendas, devoluções e esse líquido. Não conta parcelas.</dd>
+    <dd>Quantidade de NS menos NC no recorte desta natureza. Os três cards no topo mostram esses totais. Não conta parcelas.</dd>
+    <dt>Natureza</dt>
+    <dd>Parâmetro <code>natureza</code> na URL: <code>venda</code> (padrão), <code>bonificacao</code> ou <code>brinde</code>. Vem da aba do ranking ou do duplo clique no card.</dd>
 </dl>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesInvoices</em> (a migration copia a ACL de <em>CrmSalesDashboard</em>). A tela também exige <em>CrmSalesDashboard</em> no botão de voltar.</p>
@@ -21,32 +25,37 @@
 <ol>
     <li>Rode a migration e <code>php scripts/sync_crm_sales_sap.php --full</code> se o cache ainda não tiver número de nota.</li>
     <li>Abra <strong>CRM → Dashboard de Vendas SAP</strong> e escolha o período/filtros.</li>
-    <li>Dê duplo clique em um vendedor (gráfico Top vendedores), em um cliente (Top clientes) ou em um item (Itens vendidos).</li>
-    <li>Confira os três totais (vendas, devoluções e NFs líquidas) e a lista: documento, tipo, data, cliente, vendedor e valor. No item, também a quantidade.</li>
+    <li>Dê duplo clique em um vendedor (gráfico Top vendedores), em um cliente (Top clientes), em um item (aba Vendidos/Bonificados/Brindes) ou nos cards de Bonificação/Brindes.</li>
+    <li>Confira os três totais (NS, NC e NFs líquidas da natureza) e a lista: documento, serial NF, tipo, data, cliente, vendedor e valor. No item, também a quantidade.</li>
     <li>Use Anterior/Próxima se houver mais de 200 notas.</li>
-    <li>Voltar ao dashboard devolve os mesmos filtros.</li>
+    <li><strong>Voltar ao dashboard</strong> (ou o voltar do navegador) reabre o painel com o mesmo período e os mesmos filtros.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Notas de venda / devolução / NFs líquidas</strong> Contagem de documentos distintos no recorte. Líquidas = vendas − devoluções (a mesma regra da coluna NFs do dashboard).</div>
-<div class="help-field"><strong>Documento</strong> NS/NC + número SAP. Uma linha por <code>DocEntry</code>.</div>
-<div class="help-field"><strong>Tipo</strong> Venda ou Devolução.</div>
+<div class="help-field"><strong>Notas de venda / devolução / NFs líquidas</strong> Contagem de documentos distintos no recorte desta natureza. Em bonificação/brinde os rótulos passam a “NS com…” / “NC de…”.</div>
+<div class="help-field"><strong>Documento</strong> NS/NC + <code>DocNum</code> interno do SAP. Uma linha por <code>DocEntry</code>.</div>
+<div class="help-field"><strong>Serial NF</strong> <code>OINV.Serial</code> / <code>ORIN.Serial</code>. Em branco se o cache ainda não foi sincronizado após a coluna (rode <code>--full</code> para o histórico; o incremental cobre os últimos dias).</div>
+<div class="help-field"><strong>Tipo</strong> Venda/Devolução na lista de venda; Bonificação/Brinde ou Devolução nas outras.</div>
 <div class="help-field"><strong>Data</strong> Data de lançamento da nota (<code>DocDate</code>), no intervalo do painel.</div>
 <div class="help-field"><strong>Cliente / Vendedor</strong> Parceiro e vendedor SAP da nota.</div>
-<div class="help-field"><strong>Qtd</strong> Só na origem item: quantidade daquele SKU na nota (devolução vem negativa).</div>
-<div class="help-field"><strong>Valor</strong> Soma das linhas do cache daquela nota no recorte (não inclui parcelas INV6).</div>
-<div class="help-field"><strong>Filtros na URL</strong> Os mesmos do dashboard (<code>periodo</code>, <code>vendedor[]</code>, <code>card_code[]</code>, <code>item_code[]</code>, etc.). Sem vendedor/cliente/item a tela pede para abrir pelo duplo clique.</div>
+<div class="help-field"><strong>Qtd</strong> Só na origem item: quantidade daquele SKU na nota, só da natureza (devolução vem negativa).</div>
+<div class="help-field"><strong>Valor</strong> Soma das linhas do cache daquela nota na natureza pedida (não inclui parcelas INV6 nem linhas de outra natureza).</div>
+<div class="help-field"><strong>Filtros na URL</strong> Os mesmos do dashboard (<code>periodo</code>, <code>vendedor[]</code>, <code>card_code[]</code>, <code>item_code[]</code>, <code>natureza</code>, etc.). Sem vendedor/cliente/item, a tela de venda pede o duplo clique; bonificação/brinde pode abrir só pela natureza (cards).</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Serial NF em branco</dt>
+    <dd>A coluna é nova e o cache antigo fica 0. O <strong>Sync incremental</strong> preenche os últimos dias; para o histórico rode <code>php scripts/sync_crm_sales_sap.php --full</code>.</dd>
     <dt>Lista vazia / aviso de cache sem número de nota</dt>
     <dd>A migration do DocNum esvazia o cache. Rode <code>php scripts/sync_crm_sales_sap.php --full</code>.</dd>
     <dt>Aparecem menos linhas que no SAP (prestações)</dt>
     <dd>Esperado: o SAP de análise de vendas lista cada parcela. Aqui a NS 18706 (1 de 3, 2 de 3, 3 de 3) vira <strong>uma</strong> linha com o total da nota.</dd>
     <dt>Valor diferente do SAP</dt>
-    <dd>O painel só soma grupos OITB 104/106 e natureza venda. Itens de outros grupos ou utilização Ignorar/bonificação/brinde não entram.</dd>
+    <dd>O painel só soma grupos OITB 104/106. Na lista de venda, bonificação/brinde/ignorar não entram. Na lista de bonificação/brinde, o valor é só dessas linhas — o total da NF no SAP pode ser maior.</dd>
+    <dt>A mesma NF aparece em venda e em bonificação</dt>
+    <dd>Esperado: o documento mistura naturezas. Cada lista mostra só a fatia correspondente.</dd>
     <dt>Não abre pelo menu</dt>
-    <dd>A entrada principal é o duplo clique no dashboard. Se a página aparecer no menu, use-a só com os filtros na URL.</dd>
+    <dd>A entrada principal é o duplo clique no dashboard (vendedor, cliente, item ou cards de Bonificação/Brindes). Se a página aparecer no menu, use-a só com os filtros na URL.</dd>
     <dt>Sem permissão</dt>
     <dd>Execute <code>vendor/bin/phinx migrate</code> e confira <em>CrmSalesInvoices</em> no nível de acesso.</dd>
 </dl>

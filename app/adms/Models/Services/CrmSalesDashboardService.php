@@ -96,6 +96,8 @@ class CrmSalesDashboardService
                 ],
                 'top_clientes' => [],
                 'top_itens' => [],
+                'top_itens_bonificacao' => [],
+                'top_itens_brinde' => [],
                 'usages_unclassified' => $this->usageRepo->countUnclassified(),
                 'sync' => $this->formatSyncMeta($sync, $rowCount),
                 'warning' => 'Cache vazio. Na primeira carga use o comando --full no servidor; depois o botão Sync incremental.',
@@ -134,7 +136,15 @@ class CrmSalesDashboardService
         $porVendedor = $this->repo->fetchGroupSum($from, $to, $dims, 'vendedor', 'vendedor');
         $porRegiao = $this->repo->fetchGroupSum($from, $to, $dims, 'regiao', 'regiao');
         $topClientes = $this->repo->fetchTopClientes($from, $to, $dims, 'card_code');
-        $topItens = $this->repo->fetchTopItens($from, $to, $dims, 'item_code');
+        $topItens = $this->repo->fetchTopItens($from, $to, $dims, 'item_code', 'venda');
+        $topItensBonif = $this->repo->fetchTopItens($from, $to, $dims, 'item_code', 'bonificacao');
+        $topItensBrinde = $this->repo->fetchTopItens($from, $to, $dims, 'item_code', 'brinde');
+        $soldByCode = [];
+        foreach ($topItens as $row) {
+            $soldByCode[(string) ($row['item_code'] ?? '')] = (float) ($row['quantidade'] ?? 0);
+        }
+        $topItensBonif = $this->withSoldShare($topItensBonif, $soldByCode);
+        $topItensBrinde = $this->withSoldShare($topItensBrinde, $soldByCode);
         $opcoes = $this->repo->fetchFilterOptions($from, $to);
 
         $meses = $this->listAnoMesInRange($range);
@@ -172,6 +182,7 @@ class CrmSalesDashboardService
                 'itens_bonificados' => $itensBonif,
                 'itens_brindes' => $itensBrindes,
                 'desconto' => $desconto,
+                'valor_bruto_venda' => $brutoVenda,
                 'pct_desconto' => round($pctDesconto, 2),
                 'pct_bonificacoes' => round($pctBonif, 2),
                 'pct_brindes' => round($pctBrindes, 2),
@@ -184,6 +195,8 @@ class CrmSalesDashboardService
             ],
             'top_clientes' => $topClientes,
             'top_itens' => $topItens,
+            'top_itens_bonificacao' => $topItensBonif,
+            'top_itens_brinde' => $topItensBrinde,
             'usages_unclassified' => $unclassified,
             'sync' => $this->formatSyncMeta($sync, $rowCount),
             'warning' => $warning,
@@ -216,9 +229,12 @@ class CrmSalesDashboardService
         ];
 
         $origem = trim((string) ($filters['origem'] ?? ''));
-        $hasDrill = ($dims['vendedor'] ?? []) !== []
+        $natureza = $this->repo->normalizeNatureza($filters['natureza'] ?? 'venda');
+        $hasDimDrill = ($dims['vendedor'] ?? []) !== []
             || ($dims['card_code'] ?? []) !== []
             || ($dims['item_code'] ?? []) !== [];
+        $hasNatureDrill = in_array($natureza, ['bonificacao', 'brinde'], true);
+        $hasDrill = $hasDimDrill || $hasNatureDrill;
 
         $from = $range['from']->format('Y-m-d');
         $to = $range['to']->format('Y-m-d');
@@ -228,7 +244,7 @@ class CrmSalesDashboardService
 
         $hasDoc = $this->repo->hasDocNumColumns();
         $result = $hasDoc && $hasDrill
-            ? $this->repo->fetchInvoices($from, $to, $dims, $perPage, $offset)
+            ? $this->repo->fetchInvoices($from, $to, $dims, $perPage, $offset, $natureza)
             : [
                 'rows' => [],
                 'total_rows' => 0,
@@ -249,24 +265,35 @@ class CrmSalesDashboardService
         if (!$hasDoc) {
             $warning = 'O cache ainda não tem número de nota. Rode php scripts/sync_crm_sales_sap.php --full após a migration.';
         } elseif (!$hasDrill) {
-            $warning = 'Abra esta tela com duplo clique em um vendedor, cliente ou item no Dashboard de Vendas SAP.';
+            $warning = 'Abra esta tela com duplo clique em um vendedor, cliente, item ou nos cards de Bonificação/Brindes no Dashboard de Vendas SAP.';
         } elseif ($this->repo->countRows() === 0) {
             $warning = 'Cache vazio. Na primeira carga use o comando --full no servidor.';
         }
 
         $titulo = 'Notas fiscais';
-        if ($origem === 'vendedor' && !empty($dims['vendedor'])) {
+        if ($natureza === 'bonificacao' && !$hasDimDrill) {
+            $titulo = 'Notas de bonificação';
+        } elseif ($natureza === 'brinde' && !$hasDimDrill) {
+            $titulo = 'Notas de brinde';
+        } elseif ($origem === 'vendedor' && !empty($dims['vendedor'])) {
             $titulo = 'Notas de ' . implode(', ', $dims['vendedor']);
         } elseif ($origem === 'card_code' && !empty($dims['card_code'])) {
             $titulo = 'Notas do cliente';
         } elseif ($origem === 'item_code' && !empty($dims['item_code'])) {
-            $titulo = 'Notas do item';
+            $titulo = $natureza === 'bonificacao'
+                ? 'Bonificação do item'
+                : ($natureza === 'brinde' ? 'Brinde do item' : 'Notas do item');
+        } elseif ($natureza === 'bonificacao') {
+            $titulo = 'Notas de bonificação';
+        } elseif ($natureza === 'brinde') {
+            $titulo = 'Notas de brinde';
         }
 
         return [
             'success' => true,
             'titulo' => $titulo,
             'origem' => $origem,
+            'natureza' => $natureza,
             'escopo_item' => !empty($dims['item_code']),
             'has_doc_num' => $hasDoc,
             'has_drill' => $hasDrill,
@@ -313,6 +340,7 @@ class CrmSalesDashboardService
             'itens_bonificados' => 0,
             'itens_brindes' => 0,
             'desconto' => 0,
+            'valor_bruto_venda' => 0,
             'pct_desconto' => 0,
             'pct_bonificacoes' => 0,
             'pct_brindes' => 0,
@@ -489,5 +517,23 @@ class CrmSalesDashboardService
         }
         $list = array_values($out);
         return $list === [] ? null : $list;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @param array<string, float> $soldByCode
+     * @return list<array<string, mixed>>
+     */
+    private function withSoldShare(array $rows, array $soldByCode): array
+    {
+        foreach ($rows as &$row) {
+            $code = (string) ($row['item_code'] ?? '');
+            $sold = (float) ($soldByCode[$code] ?? 0);
+            $qty = (float) ($row['quantidade'] ?? 0);
+            $row['qtd_venda_sku'] = $sold;
+            $row['pct_qtd_vs_venda'] = $sold > 0 ? round($qty / $sold * 100, 1) : null;
+        }
+        unset($row);
+        return $rows;
     }
 }

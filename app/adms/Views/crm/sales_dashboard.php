@@ -196,6 +196,22 @@ $canUsages = !empty($this->data['can_usages']);
   padding:16px 18px; box-shadow:var(--csd-shadow);
 }
 .crm-sales-dash .csd-panel h2{font-size:15px; font-weight:700; margin:0 0 2px;}
+.crm-sales-dash .csd-panel-head{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap;
+  margin-bottom:2px;
+}
+.crm-sales-dash .csd-panel-head h2{margin:0;}
+.crm-sales-dash .csd-tabs{display:flex; gap:4px; flex-wrap:wrap;}
+.crm-sales-dash .csd-tab{
+  border:1px solid var(--csd-line); background:#fff; color:var(--csd-ink-soft);
+  font-size:12px; font-weight:600; padding:4px 10px; border-radius:999px; cursor:pointer; height:28px;
+  font-family:inherit;
+}
+.crm-sales-dash .csd-tab:hover{background:var(--csd-bg);}
+.crm-sales-dash .csd-tab.is-active{background:var(--csd-green); border-color:var(--csd-green); color:#fff;}
+.crm-sales-dash .csd-kpi[data-open-natureza]{cursor:pointer;}
+.crm-sales-dash .tbl-itens .col-vs{width:5.2rem; min-width:0 !important; font-size:11px !important;}
+.crm-sales-dash .table-scroll.itens-scroll.is-wide{overflow-x:auto;}
 .crm-sales-dash .csd-panel .panel-sub{font-size:12px; color:var(--csd-ink-mute); margin:0 0 10px;}
 .crm-sales-dash .csd-panel-sub-row{
   display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap;
@@ -546,10 +562,10 @@ $canUsages = !empty($this->data['can_usages']);
         </p>
         <div class="csd-kpi-tip" id="tipDesc" role="tooltip">
           <strong>Já abate o desconto das devoluções</strong>
-          Desconto concedido nas linhas de venda: (preço antes do desconto da linha × quantidade − LineTotal) + parcela do DiscSum. Faturas menos o desconto das notas de crédito.
+          Desconto concedido nas linhas de venda: (preço antes do desconto da linha × quantidade − LineTotal) + parcela do DiscSum. Faturas menos o desconto das notas de crédito. O rodapé mostra o bruto (preço antes do desconto × quantidade), já líquido de devolução.
         </div>
         <p class="value" id="kpiDesconto">—</p>
-        <p class="delta">Líquido (já abate devolução)</p>
+        <p class="delta" id="kpiDescontoDelta">Bruto sem desconto: —</p>
       </div>
       <div class="csd-kpi c-red">
         <p class="label">
@@ -569,31 +585,31 @@ $canUsages = !empty($this->data['can_usages']);
     <div class="csd-kpi-group">
       <h2>Bonificação</h2>
       <section class="csd-kpi-row csd-kpi-row-3">
-      <div class="csd-kpi c-orange">
+      <div class="csd-kpi c-orange" data-open-natureza="bonificacao">
         <p class="label">
           Bonificações
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipBonifVal" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipBonifVal" role="tooltip">
           <strong>Não entra no faturamento</strong>
-          Valor líquido das utilizações bonificação (fatura − devolução de bonificação). Não some este card ao faturamento líquido.
+          Valor líquido das utilizações bonificação (fatura − devolução de bonificação). Não some este card ao faturamento líquido. Duplo clique abre as notas só com as linhas de bonificação.
         </div>
         <p class="value" id="kpiBonificacoes">—</p>
         <p class="delta" id="kpiBonificacoesDelta"></p>
       </div>
-      <div class="csd-kpi c-orange">
+      <div class="csd-kpi c-orange" data-open-natureza="bonificacao">
         <p class="label">
           Itens bonificados
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensBon" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipItensBon" role="tooltip">
           <strong>Já abate devolução de bonificação</strong>
-          Quantidade líquida das linhas classificadas como bonificação.
+          Quantidade líquida das linhas classificadas como bonificação. Duplo clique abre as notas desta natureza.
         </div>
         <p class="value" id="kpiItensBonificados">—</p>
         <p class="delta">Unidades líquidas</p>
       </div>
-      <div class="csd-kpi c-orange">
+      <div class="csd-kpi c-orange" data-open-natureza="bonificacao">
         <p class="label">
           % Bonificações
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctBonif" title="O que é este indicador?">i</button>
@@ -611,31 +627,31 @@ $canUsages = !empty($this->data['can_usages']);
     <div class="csd-kpi-group">
       <h2>Brindes</h2>
       <section class="csd-kpi-row csd-kpi-row-3">
-      <div class="csd-kpi c-purple">
+      <div class="csd-kpi c-purple" data-open-natureza="brinde">
         <p class="label">
           Brindes
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipBrindesVal" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipBrindesVal" role="tooltip">
           <strong>Não entra no faturamento</strong>
-          Valor líquido das utilizações brinde (fatura − devolução de brinde). Não some este card ao faturamento líquido.
+          Valor líquido das utilizações brinde (fatura − devolução de brinde). Não some este card ao faturamento líquido. Duplo clique abre as notas só com as linhas de brinde.
         </div>
         <p class="value" id="kpiBrindes">—</p>
         <p class="delta" id="kpiBrindesDelta"></p>
       </div>
-      <div class="csd-kpi c-purple">
+      <div class="csd-kpi c-purple" data-open-natureza="brinde">
         <p class="label">
           Itens de brinde
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipItensBrinde" title="O que é este indicador?">i</button>
         </p>
         <div class="csd-kpi-tip" id="tipItensBrinde" role="tooltip">
           <strong>Já abate devolução de brinde</strong>
-          Quantidade líquida das linhas classificadas como brinde. Pode ficar negativa se, no período, devolveu mais do que faturou.
+          Quantidade líquida das linhas classificadas como brinde. Pode ficar negativa se, no período, devolveu mais do que faturou. Duplo clique abre as notas desta natureza.
         </div>
         <p class="value" id="kpiItensBrindes">—</p>
         <p class="delta">Unidades líquidas</p>
       </div>
-      <div class="csd-kpi c-purple">
+      <div class="csd-kpi c-purple" data-open-natureza="brinde">
         <p class="label">
           % Brindes
           <button type="button" class="csd-kpi-info" aria-expanded="false" aria-controls="tipPctBrindes" title="O que é este indicador?">i</button>
@@ -716,11 +732,18 @@ $canUsages = !empty($this->data['can_usages']);
         </div>
       </div>
       <div class="csd-panel">
-        <h2>Itens vendidos</h2>
+        <div class="csd-panel-head">
+          <h2 id="titTopItens">Itens vendidos</h2>
+          <div class="csd-tabs" role="tablist" aria-label="Natureza dos itens">
+            <button type="button" class="csd-tab is-active" data-itens-tab="venda" role="tab" aria-selected="true">Vendidos</button>
+            <button type="button" class="csd-tab" data-itens-tab="bonificacao" role="tab" aria-selected="false">Bonificados</button>
+            <button type="button" class="csd-tab" data-itens-tab="brinde" role="tab" aria-selected="false">Brindes</button>
+          </div>
+        </div>
         <p class="panel-sub" id="subTopItens">Todos os itens do período · ordenado por faturamento líquido</p>
-        <div class="table-scroll itens-scroll">
+        <div class="table-scroll itens-scroll" id="itensScroll">
           <table class="tbl-clientes tbl-itens">
-            <thead>
+            <thead id="tblItensHead">
               <tr>
                 <th>Item</th>
                 <th class="col-num col-nfs">NFs</th>
@@ -744,4 +767,4 @@ $canUsages = !empty($this->data['can_usages']);
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=27"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/crm/sales-dashboard.js?v=32"></script>

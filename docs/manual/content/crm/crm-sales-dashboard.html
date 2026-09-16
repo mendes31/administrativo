@@ -10,15 +10,15 @@
     <dt>Devoluções (R$ e unidades)</dt>
     <dd>Valor das notas de crédito (ORIN) — este montante já foi abatido no líquido. O rodapé mostra as <em>unidades devolvidas</em> (quantidade SAP) e as linhas de item. Não é quantidade de notas.</dd>
     <dt>Itens vendidos</dt>
-    <dd>Quantidade líquida (faturados − devolvidos) da natureza venda. O rodapé mostra as duas parcelas. Bonificação e brinde não se misturam.</dd>
+    <dd>Quantidade líquida (faturados − devolvidos) da natureza venda. O rodapé mostra as duas parcelas. Bonificação e brinde não se misturam — use as abas do ranking de itens.</dd>
     <dt>Itens bonificados / itens de brinde</dt>
-    <dd>Quantidade líquida (fatura − devolução) só daquela natureza. Pode ficar negativa se, no período, devolveu mais do que saiu.</dd>
+    <dd>Quantidade líquida (fatura − devolução) só daquela natureza. Pode ficar negativa se, no período, devolveu mais do que saiu. A aba correspondente lista os SKUs; a coluna <em>vs venda</em> compara a quantidade desta natureza com a quantidade vendida do mesmo código no recorte. Sem venda do SKU no período, aparece “sem venda”.</dd>
     <dt>Bonificações</dt>
-    <dd>Valor líquido das utilizações classificadas como bonificação. O rodapé conta linhas de item, não notas. Não entra no faturamento.</dd>
+    <dd>Valor líquido das utilizações classificadas como bonificação. O rodapé conta linhas de item, não notas. Não entra no faturamento. Clique simples no card troca para a aba Bonificados; duplo clique abre as notas só com as linhas de bonificação.</dd>
     <dt>Brindes</dt>
-    <dd>Valor líquido das utilizações classificadas como brinde (em geral no grupo 700). O rodapé mostra linhas de item e o percentual sobre o faturamento líquido. Não entra no faturamento.</dd>
+    <dd>Valor líquido das utilizações classificadas como brinde (em geral no grupo 700). O rodapé mostra linhas de item e o percentual sobre o faturamento líquido. Não entra no faturamento. Clique no card abre a aba Brindes; duplo clique lista as notas só com as linhas de brinde.</dd>
     <dt>% Desconto</dt>
-    <dd>Desconto concedido nas linhas de venda: preço unitário <em>antes</em> do desconto da linha (<code>PriceBefDi</code>) × quantidade − LineTotal, mais a parcela do desconto de rodapé da nota (DiscSum). O <code>Price</code> do SAP já vem com o desconto da linha — usá-lo no lugar de PriceBefDi deixa o card quase zerado (só arredondamento). % = esse desconto ÷ bruto (PriceBefDi × quantidade) × 100.</dd>
+    <dd>Desconto concedido nas linhas de venda: preço unitário <em>antes</em> do desconto da linha (<code>PriceBefDi</code>) × quantidade − LineTotal, mais a parcela do desconto de rodapé da nota (DiscSum). O <code>Price</code> do SAP já vem com o desconto da linha — usá-lo no lugar de PriceBefDi deixa o card quase zerado (só arredondamento). % = esse desconto ÷ bruto (PriceBefDi × quantidade) × 100. O rodapé do card Desconto mostra esse bruto (já líquido de devolução), só para conferência.</dd>
     <dt>% Bonificações</dt>
     <dd>Valor de bonificações ÷ faturamento líquido de venda × 100 (sem brindes).</dd>
     <dt>Utilização (OUSG)</dt>
@@ -34,9 +34,9 @@
     <dt>Cache MySQL</dt>
     <dd>Tabela <code>crm_sales_fact_daily</code> com linhas por dia, nota, cliente, item e utilização. O painel agrega esse cache. O rodapé mostra quantas linhas existem no total e o intervalo das <em>datas de venda</em> gravadas — isso é diferente da janela da última sincronização.</dd>
     <dt>NFs</dt>
-    <dd>Quantidade de notas de venda menos quantidade de notas de devolução no recorte (natureza venda). Aparece em clientes, vendedores, região e itens. Não é número de parcelas. Notas de bonificação/brinde/ignorar ficam de fora, como o líquido. No item, conta as notas que têm aquele SKU; o total da lista pode repetir a mesma NF se ela tiver vários produtos.</dd>
+    <dd>Quantidade de notas de venda menos quantidade de notas de devolução no recorte da natureza da lista. Em clientes, vendedores e região é só natureza venda. Na aba de itens, acompanha a aba ativa (venda, bonificação ou brinde). Não é número de parcelas. A mesma NF pode contar em mais de uma aba se tiver linhas de naturezas diferentes. No item, conta as notas que têm aquele SKU; o total da lista pode repetir a mesma NF se ela tiver vários produtos.</dd>
     <dt>Listagem de notas</dt>
-    <dd>Duplo clique em vendedor (gráfico), cliente ou item abre uma página com <strong>uma linha por nota</strong> (venda e devolução), sem prestações/parcelas. Respeita o período e os filtros ativos. No item, valor e quantidade são só desse SKU na nota.</dd>
+    <dd>Duplo clique em vendedor (gráfico), cliente, item ou nos cards de Bonificação/Brindes abre uma página com <strong>uma linha por nota</strong>, sem prestações. O valor é só das linhas da natureza pedida (a NF pode ter venda e remessa no mesmo documento). Respeita o período e os filtros ativos.</dd>
     <dt>Sincronização SAP</dt>
     <dd>Consulta faturas e devoluções no SAP e regrava o cache MySQL. A faixa de datas da mensagem é o que foi <em>consultado agora</em> (no incremental, os últimos dias com 3 dias de sobreposição). Não é o tamanho do cache nem “um mês de vendas”.</dd>
     <dt>Sync incremental</dt>
@@ -44,7 +44,7 @@
     <dt>Sync no 1º acesso do dia</dt>
     <dd>Ao abrir o painel pela primeira vez no dia, o sistema sincroniza o incremento automaticamente (com lock para não duplicar). Demais acessos/filtros no mesmo dia leem só o cache.</dd>
     <dt>Cross-filter</dt>
-    <dd>Clique simples em barra, fatia, ponto ou linha das tabelas aplica o filtro ao painel; clique de novo para desmarcar. Duplo clique em <strong>vendedor, cliente ou item</strong> abre a listagem de notas. Dá para marcar <strong>vários</strong> vendedores, grupos, regiões, meses, clientes ou itens ao mesmo tempo. Os chips laranja removem um a um.</dd>
+    <dd>Clique simples em barra, fatia, ponto ou linha das tabelas aplica o filtro ao painel; clique de novo para desmarcar. Duplo clique em <strong>vendedor, cliente ou item</strong> abre a listagem de notas da natureza da lista (nos gráficos de vendedor/cliente, sempre venda). Dá para marcar <strong>vários</strong> vendedores, grupos, regiões, meses, clientes ou itens ao mesmo tempo. Os chips laranja removem um a um.</dd>
 </dl>
 
 <p><strong>Quem acessa:</strong> usuários com permissão <em>CrmSalesDashboard</em> (dados via <em>CrmSalesDashboardData</em>; sync via <em>CrmSalesDashboardSync</em>; listagem de notas via <em>CrmSalesInvoices</em>; classificação de utilizações via <em>CrmListSalesUsages</em>). A migration copia ACL a partir de <em>CrmDashboard</em>/<em>CrmSalesDashboard</em>.</p>
@@ -57,9 +57,10 @@
     <li>Escolha o período (mês atual/anterior, últimos 3–36 meses, ano atual YTD, ano anterior ou personalizado com data início/fim).</li>
     <li>No personalizado, preencha as datas e clique em <strong>Atualizar</strong>.</li>
     <li>Opcionalmente filtre por um ou mais vendedores, grupos de cliente ou regiões na barra (caixas de seleção; use <strong>Expandir filtros</strong> se estiver recolhida).</li>
-    <li>Clique simples em gráficos ou em linhas de <strong>Top clientes</strong> / <strong>Itens vendidos</strong> para ir somando filtros; clique de novo ou use chips / <strong>Limpar</strong>.</li>
-    <li>No <strong>Top vendedores</strong> e em <strong>Vendas por região</strong>, a coluna <em>NFs</em> à direita das barras acompanha o mesmo recorte dos filtros (faturas − devoluções).</li>
-    <li>Duplo clique em um vendedor (gráfico), cliente ou item abre a listagem de notas daquele recorte (sem parcelas).</li>
+    <li>Clique simples em gráficos ou em linhas de <strong>Top clientes</strong> / ranking de itens para ir somando filtros; clique de novo ou use chips / <strong>Limpar</strong>.</li>
+    <li>No ranking de itens, as abas <strong>Vendidos</strong>, <strong>Bonificados</strong> e <strong>Brindes</strong> não se misturam. Bonificação e brinde não entram no ranking de vendidos.</li>
+    <li>No <strong>Top vendedores</strong> e em <strong>Vendas por região</strong>, a coluna <em>NFs</em> à direita das barras acompanha o mesmo recorte dos filtros (faturas − devoluções de venda).</li>
+    <li>Duplo clique em um vendedor (gráfico), cliente ou item abre a listagem de notas daquele recorte (sem parcelas). Duplo clique nos cards de Bonificação ou Brindes abre todas as notas daquela natureza. O período, os filtros e a aba ficam na URL; <strong>Voltar ao dashboard</strong> devolve o mesmo recorte.</li>
     <li>Para forçar atualização no meio do dia, use <strong>Sync incremental</strong>. O 1º acesso do dia já sincroniza sozinho.</li>
     <li>Confira a faixa verde (janela consultada agora) e o rodapé (data da última atualização, total de linhas e datas das vendas no cache).</li>
 </ol>
@@ -69,13 +70,14 @@
 <div class="help-field"><strong>Data início / Data fim</strong> Visíveis só no período personalizado; aplicadas ao clicar em <strong>Atualizar</strong> (<code>date_from</code>/<code>date_to</code> na API).</div>
 <div class="help-field"><strong>Vendedor / Grupo / Região</strong> Cada campo aceita várias opções ao mesmo tempo. Abra a lista, marque as caixas (há busca) ou clique nos gráficos. Vazio = todos. Vendedor = <code>OSLP.SlpName</code>; grupo = <code>OCRG.GroupName</code>; região = território SAP (<code>OTER.descript</code>) ou UF (<code>OCRD.State1</code>); sem ambos: “Sem região”.</div>
 <div class="help-field"><strong>KPIs de faturamento</strong> Cada card tem um botão <em>i</em> e um rodapé dizendo se o valor já abate devolução. Líquido = faturas − devoluções (não some os dois cards). Devoluções = reais já saídos do líquido; o rodapé mostra unidades devolvidas. Taxa = devolvido ÷ faturas (não usa o líquido). Ticket = líquido ÷ clientes.</div>
-<div class="help-field"><strong>KPIs</strong> Quatro grupos: <em>Faturamento</em> (líquido, devoluções, taxa, ticket); <em>Venda e desconto</em> (itens vendidos, desconto em R$, % desconto); <em>Bonificação</em> (valor, itens, %); <em>Brindes</em> (valor, itens, %). Bonificação e brinde dependem da classificação em <em>Utilizações de venda SAP</em>.</div>
+<div class="help-field"><strong>KPIs</strong> Quatro grupos: <em>Faturamento</em> (líquido, devoluções, taxa, ticket); <em>Venda e desconto</em> (itens vendidos, desconto em R$ com bruto sem desconto no rodapé, % desconto); <em>Bonificação</em> (valor, itens, %); <em>Brindes</em> (valor, itens, %). Bonificação e brinde dependem da classificação em <em>Utilizações de venda SAP</em>.</div>
 <div class="help-field"><strong>Classificar utilizações</strong> Atalho para <em>crm-list-sales-usages</em>. Sem classificar, bonificação/brinde infla o faturamento (tratados como venda).</div>
 <div class="help-field"><strong>Top clientes</strong> Lista os parceiros do recorte, ordenados por líquido, com rolagem. Coluna <em>NFs</em> = faturas − devoluções. Clique nas linhas para marcar um ou mais clientes; duplo clique abre as notas. Código do PN + nome completo; valores com centavos. O rodapé soma o recorte da lista.</div>
 <div class="help-field"><strong>Top vendedores</strong> Barras de faturamento líquido. À direita de cada barra aparece a quantidade de <em>NFs</em> (faturas − devoluções) do mesmo recorte dos filtros. Clique para filtrar; duplo clique abre as notas. O tooltip repete valor e NFs.</div>
 <div class="help-field"><strong>Vendas por região</strong> Barras de faturamento líquido por UF/território. À direita de cada barra aparece a quantidade de <em>NFs</em> (faturas − devoluções) do mesmo recorte dos filtros. Clique para marcar uma ou mais regiões. O tooltip repete valor e NFs.</div>
-<div class="help-field"><strong>Filtros</strong> Barra compacta com período e listas de múltipla escolha (vendedor, grupo de cliente, região). <em>Expandir/Colapsar filtros</em> recolhe os campos. Clique nos gráficos e nas tabelas soma filtros do mesmo tipo.</div>
-<div class="help-field"><strong>Itens vendidos</strong> Ranking dos SKUs do recorte (só natureza venda), ordenado por líquido decrescente, com rolagem. Coluna <em>NFs</em> = notas (faturas − devoluções) que contêm aquele item. Clique para filtrar; duplo clique abre as notas daquele SKU. Código SAP, descrição, quantidade líquida, líquido e devolução. O rodapé soma a lista visível; o total de NFs pode repetir a mesma nota em vários itens.</div>
+<div class="help-field"><strong>Filtros</strong> Barra compacta com período e listas de múltipla escolha (vendedor, grupo de cliente, região). <em>Expandir/Colapsar filtros</em> recolhe os campos. Clique nos gráficos e nas tabelas soma filtros do mesmo tipo. Os filtros ativos vão para a URL; ao abrir as notas e voltar, o recorte permanece até <strong>Limpar</strong> ou outra seleção.</div>
+<div class="help-field"><strong>Itens vendidos / Bonificados / Brindes</strong> Três abas no mesmo ranking. Vendidos = só natureza venda (não mistura remessa). Bonificados e Brindes = só aquela utilização. Coluna extra <em>vs venda</em> = quantidade da natureza ÷ quantidade vendida do mesmo SKU. Clique filtra o código; duplo clique abre as notas da aba. O rodapé soma a lista visível; o total de NFs pode repetir a mesma nota em vários itens.</div>
+<div class="help-field"><strong>Cards Bonificação / Brindes</strong> Clique simples troca para a aba correspondente. Duplo clique abre a listagem de notas da natureza, com o valor só das linhas daquela natureza.</div>
 <div class="help-field"><strong>Mensagem após o sync</strong> Faixa verde: quantas linhas do cache foram regravadas e de qual data a qual data o SAP foi consultado (em dias, com 3 dias de sobreposição). Não é o tamanho do cache. O rodapé traz o total de linhas e as datas das vendas já gravadas.</div>
 <div class="help-field"><strong>API dados</strong> Endpoint <code>crm-sales-dashboard-data</code> agrega só no MySQL (resposta rápida ao trocar filtros).</div>
 <div class="help-field"><strong>API sync</strong> Endpoint <code>crm-sales-dashboard-sync</code> — somente incremental na web (botão <em>Sync incremental</em>). Full sync apenas via CLI.</div>
@@ -102,9 +104,15 @@
     <dt>NFs ou listagem de notas vazia / sem coluna</dt>
     <dd>Após a migration do número da nota, o cache é esvaziado. Rode <code>php scripts/sync_crm_sales_sap.php --full</code>. O incremental não reconstrói o histórico antigo.</dd>
     <dt>A quantidade de NFs não bate com o relatório do SAP</dt>
-    <dd>O SAP de análise de vendas conta prestações (1 de 3, 2 de 3…) e pode incluir outros grupos/utilizações. Aqui é uma nota = uma NF, faturas menos devoluções, só recorte 104/106 e natureza venda. Notas de R$ 0,00 de venda entram na conta; bonificação/brinde/ignorar não.</dd>
+    <dd>O SAP de análise de vendas conta prestações (1 de 3, 2 de 3…) e pode incluir outros grupos/utilizações. Aqui é uma nota = uma NF, faturas menos devoluções, só recorte 104/106. Em clientes/vendedores/região conta só natureza venda. Nas abas Bonificados/Brindes, a coluna NFs é só daquela natureza.</dd>
+    <dt>A aba Bonificados/Brindes está vazia</dt>
+    <dd>Classifique as utilizações em <strong>Utilizações de venda SAP</strong>. Até classificar, as linhas entram como venda e não aparecem nessas abas.</dd>
+    <dt>O valor da nota de bonificação é menor que o total da NF no SAP</dt>
+    <dd>Esperado: a lista soma só as linhas da natureza pedida. A mesma NS pode ter venda e remessa; cada aba mostra a sua fatia.</dd>
     <dt>Duplo clique não abre as notas</dt>
     <dd>Confirme permissão <em>CrmSalesInvoices</em> (copiada do dashboard na migration) e recarregue o JS (Ctrl+F5).</dd>
+    <dt>Ao voltar das notas os filtros sumiram</dt>
+    <dd>O recorte fica na URL do painel. Use <strong>Voltar ao dashboard</strong> (ou o voltar do navegador), não o menu CRM em branco. Recarregue com Ctrl+F5 se o JS estiver em cache. <strong>Limpar</strong> zera de propósito.</dd>
     <dt>Erro da API SAP / timeout no sync</dt>
     <dd>Confirme a Configuração SAP API. O sync consulta faturas e devoluções (OINV/ORIN) em janelas de 7 dias; não envia query contra VIEW no HANA. Se o <code>--full</code> falhar por timeout, verifique a API e rode de novo.</dd>
     <dt>Painel rápido, mas números “atrasados”</dt>

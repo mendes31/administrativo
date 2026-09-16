@@ -2,9 +2,13 @@
 /** @var array $this->data */
 $inv = $this->data['invoices'] ?? [];
 $baseUrl = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
-$dashUrl = htmlspecialchars($baseUrl . 'crm-sales-dashboard', ENT_QUOTES, 'UTF-8');
-$selfUrl = $baseUrl . 'crm-sales-invoices';
 $qs = (string) ($this->data['query_string'] ?? '');
+$dashUrl = htmlspecialchars(
+    (string) ($this->data['dashboard_url'] ?? ($baseUrl . 'crm-sales-dashboard' . ($qs !== '' ? '?' . $qs : ''))),
+    ENT_QUOTES,
+    'UTF-8'
+);
+$selfUrl = $baseUrl . 'crm-sales-invoices';
 $title = htmlspecialchars((string) ($inv['titulo'] ?? 'Notas fiscais'), ENT_QUOTES, 'UTF-8');
 $from = htmlspecialchars((string) ($inv['periodo']['date_from'] ?? ''), ENT_QUOTES, 'UTF-8');
 $to = htmlspecialchars((string) ($inv['periodo']['date_to'] ?? ''), ENT_QUOTES, 'UTF-8');
@@ -12,6 +16,11 @@ $fromBr = $from !== '' ? date('d/m/Y', strtotime($from)) : '—';
 $toBr = $to !== '' ? date('d/m/Y', strtotime($to)) : '—';
 $rows = $inv['rows'] ?? [];
 $escopoItem = !empty($inv['escopo_item']);
+$natureza = (string) ($inv['natureza'] ?? 'venda');
+if (!in_array($natureza, ['venda', 'bonificacao', 'brinde'], true)) {
+    $natureza = 'venda';
+}
+$naturezaLabel = $natureza === 'bonificacao' ? 'bonificação' : ($natureza === 'brinde' ? 'brinde' : 'venda');
 $warning = trim((string) ($inv['warning'] ?? ''));
 $page = (int) ($inv['page'] ?? 1);
 $pages = (int) ($inv['pages'] ?? 1);
@@ -24,8 +33,15 @@ $qtdNfs = (int) ($inv['qtd_nfs'] ?? ($qtdVenda - $qtdDev));
 $fmtMoeda = static fn (float $v): string => 'R$ ' . number_format($v, 2, ',', '.');
 $fmtQtd = static fn (float $v): string => number_format($v, 3, ',', '.');
 
-$tipoLabel = static function (string $tipo): string {
-    return stripos($tipo, 'dev') !== false ? 'Devolução' : 'Venda';
+$tipoLabel = static function (string $tipo, string $natureza): string {
+    $isDev = stripos($tipo, 'dev') !== false;
+    if ($natureza === 'bonificacao') {
+        return $isDev ? 'Devolução' : 'Bonificação';
+    }
+    if ($natureza === 'brinde') {
+        return $isDev ? 'Devolução' : 'Brinde';
+    }
+    return $isDev ? 'Devolução' : 'Venda';
 };
 $docLabel = static function (array $row): string {
     $num = (int) ($row['doc_num'] ?? 0);
@@ -83,6 +99,8 @@ $pageUrl = static function (int $p) use ($selfUrl, $qs): string {
 .crm-sales-inv .badge{display:inline-block;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;}
 .crm-sales-inv .badge-venda{background:#E7F4EC;color:#12532F;}
 .crm-sales-inv .badge-dev{background:#FBEAEA;color:#8A2323;}
+.crm-sales-inv .badge-bonif{background:#FDEEE0;color:#8A4413;}
+.crm-sales-inv .badge-brinde{background:#F3EEFB;color:#5B3A9E;}
 .crm-sales-inv .doc{font-family:ui-monospace,Consolas,monospace;font-weight:700;}
 .crm-sales-inv tfoot td{font-weight:700;border-top:1px solid #E2E6E0;padding-top:10px;}
 .crm-sales-inv .muted{color:#55605A;font-size:12.5px;margin:0 0 12px;}
@@ -97,8 +115,9 @@ $pageUrl = static function (int $p) use ($selfUrl, $qs): string {
     <div class="csd-banner">
       <div>
         <h1><?= $title ?></h1>
-        <p>Uma linha por nota (sem parcelas) · <?= htmlspecialchars($fromBr, ENT_QUOTES, 'UTF-8') ?> a <?= htmlspecialchars($toBr, ENT_QUOTES, 'UTF-8') ?>
-          · <?= $qtdNfs ?> NF(s) líquidas (<?= $qtdVenda ?> venda<?= $qtdVenda === 1 ? '' : 's' ?> − <?= $qtdDev ?> devolução<?= $qtdDev === 1 ? '' : 'ões' ?>)</p>
+        <p>Uma linha por nota (sem parcelas) · natureza <?= htmlspecialchars($naturezaLabel, ENT_QUOTES, 'UTF-8') ?>
+          · <?= htmlspecialchars($fromBr, ENT_QUOTES, 'UTF-8') ?> a <?= htmlspecialchars($toBr, ENT_QUOTES, 'UTF-8') ?>
+          · <?= $qtdNfs ?> NF(s) líquidas (<?= $qtdVenda ?> NS − <?= $qtdDev ?> NC)</p>
       </div>
       <a class="csd-back" href="<?= $dashUrl ?>">← Voltar ao dashboard</a>
     </div>
@@ -109,30 +128,27 @@ $pageUrl = static function (int $p) use ($selfUrl, $qs): string {
 
     <div class="csd-counts">
       <div class="csd-count">
-        <p class="k">Notas de venda</p>
+        <p class="k"><?= $natureza === 'venda' ? 'Notas de venda' : ('NS com ' . $naturezaLabel) ?></p>
         <p class="v"><?= $qtdVenda ?></p>
         <p class="s">NS no recorte</p>
       </div>
       <div class="csd-count is-dev">
-        <p class="k">Notas de devolução</p>
+        <p class="k"><?= $natureza === 'venda' ? 'Notas de devolução' : ('NC de ' . $naturezaLabel) ?></p>
         <p class="v"><?= $qtdDev ?></p>
         <p class="s">NC no recorte</p>
       </div>
       <div class="csd-count">
         <p class="k">NFs líquidas</p>
         <p class="v"><?= $qtdNfs ?></p>
-        <p class="s">vendas − devoluções</p>
+        <p class="s">NS − NC desta natureza</p>
       </div>
     </div>
 
     <div class="csd-panel">
       <p class="muted">
-        <?= $totalRows ?> linha(s) na lista (venda e devolução).
-        <?php if ($escopoItem): ?>
-          Valor e quantidade são do <strong>item filtrado</strong> em cada nota, não o total da NF.
-        <?php else: ?>
-          Valor = total da nota no recorte do painel (grupos 104/106, natureza venda).
-        <?php endif; ?>
+        <?= $totalRows ?> linha(s) na lista (NS e NC desta natureza).
+        Valor e quantidade são <strong>só das linhas de <?= htmlspecialchars($naturezaLabel, ENT_QUOTES, 'UTF-8') ?></strong><?php if ($escopoItem): ?>, e só do <strong>item filtrado</strong><?php endif; ?>.
+        A mesma NF pode aparecer em outra lista se também tiver venda ou outra natureza.
       </p>
 
       <div class="table-responsive">
@@ -140,6 +156,7 @@ $pageUrl = static function (int $p) use ($selfUrl, $qs): string {
           <thead>
             <tr>
               <th>Documento</th>
+              <th>Serial NF</th>
               <th>Tipo</th>
               <th>Data</th>
               <th>Cliente</th>
@@ -151,22 +168,25 @@ $pageUrl = static function (int $p) use ($selfUrl, $qs): string {
           <tbody>
             <?php if ($rows === []): ?>
               <tr>
-                <td colspan="<?= $escopoItem ? 7 : 6 ?>" style="text-align:center;color:#8A9189;padding:24px;">
+                <td colspan="<?= $escopoItem ? 8 : 7 ?>" style="text-align:center;color:#8A9189;padding:24px;">
                   Nenhuma nota neste recorte.
                 </td>
               </tr>
             <?php else: ?>
               <?php foreach ($rows as $row): ?>
                 <?php
-                $tipo = $tipoLabel((string) ($row['tipo_documento'] ?? ''));
+                $tipo = $tipoLabel((string) ($row['tipo_documento'] ?? ''), $natureza);
                 $isDev = $tipo === 'Devolução';
                 $valor = (float) ($row['valor'] ?? 0);
                 $dataBr = !empty($row['doc_date']) ? date('d/m/Y', strtotime((string) $row['doc_date'])) : '—';
                 $cliente = trim((string) ($row['card_code'] ?? '') . ' · ' . (string) ($row['cliente'] ?? ''), ' ·');
+                $serial = (int) ($row['doc_serial'] ?? 0);
+                $badge = $isDev ? 'badge-dev' : ($natureza === 'bonificacao' ? 'badge-bonif' : ($natureza === 'brinde' ? 'badge-brinde' : 'badge-venda'));
                 ?>
                 <tr>
                   <td class="doc"><?= htmlspecialchars($docLabel($row), ENT_QUOTES, 'UTF-8') ?></td>
-                  <td><span class="badge <?= $isDev ? 'badge-dev' : 'badge-venda' ?>"><?= htmlspecialchars($tipo, ENT_QUOTES, 'UTF-8') ?></span></td>
+                  <td class="doc"><?= $serial > 0 ? $serial : '—' ?></td>
+                  <td><span class="badge <?= $badge ?>"><?= htmlspecialchars($tipo, ENT_QUOTES, 'UTF-8') ?></span></td>
                   <td><?= htmlspecialchars($dataBr, ENT_QUOTES, 'UTF-8') ?></td>
                   <td><?= htmlspecialchars($cliente !== '' ? $cliente : '—', ENT_QUOTES, 'UTF-8') ?></td>
                   <td><?= htmlspecialchars((string) ($row['vendedor'] ?? '—'), ENT_QUOTES, 'UTF-8') ?></td>
@@ -181,7 +201,7 @@ $pageUrl = static function (int $p) use ($selfUrl, $qs): string {
           <?php if ($rows !== []): ?>
             <tfoot>
               <tr>
-                <td colspan="<?= $escopoItem ? 5 : 5 ?>">Total (<?= $totalRows ?> nota(s))</td>
+                <td colspan="6">Total (<?= $totalRows ?> nota(s))</td>
                 <?php if ($escopoItem): ?><td class="num"><?= $fmtQtd($totalQtd) ?></td><?php endif; ?>
                 <td class="num<?= $totalValor < 0 ? ' neg' : '' ?>"><?= $fmtMoeda($totalValor) ?></td>
               </tr>

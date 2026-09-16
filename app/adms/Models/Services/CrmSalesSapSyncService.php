@@ -528,6 +528,7 @@ class CrmSalesSapSyncService
             src."TipoDocumento" AS "TipoDocumento",
             src."DocEntry" AS "DocEntry",
             src."DocNum" AS "DocNum",
+            MAX(IFNULL(src."Serial", 0)) AS "Serial",
             src."CardCode" AS "CardCode",
             MAX(src."Cliente") AS "Cliente",
             IFNULL(src."Vendedor", \'\') AS "Vendedor",
@@ -568,6 +569,7 @@ class CrmSalesSapSyncService
     \'Devolucao\' AS "TipoDocumento",
     T0."DocEntry" AS "DocEntry",
     T0."DocNum" AS "DocNum",
+    IFNULL(T0."Serial", 0) AS "Serial",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
     T0."CardCode" AS "CardCode",
@@ -600,6 +602,7 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
     \'Fatura\' AS "TipoDocumento",
     T0."DocEntry" AS "DocEntry",
     T0."DocNum" AS "DocNum",
+    IFNULL(T0."Serial", 0) AS "Serial",
     T0."DocDate" AS "DocDate",
     TO_VARCHAR(T0."DocDate", \'YYYY-MM\') AS "AnoMes",
     T0."CardCode" AS "CardCode",
@@ -700,6 +703,7 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
 
         $docEntry = max(0, (int) ($get($raw, 'DocEntry') ?? 0));
         $docNum = max(0, (int) ($get($raw, 'DocNum') ?? 0));
+        $docSerial = max(0, (int) ($get($raw, 'Serial') ?? 0));
 
         $grain = implode('|', [
             $docDate,
@@ -722,6 +726,7 @@ WHERE ' . $docFilter . ' AND ' . $dateFilter . ' AND ' . $itemFilter;
             'tipo_documento' => $tipo,
             'doc_entry' => $docEntry,
             'doc_num' => $docNum,
+            'doc_serial' => $docSerial,
             'card_code' => $cardCode,
             'cliente' => mb_substr(trim((string) ($get($raw, 'Cliente') ?? '')), 0, 255),
             'vendedor' => mb_substr($vendedor, 0, 150),

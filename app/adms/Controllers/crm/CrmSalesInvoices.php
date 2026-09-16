@@ -31,6 +31,7 @@ class CrmSalesInvoices
             'card_code' => $_GET['card_code'] ?? null,
             'item_code' => $_GET['item_code'] ?? null,
             'origem' => (string) ($_GET['origem'] ?? ''),
+            'natureza' => (string) ($_GET['natureza'] ?? 'venda'),
         ];
         $page = max(1, (int) ($_GET['page'] ?? 1));
 
@@ -50,6 +51,7 @@ class CrmSalesInvoices
                 'success' => false,
                 'titulo' => 'Notas fiscais',
                 'origem' => '',
+                'natureza' => 'venda',
                 'escopo_item' => false,
                 'has_doc_num' => false,
                 'has_drill' => false,
@@ -71,11 +73,12 @@ class CrmSalesInvoices
 
         $this->data['invoices'] = $payload;
         $query = $_GET;
-        unset($query['page'], $query['origem']);
+        unset($query['page'], $query['origem'], $query['url'], $query['controller']);
         $this->data['query'] = $query;
         $this->data['query_string'] = $this->buildQueryString($query);
-        $base = $_ENV['URL_ADM'] ?? '';
-        $this->data['dashboard_url'] = $base . 'crm-sales-dashboard';
+        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/';
+        $this->data['dashboard_url'] = $base . 'crm-sales-dashboard'
+            . ($this->data['query_string'] !== '' ? '?' . $this->data['query_string'] : '');
         $this->data['self_url'] = $base . 'crm-sales-invoices';
 
         $loadView = new LoadViewService('adms/Views/crm/sales_invoices', $this->data);
