@@ -555,6 +555,11 @@
                     "file": "comunicacao/list-gamification-timeline-rules.html"
                 },
                 {
+                    "id": "relatorio-informativo",
+                    "title": "Relatório de Informativo",
+                    "file": "comunicacao/relatorio-informativo.html"
+                },
+                {
                     "id": "view-company-event",
                     "title": "Visualizar Evento Corporativo",
                     "file": "comunicacao/view-company-event.html"
@@ -1087,6 +1092,11 @@
                     "id": "cost-center-summary",
                     "title": "Pagina Resumo Por Centro de Custo",
                     "file": "financeiro/cost-center-summary.html"
+                },
+                {
+                    "id": "fin-cost-center-dashboard",
+                    "title": "Indicadores de Centros de Custo SAP",
+                    "file": "financeiro/fin-cost-center-dashboard.html"
                 },
                 {
                     "id": "view-payment",

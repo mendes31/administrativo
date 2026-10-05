@@ -3,28 +3,29 @@
 namespace App\adms\Controllers\informativos;
 
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
-use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\InformativosRepository;
-use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\InformativoRelatorioService;
 use App\adms\Models\Services\InformativosPermissionService;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ExportRelatorioInformativoExcel
 {
     public function index(): void
     {
-        $informativoId = (int)($_GET['informativo_id'] ?? 0);
+        $informativoId = (int) ($_GET['informativo_id'] ?? 0);
         if ($informativoId <= 0) {
             http_response_code(422);
             echo 'ID inválido';
             return;
         }
 
-        $usuarioFilter = trim((string)($_GET['usuario_filter'] ?? ''));
-        $usuarioFilterLower = mb_strtolower($usuarioFilter);
+        $usuarioFilter = trim((string) ($_GET['usuario_filter'] ?? ''));
 
         $repo = new InformativosRepository();
         $informativo = $repo->getInformativoById($informativoId);
@@ -49,95 +50,34 @@ class ExportRelatorioInformativoExcel
             return;
         }
 
-        // Interpretar requires_ack
-        $requiresAck = false;
-        $val = $informativo['requires_ack'] ?? null;
-        if ($val === 1 || $val === '1' || $val === true || $val === 'true' || $val === 'Sim' || $val === 'sim') {
-            $requiresAck = true;
-        }
-
-        // Mesma base de usuários usada no RelatorioInformativo.
-        $usersRepo = new UsersRepository();
-        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($usersRepo->getAllUsers(1, 1000, []));
-
-        // Filtrar por usuário (opcional) usando a mesma lógica do filtro da tela.
-        if ($usuarioFilterLower !== '') {
-            $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {
-                $haystack = mb_strtolower((string)($u['name'] ?? '') . ' ' . (string)($u['email'] ?? ''));
-                return mb_strpos($haystack, $usuarioFilterLower) !== false;
-            }));
-        }
+        $relatorio = (new InformativoRelatorioService())->build($informativoId, $informativo, $usuarioFilter);
+        $kpis = $relatorio['kpis'];
+        $requiresAck = $relatorio['requires_ack'];
 
         $spreadsheet = new Spreadsheet();
-        $sheet = $spreadsheet->getActiveSheet();
-        $sheet->setTitle('Relatório');
 
-        $headers = [
-            'Usuário',
-            'Visualizou',
-            'Data Visualização',
-            'Está Ciente?',
-            'Data da Ciência',
-            'Status',
+        $resumo = $spreadsheet->getActiveSheet();
+        $resumo->setTitle('Resumo');
+        $resumoRows = [
+            ['Indicador', 'Valor'],
+            ['Total de ativos', $kpis['total']],
+            ['Visualizaram', $kpis['visualizaram']],
+            ['% Visualização (ativos)', InformativoRelatorioService::formatPct($kpis['pct_visualizacao'])],
+            ['Pendentes (ativos)', $kpis['pendentes']],
+            ['Cientes', $requiresAck ? $kpis['cientes'] : 'N/A'],
+            ['% Ciência (ativos)', $requiresAck ? InformativoRelatorioService::formatPct($kpis['pct_ciencia']) : 'N/A'],
+            ['Inativos com histórico', count($relatorio['inativos_historico'])],
+            ['Inativos omitidos (sem visualização/ciência)', $relatorio['excluidos_sem_historico']],
         ];
-
-        $col = 1; // A=1
-        foreach ($headers as $header) {
-            $cell = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($col) . '1';
-            $sheet->setCellValue($cell, $header);
-            $sheet->getStyle($cell)->getFill()
-                ->setFillType(Fill::FILL_SOLID)
-                ->getStartColor()->setARGB('FF2C3E50');
-            $sheet->getStyle($cell)->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
-            $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $col++;
+        $resumo->fromArray($resumoRows, null, 'A1');
+        $resumo->getStyle('A1:B1')->getFill()->setFillType(Fill::FILL_SOLID)->getStartColor()->setARGB('FF2C3E50');
+        $resumo->getStyle('A1:B1')->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+        foreach (range('A', 'B') as $c) {
+            $resumo->getColumnDimension($c)->setAutoSize(true);
         }
 
-        $row = 2;
-        foreach ($usuarios as $usuario) {
-            $userId = (int)($usuario['id'] ?? 0);
-            if ($userId <= 0) {
-                continue;
-            }
-
-            $read = $repo->getReadByUser($informativoId, $userId);
-
-            $visualizou = $read ? 'SIM' : 'NÃO';
-            $dataVisualizacao = $read && !empty($read['read_at'])
-                ? date('d/m/Y H:i:s', strtotime((string)$read['read_at']))
-                : '-';
-
-            $estaCiente = $requiresAck
-                ? (($read && !empty($read['acknowledged'])) ? 'SIM' : 'NÃO')
-                : 'N/A';
-
-            $dataCiencia = $requiresAck && $read && !empty($read['ack_at'])
-                ? date('d/m/Y H:i:s', strtotime((string)$read['ack_at']))
-                : '-';
-
-            $status = !$read
-                ? 'PENDENTE'
-                : ($requiresAck
-                    ? (!empty($read['acknowledged']) ? 'CIENTE' : 'VISUALIZOU MAS NÃO CIENTE')
-                    : 'VISUALIZOU');
-
-            // Coluna A: Nome + Email (quebra de linha)
-            $sheet->setCellValueExplicit('A' . $row, (string)($usuario['name'] ?? '') . "\n" . (string)($usuario['email'] ?? ''), \PhpOffice\PhpSpreadsheet\Cell\DataType::TYPE_STRING);
-            $sheet->setCellValue('B' . $row, $visualizou);
-            $sheet->setCellValue('C' . $row, $dataVisualizacao);
-            $sheet->setCellValue('D' . $row, $estaCiente);
-            $sheet->setCellValue('E' . $row, $dataCiencia);
-            $sheet->setCellValue('F' . $row, $status);
-
-            $sheet->getStyle('A' . $row)->getAlignment()->setWrapText(true);
-
-            $row++;
-        }
-
-        // Auto-ajustar largura (A-F)
-        foreach (range('A', 'F') as $c) {
-            $sheet->getColumnDimension($c)->setAutoSize(true);
-        }
+        $this->writeSheet($spreadsheet->createSheet(), 'Ativos', $relatorio['ativos']);
+        $this->writeSheet($spreadsheet->createSheet(), 'Inativos histórico', $relatorio['inativos_historico']);
 
         $writer = new Xlsx($spreadsheet);
         $filename = 'relatorio_informativo_' . $informativoId . '_' . date('Y-m-d_His') . '.xlsx';
@@ -149,5 +89,53 @@ class ExportRelatorioInformativoExcel
         $writer->save('php://output');
         exit;
     }
-}
 
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private function writeSheet(Worksheet $sheet, string $title, array $rows): void
+    {
+        $sheet->setTitle(mb_substr($title, 0, 31));
+
+        $headers = [
+            'Usuário',
+            'Visualizou',
+            'Data Visualização',
+            'Está Ciente?',
+            'Data da Ciência',
+            'Status',
+        ];
+
+        $col = 1;
+        foreach ($headers as $header) {
+            $cell = Coordinate::stringFromColumnIndex($col) . '1';
+            $sheet->setCellValue($cell, $header);
+            $sheet->getStyle($cell)->getFill()
+                ->setFillType(Fill::FILL_SOLID)
+                ->getStartColor()->setARGB('FF2C3E50');
+            $sheet->getStyle($cell)->getFont()->setBold(true)->getColor()->setARGB('FFFFFFFF');
+            $sheet->getStyle($cell)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+            $col++;
+        }
+
+        $row = 2;
+        foreach ($rows as $dado) {
+            $sheet->setCellValueExplicit(
+                'A' . $row,
+                (string) ($dado['usuario_nome'] ?? '') . "\n" . (string) ($dado['usuario_email'] ?? ''),
+                DataType::TYPE_STRING
+            );
+            $sheet->setCellValue('B' . $row, (string) ($dado['visualizou'] ?? ''));
+            $sheet->setCellValue('C' . $row, (string) ($dado['data_visualizacao'] ?? '-'));
+            $sheet->setCellValue('D' . $row, (string) ($dado['esta_ciente'] ?? ''));
+            $sheet->setCellValue('E' . $row, (string) ($dado['data_ciencia'] ?? '-'));
+            $sheet->setCellValue('F' . $row, (string) ($dado['status'] ?? ''));
+            $sheet->getStyle('A' . $row)->getAlignment()->setWrapText(true);
+            $row++;
+        }
+
+        foreach (range('A', 'F') as $c) {
+            $sheet->getColumnDimension($c)->setAutoSize(true);
+        }
+    }
+}

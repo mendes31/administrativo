@@ -341,7 +341,7 @@ class CrmSalesFactRepository extends DbConnection
      */
     public function fetchKpis(string $from, string $to, array $dims, ?string $ignoreDim = null): array
     {
-        [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, (string) ($ignoreDim ?? ''));
         $fromSql = $this->fromFactSql();
         $nat = $this->natureSql();
 
@@ -423,7 +423,7 @@ class CrmSalesFactRepository extends DbConnection
             return [];
         }
         $col = 'f.' . $allowed[$column];
-        [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, (string) ($ignoreDim ?? ''));
         $order = $orderAsc ? "{$col} ASC" : 'valor DESC';
         $fromSql = $this->fromFactSql();
         $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
@@ -466,7 +466,7 @@ class CrmSalesFactRepository extends DbConnection
      */
     public function fetchTopClientes(string $from, string $to, array $dims, ?string $ignoreDim = null): array
     {
-        [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, (string) ($ignoreDim ?? ''));
         $fromSql = $this->fromFactSql();
         $vendaOnly = $this->hasUsageJoin() ? " AND {$this->natureSql()} = 'venda'" : '';
         $nfsSelect = $this->hasDocNumColumns()
@@ -521,7 +521,7 @@ class CrmSalesFactRepository extends DbConnection
             return [];
         }
         $natureza = $this->normalizeNatureza($natureza);
-        [$where, $params] = $this->buildWhere($from, $to, $dims, $ignoreDim);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, (string) ($ignoreDim ?? ''));
         $fromSql = $this->fromFactSql();
         $natureFilter = $this->natureFilterSql($natureza);
         $nfsSelect = $this->hasDocNumColumns()
@@ -607,12 +607,12 @@ class CrmSalesFactRepository extends DbConnection
     /**
      * Scorecard por vendedor (venda + remessa, sem custo/margem).
      *
-     * @param array<string, string|list<string>|null> $dims
+     * @param array<string, mixed> $dims
      * @return list<array<string, mixed>>
      */
     public function fetchSellerScorecard(string $from, string $to, array $dims): array
     {
-        [$where, $params] = $this->buildWhere($from, $to, $dims, null);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, '');
         $fromSql = $this->fromFactSql();
         $nat = $this->hasUsageJoin() ? $this->natureSql() : "'venda'";
         $nfsSelect = $this->hasDocNumColumns()
@@ -688,7 +688,7 @@ class CrmSalesFactRepository extends DbConnection
         }
 
         $natureza = $this->normalizeNatureza($natureza);
-        [$where, $params] = $this->buildWhere($from, $to, $dims, null);
+        [$where, $params] = $this->buildWhere($from, $to, $dims, '');
         $fromSql = $this->fromFactSql();
         $natureFilter = $this->natureFilterSql($natureza);
         $serialSelect = $this->hasSerialColumn()
@@ -951,9 +951,10 @@ class CrmSalesFactRepository extends DbConnection
 
     /**
      * @param array<string, string|list<string>|null> $dims
+     * @param string $ignoreDim Dimensão que não entra no WHERE (vazio = aplica todas).
      * @return array{0: string, 1: array<string, string>}
      */
-    private function buildWhere(string $from, string $to, array $dims, ?string $ignoreDim): array
+    private function buildWhere(string $from, string $to, array $dims, string $ignoreDim = ''): array
     {
         $parts = ['f.doc_date >= :from', 'f.doc_date <= :to'];
         $params = [':from' => $from, ':to' => $to];

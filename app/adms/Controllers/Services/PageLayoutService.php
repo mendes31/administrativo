@@ -34,6 +34,8 @@ class PageLayoutService
             'FinCashFlowDashboard',
             'FinCashFlowDashboardData',
             'FinCashFlowDashboardSync',
+            'FinCostCenterDashboard',
+            'FinCostCenterDashboardData',
             'ListFinCashAccounts',
             'UpdateFinCashAccount',
             'ListFinCashInvestments',

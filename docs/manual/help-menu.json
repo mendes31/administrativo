@@ -525,6 +525,11 @@
                             "type": "topic",
                             "topic_id": "view-informativo",
                             "title": "Visualizar Informativo"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "relatorio-informativo",
+                            "title": "Relatório de Informativo"
                         }
                     ]
                 },
@@ -980,6 +985,11 @@
                     "type": "topic",
                     "topic_id": "cost-center-summary",
                     "title": "Pagina Resumo Por Centro de Custo"
+                },
+                {
+                    "type": "topic",
+                    "topic_id": "fin-cost-center-dashboard",
+                    "title": "Indicadores de Centros de Custo SAP"
                 },
                 {
                     "type": "topic",

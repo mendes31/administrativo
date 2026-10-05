@@ -527,6 +527,58 @@ class InformativosRepository extends DbConnection
 
         return $map;
     }
+
+    /**
+     * Último registro de leitura/ciência por usuário para um informativo.
+     *
+     * @return array<int, array<string, mixed>> mapa user_id => linha normalizada
+     */
+    public function getReadsMapForInformativo(int $informativoId): array
+    {
+        if ($informativoId <= 0) {
+            return [];
+        }
+
+        $sql = 'SELECT user_id, read_at, acknowledged, ack_at
+                FROM adms_informativos_reads
+                WHERE informativo_id = :inf';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':inf', $informativoId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+
+        $byUser = [];
+        foreach ($rows as $row) {
+            $userId = (int) ($row['user_id'] ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+            $byUser[$userId][] = $row;
+        }
+
+        $map = [];
+        foreach ($byUser as $userId => $group) {
+            usort($group, static function (array $a, array $b): int {
+                $aAck = !empty($a['acknowledged']) ? 1 : 0;
+                $bAck = !empty($b['acknowledged']) ? 1 : 0;
+                if ($aAck !== $bAck) {
+                    return $bAck <=> $aAck;
+                }
+                $aAckAt = strtotime((string) ($a['ack_at'] ?? '')) ?: 0;
+                $bAckAt = strtotime((string) ($b['ack_at'] ?? '')) ?: 0;
+                if ($aAckAt !== $bAckAt) {
+                    return $bAckAt <=> $aAckAt;
+                }
+                $aRead = strtotime((string) ($a['read_at'] ?? '')) ?: 0;
+                $bRead = strtotime((string) ($b['read_at'] ?? '')) ?: 0;
+
+                return $bRead <=> $aRead;
+            });
+            $map[$userId] = $this->normalizeRow($group[0]);
+        }
+
+        return $map;
+    }
     
     /**
      * Atualiza o campo "ativo" com base em publish_at / expire_at.

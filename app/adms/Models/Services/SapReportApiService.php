@@ -100,13 +100,16 @@ class SapReportApiService
         // Usar rawurlencode para preservar caracteres especiais corretamente
         $encodedSql = rawurlencode($sql);
         $url = $this->baseUrl . '?sql=' . $encodedSql;
-        
+        // GET com SQL longo estoura limite de URL (~8 KB). POST no mesmo endpoint.
+        $usePost = strlen($url) > 7000;
+
         error_log("🔷 SAP API - Base URL: " . $this->baseUrl);
         error_log("🔷 SAP API - SQL final (antes de encode): " . $sql);
         error_log("🔷 SAP API - SQL encoded: " . substr($encodedSql, 0, 200) . '...');
-        error_log("🔷 SAP API - URL completa: " . $url);
-        
-        $ch = curl_init($url);
+        error_log("🔷 SAP API - Método: " . ($usePost ? 'POST' : 'GET') . " | URL length: " . strlen($url));
+        if (!$usePost) {
+            error_log("🔷 SAP API - URL completa: " . $url);
+        }
 
         $headers = [
             'Accept: application/json',
@@ -114,13 +117,19 @@ class SapReportApiService
             'ngrok-skip-browser-warning: true', // Header para ngrok-free
             'User-Agent: PHP-SAP-Report-Client/1.0'
         ];
+        if ($usePost) {
+            $headers[] = 'Content-Type: application/x-www-form-urlencoded';
+            $ch = curl_init($this->baseUrl);
+        } else {
+            $ch = curl_init($url);
+        }
 
         // Se houver token configurado na tela, envia Authorization: Bearer <token>
         if (!empty($this->apiToken)) {
             $headers[] = 'Authorization: Bearer ' . $this->apiToken;
         }
 
-        curl_setopt_array($ch, [
+        $curlOpts = [
             CURLOPT_RETURNTRANSFER => true,
             // Timeout geral para a requisição (em segundos)
             CURLOPT_TIMEOUT => max(60, $this->timeout), // mínimo 60s para queries grandes
@@ -133,7 +142,12 @@ class SapReportApiService
             // Timeout de conexão em segundos (mais curto que o total da requisição)
             CURLOPT_CONNECTTIMEOUT => min(10, $this->timeout),
             CURLOPT_BUFFERSIZE => 16384 // Buffer maior para melhor performance
-        ]);
+        ];
+        if ($usePost) {
+            $curlOpts[CURLOPT_POST] = true;
+            $curlOpts[CURLOPT_POSTFIELDS] = 'sql=' . $encodedSql;
+        }
+        curl_setopt_array($ch, $curlOpts);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

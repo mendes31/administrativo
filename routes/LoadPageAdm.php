@@ -81,6 +81,7 @@ class LoadPageAdm
         "ListReceipts", "CreateReceive", "ViewReceive", "UpdateReceive", "DeleteReceive", "Receive", "Installments", "ListPartialValues", "ClearBusyReceive", "CheckBusy", "GetReceiptsStatus",
         "Movements","CashFlow","ExportPdfCashFlow",
         "FinCashFlowDashboard", "FinCashFlowDashboardData", "FinCashFlowDashboardSync",
+        "FinCostCenterDashboard", "FinCostCenterDashboardData",
         "ListFinCashAccounts", "UpdateFinCashAccount",
         "ListFinCashInvestments", "CreateFinCashInvestment", "UpdateFinCashInvestment", "DeleteFinCashInvestment",
         "EditMovement", "DeleteMovement",

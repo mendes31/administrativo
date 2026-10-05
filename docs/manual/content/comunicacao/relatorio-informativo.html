@@ -1,0 +1,55 @@
+<h1>Relatório de Informativo</h1>
+
+<h2>Função no sistema</h2>
+<p>Mostra o alcance de um informativo: quem <strong>visualizou</strong>, quem está <strong>pendente</strong> e, quando o comunicado exige, quem deu <strong>ciência</strong>. Os indicadores (totais e percentuais) usam somente colaboradores <em>ativos</em>, para o quadro não distorcer quando o headcount muda por admissões e desligamentos.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Informativos</em> (<code>com-informativos</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>RelatorioInformativo</em>. A exportação usa <em>ExportRelatorioInformativoPdf</em> e <em>ExportRelatorioInformativoExcel</em>. Só é possível gerar relatório de informativos que o usuário pode gerenciar (mesma regra da listagem).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Visualização</dt>
+    <dd>O colaborador abriu o informativo; o sistema grava data e hora da leitura.</dd>
+    <dt>Ciência</dt>
+    <dd>Confirmação explícita de leitura, só quando o informativo está marcado com <em>Exige ciência</em>.</dd>
+    <dt>Ativos</dt>
+    <dd>Usuários com status <em>Ativo</em>. Entram na listagem principal, nos cartões e nos percentuais.</dd>
+    <dt>Inativos com histórico</dt>
+    <dd>Usuários inativos que já haviam visualizado ou dado ciência. Ficam em aba (e abas do Excel) à parte e <strong>não</strong> entram no percentual.</dd>
+    <dt>Inativos omitidos</dt>
+    <dd>Inativos que nunca visualizaram nem deram ciência. Saem da listagem e dos totalizadores.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Em <strong>Comunicação Interna → Informativos</strong>, abra o relatório do comunicado (ou a tela <code>relatorio-informativo</code> e escolha o informativo).</li>
+    <li>Confira os cartões: total de ativos, visualizaram (com %), pendentes e cientes (com % quando exige ciência).</li>
+    <li>Na aba <strong>Ativos</strong>, acompanhe quem ainda precisa ler ou confirmar.</li>
+    <li>Na aba <strong>Inativos com histórico</strong>, consulte desligados que já tinham evidência de leitura/ciência (auditoria, fora do indicador).</li>
+    <li>Use o filtro por nome ou e-mail; exporte PDF ou Excel se precisar distribuir o resultado.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Total de ativos</strong> Denominador dos percentuais. Não inclui inativos.</div>
+<div class="help-field"><strong>% Visualização</strong> Visualizaram ÷ total de ativos.</div>
+<div class="help-field"><strong>Pendentes</strong> Ativos que ainda não visualizaram.</div>
+<div class="help-field"><strong>% Ciência</strong> Cientes ÷ total de ativos, somente se o informativo exige ciência; caso contrário o cartão mostra N/A.</div>
+<div class="help-field"><strong>Filtrar por usuário</strong> Restringe as linhas visíveis por nome ou e-mail; o PDF/Excel pode receber o mesmo filtro.</div>
+<div class="help-field"><strong>Excel</strong> Planilha <em>Resumo</em> com os indicadores, <em>Ativos</em> e <em>Inativos histórico</em>.</div>
+<div class="help-field"><strong>PDF</strong> Cartões de ativos, tabela de ativos e seção de inativos com histórico.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>O percentual parece baixo demais (ou o total inflado)</dt>
+    <dd>Antes, inativos sem leitura entravam no denominador. Agora só ativos entram nos cartões. Recarregue o relatório.</dd>
+    <dt>Não acho um colaborador desligado na aba Ativos</dt>
+    <dd>Se ele nunca leu nem deu ciência, foi omitido de propósito. Se já tinha evidência, está em <em>Inativos com histórico</em>.</dd>
+    <dt>Cartão Cientes mostra N/A</dt>
+    <dd>O informativo não exige ciência; o percentual de ciência só aparece quando essa opção está ligada.</dd>
+    <dt>Não vejo o botão de relatório</dt>
+    <dd>Permissão <em>RelatorioInformativo</em> ausente no nível de acesso, ou você não gerencia aquele informativo.</dd>
+    <dt>Erro 004 ao exportar</dt>
+    <dd>Há permissão da tela, mas não da página filha de PDF/Excel. Inclua <em>ExportRelatorioInformativoPdf</em> ou <em>ExportRelatorioInformativoExcel</em> no pacote.</dd>
+</dl>

@@ -1,0 +1,91 @@
+<h1>Indicadores de Centros de Custo SAP</h1>
+
+<h2>Função no sistema</h2>
+<p>Painel financeiro com <strong>indicadores</strong>, <strong>evolução mensal</strong> e <strong>ranking/matriz de centros de custo</strong> a partir do SAP Business One. Lê lançamentos das contas que começam com <strong>4.</strong> ou <strong>5.</strong>, aplica o rateio da <strong>Dimensão 1</strong> e agrupa por unidade (prefixo do centro) e centro. O recorte padrão é os <strong>últimos 3 meses</strong>. A coluna de <strong>orçamento</strong> ainda não tem cadastro: aparece em branco para comparação futura, sem omitir os saldos realizados.</p>
+
+<p class="help-note">Esta tela consulta o SAP pela API já configurada em <em>Configuração SAP API</em>. Não usa o relatório local <em>Rel Centro de Custo</em> (movimentos do Portal).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Dimensão 1</dt>
+    <dd>Centro de custo no SAP B1 (<code>ProfitCode</code> / regras <code>OOCR</code> e fatores <code>OCR1</code>).</dd>
+    <dt>Valor líquido</dt>
+    <dd>Débito menos crédito na moeda local, só no intervalo de datas (sem saldo anterior).</dd>
+    <dt>Alocado</dt>
+    <dd>O rateio proporcional foi resolvido (fatores somam 1, sem valor fixo e sem centro repetido na mesma linha).</dd>
+    <dt>Pendente / REVISAR</dt>
+    <dd>Regra manual, valor fixo, vigência inconsistente ou fatores que não fecham 100%. O valor <strong>não é omitido</strong>: fica agrupado para revisão, sem atribuir a um centro válido.</dd>
+    <dt>Concentração top 3</dt>
+    <dd>Soma dos três centros de maior valor líquido, em % do total do recorte. Aparece no lugar de “maior mês” quando o filtro tem só um mês.</dd>
+    <dt>Média por centro</dt>
+    <dd>Total do recorte dividido pela quantidade de centros (incluindo pendentes). Substitui a média mensal quando há um único mês.</dd>
+    <dt>Matriz meses</dt>
+    <dd>Cada linha é um centro; cada coluna é um mês do período. O total da linha é a soma dos meses (não some de novo com o total geral).</dd>
+    <dt>Equipe</dt>
+    <dd>Sufixo do código do centro, somado entre unidades. <code>AFR_TI</code> + <code>BIO_TI</code> + <code>TIA_TI</code> formam a equipe <strong>TI</strong>. Não substitui o ranking por centro.</dd>
+    <dt>Unidade</dt>
+    <dd>Derivada do prefixo do código do centro (<code>AFR_</code> = AFRA, <code>BIO_</code> = BIOTICS, <code>TIA_</code> = TIARAJU, <code>GER_</code> = GERAL), não da hierarquia de departamentos do SAP.</dd>
+    <dt>Transação</dt>
+    <dd>Número do lançamento no diário contábil do SAP (<code>OJDT.TransId</code>). A linha da partição aparece depois da barra.</dd>
+    <dt>Documento</dt>
+    <dd>Número do documento de origem (<code>BaseRef</code>), por exemplo a nota fiscal que gerou o lançamento.</dd>
+    <dt>Orçamento</dt>
+    <dd>Meta cadastrada por centro/período. Ainda não existe cadastro; a coluna mostra “—”.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>FinCostCenterDashboard</em>. Os dados JSON exigem <em>FinCostCenterDashboardData</em>. A migration da tela copia a ACL a partir de <em>FinCashFlowDashboard</em>; a do endpoint JSON copia de <em>FinCostCenterDashboard</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Execute a migration: <code>vendor/bin/phinx migrate -c database/phinx.php</code>.</li>
+    <li>Confirme a <strong>Configuração SAP API</strong> (URL, token, integração ativa).</li>
+    <li>Acesse <strong>Financeiro → Indicadores Centros de Custo SAP</strong>.</li>
+    <li>O período padrão é os <strong>últimos 3 meses</strong> (carga mais rápida). Troque para 6 meses, ano atual, mês atual/anterior ou datas livres (até 366 dias).</li>
+    <li>Filtre por unidade e, se quiser, por um centro específico. A troca na lista recarrega os números; o recorte aplicado aparece nos chips abaixo dos filtros (período, unidade, centro).</li>
+    <li>Na aba <strong>Indicadores</strong>, leia os KPIs, o gráfico mensal (alocado × pendente × total), o empilhado por unidade e o top 12 de centros.</li>
+    <li>Na aba <strong>Meses</strong>, use a matriz centro × mês (mapa de calor) para ver concentração e sazonalidade.</li>
+    <li>Na aba <strong>Centros de custo</strong>, veja o ranking completo (valor e % do total).</li>
+    <li>Na aba <strong>Equipes</strong>, veja o consolidado do sufixo entre unidades (TI, Compras, Diretoria…). Cada linha lista os centros somados (ex.: AFR_TI, BIO_TI, TIA_TI). As outras abas não mudam.</li>
+    <li>Na aba <strong>Hierarquia</strong>, navegue unidade → centro → conta. Clique em cada nó para expandir/recolher só aquele item; <strong>Expandir tudo</strong> / <strong>Recolher tudo</strong> altera todos. Contas ficam recolhidas por padrão. Níveis: <em>Unidade</em> (azul), <em>Centro</em> (roxo) e <em>Conta</em> (verde).</li>
+    <li>Na aba <strong>Lançamentos</strong>, confira data, <strong>transação</strong> (nº do lançamento no diário SAP), <strong>documento</strong> (referência de origem, ex. NF), conta, histórico e status de cada linha atribuída (consulta extra ao SAP).</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Período</strong> Recorte da data de lançamento (<code>JDT1.RefDate</code>). Padrão: últimos 3 meses.</div>
+<div class="help-field"><strong>Início / Fim</strong> Só editáveis no período personalizado.</div>
+<div class="help-field"><strong>Unidade</strong> Recorta KPIs, gráficos, ranking, hierarquia e lançamentos depois da consulta SAP. Ao mudar a lista, o centro volta para “Todos” e os números recarregam. “Todas” mantém o consolidado.</div>
+<div class="help-field"><strong>Centro de custo</strong> Restringe o mesmo recorte a um código (ex.: <code>AFR_CMP</code>). Só lista centros da unidade escolhida. Se o código não existir no período, o filtro é ignorado e volta para “Todos”.</div>
+<div class="help-field"><strong>Recorte aplicado</strong> Chips abaixo da barra mostram o período, a unidade e o centro realmente usados nos totais (não o que ficou só selecionado na tela).</div>
+<div class="help-field"><strong>Total no período</strong> Soma líquida, incluindo pendências. O subtítulo mostra centros alocados e o total de centros no recorte.</div>
+<div class="help-field"><strong>Alocado / pendente</strong> Rateio resolvido versus linhas para revisar, com % do total.</div>
+<div class="help-field"><strong>Maior centro</strong> Código, valor e % do total (inclui pendentes se forem o maior).</div>
+<div class="help-field"><strong>Média mensal</strong> Só com 2+ meses: total dividido pelos meses do recorte.</div>
+<div class="help-field"><strong>Média por centro / concentração top 3</strong> No recorte de um mês, substituem média mensal e maior mês.</div>
+<div class="help-field"><strong>Aba Indicadores</strong> Com 2+ meses, gráfico de evolução; com 1 mês, composição alocado × pendente.</div>
+<div class="help-field"><strong>Aba Centros de custo</strong> Ranking de todos os centros do recorte, com unidade, % e valor líquido.</div>
+<div class="help-field"><strong>Aba Equipes</strong> Nova visão: soma o sufixo do centro entre AFRA, BIOTICS e TIARAJU (e demais unidades). Ex.: TI = AFR_TI + BIO_TI + TIA_TI. Ranking, participação e árvore equipe → unidade → centro. Não altera indicadores, meses, centros nem hierarquia.</div>
+<div class="help-field"><strong>Aba Hierarquia</strong> Árvore colapsável. Níveis com cores distintas: <em>Unidade</em> (azul), <em>Centro</em> (roxo, recuado) e <em>Conta</em> (verde, mais recuado). Cada nó expande/recolhe sozinho.</div>
+<div class="help-field"><strong>Aba Lançamentos</strong> Detalhe na data, com fator de rateio já aplicado. <em>Transação</em> é o <code>TransId</code> do diário (OJDT); a linha do lançamento aparece após a barra. <em>Documento</em> é o <code>BaseRef</code> (número do documento de origem, ex. nota fiscal).</div>
+<div class="help-field"><strong>Orçamento / Δ</strong> Reservados. Sem cadastro, permanecem em branco.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Totais iguais depois de filtrar unidade ou centro</dt>
+    <dd>Confira os chips de recorte aplicado. Unidade e centro recarregam ao mudar a lista; o overlay “Consultando SAP…” precisa terminar. Com <em>Todas</em> e <em>Todos</em> a hierarquia soma o total do período (na captura de mês atual, a soma das unidades coincide com o KPI). Um centro de outra unidade é descartado e o filtro volta para Todos.</dd>
+    <dt>Não vejo o menu</dt>
+    <dd>Permissão <em>FinCostCenterDashboard</em> ausente. Rode a migration e saia/entre no sistema para atualizar o menu. Em <em>Rel Centro de Custo</em> há o botão <strong>Indicadores SAP</strong>.</dd>
+    <dt>Erro de integração SAP</dt>
+    <dd>Abra Configuração SAP API: URL, token e flag ativa. SQL longo pode ir em POST.</dd>
+    <dt>A tela demora</dt>
+    <dd>A página abre imediatamente; o overlay “Consultando SAP…” espera o JSON. Cada mês do recorte gera uma consulta ao HANA. Prefira 3 meses na primeira análise. A aba Lançamentos faz uma segunda passagem.</dd>
+    <dt>Média mensal “baixa” no ano atual</dt>
+    <dd>O denominador inclui meses futuros ainda vazios? Não: o recorte vai até hoje. Inclui meses já encerrados sem movimento, o que dilui a média.</dd>
+    <dt>Valores em REVISAR / PENDENTE</dt>
+    <dd>Revise a regra de rateio no SAP (vigência, valor fixo, soma dos fatores). O Portal preserva o valor integral nesses casos.</dd>
+    <dt>Total diferente do relatório nativo do SAP</dt>
+    <dd>O recorte usa contas <code>4.%</code> e <code>5.%</code>, não o tipo <code>ActType = E</code>. Encerramentos e transferências entram como lançados.</dd>
+    <dt>Não bate com Rel Centro de Custo</dt>
+    <dd>Esse relatório local usa movimentos do Portal (<code>adms_movements</code>), outra origem.</dd>
+    <dt>Orçamento sempre em branco</dt>
+    <dd>Comportamento esperado nesta versão. A matriz de meses já está pronta para receber a meta.</dd>
+</dl>

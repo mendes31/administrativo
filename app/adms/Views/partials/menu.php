@@ -744,6 +744,11 @@ $menus = [
                 'permission' => 'CostCenterSummary'
             ],
             [
+                'label' => 'Indicadores Centros de Custo SAP',
+                'url' => $_ENV['URL_ADM'] . 'fin-cost-center-dashboard',
+                'permission' => 'FinCostCenterDashboard'
+            ],
+            [
                 'label' => 'Rel Extrato Caixa',
                 'url' => $_ENV['URL_ADM'] . 'movements',
                 'permission' => 'Movements'

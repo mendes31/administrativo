@@ -48,52 +48,27 @@ class CostCenterSummaryRepository extends DbConnection
         // Estilo do cabeçalho
         $headerStyle = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
-            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '254e7b']],
+            'fill' => ['fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID, 'startColor' => ['rgb' => '1B7A49']],
             'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT]
         ];
         $sheet->getStyle('A1:' . $col . '1')->applyFromArray($headerStyle);
 
         // Dados
-        $zebra1 = '4a90e2'; // azul forte
-        $zebra2 = 'b3d1f7'; // azul claro
         $row = 2;
-        foreach ($costCenters as $idx => $cc) {
-            $bg = ($idx % 2 == 0) ? $zebra1 : $zebra2;
-            $fontColor = ($idx % 2 == 0) ? 'FFFFFF' : '222222';
+        foreach ($costCenters as $cc) {
             $colData = 'A';
             $sheet->setCellValue($colData . $row, $cc['name']);
-            $sheet->getStyle($colData . $row)->applyFromArray([
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => $bg]
-                ],
-                'font' => ['color' => ['rgb' => $fontColor]],
-                'alignment' => ['horizontal' => \PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT]
-            ]);
+            $sheet->getStyle($colData . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_LEFT);
             $colData++;
-            for ($i=1; $i<=12; $i++) {
+            for ($i = 1; $i <= 12; $i++) {
                 $sheet->setCellValue($colData . $row, $cc['months'][$i]);
-                $sheet->getStyle($colData . $row)->getNumberFormat()->setFormatCode('R$ #,##0.00');
+                $sheet->getStyle($colData . $row)->getNumberFormat()->setFormatCode('"R$" #,##0.00');
                 $sheet->getStyle($colData . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-                $sheet->getStyle($colData . $row)->applyFromArray([
-                    'fill' => [
-                        'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                        'startColor' => ['rgb' => $bg]
-                    ],
-                    'font' => ['color' => ['rgb' => $fontColor]]
-                ]);
                 $colData++;
             }
             $sheet->setCellValue($colData . $row, $cc['total']);
-            $sheet->getStyle($colData . $row)->getNumberFormat()->setFormatCode('R$ #,##0.00');
+            $sheet->getStyle($colData . $row)->getNumberFormat()->setFormatCode('"R$" #,##0.00');
             $sheet->getStyle($colData . $row)->getAlignment()->setHorizontal(\PhpOffice\PhpSpreadsheet\Style\Alignment::HORIZONTAL_RIGHT);
-            $sheet->getStyle($colData . $row)->applyFromArray([
-                'fill' => [
-                    'fillType' => \PhpOffice\PhpSpreadsheet\Style\Fill::FILL_SOLID,
-                    'startColor' => ['rgb' => $bg]
-                ],
-                'font' => ['color' => ['rgb' => $fontColor]]
-            ]);
             $row++;
         }
 
@@ -118,23 +93,19 @@ class CostCenterSummaryRepository extends DbConnection
         $html = '<h2 style="margin-bottom:20px;">Resumo por Centro de Custo - ' . $year . '</h2>';
         $html .= '<table border="1" cellpadding="5" cellspacing="0" width="100%" style="border-collapse:collapse;font-size:12px;">';
         $html .= '<thead><tr>';
-        $html .= '<th align="left" style="background:#254e7b;color:#fff;">Centro de Custo</th>';
+        $html .= '<th align="left" style="background:#1B7A49;color:#fff;">Centro de Custo</th>';
         foreach ($months as $m) {
-            $html .= '<th align="right" style="background:#254e7b;color:#fff;">' . $m . '</th>';
+            $html .= '<th align="right" style="background:#1B7A49;color:#fff;">' . $m . '</th>';
         }
-        $html .= '<th align="right" style="background:#254e7b;color:#fff;">Total</th>';
+        $html .= '<th align="right" style="background:#1B7A49;color:#fff;">Total</th>';
         $html .= '</tr></thead><tbody>';
-        $zebra1 = '#4a90e2';
-        $zebra2 = '#b3d1f7';
-        foreach ($costCenters as $idx => $cc) {
-            $bg = ($idx % 2 == 0) ? $zebra1 : $zebra2;
-            $color = ($idx % 2 == 0) ? '#fff' : '#222';
+        foreach ($costCenters as $cc) {
             $html .= '<tr>';
-            $html .= '<td align="left" style="background:'.$bg.';color:'.$color.';">' . htmlspecialchars($cc['name']) . '</td>';
-            for ($i=1; $i<=12; $i++) {
-                $html .= '<td align="right" style="background:'.$bg.';color:'.$color.';">' . number_format($cc['months'][$i], 2, ',', '.') . '</td>';
+            $html .= '<td align="left">' . htmlspecialchars((string) $cc['name']) . '</td>';
+            for ($i = 1; $i <= 12; $i++) {
+                $html .= '<td align="right">' . number_format((float) $cc['months'][$i], 2, ',', '.') . '</td>';
             }
-            $html .= '<td align="right" style="background:'.$bg.';color:'.$color.';">' . number_format($cc['total'], 2, ',', '.') . '</td>';
+            $html .= '<td align="right">' . number_format((float) $cc['total'], 2, ',', '.') . '</td>';
             $html .= '</tr>';
         }
         $html .= '</tbody></table>';

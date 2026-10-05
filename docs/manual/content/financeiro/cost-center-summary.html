@@ -1,30 +1,43 @@
-<h1>Pagina Resumo Por Centro de Custo</h1>
+<h1>Resumo por Centro de Custo</h1>
 
 <h2>Função no sistema</h2>
-<p>Tela <strong>Pagina Resumo Por Centro de Custo</strong> do módulo Financeiro. Use o fluxo e os campos descritos abaixo para operar o recurso.</p>
+<p>Grade anual dos <strong>movimentos do Portal</strong> (contas a pagar e a receber locais), por centro de custo e mês. Não consulta o SAP. A matriz equivalente no razão SAP (contas 4. e 5.) está na aba <strong>Meses</strong> dos <em>Indicadores Centros de Custo SAP</em>.</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Relatórios financeiros</em> (<code>fin-relatorios</code>) para o fluxo completo da área.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Relatórios financeiros</em> (<code>fin-relatorios</code>).</p>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>CostCenterSummary</em>.</p>
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Portal</dt>
+    <dd>Movimentos gravados no administrativo (<code>adms_movements</code>), ligados ao cadastro local de centros.</dd>
+    <dt>Matriz SAP</dt>
+    <dd>Aba <em>Meses</em> dos Indicadores SAP. Mesma ideia (centro × mês), outra origem: lançamentos do Business One.</dd>
+    <dt>Zerados</dt>
+    <dd>Centros cadastrados sem movimento no ano. Ficam ocultos por padrão para não encher a grade de R$ 0,00.</dd>
+</dl>
 
-<h2>Fluxo principal (passo a passo)</h2>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>CostCenterSummary</em>. O atalho para o SAP exige <em>FinCostCenterDashboard</em>.</p>
+
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse <strong>Pagina Resumo Por Centro de Custo</strong> pelo menu Financeiro.</li>
-    <li>Use os filtros e ações da tela conforme sua permissão.</li>
-    <li>Preencha filtros ou parâmetros antes de executar.</li>
-    <li>Pressione <kbd>F1</kbd> para contextualizar a ajuda.</li>
+    <li>Abra <strong>Financeiro → Rel Centro de Custo</strong>.</li>
+    <li>Escolha o ano. Só entram linhas com movimento; use <strong>Mostrar zerados</strong> se precisar do cadastro completo.</li>
+    <li>Exporte Excel ou PDF da grade visível.</li>
+    <li>Para o razão SAP, clique em <strong>Abrir matriz SAP (aba Meses)</strong>.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Parâmetros da tela</strong> Consulte os rótulos na interface; cada filtro ou campo altera o resultado exibido.</div>
+<div class="help-field"><strong>Ano</strong> Janeiro a dezembro do recorte.</div>
+<div class="help-field"><strong>Total no ano</strong> Soma de entradas menos saídas nos movimentos locais.</div>
+<div class="help-field"><strong>Mostrar / ocultar zerados</strong> Inclui ou esconde centros sem valor no ano.</div>
+<div class="help-field"><strong>Excel / PDF</strong> Exporta só as linhas visíveis na tela.</div>
+<div class="help-field"><strong>Abrir matriz SAP</strong> Vai aos Indicadores SAP já na aba Meses (<em>FinCostCenterDashboard</em>).</div>
 
 <h2>Problemas comuns</h2>
 <dl>
-    <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>CostCenterSummary</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dt>A grade está toda zerada / vazia</dt>
+    <dd>Não há pagar/receber local com centro naquele ano. Lançamentos do SAP não entram aqui — use Indicadores SAP.</dd>
+    <dt>Os totais não batem com a aba Meses do SAP</dt>
+    <dd>Origens diferentes. O Portal usa <code>adms_movements</code>; o SAP usa JDT1 contas 4. e 5.</dd>
+    <dt>Não vejo o menu</dt>
+    <dd>Permissão <em>CostCenterSummary</em> ausente.</dd>
 </dl>

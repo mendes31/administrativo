@@ -55,7 +55,7 @@ function buildManualAggregateTopicMap(): array
         'list-access-levels-permissions', 'update-access-levels-permissions',
     ], 'cad-niveis-acesso');
 
-    $add(['list-informativos', 'create-informativo', 'update-informativo', 'view-informativo'], 'com-informativos');
+    $add(['list-informativos', 'create-informativo', 'update-informativo', 'view-informativo', 'relatorio-informativo', 'export-relatorio-informativo-pdf', 'export-relatorio-informativo-excel'], 'com-informativos');
     $add(['notificacoes', 'list-notifications'], 'notificacoes');
     $add(['timeline', 'timeline-moderate'], 'com-timeline');
     $add(['list-company-events', 'create-company-event', 'update-company-event', 'view-company-event'], 'com-eventos');
@@ -119,6 +119,9 @@ function buildManualAggregateTopicMap(): array
     $add([
         'fin-cash-flow-dashboard', 'fin-cash-flow-dashboard-data', 'fin-cash-flow-dashboard-sync',
     ], 'fin-cash-flow-dashboard');
+    $add([
+        'fin-cost-center-dashboard', 'fin-cost-center-dashboard-data',
+    ], 'fin-cost-center-dashboard');
     $add([
         'list-fin-cash-accounts', 'update-fin-cash-account',
     ], 'list-fin-cash-accounts');
@@ -261,6 +264,7 @@ function manualTopicToContentDir(): array
         'fin-visao-geral' => 'financeiro',         'fin-cadastros' => 'financeiro', 'fin-pagar-receber' => 'financeiro',
         'fin-relatorios' => 'financeiro',
         'fin-cash-flow-dashboard' => 'financeiro',
+        'fin-cost-center-dashboard' => 'financeiro',
         'list-fin-cash-accounts' => 'financeiro',
         'list-fin-cash-investments' => 'financeiro',
         'parceiros-negocio' => 'parceiros', 'qualidade-documentos' => 'qualidade',
@@ -314,6 +318,7 @@ function manualAggregateTopicLabels(): array
         'fin-pagar-receber' => 'Contas a pagar e receber',
         'fin-relatorios' => 'Relatórios financeiros',
         'fin-cash-flow-dashboard' => 'Dashboard Fluxo de Caixa SAP',
+        'fin-cost-center-dashboard' => 'Indicadores de Centros de Custo SAP',
         'list-fin-cash-accounts' => 'Contas Financeiras SAP',
         'list-fin-cash-investments' => 'Aplicações Financeiras',
         'parceiros-negocio' => 'Clientes e fornecedores',
