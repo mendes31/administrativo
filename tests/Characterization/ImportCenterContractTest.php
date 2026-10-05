@@ -38,6 +38,7 @@ final class ImportCenterContractTest extends TestCase
         self::assertStringContainsString('SstEquipamentoChecklistImportProfile', $catalog);
         self::assertStringContainsString('SstGheColaboradoresImportProfile', $catalog);
         self::assertStringContainsString('SstGheTreinamentosImportProfile', $catalog);
+        self::assertStringContainsString('TiRustdeskImportProfile', $catalog);
 
         $users = $this->readProjectFile('app/adms/Models/Services/Imports/UsersImportProfile.php');
         self::assertStringContainsString('ImportCenterUsers', $users);
@@ -97,6 +98,31 @@ final class ImportCenterContractTest extends TestCase
 
         $routes = $this->readProjectFile('routes/LoadPageAdm.php');
         self::assertStringContainsString('ImportCenterSst', $routes);
+    }
+
+    public function testTiRustdeskPermissionPageIsClosedAcl(): void
+    {
+        $source = $this->readProjectFile(
+            'database/migrations/20261005190000_register_import_center_ti_page.php'
+        );
+        self::assertStringContainsString('ImportCenterTi', $source);
+        self::assertStringContainsString('import-center-ti', $source);
+        self::assertStringContainsString("'default_page' => 0", $source);
+        self::assertStringContainsString("'public_page' => 0", $source);
+        self::assertStringContainsString('SELECT 0, al.id', $source);
+        self::assertStringContainsString('TiRustdeskCreate', $source);
+        self::assertStringNotContainsString('SELECT 1, al.id', $source);
+
+        $hub = $this->readProjectFile('app/adms/Controllers/imports/ImportCenter.php');
+        self::assertStringContainsString('ImportCenterTi', $hub);
+
+        $routes = $this->readProjectFile('routes/LoadPageAdm.php');
+        self::assertStringContainsString('ImportCenterTi', $routes);
+
+        $profile = $this->readProjectFile('app/adms/Models/Services/Imports/TiRustdeskImportProfile.php');
+        self::assertStringContainsString("'ti_rustdesk'", $profile);
+        self::assertStringContainsString('ImportCenterTi', $profile);
+        self::assertStringContainsString('sampleRow', $profile);
     }
 
     public function testCommitAfterDryRunIsWired(): void

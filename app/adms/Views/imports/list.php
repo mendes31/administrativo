@@ -9,6 +9,7 @@ $urlAdm = $_ENV['URL_ADM'] ?? '';
 
 $profileGroups = [
     'Cadastro geral' => [],
+    'TI / Acessos' => [],
     'SST — catálogos' => [],
     'SST — matrizes' => [],
 ];
@@ -25,6 +26,8 @@ foreach ($profiles as $profile) {
         $profileGroups['SST — matrizes'][] = $profile;
     } elseif (str_starts_with($k, 'sst_')) {
         $profileGroups['SST — catálogos'][] = $profile;
+    } elseif (str_starts_with($k, 'ti_')) {
+        $profileGroups['TI / Acessos'][] = $profile;
     } else {
         $profileGroups['Cadastro geral'][] = $profile;
     }
@@ -60,7 +63,8 @@ $statusClass = [
             <?php if ($profiles === []): ?>
                 <div class="alert alert-warning mb-0">
                     Nenhum tipo de importação liberado no seu nível de acesso. Peça as permissões
-                    <em>ImportCenterUsers</em>, <em>ImportCenterDepartments</em>, <em>ImportCenterPositions</em> ou <em>ImportCenterSst</em>.
+                    <em>ImportCenterUsers</em>, <em>ImportCenterDepartments</em>, <em>ImportCenterPositions</em>,
+                    <em>ImportCenterSst</em> ou <em>ImportCenterTi</em>.
                 </div>
             <?php else: ?>
                 <p class="text-muted small">

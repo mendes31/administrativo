@@ -36,7 +36,7 @@ function buildManualAggregateTopicMap(): array
     $add(['list-mandatory-trainings', 'create-mandatory-training', 'update-mandatory-training'], 'adm-treinamentos-obrigatorios');
     $add([
         'import-center', 'import-center-create', 'import-center-map', 'import-center-view', 'import-center-commit', 'import-center-template',
-        'import-center-users', 'import-center-departments', 'import-center-positions', 'import-center-sst',
+        'import-center-users', 'import-center-departments', 'import-center-positions', 'import-center-sst', 'import-center-ti',
     ], 'import-center');
 
     $add([
@@ -240,6 +240,10 @@ function buildManualAggregateTopicMap(): array
 
     $add(['cadastro'], 'cad-visao-geral');
 
+    $add([
+        'ti-rustdesk', 'ti-rustdesk-create', 'ti-rustdesk-update', 'ti-rustdesk-view', 'ti-rustdesk-reveal',
+    ], 'ti-rustdesk');
+
     ksort($map);
 
     return $map;
@@ -281,6 +285,7 @@ function manualTopicToContentDir(): array
         'lgpd-visao-geral' => 'lgpd', 'lgpd-dashboard' => 'lgpd', 'lgpd-consentimentos' => 'lgpd',
         'lgpd-inventario' => 'lgpd', 'lgpd-aipd' => 'lgpd',
         'pe-estrategico' => 'planejamento', 'rel-visao-geral' => 'relatorios', 'rel-dinamicos' => 'relatorios',
+        'ti-rustdesk' => 'ti',
     ];
 }
 
@@ -346,6 +351,7 @@ function manualAggregateTopicLabels(): array
         'lgpd-aipd' => 'AIPD / RIPD',
         'pe-estrategico' => 'Planejamento estratégico',
         'rel-dinamicos' => 'Relatórios dinâmicos',
+        'ti-rustdesk' => 'RustDesk (TI / Acessos)',
     ];
 }
 
@@ -370,5 +376,6 @@ function manualModuleTitlesByDir(): array
         'lgpd' => 'LGPD',
         'planejamento' => 'Planejamento Estratégico',
         'relatorios' => 'Relatórios',
+        'ti' => 'TI / Acessos',
     ];
 }

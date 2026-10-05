@@ -28,6 +28,11 @@ final class ImportProfileCatalogTest extends TestCase
         self::assertArrayHasKey('position', $all['users']->fields());
         self::assertArrayHasKey('name', $all['departments']->fields());
         self::assertArrayHasKey('name', $all['positions']->fields());
+        self::assertArrayHasKey('ti_rustdesk', $all);
+        self::assertSame('ImportCenterTi', $all['ti_rustdesk']->permission());
+        self::assertSame('rustdesk_id', $all['ti_rustdesk']->defaultKeyField());
+        self::assertArrayHasKey('senha', $all['ti_rustdesk']->fields());
+        self::assertArrayHasKey('colaborador', $all['ti_rustdesk']->fields());
     }
 
     public function testSstProfilesShareImportCenterSstPermission(): void

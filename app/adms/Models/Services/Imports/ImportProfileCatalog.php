@@ -36,6 +36,7 @@ final class ImportProfileCatalog
                 new SstEquipamentoChecklistImportProfile(),
                 new SstGheColaboradoresImportProfile(),
                 new SstGheTreinamentosImportProfile(),
+                new TiRustdeskImportProfile(),
             ];
             self::$profiles = [];
             foreach ($list as $profile) {

@@ -25,6 +25,7 @@ class ImportCenter
                 'ImportCenterDepartments',
                 'ImportCenterPositions',
                 'ImportCenterSst',
+                'ImportCenterTi',
                 'ImportCenterView',
             ],
         ];

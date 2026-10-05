@@ -2490,6 +2490,11 @@
                     "id": "ti-acessos",
                     "title": "Liberar e revogar acessos (TI)",
                     "file": "ti/ti-acessos.html"
+                },
+                {
+                    "id": "ti-rustdesk",
+                    "title": "RustDesk (TI / Acessos)",
+                    "file": "ti/ti-rustdesk.html"
                 }
             ]
         },

@@ -260,6 +260,7 @@ $menus = [
                     'related_routes' => [
                         'import-center', 'import-center-create', 'import-center-map',
                         'import-center-view', 'import-center-commit', 'import-center-template',
+                        'import-center-ti',
                     ],
                 ],
             ];
@@ -1506,6 +1507,19 @@ $menus = [
                     'ti-sistemas-create',
                     'ti-sistemas-update',
                     'ti-sistemas-view',
+                ],
+            ],
+            [
+                'label' => 'RustDesk',
+                'url' => $_ENV['URL_ADM'] . 'ti-rustdesk',
+                'permission' => 'TiRustdesk',
+                'icon' => 'fas fa-desktop',
+                'related_routes' => [
+                    'ti-rustdesk',
+                    'ti-rustdesk-create',
+                    'ti-rustdesk-update',
+                    'ti-rustdesk-view',
+                    'ti-rustdesk-reveal',
                 ],
             ],
             [

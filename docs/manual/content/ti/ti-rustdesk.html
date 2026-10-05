@@ -1,0 +1,55 @@
+<h1>RustDesk (TI / Acessos)</h1>
+
+<h2>Função no sistema</h2>
+<p>Inventário dos IDs RustDesk das máquinas da empresa, com senha de acesso remoto armazenada de forma criptografada. Serve para a equipe de TI localizar rapidamente um computador e copiar o ID (e, se necessário, a senha) sem deixar o segredo visível na tela. A conexão remota de dentro deste portal ainda não está disponível — use o cliente RustDesk no computador.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>ID RustDesk</dt>
+    <dd>Número exibido no cliente RustDesk da máquina (somente dígitos; espaços na digitação são ignorados).</dd>
+    <dt>Senha do RustDesk</dt>
+    <dd>Senha de acesso não assistido daquele ID. Fica gravada só em AES-256-GCM; a listagem nunca a mostra.</dd>
+    <dt>Senha do usuário</dt>
+    <dd>Senha da conta de quem está logado neste Administrativo. É exigida de novo para <strong>ver</strong> ou <strong>copiar</strong> a senha da máquina.</dd>
+    <dt>Apelido</dt>
+    <dd>Nome amigável (ex.: <em>usuario@hostname</em>), como costuma aparecer no painel do RustDesk.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>TiRustdesk</em> (lista), <em>TiRustdeskCreate</em>, <em>TiRustdeskUpdate</em>, <em>TiRustdeskView</em> e <em>TiRustdeskReveal</em> (olho/cópia da senha), no grupo ACL <em>TI - Sistemas e Acessos</em>. A carga em lote usa ainda <em>ImportCenterTi</em> na Central de Importações. Quem já tinha as páginas de Sistemas na data da migration recebe a cópia automática; se o nível foi liberado depois, marque também as páginas RustDesk.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Acesse <em>TI / Acessos → RustDesk</em>.</li>
+    <li>Para carga em lote, use <em>Administração → Importações</em> (tipo <strong>TI — RustDesk</strong>) ou o botão <strong>Importar</strong> nesta tela. Baixe o modelo CSV, preencha ID, apelido e, se quiser, senha/colaborador.</li>
+    <li>Opcionalmente vincule o colaborador dono da máquina e anote observações.</li>
+    <li>Na grade, o ícone de <strong>cópia</strong> ao lado do número copia o ID (sem senha).</li>
+    <li>O <strong>olho</strong> pede a senha da sua conta neste sistema e então mostra a senha do RustDesk por 30 segundos. A chave ao lado copia a senha sem exibi-la, também após a mesma confirmação.</li>
+    <li>Abra o cliente RustDesk, cole o ID e, se precisar, a senha.</li>
+    <li>Para corrigir dados ou trocar a senha, use a ficha (reticências) e <strong>Editar</strong>. Deixe o campo senha em branco para manter a atual; marque <em>Remover a senha cadastrada</em> para apagá-la.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Apelido</strong> Obrigatório. Identifica a máquina na grade colorida.</div>
+<div class="help-field"><strong>ID RustDesk</strong> Obrigatório, único, 6 a 16 dígitos.</div>
+<div class="help-field"><strong>Senha do RustDesk</strong> Opcional. Criptografada em repouso. Nunca entra no log de alterações em claro (o log registra só se está definida ou vazia).</div>
+<div class="help-field"><strong>Colaborador</strong> Usuário ativo do Administrativo, opcional.</div>
+<div class="help-field"><strong>Status</strong> Ativo (aparece no filtro padrão) ou inativo (máquina desligada/desativada).</div>
+<div class="help-field"><strong>Observações</strong> Texto livre (local, ramal, etc.).</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Menu RustDesk não aparece</dt>
+    <dd>Libere as páginas do grupo <em>TI - Sistemas e Acessos</em> no nível de acesso (em especial <em>TiRustdesk</em>). Execute a migration <code>20261005180000_create_ti_rustdesk</code> e recarregue a sessão.</dd>
+    <dt>Não consigo gravar senha</dt>
+    <dd>Defina <code>TI_RUSTDESK_ENCRYPTION_KEY</code> no <code>.env</code> com no mínimo 32 caracteres. Gere com <code>php -r "echo bin2hex(random_bytes(32));"</code>. Guarde o backup desta chave fora do dump do banco — sem ela as senhas já gravadas não abrem.</dd>
+    <dt>Olho pede senha e diz “Senha incorreta”</dt>
+    <dd>Use a senha com a qual você entrou neste sistema, não a senha do RustDesk.</dd>
+    <dt>Já existe um cadastro com esse ID</dt>
+    <dd>O ID é único. Edite o registro existente em vez de cadastrar de novo.</dd>
+    <dt>Quero conectar de dentro do Administrativo</dt>
+    <dd>Ainda não há cliente embutido. Copie ID/senha e use o aplicativo RustDesk. O acesso direto pelo portal está previsto para uma versão futura.</dd>
+    <dt>Quero cadastrar vários de uma vez</dt>
+    <dd>Use <em>Administração → Importações</em>, tipo <em>TI — RustDesk</em>, ou o botão <strong>Importar</strong> nesta tela. Baixe o modelo CSV (rótulos + nomes dos campos). Permissão: <em>ImportCenterTi</em>.</dd>
+    <dt>Página não encontrada</dt>
+    <dd>Rode a migration <code>20261005180000_create_ti_rustdesk</code>. Quem já tinha permissão de Sistemas recebe as páginas RustDesk na mesma migration.</dd>
+</dl>
