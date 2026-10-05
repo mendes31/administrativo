@@ -51,6 +51,16 @@ class ExportRelatorioInformativoPdf
             ? $kpis['cientes'] . '<br><span style="font-weight:400;">' . InformativoRelatorioService::formatPct($kpis['pct_ciencia']) . '</span>'
             : 'N/A';
 
+        $pendVisTd = '<td style="background:#dc3545;color:#fff;border-radius:8px;">' . $kpis['pendentes']
+            . '<br><span style="font-weight:400;">Pendentes de visualização · ' . InformativoRelatorioService::formatPct($kpis['pct_pendentes']) . '</span></td>';
+        $pendCieTd = $requiresAck
+            ? '<td style="background:#ffc107;color:#212529;border-radius:8px;">' . (int) ($kpis['pendentes_ciencia'] ?? 0)
+            . '<br><span style="font-weight:400;">Pendentes de ciência · ' . InformativoRelatorioService::formatPct($kpis['pct_pendentes_ciencia']) . '</span></td>'
+            : '';
+        $cientesTd = $requiresAck
+            ? '<td style="background:#198754;color:#fff;border-radius:8px;">' . $cientesCard . '<br><span style="font-weight:400;">Cientes</span></td>'
+            : '<td style="background:#6c757d;color:#fff;border-radius:8px;">N/A<br><span style="font-weight:400;">Cientes</span></td>';
+
         $ativosTable = $this->buildTableHtml($relatorio['ativos']);
         $inativosTable = $this->buildTableHtml($relatorio['inativos_historico']);
 
@@ -92,8 +102,9 @@ class ExportRelatorioInformativoPdf
             . '<td style="background:#0d6efd;color:#fff;border-radius:8px;">' . $kpis['total'] . '<br><span style="font-weight:400;">Total de ativos</span></td>'
             . '<td style="background:#198754;color:#fff;border-radius:8px;">' . $kpis['visualizaram']
             . '<br><span style="font-weight:400;">Visualizaram · ' . InformativoRelatorioService::formatPct($kpis['pct_visualizacao']) . '</span></td>'
-            . '<td style="background:#ffc107;border-radius:8px;">' . $kpis['pendentes'] . '<br><span style="font-weight:400;">Pendentes</span></td>'
-            . '<td style="background:#0dcaf0;color:#fff;border-radius:8px;">' . $cientesCard . '<br><span style="font-weight:400;">Cientes</span></td>'
+            . $pendVisTd
+            . $cientesTd
+            . $pendCieTd
             . '</tr>'
             . '</table>'
             . '<p style="font-size:11px;color:#555;margin:0 0 12px 0;">Percentuais calculados sobre colaboradores ativos. '

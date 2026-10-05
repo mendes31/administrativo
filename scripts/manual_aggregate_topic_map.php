@@ -153,6 +153,7 @@ function buildManualAggregateTopicMap(): array
 
     $add([
         'list-policies', 'create-policy', 'update-policy', 'view-policy',
+        'relatorio-policy', 'export-relatorio-policy-pdf', 'export-relatorio-policy-excel',
         'list-policy-categories', 'create-policy-category', 'update-policy-category',
     ], 'gp-politicas');
     $add(['employee-portal', 'my-payroll-documents', 'my-epi-deliveries', 'sign-epi-ficha', 'view-epi-ficha-pdf', 'my-sst-treinamentos', 'view-sst-treinamento-certificado-pdf'], 'gp-portal');

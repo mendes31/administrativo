@@ -2,16 +2,16 @@
 
 namespace App\adms\Controllers\policies;
 
-use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\PoliciesRepository;
-use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\InformativoRelatorioService;
+use App\adms\Models\Services\PoliticaRelatorioService;
 use Dompdf\Dompdf;
 
 class ExportRelatorioPolicyPdf
 {
     public function index(): void
     {
-        $policyId = (int)($_GET['policy_id'] ?? 0);
+        $policyId = (int) ($_GET['policy_id'] ?? 0);
         if ($policyId <= 0) {
             http_response_code(422);
             echo 'ID inválido';
@@ -26,59 +26,27 @@ class ExportRelatorioPolicyPdf
             return;
         }
 
-        // Interpretar requires_ack
-        $requiresAck = false;
-        $val = $policy['requires_ack'] ?? null;
-        if ($val === 1 || $val === '1' || $val === true || $val === 'true' || $val === 'Sim' || $val === 'sim') {
-            $requiresAck = true;
-        }
+        $usuarioFilter = trim((string) ($_GET['usuario_filter'] ?? ''));
+        $relatorio = (new PoliticaRelatorioService())->build($policyId, $policy, $usuarioFilter);
+        $requiresAck = $relatorio['requires_ack'];
+        $kpis = $relatorio['kpis'];
 
-        // Filtro opcional (mesma lógica da tela/Excel): por nome/email.
-        $usuarioFilter = trim((string)($_GET['usuario_filter'] ?? ''));
-        $usuarioFilterLower = mb_strtolower($usuarioFilter);
+        $cientesCard = $requiresAck
+            ? $kpis['cientes'] . '<br><span style="font-weight:400;">' . InformativoRelatorioService::formatPct($kpis['pct_ciencia']) . '</span>'
+            : 'N/A';
 
-        // Usuários para o relatório:
-        // - Todos ativos
-        // - E também inativos que já deram ciência desta política
-        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($repo->getUsersForPolicyReport($policyId));
+        $pendVisTd = '<td style="background:#dc3545;color:#fff;border-radius:8px;">' . $kpis['pendentes']
+            . '<br><span style="font-weight:400;">Pendentes de visualização · ' . InformativoRelatorioService::formatPct($kpis['pct_pendentes']) . '</span></td>';
+        $pendCieTd = $requiresAck
+            ? '<td style="background:#ffc107;color:#212529;border-radius:8px;">' . (int) ($kpis['pendentes_ciencia'] ?? 0)
+            . '<br><span style="font-weight:400;">Pendentes de ciência · ' . InformativoRelatorioService::formatPct($kpis['pct_pendentes_ciencia']) . '</span></td>'
+            : '';
+        $cientesTd = $requiresAck
+            ? '<td style="background:#198754;color:#fff;border-radius:8px;">' . $cientesCard . '<br><span style="font-weight:400;">Cientes</span></td>'
+            : '<td style="background:#6c757d;color:#fff;border-radius:8px;">N/A<br><span style="font-weight:400;">Cientes</span></td>';
 
-        if ($usuarioFilterLower !== '') {
-            $usuarios = array_values(array_filter($usuarios, function (array $u) use ($usuarioFilterLower) {
-                $haystack = mb_strtolower((string)($u['name'] ?? '') . ' ' . (string)($u['email'] ?? ''));
-                return mb_strpos($haystack, $usuarioFilterLower) !== false;
-            }));
-        }
-
-        $rowsHtml = '';
-        $visualizaram = 0;
-        $cientes = 0;
-        foreach ($usuarios as $usuario) {
-            $read = $repo->getReadByUser($policyId, (int)$usuario['id']);
-            $visualizou = $read ? 'SIM' : 'NÃO';
-            if ($visualizou === 'SIM') {
-                $visualizaram++;
-            }
-            $dataVisualizacao = $read && $read['read_at'] ? date('d/m/Y H:i:s', strtotime($read['read_at'])) : '-';
-            $estaCiente = $requiresAck ? (($read && !empty($read['acknowledged'])) ? 'SIM' : 'NÃO') : 'N/A';
-            if ($estaCiente === 'SIM') {
-                $cientes++;
-            }
-            $dataCiencia = $requiresAck && $read && !empty($read['ack_at']) ? date('d/m/Y H:i:s', strtotime($read['ack_at'])) : '-';
-            $status = !$read ? 'PENDENTE' : ($requiresAck ? (!empty($read['acknowledged']) ? 'CIENTE' : 'VISUALIZOU MAS NÃO CIENTE') : 'VISUALIZOU');
-
-            $rowsHtml .= '<tr>'
-                . '<td><strong>' . htmlspecialchars($usuario['name']) . '</strong><br><small>' . htmlspecialchars($usuario['email']) . '</small></td>'
-                . '<td>' . $visualizou . '</td>'
-                . '<td>' . $dataVisualizacao . '</td>'
-                . '<td>' . $estaCiente . '</td>'
-                . '<td>' . $dataCiencia . '</td>'
-                . '<td>' . $status . '</td>'
-                . '</tr>';
-        }
-
-        $total = count($usuarios);
-        $pendentes = $total - $visualizaram;
-        $cientesCard = $requiresAck ? $cientes : 'N/A';
+        $ativosTable = $this->buildTableHtml($relatorio['ativos']);
+        $inativosTable = $this->buildTableHtml($relatorio['inativos_historico']);
 
         $projectRoot = realpath(__DIR__ . '/../../../..');
         $logoPath = $projectRoot . '/public/adms/image/logo/logo.png';
@@ -113,16 +81,59 @@ class ExportRelatorioPolicyPdf
             . '</tr>'
             . '</table>';
 
-        $cards = '<table width="100%" cellspacing="0" cellpadding="8" style="text-align:center;font-weight:600;margin:10px 0 16px 0;">'
+        $cards = '<table width="100%" cellspacing="0" cellpadding="8" style="text-align:center;font-weight:600;margin:10px 0 12px 0;">'
             . '<tr>'
-            . '<td style="background:#0d6efd;color:#fff;border-radius:8px;">' . $total . '<br><span style="font-weight:400;">Total de Usuários</span></td>'
-            . '<td style="background:#198754;color:#fff;border-radius:8px;">' . $visualizaram . '<br><span style="font-weight:400;">Visualizaram</span></td>'
-            . '<td style="background:#ffc107;border-radius:8px;">' . $pendentes . '<br><span style="font-weight:400;">Pendentes</span></td>'
-            . '<td style="background:#0dcaf0;color:#fff;border-radius:8px;">' . $cientesCard . '<br><span style="font-weight:400;">Cientes</span></td>'
+            . '<td style="background:#0d6efd;color:#fff;border-radius:8px;">' . $kpis['total'] . '<br><span style="font-weight:400;">Total de ativos</span></td>'
+            . '<td style="background:#198754;color:#fff;border-radius:8px;">' . $kpis['visualizaram']
+            . '<br><span style="font-weight:400;">Visualizaram · ' . InformativoRelatorioService::formatPct($kpis['pct_visualizacao']) . '</span></td>'
+            . $pendVisTd
+            . $cientesTd
+            . $pendCieTd
             . '</tr>'
-            . '</table>';
+            . '</table>'
+            . '<p style="font-size:11px;color:#555;margin:0 0 12px 0;">Percentuais calculados sobre colaboradores ativos. '
+            . 'Inativos sem visualização ou ciência omitidos: ' . (int) $relatorio['excluidos_sem_historico']
+            . '. Inativos com histórico: ' . count($relatorio['inativos_historico']) . '.</p>';
 
-        $table = '<table width="100%" border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-size:12px;">'
+        $html = '<html><head><meta charset="utf-8"></head><body style="font-family:DejaVu Sans, sans-serif;">'
+            . $header . $infoTop . $cards
+            . '<h3 style="font-size:14px;margin:16px 0 8px 0;">Colaboradores ativos</h3>'
+            . $ativosTable
+            . '<h3 style="font-size:14px;margin:20px 0 8px 0;">Inativos com visualização ou ciência</h3>'
+            . $inativosTable
+            . '</body></html>';
+
+        $dompdf = new Dompdf();
+        $dompdf->loadHtml($html);
+        $dompdf->setPaper('A4', 'portrait');
+        $dompdf->render();
+        $dompdf->stream('relatorio_politica_' . $policyId . '_' . date('Y-m-d_H-i-s') . '.pdf', ['Attachment' => true]);
+        exit;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private function buildTableHtml(array $rows): string
+    {
+        $rowsHtml = '';
+        if ($rows === []) {
+            $rowsHtml = '<tr><td colspan="6" style="text-align:center;">Nenhum registro</td></tr>';
+        } else {
+            foreach ($rows as $dado) {
+                $rowsHtml .= '<tr>'
+                    . '<td><strong>' . htmlspecialchars((string) ($dado['usuario_nome'] ?? '')) . '</strong><br><small>'
+                    . htmlspecialchars((string) ($dado['usuario_email'] ?? '')) . '</small></td>'
+                    . '<td>' . htmlspecialchars((string) ($dado['visualizou'] ?? '')) . '</td>'
+                    . '<td>' . htmlspecialchars((string) ($dado['data_visualizacao'] ?? '-')) . '</td>'
+                    . '<td>' . htmlspecialchars((string) ($dado['esta_ciente'] ?? '')) . '</td>'
+                    . '<td>' . htmlspecialchars((string) ($dado['data_ciencia'] ?? '-')) . '</td>'
+                    . '<td>' . htmlspecialchars((string) ($dado['status'] ?? '')) . '</td>'
+                    . '</tr>';
+            }
+        }
+
+        return '<table width="100%" border="1" cellspacing="0" cellpadding="6" style="border-collapse:collapse;font-size:12px;">'
             . '<thead style="background:#2c3e50;color:#fff;">'
             . '<tr>'
             . '<th style="text-align:left;">Usuário</th>'
@@ -133,16 +144,5 @@ class ExportRelatorioPolicyPdf
             . '<th style="text-align:left;">Status</th>'
             . '</tr>'
             . '</thead><tbody>' . $rowsHtml . '</tbody></table>';
-
-        $html = '<html><head><meta charset="utf-8"></head><body style="font-family:DejaVu Sans, sans-serif;">'
-            . $header . $infoTop . $cards . $table . '</body></html>';
-
-        $dompdf = new Dompdf();
-        $dompdf->loadHtml($html);
-        $dompdf->setPaper('A4', 'portrait');
-        $dompdf->render();
-        $dompdf->stream('relatorio_politica_' . $policyId . '_' . date('Y-m-d_H-i-s') . '.pdf', ['Attachment' => true]);
-        exit;
     }
 }
-

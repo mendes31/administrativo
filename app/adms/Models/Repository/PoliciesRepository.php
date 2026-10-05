@@ -303,6 +303,58 @@ class PoliciesRepository extends DbConnection
     }
 
     /**
+     * Último registro de leitura/ciência por usuário para uma política.
+     *
+     * @return array<int, array<string, mixed>> mapa user_id => linha normalizada
+     */
+    public function getReadsMapForPolicy(int $policyId): array
+    {
+        if ($policyId <= 0) {
+            return [];
+        }
+
+        $sql = 'SELECT user_id, read_at, acknowledged, ack_at
+                FROM adms_policies_reads
+                WHERE policy_id = :pol';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':pol', $policyId, PDO::PARAM_INT);
+        $stmt->execute();
+        $rows = $stmt->fetchAll(\PDO::FETCH_ASSOC) ?: [];
+
+        $byUser = [];
+        foreach ($rows as $row) {
+            $userId = (int) ($row['user_id'] ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+            $byUser[$userId][] = $row;
+        }
+
+        $map = [];
+        foreach ($byUser as $userId => $group) {
+            usort($group, static function (array $a, array $b): int {
+                $aAck = !empty($a['acknowledged']) ? 1 : 0;
+                $bAck = !empty($b['acknowledged']) ? 1 : 0;
+                if ($aAck !== $bAck) {
+                    return $bAck <=> $aAck;
+                }
+                $aAckAt = strtotime((string) ($a['ack_at'] ?? '')) ?: 0;
+                $bAckAt = strtotime((string) ($b['ack_at'] ?? '')) ?: 0;
+                if ($aAckAt !== $bAckAt) {
+                    return $bAckAt <=> $aAckAt;
+                }
+                $aRead = strtotime((string) ($a['read_at'] ?? '')) ?: 0;
+                $bRead = strtotime((string) ($b['read_at'] ?? '')) ?: 0;
+
+                return $bRead <=> $aRead;
+            });
+            $map[$userId] = $this->normalizeRow($group[0]);
+        }
+
+        return $map;
+    }
+
+    /**
      * Contar políticas não lidas para o usuário (dentro da janela)
      */
     public function countNaoLidos(int $userId): int

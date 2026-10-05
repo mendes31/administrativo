@@ -1362,6 +1362,11 @@
                             "type": "topic",
                             "topic_id": "view-policy",
                             "title": "Visualizar Política Interna"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "relatorio-policy",
+                            "title": "Relatório de Política Interna"
                         }
                     ]
                 },

@@ -1,0 +1,60 @@
+<h1>Relatório de Política Interna</h1>
+
+<h2>Função no sistema</h2>
+<p>Mostra o alcance de uma política interna: quem <strong>visualizou</strong>, quem está <strong>pendente de visualização</strong> e, quando a política exige, quem deu <strong>ciência</strong>. Os indicadores (totais e percentuais) usam somente colaboradores <em>ativos</em>, para o quadro não distorcer quando o headcount muda por admissões e desligamentos.</p>
+
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Políticas internas</em> (<code>gp-politicas</code>) para o fluxo completo da área.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>RelatorioPolicy</em>. A exportação usa <em>ExportRelatorioPolicyPdf</em> e <em>ExportRelatorioPolicyExcel</em>.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Visualização</dt>
+    <dd>O colaborador abriu a política; o sistema grava data e hora da leitura.</dd>
+    <dt>Ciência</dt>
+    <dd>Confirmação explícita de leitura, só quando a política está marcada com <em>Exige ciência</em>.</dd>
+    <dt>Pendentes de visualização</dt>
+    <dd>Ativos que ainda não abriram a política. O percentual é pendentes ÷ total de ativos. O cartão é vermelho, como o status <em>PENDENTE</em> e o <em>NÃO</em> de visualização.</dd>
+    <dt>Pendentes de ciência</dt>
+    <dd>Quando a política exige ciência: ativos que ainda não confirmaram. Inclui quem não visualizou e quem visualizou sem confirmar. O cartão é amarelo, como <em>VISUALIZOU MAS NÃO CIENTE</em>.</dd>
+    <dt>Ativos</dt>
+    <dd>Usuários com status <em>Ativo</em>. Entram na listagem principal, nos cartões e nos percentuais.</dd>
+    <dt>Inativos com histórico</dt>
+    <dd>Usuários inativos que já haviam visualizado ou dado ciência. Ficam em aba (e abas do Excel) à parte e <strong>não</strong> entram no percentual.</dd>
+    <dt>Inativos omitidos</dt>
+    <dd>Inativos que nunca visualizaram nem deram ciência. Saem da listagem e dos totalizadores.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Em <strong>Gestão de Pessoas → Organização → Políticas Internas</strong>, abra o relatório da política (ou a tela <code>relatorio-policy</code> e escolha o registro).</li>
+    <li>Confira os cartões: total de ativos (azul), visualizaram (verde), pendentes de visualização (vermelho) e, se exigir ciência, cientes (verde) e pendentes de ciência (amarelo).</li>
+    <li>Na aba <strong>Ativos</strong>, acompanhe quem ainda precisa ler ou confirmar.</li>
+    <li>Na aba <strong>Inativos com histórico</strong>, consulte desligados que já tinham evidência de leitura/ciência (auditoria, fora do indicador).</li>
+    <li>Use o filtro por nome ou e-mail; exporte PDF ou Excel se precisar distribuir o resultado.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<p class="text-muted small">O que cada campo afeta no sistema.</p>
+<div class="help-field"><strong>Total de ativos</strong> Denominador dos percentuais. Não inclui inativos.</div>
+<div class="help-field"><strong>% Visualização</strong> Visualizaram ÷ total de ativos.</div>
+<div class="help-field"><strong>% Pendentes de visualização</strong> Ativos que ainda não visualizaram ÷ total de ativos. Cartão vermelho, igual ao status PENDENTE.</div>
+<div class="help-field"><strong>% Ciência</strong> Cientes ÷ total de ativos. Cartão verde, igual ao status CIENTE; se a política não exige ciência, o cartão fica cinza (N/A).</div>
+<div class="help-field"><strong>% Pendentes de ciência</strong> Ativos que ainda não deram ciência ÷ total de ativos. Cartão amarelo, igual a VISUALIZOU MAS NÃO CIENTE. Só aparece se a política exige ciência.</div>
+<div class="help-field"><strong>Filtrar por usuário</strong> Restringe as linhas visíveis por nome ou e-mail; o PDF/Excel pode receber o mesmo filtro.</div>
+<div class="help-field"><strong>Excel</strong> Planilha <em>Resumo</em> com os indicadores, <em>Ativos</em> e <em>Inativos histórico</em>.</div>
+<div class="help-field"><strong>PDF</strong> Cartões de ativos, tabela de ativos e seção de inativos com histórico.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>O percentual parece baixo demais (ou o total inflado)</dt>
+    <dd>Inativos sem leitura não entram no denominador. Só ativos entram nos cartões. Recarregue o relatório.</dd>
+    <dt>Não acho um colaborador desligado na aba Ativos</dt>
+    <dd>Se ele nunca leu nem deu ciência, foi omitido de propósito. Se já tinha evidência, está em <em>Inativos com histórico</em>.</dd>
+    <dt>Cartão Cientes mostra N/A</dt>
+    <dd>A política não exige ciência; o percentual de ciência só aparece quando essa opção está ligada.</dd>
+    <dt>Não vejo o botão de relatório</dt>
+    <dd>Permissão <em>RelatorioPolicy</em> ausente no nível de acesso.</dd>
+    <dt>Erro 004 ao exportar</dt>
+    <dd>Há permissão da tela, mas não da página filha de PDF/Excel. Inclua <em>ExportRelatorioPolicyPdf</em> ou <em>ExportRelatorioPolicyExcel</em> no pacote.</dd>
+</dl>

@@ -13,6 +13,10 @@
     <dd>O colaborador abriu o informativo; o sistema grava data e hora da leitura.</dd>
     <dt>Ciência</dt>
     <dd>Confirmação explícita de leitura, só quando o informativo está marcado com <em>Exige ciência</em>.</dd>
+    <dt>Pendentes de visualização</dt>
+    <dd>Ativos que ainda não abriram o informativo. O percentual é pendentes ÷ total de ativos. O cartão é vermelho, como o status <em>PENDENTE</em> e o <em>NÃO</em> de visualização.</dd>
+    <dt>Pendentes de ciência</dt>
+    <dd>Quando o informativo exige ciência: ativos que ainda não confirmaram. Inclui quem não visualizou e quem visualizou sem confirmar. O cartão é amarelo, como <em>VISUALIZOU MAS NÃO CIENTE</em>.</dd>
     <dt>Ativos</dt>
     <dd>Usuários com status <em>Ativo</em>. Entram na listagem principal, nos cartões e nos percentuais.</dd>
     <dt>Inativos com histórico</dt>
@@ -24,7 +28,7 @@
 <h2>Fluxo principal</h2>
 <ol>
     <li>Em <strong>Comunicação Interna → Informativos</strong>, abra o relatório do comunicado (ou a tela <code>relatorio-informativo</code> e escolha o informativo).</li>
-    <li>Confira os cartões: total de ativos, visualizaram (com %), pendentes e cientes (com % quando exige ciência).</li>
+    <li>Confira os cartões: total de ativos (azul), visualizaram (verde), pendentes de visualização (vermelho) e, se exigir ciência, cientes (verde) e pendentes de ciência (amarelo).</li>
     <li>Na aba <strong>Ativos</strong>, acompanhe quem ainda precisa ler ou confirmar.</li>
     <li>Na aba <strong>Inativos com histórico</strong>, consulte desligados que já tinham evidência de leitura/ciência (auditoria, fora do indicador).</li>
     <li>Use o filtro por nome ou e-mail; exporte PDF ou Excel se precisar distribuir o resultado.</li>
@@ -34,8 +38,9 @@
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
 <div class="help-field"><strong>Total de ativos</strong> Denominador dos percentuais. Não inclui inativos.</div>
 <div class="help-field"><strong>% Visualização</strong> Visualizaram ÷ total de ativos.</div>
-<div class="help-field"><strong>Pendentes</strong> Ativos que ainda não visualizaram.</div>
-<div class="help-field"><strong>% Ciência</strong> Cientes ÷ total de ativos, somente se o informativo exige ciência; caso contrário o cartão mostra N/A.</div>
+<div class="help-field"><strong>% Pendentes de visualização</strong> Ativos que ainda não visualizaram ÷ total de ativos. Cartão vermelho, igual ao status PENDENTE.</div>
+<div class="help-field"><strong>% Ciência</strong> Cientes ÷ total de ativos. Cartão verde, igual ao status CIENTE; se o informativo não exige ciência, o cartão fica cinza (N/A).</div>
+<div class="help-field"><strong>% Pendentes de ciência</strong> Ativos que ainda não deram ciência ÷ total de ativos. Cartão amarelo, igual a VISUALIZOU MAS NÃO CIENTE. Só aparece se o informativo exige ciência.</div>
 <div class="help-field"><strong>Filtrar por usuário</strong> Restringe as linhas visíveis por nome ou e-mail; o PDF/Excel pode receber o mesmo filtro.</div>
 <div class="help-field"><strong>Excel</strong> Planilha <em>Resumo</em> com os indicadores, <em>Ativos</em> e <em>Inativos histórico</em>.</div>
 <div class="help-field"><strong>PDF</strong> Cartões de ativos, tabela de ativos e seção de inativos com histórico.</div>

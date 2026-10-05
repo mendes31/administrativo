@@ -63,9 +63,12 @@ class ExportRelatorioInformativoExcel
             ['Total de ativos', $kpis['total']],
             ['Visualizaram', $kpis['visualizaram']],
             ['% Visualização (ativos)', InformativoRelatorioService::formatPct($kpis['pct_visualizacao'])],
-            ['Pendentes (ativos)', $kpis['pendentes']],
+            ['Pendentes de visualização', $kpis['pendentes']],
+            ['% Pendentes de visualização (ativos)', InformativoRelatorioService::formatPct($kpis['pct_pendentes'])],
             ['Cientes', $requiresAck ? $kpis['cientes'] : 'N/A'],
             ['% Ciência (ativos)', $requiresAck ? InformativoRelatorioService::formatPct($kpis['pct_ciencia']) : 'N/A'],
+            ['Pendentes de ciência', $requiresAck ? $kpis['pendentes_ciencia'] : 'N/A'],
+            ['% Pendentes de ciência (ativos)', $requiresAck ? InformativoRelatorioService::formatPct($kpis['pct_pendentes_ciencia']) : 'N/A'],
             ['Inativos com histórico', count($relatorio['inativos_historico'])],
             ['Inativos omitidos (sem visualização/ciência)', $relatorio['excluidos_sem_historico']],
         ];

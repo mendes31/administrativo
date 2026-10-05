@@ -1779,6 +1779,11 @@
                     "file": "gestao_pessoas/view-policy.html"
                 },
                 {
+                    "id": "relatorio-policy",
+                    "title": "Relatório de Política Interna",
+                    "file": "gestao_pessoas/relatorio-policy.html"
+                },
+                {
                     "id": "view-employee-request",
                     "title": "Visualizar Solicitação",
                     "file": "gestao_pessoas/view-employee-request.html"

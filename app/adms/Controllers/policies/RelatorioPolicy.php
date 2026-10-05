@@ -3,9 +3,8 @@
 namespace App\adms\Controllers\policies;
 
 use App\adms\Controllers\Services\PageLayoutService;
-use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\PoliciesRepository;
-use App\adms\Models\Repository\UsersRepository;
+use App\adms\Models\Services\PoliticaRelatorioService;
 use App\adms\Views\Services\LoadViewService;
 
 class RelatorioPolicy
@@ -30,7 +29,6 @@ class RelatorioPolicy
         $this->data['title_head'] = 'Relatório de Políticas Internas';
 
         $repo = new PoliciesRepository();
-        // Buscar uma lista grande o suficiente de políticas para o select
         $this->data['policies'] = $repo->getAllPolicies(1, 1000, []);
 
         $pageElements = [
@@ -57,42 +55,14 @@ class RelatorioPolicy
             return;
         }
 
-        // Interpreta requires_ack em boolean (1/0, true/false, 'Sim'/'Não')
-        $requiresAck = false;
-        if (isset($policy['requires_ack'])) {
-            $val = $policy['requires_ack'];
-            $requiresAck = ($val === 1 || $val === '1' || $val === true || $val === 'true' || $val === 'Sim' || $val === 'sim');
-        }
-
-        // Usuários para o relatório:
-        // - Todos ativos
-        // - E também inativos que já deram ciência desta política
-        $usuarios = InstitutionalSystemUserHelper::filterReportUsers($repo->getUsersForPolicyReport($policyId));
-
-        $dadosRelatorio = [];
-        foreach ($usuarios as $usuario) {
-            $visualizacao = $repo->getReadByUser($policyId, (int) $usuario['id']);
-
-            $dadosRelatorio[] = [
-                'usuario_id'        => $usuario['id'],
-                'usuario_nome'      => $usuario['name'],
-                'usuario_email'     => $usuario['email'],
-                'visualizou'        => $visualizacao ? 'SIM' : 'NÃO',
-                'data_visualizacao' => $visualizacao && $visualizacao['read_at']
-                    ? date('d/m/Y H:i:s', strtotime($visualizacao['read_at']))
-                    : '-',
-                'esta_ciente'       => $requiresAck
-                    ? ($visualizacao && !empty($visualizacao['acknowledged']) ? 'SIM' : 'NÃO')
-                    : 'N/A',
-                'data_ciencia'      => $requiresAck && $visualizacao && !empty($visualizacao['ack_at'])
-                    ? date('d/m/Y H:i:s', strtotime($visualizacao['ack_at']))
-                    : '-',
-                'status'            => $this->getStatus($visualizacao, $requiresAck),
-            ];
-        }
+        $relatorio = (new PoliticaRelatorioService())->build($policyId, $policy);
 
         $this->data['policy'] = $policy;
-        $this->data['dados_relatorio'] = $dadosRelatorio;
+        $this->data['dados_relatorio'] = $relatorio['ativos'];
+        $this->data['dados_inativos_historico'] = $relatorio['inativos_historico'];
+        $this->data['excluidos_sem_historico'] = $relatorio['excluidos_sem_historico'];
+        $this->data['relatorio_kpis'] = $relatorio['kpis'];
+        $this->data['requires_ack'] = $relatorio['requires_ack'];
         $this->data['title_head'] = 'Relatório: ' . ($policy['titulo'] ?? '');
 
         $pageElements = [
@@ -106,21 +76,4 @@ class RelatorioPolicy
         $loadView = new LoadViewService('adms/Views/policies/relatorioResultado', $this->data);
         $loadView->loadView();
     }
-
-    private function getStatus(?array $visualizacao, bool $requiresAck): string
-    {
-        if (!$visualizacao) {
-            return 'PENDENTE';
-        }
-
-        if ($requiresAck) {
-            if (empty($visualizacao['acknowledged'])) {
-                return 'VISUALIZOU MAS NÃO CIENTE';
-            }
-            return 'CIENTE';
-        }
-
-        return 'VISUALIZOU';
-    }
 }
-

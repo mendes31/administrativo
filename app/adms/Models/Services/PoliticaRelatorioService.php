@@ -5,30 +5,20 @@ declare(strict_types=1);
 namespace App\adms\Models\Services;
 
 use App\adms\Helpers\InstitutionalSystemUserHelper;
-use App\adms\Models\Repository\InformativosRepository;
+use App\adms\Models\Repository\PoliciesRepository;
 use App\adms\Models\Repository\UsersRepository;
 
 /**
- * Monta o relatório de visualização/ciência de um informativo.
+ * Monta o relatório de visualização/ciência de uma política interna.
  *
  * Indicadores usam somente colaboradores ativos. Inativos sem visualização
  * nem ciência saem da listagem e dos totais; inativos com evidência ficam
  * em lista separada (histórico), fora do percentual.
  */
-final class InformativoRelatorioService
+final class PoliticaRelatorioService
 {
-    public static function requiresAck(mixed $val): bool
-    {
-        return $val === 1
-            || $val === '1'
-            || $val === true
-            || $val === 'true'
-            || $val === 'Sim'
-            || $val === 'sim';
-    }
-
     /**
-     * @param array<string, mixed> $informativo
+     * @param array<string, mixed> $policy
      * @return array{
      *   requires_ack: bool,
      *   ativos: list<array<string, mixed>>,
@@ -46,9 +36,9 @@ final class InformativoRelatorioService
      *   }
      * }
      */
-    public function build(int $informativoId, array $informativo, string $usuarioFilter = ''): array
+    public function build(int $policyId, array $policy, string $usuarioFilter = ''): array
     {
-        $requiresAck = self::requiresAck($informativo['requires_ack'] ?? null);
+        $requiresAck = InformativoRelatorioService::requiresAck($policy['requires_ack'] ?? null);
 
         $usersRepo = new UsersRepository();
         $usuarios = InstitutionalSystemUserHelper::filterReportUsers($usersRepo->getAllUsers(1, 20000, []));
@@ -62,7 +52,7 @@ final class InformativoRelatorioService
             }));
         }
 
-        $readsMap = (new InformativosRepository())->getReadsMapForInformativo($informativoId);
+        $readsMap = (new PoliciesRepository())->getReadsMapForPolicy($policyId);
 
         $ativos = [];
         $inativosHistorico = [];
@@ -96,65 +86,8 @@ final class InformativoRelatorioService
             'ativos' => $ativos,
             'inativos_historico' => $inativosHistorico,
             'excluidos_sem_historico' => $excluidos,
-            'kpis' => self::kpisFromAtivos($ativos, $requiresAck),
+            'kpis' => InformativoRelatorioService::kpisFromAtivos($ativos, $requiresAck),
         ];
-    }
-
-    /**
-     * @param list<array<string, mixed>> $ativos
-     * @return array{
-     *   total: int,
-     *   visualizaram: int,
-     *   pendentes: int,
-     *   pendentes_ciencia: int,
-     *   cientes: int,
-     *   pct_visualizacao: float,
-     *   pct_pendentes: float,
-     *   pct_pendentes_ciencia: float|null,
-     *   pct_ciencia: float|null
-     * }
-     */
-    public static function kpisFromAtivos(array $ativos, bool $requiresAck): array
-    {
-        $total = count($ativos);
-        $visualizaram = 0;
-        $pendentes = 0;
-        $cientes = 0;
-
-        foreach ($ativos as $dado) {
-            if (($dado['visualizou'] ?? '') === 'SIM') {
-                $visualizaram++;
-            }
-            if (($dado['status'] ?? '') === 'PENDENTE') {
-                $pendentes++;
-            }
-            if (($dado['status'] ?? '') === 'CIENTE') {
-                $cientes++;
-            }
-        }
-
-        $pendentesCiencia = $requiresAck ? max(0, $total - $cientes) : 0;
-
-        return [
-            'total' => $total,
-            'visualizaram' => $visualizaram,
-            'pendentes' => $pendentes,
-            'pendentes_ciencia' => $pendentesCiencia,
-            'cientes' => $cientes,
-            'pct_visualizacao' => $total > 0 ? round(($visualizaram / $total) * 100, 1) : 0.0,
-            'pct_pendentes' => $total > 0 ? round(($pendentes / $total) * 100, 1) : 0.0,
-            'pct_pendentes_ciencia' => $requiresAck ? ($total > 0 ? round(($pendentesCiencia / $total) * 100, 1) : 0.0) : null,
-            'pct_ciencia' => $requiresAck ? ($total > 0 ? round(($cientes / $total) * 100, 1) : 0.0) : null,
-        ];
-    }
-
-    public static function formatPct(?float $pct): string
-    {
-        if ($pct === null) {
-            return '';
-        }
-
-        return number_format($pct, 1, ',', '.') . '%';
     }
 
     /**

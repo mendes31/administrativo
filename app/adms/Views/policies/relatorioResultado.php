@@ -1,10 +1,143 @@
 <?php
-use App\adms\Helpers\CSRFHelper;
+use App\adms\Models\Services\InformativoRelatorioService;
+
+$kpis = $this->data['relatorio_kpis'] ?? InformativoRelatorioService::kpisFromAtivos(
+    $this->data['dados_relatorio'] ?? [],
+    (bool) ($this->data['requires_ack'] ?? false)
+);
+$requiresAckCard = (bool) ($this->data['requires_ack'] ?? false);
+if (!$requiresAckCard) {
+    $val = $this->data['policy']['requires_ack'] ?? null;
+    $requiresAckCard = InformativoRelatorioService::requiresAck($val);
+}
+$dadosAtivos = $this->data['dados_relatorio'] ?? [];
+$dadosInativos = $this->data['dados_inativos_historico'] ?? [];
+$excluidos = (int) ($this->data['excluidos_sem_historico'] ?? 0);
+$pctVis = InformativoRelatorioService::formatPct($kpis['pct_visualizacao'] ?? 0.0);
+$pctPend = InformativoRelatorioService::formatPct($kpis['pct_pendentes'] ?? 0.0);
+$pctPendCie = $requiresAckCard ? InformativoRelatorioService::formatPct($kpis['pct_pendentes_ciencia'] ?? 0.0) : '';
+$pctCie = $requiresAckCard ? InformativoRelatorioService::formatPct($kpis['pct_ciencia'] ?? 0.0) : '';
+
+if (!function_exists('admsRenderRelatorioPolicyRows')) {
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    function admsRenderRelatorioPolicyRows(array $rows): void
+    {
+        if ($rows === []) {
+            echo '<tr><td colspan="6" class="text-center">Nenhum usuário encontrado</td></tr>';
+            return;
+        }
+        foreach ($rows as $dado) {
+            $statusClass = match ($dado['status']) {
+                'PENDENTE' => 'bg-danger',
+                'VISUALIZOU' => 'bg-info',
+                'VISUALIZOU MAS NÃO CIENTE' => 'bg-warning text-dark',
+                'CIENTE' => 'bg-success',
+                default => 'bg-secondary'
+            };
+            ?>
+            <tr>
+                <td class="text-start align-middle ps-3">
+                    <strong><?php echo htmlspecialchars($dado['usuario_nome']); ?></strong><br>
+                    <small class="text-muted"><?php echo htmlspecialchars($dado['usuario_email']); ?></small>
+                </td>
+                <td class="text-start align-middle ps-3">
+                    <?php if ($dado['visualizou'] === 'SIM'): ?>
+                        <span class="badge bg-success">SIM</span>
+                    <?php else: ?>
+                        <span class="badge bg-danger">NÃO</span>
+                    <?php endif; ?>
+                </td>
+                <td class="text-start align-middle ps-3">
+                    <?php echo htmlspecialchars((string) $dado['data_visualizacao']); ?>
+                </td>
+                <td class="text-start align-middle ps-3">
+                    <?php if ($dado['esta_ciente'] === 'N/A'): ?>
+                        <span class="badge bg-secondary">N/A</span>
+                    <?php elseif ($dado['esta_ciente'] === 'SIM'): ?>
+                        <span class="badge bg-success">SIM</span>
+                    <?php else: ?>
+                        <span class="badge bg-warning text-dark">NÃO</span>
+                    <?php endif; ?>
+                </td>
+                <td class="text-start align-middle ps-3">
+                    <?php echo htmlspecialchars((string) $dado['data_ciencia']); ?>
+                </td>
+                <td class="text-start align-middle ps-3">
+                    <span class="badge <?php echo $statusClass; ?>">
+                        <?php echo htmlspecialchars($dado['status']); ?>
+                    </span>
+                </td>
+            </tr>
+            <?php
+        }
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    function admsRenderRelatorioPolicyCards(array $rows): void
+    {
+        if ($rows === []) {
+            echo '<div class="text-center text-muted py-3">Nenhum usuário encontrado</div>';
+            return;
+        }
+        foreach ($rows as $dado) {
+            $visualizouSim = ($dado['visualizou'] === 'SIM');
+            $estaCiente = $dado['esta_ciente'] ?? 'N/A';
+            $cieStatus = $estaCiente === 'N/A' ? 'bg-secondary' : ($estaCiente === 'SIM' ? 'bg-success' : 'bg-warning text-dark');
+            $statusClass = match ($dado['status']) {
+                'PENDENTE' => 'bg-danger',
+                'VISUALIZOU' => 'bg-info',
+                'VISUALIZOU MAS NÃO CIENTE' => 'bg-warning text-dark',
+                'CIENTE' => 'bg-success',
+                default => 'bg-secondary'
+            };
+            ?>
+            <div
+                class="card mb-3 shadow-sm relatorio-user-card"
+                style="border-radius: 12px;"
+                data-user="<?php echo htmlspecialchars($dado['usuario_nome'] ?? ''); ?>"
+                data-email="<?php echo htmlspecialchars($dado['usuario_email'] ?? ''); ?>"
+            >
+                <div class="card-body" style="padding: 14px;">
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div class="flex-grow-1">
+                            <strong><?php echo htmlspecialchars($dado['usuario_nome']); ?></strong>
+                            <div class="text-muted small"><?php echo htmlspecialchars($dado['usuario_email']); ?></div>
+                        </div>
+                        <span class="badge <?php echo $statusClass; ?>">
+                            <?php echo htmlspecialchars($dado['status']); ?>
+                        </span>
+                    </div>
+                    <div class="mt-2 d-flex flex-wrap gap-1">
+                        <span class="badge <?php echo $visualizouSim ? 'bg-success' : 'bg-danger'; ?>">
+                            Visualizou: <?php echo $visualizouSim ? 'SIM' : 'NÃO'; ?>
+                        </span>
+                        <span class="badge <?php echo $cieStatus; ?>">
+                            Ciência: <?php echo htmlspecialchars($estaCiente); ?>
+                        </span>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted d-block">
+                            Visualização em: <?php echo htmlspecialchars((string) $dado['data_visualizacao']); ?>
+                        </small>
+                        <small class="text-muted d-block">
+                            Ciência em: <?php echo htmlspecialchars((string) $dado['data_ciencia']); ?>
+                        </small>
+                    </div>
+                </div>
+            </div>
+            <?php
+        }
+    }
+}
 ?>
 
 <div class="container-fluid px-4">
     <h1 class="mt-4 mobile-hide-page-title">Relatório de Política Interna</h1>
-
+    
     <ol class="breadcrumb mb-4 mobile-hide-breadcrumb">
         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>dashboard">Dashboard</a></li>
         <li class="breadcrumb-item"><a href="<?php echo $_ENV['URL_ADM']; ?>list-policies">Políticas Internas</a></li>
@@ -12,6 +145,7 @@ use App\adms\Helpers\CSRFHelper;
         <li class="breadcrumb-item active">Resultado</li>
     </ol>
 
+    <!-- Cabeçalho da Política -->
     <div class="card mb-4">
         <div class="card-header bg-primary text-white">
             <h4 class="mb-0">
@@ -24,7 +158,7 @@ use App\adms\Helpers\CSRFHelper;
                 <div class="col-md-6">
                     <p><strong>Categoria:</strong> <?php echo htmlspecialchars($this->data['policy']['categoria_nome'] ?? $this->data['policy']['categoria'] ?? ''); ?></p>
                     <p><strong>Departamento:</strong> <?php echo htmlspecialchars($this->data['policy']['department_name'] ?? 'N/A'); ?></p>
-                    <p><strong>Urgente:</strong>
+                    <p><strong>Urgente:</strong> 
                         <?php if (!empty($this->data['policy']['urgente'])): ?>
                             <span class="badge bg-danger">SIM</span>
                         <?php else: ?>
@@ -33,18 +167,14 @@ use App\adms\Helpers\CSRFHelper;
                     </p>
                 </div>
                 <div class="col-md-6">
-                    <p><strong>Exige Ciência:</strong>
-                        <?php
-                        $requiresAckVal = $this->data['policy']['requires_ack'] ?? null;
-                        $requiresAck = ($requiresAckVal === 1 || $requiresAckVal === '1' || $requiresAckVal === true || $requiresAckVal === 'true' || $requiresAckVal === 'Sim' || $requiresAckVal === 'sim');
-                        ?>
-                        <?php if ($requiresAck): ?>
+                    <p><strong>Exige Ciência:</strong> 
+                        <?php if ($requiresAckCard): ?>
                             <span class="badge bg-warning text-dark">SIM</span>
                         <?php else: ?>
                             <span class="badge bg-secondary">NÃO</span>
                         <?php endif; ?>
                     </p>
-                    <p><strong>Status:</strong>
+                    <p><strong>Status:</strong> 
                         <?php if (!empty($this->data['policy']['ativo'])): ?>
                             <span class="badge bg-success">ATIVA</span>
                         <?php else: ?>
@@ -57,6 +187,7 @@ use App\adms\Helpers\CSRFHelper;
         </div>
     </div>
 
+    <!-- Botões de Ação -->
     <div class="row mb-3">
         <div class="col-md-6">
             <a href="<?php echo $_ENV['URL_ADM']; ?>relatorio-policy" class="btn btn-secondary d-none d-md-inline-block">
@@ -75,66 +206,87 @@ use App\adms\Helpers\CSRFHelper;
             <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-policy-pdf?policy_id=<?php echo (int)$this->data['policy']['id']; ?>"
                class="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-2"
                title="Baixar relatório em PDF"
-               onclick="event.preventDefault(); const q=(typeof getRelatorioPolicyUserFilterValue === 'function') ? getRelatorioPolicyUserFilterValue() : ''; const href=this.getAttribute('href'); if (q) { window.location.href = href + '&usuario_filter=' + encodeURIComponent(q); } else { window.location.href = href; }">
+               onclick="goRelatorioPolicyExport(event, this);">
                 <i class="fas fa-file-pdf me-1"></i>
                 PDF
             </a>
             <a href="<?php echo $_ENV['URL_ADM']; ?>export-relatorio-policy-excel?policy_id=<?php echo (int)$this->data['policy']['id']; ?>"
                class="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-2"
                title="Baixar relatório em Excel (.xlsx)"
-               onclick="event.preventDefault(); const q=(typeof getRelatorioPolicyUserFilterValue === 'function') ? getRelatorioPolicyUserFilterValue() : ''; const href=this.getAttribute('href'); if (q) { window.location.href = href + '&usuario_filter=' + encodeURIComponent(q); } else { window.location.href = href; }">
+               onclick="goRelatorioPolicyExport(event, this);">
                 <i class="fas fa-file-excel me-1"></i>
                 <span>Excel (XLSX)</span>
             </a>
         </div>
     </div>
 
-    <?php
-    $requiresAckCard = $requiresAck;
-    ?>
-    <div class="row mt-0 mb-4">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+    <div class="row g-2 mt-0 mb-3 relatorio-kpi row-cols-1 row-cols-sm-2 <?php echo $requiresAckCard ? 'row-cols-xl-5' : 'row-cols-xl-4'; ?>">
+        <div class="col">
+            <div class="card bg-primary text-white h-100">
                 <div class="card-body text-center">
-                    <h3><?php echo count($this->data['dados_relatorio']); ?></h3>
-                    <p class="mb-0">Total de Usuários</p>
+                    <h3><?php echo (int) $kpis['total']; ?></h3>
+                    <p class="mb-0">Total de ativos</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+        <div class="col">
+            <div class="card bg-success text-white h-100">
                 <div class="card-body text-center">
-                    <h3><?php echo count(array_filter($this->data['dados_relatorio'], fn($d) => $d['visualizou'] === 'SIM')); ?></h3>
-                    <p class="mb-0">Visualizaram</p>
+                    <h3 class="mb-1"><?php echo (int) $kpis['visualizaram']; ?></h3>
+                    <p class="mb-0">Visualizaram <span class="fw-semibold"><?php echo htmlspecialchars($pctVis); ?></span></p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-dark">
+        <div class="col">
+            <div class="card bg-danger text-white h-100">
                 <div class="card-body text-center">
-                    <h3><?php echo count(array_filter($this->data['dados_relatorio'], fn($d) => $d['status'] === 'PENDENTE')); ?></h3>
-                    <p class="mb-0">Pendentes</p>
+                    <h3 class="mb-1"><?php echo (int) $kpis['pendentes']; ?></h3>
+                    <p class="mb-0">Pendentes de visualização <span class="fw-semibold"><?php echo htmlspecialchars($pctPend); ?></span></p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+        <?php if ($requiresAckCard): ?>
+        <div class="col">
+            <div class="card bg-success text-white h-100">
                 <div class="card-body text-center">
-                    <h3>
-                        <?php
-                        if ($requiresAckCard) {
-                            echo count(array_filter($this->data['dados_relatorio'], fn($d) => $d['status'] === 'CIENTE'));
-                        } else {
-                            echo 'N/A';
-                        }
-                        ?>
-                    </h3>
+                    <h3 class="mb-1"><?php echo (int) $kpis['cientes']; ?></h3>
+                    <p class="mb-0">Cientes <span class="fw-semibold"><?php echo htmlspecialchars($pctCie); ?></span></p>
+                </div>
+            </div>
+        </div>
+        <div class="col">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h3 class="mb-1"><?php echo (int) ($kpis['pendentes_ciencia'] ?? 0); ?></h3>
+                    <p class="mb-0">Pendentes de ciência <span class="fw-semibold"><?php echo htmlspecialchars($pctPendCie); ?></span></p>
+                </div>
+            </div>
+        </div>
+        <?php else: ?>
+        <div class="col">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-body text-center">
+                    <h3>N/A</h3>
                     <p class="mb-0">Cientes</p>
                 </div>
             </div>
         </div>
+        <?php endif; ?>
     </div>
+    <style>
+        .relatorio-kpi .card-body { padding: .85rem .5rem; }
+        .relatorio-kpi h3 { font-size: 1.7rem; }
+        .relatorio-kpi p { font-size: .82rem; line-height: 1.3; }
+    </style>
+    <p class="text-muted small mb-4">
+        Os percentuais usam somente colaboradores <strong>ativos</strong>.
+        Inativos sem visualização ou ciência foram omitidos
+        (<?php echo $excluidos; ?>).
+        Inativos que já visualizaram ou deram ciência aparecem na aba de histórico
+        (<?php echo count($dadosInativos); ?>).
+    </p>
 
+    <!-- Tabela do Relatório -->
     <div class="card">
         <div class="card-header">
             <h5 class="mb-0">
@@ -153,159 +305,103 @@ use App\adms\Helpers\CSRFHelper;
                     oninput="filterRelatorioPolicyUsuarios()"
                 >
             </div>
-            <div class="table-responsive d-none d-md-block">
-                <table class="table table-striped table-bordered" id="tabela-relatorio-policy">
-                    <thead class="table-dark">
-                        <tr>
-                            <th class="text-start ps-3" style="min-width: 220px;">Usuário</th>
-                            <th class="text-start ps-3" style="min-width: 120px;">Visualizou</th>
-                            <th class="text-start ps-3" style="min-width: 170px;">Data Visualização</th>
-                            <th class="text-start ps-3" style="min-width: 140px;">Está Ciente?</th>
-                            <th class="text-start ps-3" style="min-width: 170px;">Data da Ciência</th>
-                            <th class="text-start ps-3" style="min-width: 170px;">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php if (!empty($this->data['dados_relatorio'])): ?>
-                            <?php foreach ($this->data['dados_relatorio'] as $dado): ?>
+
+            <ul class="nav nav-tabs mb-3" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="tab-ativos" data-bs-toggle="tab" data-bs-target="#pane-ativos" type="button" role="tab">
+                        Ativos (<?php echo count($dadosAtivos); ?>)
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="tab-inativos" data-bs-toggle="tab" data-bs-target="#pane-inativos" type="button" role="tab">
+                        Inativos com histórico (<?php echo count($dadosInativos); ?>)
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content">
+                <div class="tab-pane fade show active" id="pane-ativos" role="tabpanel">
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-striped table-bordered tabela-relatorio-policy" id="tabela-relatorio-policy">
+                            <thead class="table-dark">
                                 <tr>
-                                    <td class="text-start align-middle ps-3">
-                                        <strong><?php echo htmlspecialchars($dado['usuario_nome']); ?></strong><br>
-                                        <small class="text-muted"><?php echo htmlspecialchars($dado['usuario_email']); ?></small>
-                                    </td>
-                                    <td class="text-start align-middle ps-3">
-                                        <?php if ($dado['visualizou'] === 'SIM'): ?>
-                                            <span class="badge bg-success">SIM</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-danger">NÃO</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-start align-middle ps-3">
-                                        <?php echo $dado['data_visualizacao']; ?>
-                                    </td>
-                                    <td class="text-start align-middle ps-3">
-                                        <?php if ($dado['esta_ciente'] === 'N/A'): ?>
-                                            <span class="badge bg-secondary">N/A</span>
-                                        <?php elseif ($dado['esta_ciente'] === 'SIM'): ?>
-                                            <span class="badge bg-success">SIM</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-warning text-dark">NÃO</span>
-                                        <?php endif; ?>
-                                    </td>
-                                    <td class="text-start align-middle ps-3">
-                                        <?php echo $dado['data_ciencia']; ?>
-                                    </td>
-                                    <td class="text-start align-middle ps-3">
-                                        <?php
-                                        $statusClass = match($dado['status']) {
-                                            'PENDENTE' => 'bg-danger',
-                                            'VISUALIZOU' => 'bg-info',
-                                            'VISUALIZOU MAS NÃO CIENTE' => 'bg-warning text-dark',
-                                            'CIENTE' => 'bg-success',
-                                            default => 'bg-secondary'
-                                        };
-                                        ?>
-                                        <span class="badge <?php echo $statusClass; ?>">
-                                            <?php echo htmlspecialchars($dado['status']); ?>
-                                        </span>
-                                    </td>
+                                    <th class="text-start ps-3" style="min-width: 220px;">Usuário</th>
+                                    <th class="text-start ps-3" style="min-width: 120px;">Visualizou</th>
+                                    <th class="text-start ps-3" style="min-width: 170px;">Data Visualização</th>
+                                    <th class="text-start ps-3" style="min-width: 140px;">Está Ciente?</th>
+                                    <th class="text-start ps-3" style="min-width: 170px;">Data da Ciência</th>
+                                    <th class="text-start ps-3" style="min-width: 170px;">Status</th>
                                 </tr>
-                            <?php endforeach; ?>
-                        <?php else: ?>
-                            <tr>
-                                <td colspan="6" class="text-center">Nenhum usuário encontrado</td>
-                            </tr>
-                        <?php endif; ?>
-                    </tbody>
-                </table>
-            </div>
-
-            <!-- Mobile: mini-cards (evita scroll lateral) -->
-            <div class="d-block d-md-none">
-                <?php if (!empty($this->data['dados_relatorio'])): ?>
-                    <?php foreach ($this->data['dados_relatorio'] as $dado): ?>
-                        <?php
-                        $visualizouSim = ($dado['visualizou'] === 'SIM');
-                        $estaCiente = $dado['esta_ciente'] ?? 'N/A';
-                        $cieStatus = $estaCiente === 'N/A' ? 'bg-secondary' : ($estaCiente === 'SIM' ? 'bg-success' : 'bg-warning text-dark');
-                        $statusClass = match($dado['status']) {
-                            'PENDENTE' => 'bg-danger',
-                            'VISUALIZOU' => 'bg-info',
-                            'VISUALIZOU MAS NÃO CIENTE' => 'bg-warning text-dark',
-                            'CIENTE' => 'bg-success',
-                            default => 'bg-secondary'
-                        };
-                        ?>
-
-                        <div
-                            class="card mb-3 shadow-sm relatorio-user-card"
-                            style="border-radius: 12px;"
-                            data-user="<?php echo htmlspecialchars($dado['usuario_nome'] ?? ''); ?>"
-                            data-email="<?php echo htmlspecialchars($dado['usuario_email'] ?? ''); ?>"
-                        >
-                            <div class="card-body" style="padding: 14px;">
-                                <div class="d-flex justify-content-between align-items-start gap-2">
-                                    <div class="flex-grow-1">
-                                        <strong><?php echo htmlspecialchars($dado['usuario_nome']); ?></strong>
-                                        <div class="text-muted small"><?php echo htmlspecialchars($dado['usuario_email']); ?></div>
-                                    </div>
-                                    <span class="badge <?php echo $statusClass; ?>">
-                                        <?php echo htmlspecialchars($dado['status']); ?>
-                                    </span>
-                                </div>
-
-                                <div class="mt-2 d-flex flex-wrap gap-1">
-                                    <span class="badge <?php echo $visualizouSim ? 'bg-success' : 'bg-danger'; ?>">
-                                        Visualizou: <?php echo $visualizouSim ? 'SIM' : 'NÃO'; ?>
-                                    </span>
-                                    <span class="badge <?php echo $cieStatus; ?>">
-                                        Ciência: <?php echo htmlspecialchars($estaCiente); ?>
-                                    </span>
-                                </div>
-
-                                <div class="mt-2">
-                                    <small class="text-muted d-block">
-                                        Visualização em: <?php echo htmlspecialchars($dado['data_visualizacao']); ?>
-                                    </small>
-                                    <small class="text-muted d-block">
-                                        Ciência em: <?php echo htmlspecialchars($dado['data_ciencia']); ?>
-                                    </small>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <div class="text-center text-muted py-3">Nenhum usuário encontrado</div>
-                <?php endif; ?>
+                            </thead>
+                            <tbody>
+                                <?php admsRenderRelatorioPolicyRows($dadosAtivos); ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-block d-md-none">
+                        <?php admsRenderRelatorioPolicyCards($dadosAtivos); ?>
+                    </div>
+                </div>
+                <div class="tab-pane fade" id="pane-inativos" role="tabpanel">
+                    <p class="text-muted small">Colaboradores inativos que já haviam visualizado ou dado ciência. Não entram no percentual.</p>
+                    <div class="table-responsive d-none d-md-block">
+                        <table class="table table-striped table-bordered tabela-relatorio-policy" id="tabela-relatorio-policy-inativos">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="text-start ps-3" style="min-width: 220px;">Usuário</th>
+                                    <th class="text-start ps-3" style="min-width: 120px;">Visualizou</th>
+                                    <th class="text-start ps-3" style="min-width: 170px;">Data Visualização</th>
+                                    <th class="text-start ps-3" style="min-width: 140px;">Está Ciente?</th>
+                                    <th class="text-start ps-3" style="min-width: 170px;">Data da Ciência</th>
+                                    <th class="text-start ps-3" style="min-width: 170px;">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php admsRenderRelatorioPolicyRows($dadosInativos); ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="d-block d-md-none">
+                        <?php admsRenderRelatorioPolicyCards($dadosInativos); ?>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
 <script>
+
 function getRelatorioPolicyUserFilterValue() {
     const input = document.getElementById('relatorioUserFilterPolicy');
     return (input?.value || '').toString().toLowerCase().trim();
 }
 
+function goRelatorioPolicyExport(event, el) {
+    event.preventDefault();
+    const filtroUsuario = (typeof getRelatorioPolicyUserFilterValue === 'function')
+        ? getRelatorioPolicyUserFilterValue()
+        : '';
+    const destino = el.getAttribute('href') || '';
+    window.location.href = filtroUsuario
+        ? destino + '&usuario_filter=' + encodeURIComponent(filtroUsuario)
+        : destino;
+}
+
 function filterRelatorioPolicyUsuarios() {
     const q = getRelatorioPolicyUserFilterValue();
 
-    // Desktop: filtra linhas da tabela
-    const table = document.getElementById('tabela-relatorio-policy');
-    if (table) {
+    document.querySelectorAll('.tabela-relatorio-policy').forEach(table => {
         const tbodyRows = table.querySelectorAll('tbody tr');
         tbodyRows.forEach(tr => {
-            const userStrong = tr.querySelector('td.ps-3 strong')?.textContent || '';
-            const emailSmall = tr.querySelector('td.ps-3 small')?.textContent || '';
-            const haystack = (userStrong + ' ' + emailSmall).toLowerCase();
+            const userCell = tr.querySelector('td.ps-3 strong')?.textContent || '';
+            const emailCell = tr.querySelector('td.ps-3 small')?.textContent || '';
+            const haystack = (userCell + ' ' + emailCell).toLowerCase();
             tr.style.display = (!q || haystack.includes(q)) ? '' : 'none';
         });
-    }
+    });
 
-    // Mobile: filtra cards
-    const cards = document.querySelectorAll('.relatorio-user-card');
-    cards.forEach(card => {
+    document.querySelectorAll('.relatorio-user-card').forEach(card => {
         const user = (card.dataset.user || '').toLowerCase();
         const email = (card.dataset.email || '').toLowerCase();
         const haystack = user + ' ' + email;
@@ -319,7 +415,6 @@ const SHEETJS_SRC = 'https://cdn.jsdelivr.net/npm/xlsx@0.20.2/dist/xlsx.full.min
 function loadSheetJs() {
     if (window.XLSX) return Promise.resolve(window.XLSX);
 
-    // Sempre tenta carregar de novo para evitar “promise rejeitada” em cliques repetidos.
     const existing = document.getElementById('sheetjs-xlsx-cdn');
     if (existing) existing.remove();
 
@@ -341,7 +436,6 @@ async function exportarExcelRelatorioPolicy() {
     const table = document.getElementById('tabela-relatorio-policy');
     if (!table) return;
 
-    // Garante que o filtro já foi aplicado antes de exportar.
     if (typeof filterRelatorioPolicyUsuarios === 'function') {
         filterRelatorioPolicyUsuarios();
     }
@@ -394,4 +488,3 @@ async function exportarExcelRelatorioPolicy() {
     }
 }
 </script>
-

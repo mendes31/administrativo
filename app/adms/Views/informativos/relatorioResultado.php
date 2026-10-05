@@ -14,6 +14,8 @@ $dadosAtivos = $this->data['dados_relatorio'] ?? [];
 $dadosInativos = $this->data['dados_inativos_historico'] ?? [];
 $excluidos = (int) ($this->data['excluidos_sem_historico'] ?? 0);
 $pctVis = InformativoRelatorioService::formatPct($kpis['pct_visualizacao'] ?? 0.0);
+$pctPend = InformativoRelatorioService::formatPct($kpis['pct_pendentes'] ?? 0.0);
+$pctPendCie = $requiresAckCard ? InformativoRelatorioService::formatPct($kpis['pct_pendentes_ciencia'] ?? 0.0) : '';
 $pctCie = $requiresAckCard ? InformativoRelatorioService::formatPct($kpis['pct_ciencia'] ?? 0.0) : '';
 
 if (!function_exists('admsRenderRelatorioInformativoRows')) {
@@ -218,45 +220,64 @@ if (!function_exists('admsRenderRelatorioInformativoRows')) {
         </div>
     </div>
 
-    <div class="row mt-0 mb-3">
-        <div class="col-md-3">
-            <div class="card bg-primary text-white">
+    <div class="row g-2 mt-0 mb-3 relatorio-kpi row-cols-1 row-cols-sm-2 <?php echo $requiresAckCard ? 'row-cols-xl-5' : 'row-cols-xl-4'; ?>">
+        <div class="col">
+            <div class="card bg-primary text-white h-100">
                 <div class="card-body text-center">
                     <h3><?php echo (int) $kpis['total']; ?></h3>
                     <p class="mb-0">Total de ativos</p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-success text-white">
+        <div class="col">
+            <div class="card bg-success text-white h-100">
                 <div class="card-body text-center">
                     <h3 class="mb-1"><?php echo (int) $kpis['visualizaram']; ?></h3>
                     <p class="mb-0">Visualizaram <span class="fw-semibold"><?php echo htmlspecialchars($pctVis); ?></span></p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-warning text-dark">
+        <div class="col">
+            <div class="card bg-danger text-white h-100">
                 <div class="card-body text-center">
-                    <h3><?php echo (int) $kpis['pendentes']; ?></h3>
-                    <p class="mb-0">Pendentes</p>
+                    <h3 class="mb-1"><?php echo (int) $kpis['pendentes']; ?></h3>
+                    <p class="mb-0">Pendentes de visualização <span class="fw-semibold"><?php echo htmlspecialchars($pctPend); ?></span></p>
                 </div>
             </div>
         </div>
-        <div class="col-md-3">
-            <div class="card bg-info text-white">
+        <?php if ($requiresAckCard): ?>
+        <div class="col">
+            <div class="card bg-success text-white h-100">
                 <div class="card-body text-center">
-                    <?php if ($requiresAckCard): ?>
-                        <h3 class="mb-1"><?php echo (int) $kpis['cientes']; ?></h3>
-                        <p class="mb-0">Cientes <span class="fw-semibold"><?php echo htmlspecialchars($pctCie); ?></span></p>
-                    <?php else: ?>
-                        <h3>N/A</h3>
-                        <p class="mb-0">Cientes</p>
-                    <?php endif; ?>
+                    <h3 class="mb-1"><?php echo (int) $kpis['cientes']; ?></h3>
+                    <p class="mb-0">Cientes <span class="fw-semibold"><?php echo htmlspecialchars($pctCie); ?></span></p>
                 </div>
             </div>
         </div>
+        <div class="col">
+            <div class="card bg-warning text-dark h-100">
+                <div class="card-body text-center">
+                    <h3 class="mb-1"><?php echo (int) ($kpis['pendentes_ciencia'] ?? 0); ?></h3>
+                    <p class="mb-0">Pendentes de ciência <span class="fw-semibold"><?php echo htmlspecialchars($pctPendCie); ?></span></p>
+                </div>
+            </div>
+        </div>
+        <?php else: ?>
+        <div class="col">
+            <div class="card bg-secondary text-white h-100">
+                <div class="card-body text-center">
+                    <h3>N/A</h3>
+                    <p class="mb-0">Cientes</p>
+                </div>
+            </div>
+        </div>
+        <?php endif; ?>
     </div>
+    <style>
+        .relatorio-kpi .card-body { padding: .85rem .5rem; }
+        .relatorio-kpi h3 { font-size: 1.7rem; }
+        .relatorio-kpi p { font-size: .82rem; line-height: 1.3; }
+    </style>
     <p class="text-muted small mb-4">
         Os percentuais usam somente colaboradores <strong>ativos</strong>.
         Inativos sem visualização ou ciência foram omitidos
