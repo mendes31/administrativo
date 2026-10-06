@@ -50,6 +50,8 @@
     <dd>Ainda não há cliente embutido. Copie ID/senha e use o aplicativo RustDesk. O acesso direto pelo portal está previsto para uma versão futura.</dd>
     <dt>Quero cadastrar vários de uma vez</dt>
     <dd>Use <em>Administração → Importações</em>, tipo <em>TI — RustDesk</em>, ou o botão <strong>Importar</strong> nesta tela. Baixe o modelo CSV (rótulos + nomes dos campos). Permissão: <em>ImportCenterTi</em>.</dd>
+    <dt>Importação diz “Colaborador não encontrado”</dt>
+    <dd>O campo é opcional. A linha é gravada mesmo assim, sem vincular a pessoa. Confira se o login/e-mail existe no cadastro de usuários se quiser o vínculo na ficha.</dd>
     <dt>Página não encontrada</dt>
     <dd>Rode a migration <code>20261005180000_create_ti_rustdesk</code>. Quem já tinha permissão de Sistemas recebe as páginas RustDesk na mesma migration.</dd>
 </dl>

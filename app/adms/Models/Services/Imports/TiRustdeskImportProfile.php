@@ -75,34 +75,36 @@ final class TiRustdeskImportProfile implements ImportProfileInterface
                 if ($operation === 'update') {
                     return ['action' => 'skipped', 'message' => 'RustDesk não encontrado.', 'key' => $keyRaw];
                 }
-                $payload = $this->buildCreatePayload($mapped);
+                [$payload, $warnings] = $this->buildCreatePayload($mapped);
+                $msg = $this->withWarnings($dryRun ? 'Seria criado.' : 'RustDesk cadastrado.', $warnings);
                 if ($dryRun) {
-                    return ['action' => 'would_create', 'message' => 'Seria criado.', 'key' => $payload['rustdesk_id']];
+                    return ['action' => 'would_create', 'message' => $msg, 'key' => $payload['rustdesk_id']];
                 }
                 $ok = $repo->create($payload, $actorId);
                 if (!$ok) {
                     return ['action' => 'error', 'message' => 'Falha ao criar. Verifique se o ID já existe.', 'key' => $keyRaw];
                 }
 
-                return ['action' => 'created', 'message' => 'RustDesk cadastrado.', 'key' => $payload['rustdesk_id']];
+                return ['action' => 'created', 'message' => $msg, 'key' => $payload['rustdesk_id']];
             }
 
             if ($operation === 'insert') {
                 return ['action' => 'skipped', 'message' => 'Já existe.', 'key' => $keyRaw];
             }
-            $payload = $this->buildUpdatePayload($mapped, $existing, $emptyPolicy);
+            [$payload, $warnings] = $this->buildUpdatePayload($mapped, $existing, $emptyPolicy);
+            $msg = $this->withWarnings($dryRun ? 'Seria atualizado.' : 'RustDesk atualizado.', $warnings);
             if ($dryRun) {
-                return ['action' => 'would_update', 'message' => 'Seria atualizado.', 'key' => $keyRaw];
+                return ['action' => 'would_update', 'message' => $msg, 'key' => $keyRaw];
             }
             $ok = $repo->update((int) $existing['id'], $payload, $actorId);
             if (!$ok) {
                 return ['action' => 'error', 'message' => 'Falha ao atualizar.', 'key' => $keyRaw];
             }
+
+            return ['action' => 'updated', 'message' => $msg, 'key' => $keyRaw];
         } catch (\Throwable $e) {
             return ['action' => 'error', 'message' => $e->getMessage(), 'key' => $keyRaw];
         }
-
-        return ['action' => 'updated', 'message' => 'RustDesk atualizado.', 'key' => $keyRaw];
     }
 
     /**
@@ -126,7 +128,7 @@ final class TiRustdeskImportProfile implements ImportProfileInterface
 
     /**
      * @param array<string, string> $mapped
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: list<string>}
      */
     private function buildCreatePayload(array $mapped): array
     {
@@ -146,21 +148,26 @@ final class TiRustdeskImportProfile implements ImportProfileInterface
             throw new \RuntimeException('Não foi possível preparar a criptografia da senha (storage/private/secrets).');
         }
 
+        [$userId, $warnings] = $this->resolveColaborador(SstImportValues::v($mapped, 'colaborador'));
+
         return [
-            'alias' => $alias,
-            'rustdesk_id' => $rustdeskId,
-            'adms_user_id' => $this->resolveColaborador(SstImportValues::v($mapped, 'colaborador'), true),
-            'observacoes' => SstImportValues::v($mapped, 'observacoes') ?: null,
-            'status' => $this->normalizeStatus(SstImportValues::v($mapped, 'status')) ?? TiRustdeskRepository::STATUS_ATIVO,
-            'senha' => $senha,
-            'limpar_senha' => false,
+            [
+                'alias' => $alias,
+                'rustdesk_id' => $rustdeskId,
+                'adms_user_id' => $userId,
+                'observacoes' => SstImportValues::v($mapped, 'observacoes') ?: null,
+                'status' => $this->normalizeStatus(SstImportValues::v($mapped, 'status')) ?? TiRustdeskRepository::STATUS_ATIVO,
+                'senha' => $senha,
+                'limpar_senha' => false,
+            ],
+            $warnings,
         ];
     }
 
     /**
      * @param array<string, string> $mapped
      * @param array<string, mixed> $existing
-     * @return array<string, mixed>
+     * @return array{0: array<string, mixed>, 1: list<string>}
      */
     private function buildUpdatePayload(array $mapped, array $existing, string $emptyPolicy): array
     {
@@ -193,39 +200,61 @@ final class TiRustdeskImportProfile implements ImportProfileInterface
         }
 
         $userId = (int) ($existing['adms_user_id'] ?? 0);
+        $warnings = [];
         if (SstImportValues::has($mapped, 'colaborador')) {
             $raw = SstImportValues::v($mapped, 'colaborador');
             if ($raw === '') {
                 $userId = $emptyPolicy === 'clear' ? 0 : $userId;
             } else {
-                $resolved = $this->resolveColaborador($raw, true);
-                $userId = (int) ($resolved ?? 0);
+                [$resolved, $colabWarnings] = $this->resolveColaborador($raw);
+                $warnings = $colabWarnings;
+                if ($resolved !== null) {
+                    $userId = $resolved;
+                }
             }
         }
 
         return [
-            'alias' => $alias,
-            'rustdesk_id' => $rustdeskId,
-            'adms_user_id' => $userId > 0 ? $userId : null,
-            'observacoes' => $obs !== '' ? $obs : null,
-            'status' => $status,
-            'senha' => $senha,
-            'limpar_senha' => $limpar,
+            [
+                'alias' => $alias,
+                'rustdesk_id' => $rustdeskId,
+                'adms_user_id' => $userId > 0 ? $userId : null,
+                'observacoes' => $obs !== '' ? $obs : null,
+                'status' => $status,
+                'senha' => $senha,
+                'limpar_senha' => $limpar,
+            ],
+            $warnings,
         ];
     }
 
-    private function resolveColaborador(string $raw, bool $requiredIfFilled): ?int
+    /**
+     * @return array{0: ?int, 1: list<string>}
+     */
+    private function resolveColaborador(string $raw): array
     {
         $raw = trim($raw);
         if ($raw === '') {
-            return null;
+            return [null, []];
         }
         $id = (new SstImportLookup())->user($raw);
-        if ($id === null && $requiredIfFilled) {
-            throw new \RuntimeException('Colaborador não encontrado: ' . $raw);
+        if ($id === null) {
+            return [null, ['Colaborador não encontrado: ' . $raw . ' (não vinculado).']];
         }
 
-        return $id;
+        return [$id, []];
+    }
+
+    /**
+     * @param list<string> $warnings
+     */
+    private function withWarnings(string $message, array $warnings): string
+    {
+        if ($warnings === []) {
+            return $message;
+        }
+
+        return $message . ' ' . implode(' ', $warnings);
     }
 
     private function normalizeStatus(string $raw): ?string

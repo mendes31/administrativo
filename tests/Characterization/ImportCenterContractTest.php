@@ -141,8 +141,10 @@ final class ImportCenterContractTest extends TestCase
         self::assertStringContainsString('function commitSimulation', $runner);
 
         $view = $this->readProjectFile('app/adms/Views/imports/view.php');
-        self::assertStringContainsString('Registrar importação', $view);
+        self::assertStringContainsString('Gravar no banco', $view);
         self::assertStringContainsString('import-center-commit/', $view);
+        self::assertStringContainsString('Enviar outro arquivo', $view);
+        self::assertStringContainsString('import-center-create', $view);
     }
 
     public function testImportUsersRemainsIndependent(): void

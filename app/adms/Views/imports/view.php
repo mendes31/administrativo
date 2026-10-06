@@ -56,39 +56,102 @@ $actionClass = [
 
             <?php
             $qtdErros = (int) ($stats['errors'] ?? 0);
+            $linhasOk = (int) ($stats['created'] ?? 0) + (int) ($stats['updated'] ?? 0);
+            $isDryRun = !empty($job['dry_run']);
+            $canCommit = $isDryRun
+                && $podeRegistrar
+                && $linhasOk > 0
+                && in_array('ImportCenterCommit', $perms, true);
+            $profileKey = (string) ($job['profile_key'] ?? '');
+            $canUpload = $profileKey !== '';
+            $confirmGravar = $qtdErros > 0
+                ? 'Há ' . $qtdErros . ' linha(s) com erro — elas não serão gravadas. As outras ' . $linhasOk . ' serão gravadas. Continuar?'
+                : 'Gravar no banco as ' . $linhasOk . ' linha(s) desta simulação?';
             ?>
-            <?php if ($qtdErros > 0): ?>
-                <div class="alert alert-info">
-                    Não dá para editar este job nem trocar a planilha ou o ZIP aqui.
-                    Corrija os arquivos no computador e clique em <strong>Enviar outro arquivo</strong> para uma nova importação.
-                    <?php if (!empty($job['dry_run'])): ?>
-                        Não use <em>Registrar importação</em> enquanto houver linhas em erro — isso reaproveitaria os mesmos arquivos desta simulação.
-                    <?php endif; ?>
-                </div>
-            <?php endif; ?>
-
-            <?php if (!empty($job['dry_run'])): ?>
+            <?php if ($isDryRun): ?>
                 <div class="alert alert-warning">
                     Esta execução foi uma <strong>simulação</strong>: nada foi gravado no banco.
-                    <?php if ($qtdErros > 0): ?>
-                        Corrija as linhas com erro e envie de novo.
-                    <?php elseif ($podeRegistrar && in_array('ImportCenterCommit', $perms, true)): ?>
-                        Se o resultado estiver correto, registre a importação abaixo — o mesmo arquivo e o mapeamento já salvos serão usados.
-                    <?php elseif (!empty($this->data['arquivo_disponivel'])): ?>
-                        Envie o arquivo novamente sem a opção de simular, ou peça a permissão <em>ImportCenterCommit</em>.
-                    <?php else: ?>
-                        O arquivo desta simulação não está mais disponível; envie a planilha de novo sem a opção de simular.
+                    Você pode <strong>gravar</strong> as linhas válidas ou <strong>enviar outro arquivo</strong> (nova importação do mesmo tipo).
+                </div>
+                <div class="row g-3 mb-4">
+                    <?php if ($canCommit): ?>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h3 class="h6">Gravar esta simulação</h3>
+                                <p class="small text-muted mb-2">
+                                    Reaproveita o arquivo e o mapeamento já usados.
+                                    <?php if ($qtdErros > 0): ?>
+                                        As linhas com erro ficam de fora; as demais entram no cadastro.
+                                    <?php else: ?>
+                                        Todas as linhas válidas entram no cadastro.
+                                    <?php endif; ?>
+                                </p>
+                                <form method="POST" action="<?php echo $urlAdm; ?>import-center-commit/<?php echo (int) ($job['id'] ?? 0); ?>"
+                                      onsubmit="return confirm(<?php echo htmlspecialchars(json_encode($confirmGravar, JSON_UNESCAPED_UNICODE), ENT_QUOTES, 'UTF-8'); ?>);">
+                                    <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfCommit, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <button type="submit" class="btn btn-success">
+                                        <i class="fa-solid fa-floppy-disk"></i> Gravar no banco
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    <?php elseif ($linhasOk === 0): ?>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h3 class="h6">Gravar esta simulação</h3>
+                                <p class="small text-muted mb-0">Nenhuma linha válida para gravar. Corrija a planilha e envie outro arquivo.</p>
+                            </div>
+                        </div>
+                    <?php elseif (!in_array('ImportCenterCommit', $perms, true)): ?>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h3 class="h6">Gravar esta simulação</h3>
+                                <p class="small text-muted mb-0">Falta a permissão <em>ImportCenterCommit</em> para gravar a partir desta simulação.</p>
+                            </div>
+                        </div>
+                    <?php elseif (!$podeRegistrar): ?>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h3 class="h6">Gravar esta simulação</h3>
+                                <p class="small text-muted mb-0">O arquivo ou o mapeamento desta simulação não está mais disponível. Envie a planilha de novo.</p>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+                    <?php if ($canUpload): ?>
+                        <div class="col-lg-6">
+                            <div class="border rounded p-3 h-100">
+                                <h3 class="h6">Enviar outro arquivo</h3>
+                                <p class="small text-muted mb-2">Nova importação do tipo <?php echo $profile ? htmlspecialchars($profile->label(), ENT_QUOTES, 'UTF-8') : htmlspecialchars($profileKey, ENT_QUOTES, 'UTF-8'); ?>. A simulação fica marcada por padrão.</p>
+                                <form method="POST" action="<?php echo $urlAdm; ?>import-center-create" enctype="multipart/form-data" class="row g-2">
+                                    <input type="hidden" name="csrf_token" value="<?php echo CSRFHelper::generateCSRFToken('form_import_center_upload'); ?>">
+                                    <input type="hidden" name="profile" value="<?php echo htmlspecialchars($profileKey, ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="operation" value="<?php echo htmlspecialchars((string) ($job['operation'] ?? 'upsert'), ENT_QUOTES, 'UTF-8'); ?>">
+                                    <input type="hidden" name="empty_policy" value="<?php echo htmlspecialchars((string) ($job['empty_policy'] ?? 'skip'), ENT_QUOTES, 'UTF-8'); ?>">
+                                    <div class="col-12">
+                                        <input class="form-control form-control-sm" type="file" name="file" accept=".xlsx,.xls,.csv,.txt" required>
+                                    </div>
+                                    <?php if ($profileKey === 'sst_epis'): ?>
+                                        <div class="col-12">
+                                            <input class="form-control form-control-sm" type="file" name="images_zip" accept=".zip,application/zip">
+                                            <div class="form-text">ZIP das fotos (opcional)</div>
+                                        </div>
+                                    <?php endif; ?>
+                                    <div class="col-12">
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="dry_run" id="view_dry_run" value="1" checked>
+                                            <label class="form-check-label" for="view_dry_run">Somente simular</label>
+                                        </div>
+                                    </div>
+                                    <div class="col-12">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            <i class="fa-solid fa-file-arrow-up"></i> Enviar e mapear
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     <?php endif; ?>
                 </div>
-                <?php if ($podeRegistrar && $qtdErros === 0 && in_array('ImportCenterCommit', $perms, true)): ?>
-                    <form method="POST" action="<?php echo $urlAdm; ?>import-center-commit/<?php echo (int) ($job['id'] ?? 0); ?>" class="mb-3"
-                          onsubmit="return confirm('Gravar no banco as <?php echo (int) ($stats['rows'] ?? 0); ?> linha(s) desta simulação?');">
-                        <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfCommit, ENT_QUOTES, 'UTF-8'); ?>">
-                        <button type="submit" class="btn btn-success">
-                            <i class="fa-solid fa-floppy-disk"></i> Registrar importação
-                        </button>
-                    </form>
-                <?php endif; ?>
             <?php endif; ?>
 
             <?php if (!empty($job['error_message'])): ?>

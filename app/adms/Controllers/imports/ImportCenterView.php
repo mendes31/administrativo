@@ -51,7 +51,7 @@ class ImportCenterView
         $pageElements = [
             'title_head' => 'Resultado da importação',
             'menu' => 'import-center',
-            'buttonPermission' => ['ImportCenterView', 'ImportCenter', 'ImportCenterCommit'],
+            'buttonPermission' => ['ImportCenterView', 'ImportCenter', 'ImportCenterCommit', 'ImportCenterCreate'],
         ];
         $this->data = array_merge($this->data, (new PageLayoutService())->configurePageElements($pageElements));
         (new LoadViewService('adms/Views/imports/view', $this->data))->loadView();

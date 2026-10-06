@@ -167,7 +167,7 @@ final class SstImportLookup extends DbConnection
         }
         $stmt = $pdo->prepare(
             'SELECT id FROM adms_users
-             WHERE username = :u OR LOWER(email) = LOWER(:e) OR LOWER(TRIM(name)) = LOWER(:n)
+             WHERE LOWER(username) = LOWER(:u) OR LOWER(email) = LOWER(:e) OR LOWER(TRIM(name)) = LOWER(:n)
              LIMIT 1'
         );
         $stmt->bindValue(':u', $raw);
