@@ -43,7 +43,9 @@ final class TiRustdeskUpdate
 
     private function viewForm(int $registroId): void
     {
-        $this->data['users'] = (new TiRustdeskRepository())->getUsersSelect();
+        $this->data['users'] = (new TiRustdeskRepository())->getUsersSelect(
+            (int) ($this->data['form']['adms_user_id'] ?? 0)
+        );
         $this->data['encryption_ok'] = TiRustdeskSecretService::isConfigured();
         $this->data['is_edit'] = true;
         $this->data['registro_id'] = $registroId;

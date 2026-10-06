@@ -13,6 +13,8 @@
     <dd>Senha da conta de quem está logado neste Administrativo. É exigida de novo para <strong>ver</strong> ou <strong>copiar</strong> a senha da máquina.</dd>
     <dt>Apelido</dt>
     <dd>Nome amigável (ex.: <em>usuario@hostname</em>), como costuma aparecer no painel do RustDesk.</dd>
+    <dt>Departamento</dt>
+    <dd>Setor do colaborador vinculado à máquina. Sem colaborador, o card não mostra departamento.</dd>
 </dl>
 
 <p><strong>Quem acessa:</strong> <em>TiRustdesk</em> (lista), <em>TiRustdeskCreate</em>, <em>TiRustdeskUpdate</em>, <em>TiRustdeskView</em> e <em>TiRustdeskReveal</em> (olho/cópia da senha), no grupo ACL <em>TI - Sistemas e Acessos</em>. A carga em lote usa ainda <em>ImportCenterTi</em> na Central de Importações. Quem já tinha as páginas de Sistemas na data da migration recebe a cópia automática; se o nível foi liberado depois, marque também as páginas RustDesk.</p>
@@ -22,17 +24,18 @@
     <li>Acesse <em>TI / Acessos → RustDesk</em>.</li>
     <li>Para carga em lote, use <em>Administração → Importações</em> (tipo <strong>TI — RustDesk</strong>) ou o botão <strong>Importar</strong> nesta tela. Baixe o modelo CSV, preencha ID, apelido e, se quiser, senha/colaborador.</li>
     <li>Opcionalmente vincule o colaborador dono da máquina e anote observações.</li>
-    <li>Na grade, o card mostra o apelido da máquina e, abaixo, o colaborador vinculado (se houver). O ícone de <strong>cópia</strong> ao lado do número copia o ID (sem senha).</li>
+    <li>Na grade, o card mostra o apelido da máquina e, abaixo, o colaborador e o departamento (quando vinculados). Clique no card para abrir a ficha completa. O ícone de <strong>cópia</strong> ao lado do número copia o ID (sem senha).</li>
     <li>O <strong>olho</strong> pede a senha da sua conta neste sistema e então mostra a senha do RustDesk por 30 segundos. A chave ao lado copia a senha sem exibi-la, também após a mesma confirmação.</li>
     <li>Abra o cliente RustDesk, cole o ID e, se precisar, a senha.</li>
-    <li>Para corrigir dados ou trocar a senha, use a ficha (reticências) e <strong>Editar</strong>. Deixe o campo senha em branco para manter a atual; marque <em>Remover a senha cadastrada</em> para apagá-la.</li>
+    <li>Para corrigir dados ou trocar a senha, abra a ficha (clique no card) e use <strong>Editar</strong>. Deixe o campo senha em branco para manter a atual; marque <em>Remover a senha cadastrada</em> para apagá-la.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Apelido</strong> Obrigatório. Identifica a máquina na grade colorida.</div>
 <div class="help-field"><strong>ID RustDesk</strong> Obrigatório, único, 6 a 16 dígitos.</div>
 <div class="help-field"><strong>Senha do RustDesk</strong> Opcional. Só para consulta e cópia no portal (não é login deste sistema). Criptografada em repouso. Nunca entra no log de alterações em claro.</div>
-<div class="help-field"><strong>Colaborador</strong> Usuário do Administrativo, opcional. Quando vinculado, o nome aparece no card abaixo do apelido.</div>
+<div class="help-field"><strong>Colaborador</strong> Usuário ativo do Administrativo, opcional. Desligados e inativos não entram na lista (na edição, o já vinculado continua visível). Quando vinculado, o nome aparece no card abaixo do apelido.</div>
+<div class="help-field"><strong>Departamento</strong> Vem do cadastro do colaborador vinculado. Aparece no card abaixo do nome e pode filtrar a listagem (Todos, um departamento ou Sem departamento).</div>
 <div class="help-field"><strong>Status</strong> Ativo (aparece no filtro padrão) ou inativo (máquina desligada/desativada).</div>
 <div class="help-field"><strong>Observações</strong> Texto livre (local, ramal, etc.).</div>
 

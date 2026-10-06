@@ -27,20 +27,34 @@ final class TiRustdesk
 
         $filter = trim((string) ($_GET['q'] ?? ''));
         $filterStatus = trim((string) ($_GET['status'] ?? 'ativo'));
+        $filterDeptRaw = trim((string) ($_GET['departamento'] ?? ''));
+        $filterDept = null;
+        if ($filterDeptRaw === '0') {
+            $filterDept = 0;
+        } elseif ($filterDeptRaw !== '' && ctype_digit($filterDeptRaw)) {
+            $filterDept = (int) $filterDeptRaw;
+        }
 
         $repo = new TiRustdeskRepository();
-        $total = $repo->countAll($filter, $filterStatus);
-        $this->data['registros'] = $repo->getAll((int) $page, $this->limitResult, $filter, $filterStatus);
+        $total = $repo->countAll($filter, $filterStatus, $filterDept);
+        $this->data['registros'] = $repo->getAll((int) $page, $this->limitResult, $filter, $filterStatus, $filterDept);
         $this->data['pagination'] = PaginationService::generatePagination(
             $total,
             $this->limitResult,
             (int) $page,
             'ti-rustdesk',
-            ['per_page' => $this->limitResult, 'q' => $filter, 'status' => $filterStatus]
+            [
+                'per_page' => $this->limitResult,
+                'q' => $filter,
+                'status' => $filterStatus,
+                'departamento' => $filterDeptRaw,
+            ]
         );
         $this->data['per_page'] = $this->limitResult;
         $this->data['filter_q'] = $filter;
         $this->data['filter_status'] = $filterStatus;
+        $this->data['filter_departamento'] = $filterDeptRaw;
+        $this->data['departamentos'] = $repo->getDepartmentsSelect();
         $this->data['encryption_ok'] = TiRustdeskSecretService::isConfigured();
         $this->data['csrf_reveal'] = CSRFHelper::generateCSRFToken('form_ti_rustdesk_reveal');
 

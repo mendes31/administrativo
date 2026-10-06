@@ -151,17 +151,19 @@ class TiRustdeskRepository extends DbConnection
     /**
      * @return list<array<string, mixed>>
      */
-    public function getAll(int $page = 1, int $limit = 24, string $filter = '', string $filterStatus = ''): array
+    public function getAll(int $page = 1, int $limit = 24, string $filter = '', string $filterStatus = '', ?int $filterDept = null): array
     {
         $offset = max(0, ($page - 1) * $limit);
-        [$whereSql, $params] = $this->buildWhere($filter, $filterStatus);
+        [$whereSql, $params] = $this->buildWhere($filter, $filterStatus, $filterDept);
 
         $sql = 'SELECT r.id, r.alias, r.rustdesk_id, r.status, r.adms_user_id, r.observacoes,
                        r.created_at, r.updated_at,
                        (r.senha_encriptada IS NOT NULL AND r.senha_encriptada <> \'\') AS has_senha,
-                       u.name AS colaborador_nome, u.email AS colaborador_email
+                       u.name AS colaborador_nome, u.email AS colaborador_email,
+                       d.id AS departamento_id, d.name AS departamento_nome
                 FROM ti_rustdesk r
                 LEFT JOIN adms_users u ON u.id = r.adms_user_id
+                LEFT JOIN adms_departments d ON d.id = u.user_department_id
                 WHERE ' . $whereSql . '
                 ORDER BY r.alias ASC
                 LIMIT :limit OFFSET :offset';
@@ -190,13 +192,14 @@ class TiRustdeskRepository extends DbConnection
         }
     }
 
-    public function countAll(string $filter = '', string $filterStatus = ''): int
+    public function countAll(string $filter = '', string $filterStatus = '', ?int $filterDept = null): int
     {
-        [$whereSql, $params] = $this->buildWhere($filter, $filterStatus);
+        [$whereSql, $params] = $this->buildWhere($filter, $filterStatus, $filterDept);
         try {
             $stmt = $this->getConnection()->prepare(
                 'SELECT COUNT(*) FROM ti_rustdesk r
                  LEFT JOIN adms_users u ON u.id = r.adms_user_id
+                 LEFT JOIN adms_departments d ON d.id = u.user_department_id
                  WHERE ' . $whereSql
             );
             foreach ($params as $k => $v) {
@@ -227,9 +230,11 @@ class TiRustdeskRepository extends DbConnection
                 'SELECT r.id, r.alias, r.rustdesk_id, r.status, r.adms_user_id, r.observacoes,
                         r.created_by_user_id, r.updated_by_user_id, r.created_at, r.updated_at,
                         (r.senha_encriptada IS NOT NULL AND r.senha_encriptada <> \'\') AS has_senha,
-                        u.name AS colaborador_nome, u.email AS colaborador_email
+                        u.name AS colaborador_nome, u.email AS colaborador_email,
+                        d.id AS departamento_id, d.name AS departamento_nome
                  FROM ti_rustdesk r
                  LEFT JOIN adms_users u ON u.id = r.adms_user_id
+                 LEFT JOIN adms_departments d ON d.id = u.user_department_id
                  WHERE r.id = :id LIMIT 1'
             );
             $stmt->bindValue(':id', $id, PDO::PARAM_INT);
@@ -376,16 +381,27 @@ class TiRustdeskRepository extends DbConnection
     }
 
     /**
+     * Colaboradores ativos (não desligados) para o select.
+     *
      * @return list<array{id:int,name:string,email:string}>
      */
-    public function getUsersSelect(): array
+    public function getUsersSelect(?int $keepUserId = null): array
     {
         try {
-            $stmt = $this->getConnection()->query(
-                "SELECT id, name, email FROM adms_users WHERE status = 'Ativo' ORDER BY name ASC"
+            $keepUserId = $keepUserId !== null && $keepUserId > 0 ? $keepUserId : 0;
+            $stmt = $this->getConnection()->prepare(
+                "SELECT id, name, email FROM adms_users
+                 WHERE (
+                    status = 'Ativo'
+                    AND (data_desligamento IS NULL OR data_desligamento = '0000-00-00' OR TRIM(data_desligamento) = '')
+                 )
+                 OR id = :keep
+                 ORDER BY name ASC"
             );
+            $stmt->bindValue(':keep', $keepUserId, PDO::PARAM_INT);
+            $stmt->execute();
 
-            return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+            return $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
         } catch (PDOException $e) {
             GenerateLog::generateLog('error', 'TiRustdeskRepository::getUsersSelect', ['error' => $e->getMessage()]);
 
@@ -394,19 +410,49 @@ class TiRustdeskRepository extends DbConnection
     }
 
     /**
+     * Departamentos dos colaboradores já vinculados ao inventário.
+     *
+     * @return list<array{id: int, name: string}>
+     */
+    public function getDepartmentsSelect(): array
+    {
+        try {
+            $stmt = $this->getConnection()->query(
+                'SELECT DISTINCT d.id, d.name
+                 FROM ti_rustdesk r
+                 INNER JOIN adms_users u ON u.id = r.adms_user_id
+                 INNER JOIN adms_departments d ON d.id = u.user_department_id
+                 ORDER BY d.name ASC'
+            );
+
+            return $stmt ? ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []) : [];
+        } catch (PDOException $e) {
+            GenerateLog::generateLog('error', 'TiRustdeskRepository::getDepartmentsSelect', ['error' => $e->getMessage()]);
+
+            return [];
+        }
+    }
+
+    /**
      * @return array{0: string, 1: array<string, string>}
      */
-    private function buildWhere(string $filter, string $filterStatus): array
+    private function buildWhere(string $filter, string $filterStatus, ?int $filterDept = null): array
     {
         $where = ['1=1'];
         $params = [];
         if ($filter !== '') {
-            $where[] = '(r.alias LIKE :q OR r.rustdesk_id LIKE :q OR u.name LIKE :q OR u.email LIKE :q)';
+            $where[] = '(r.alias LIKE :q OR r.rustdesk_id LIKE :q OR u.name LIKE :q OR u.email LIKE :q OR d.name LIKE :q)';
             $params[':q'] = '%' . $filter . '%';
         }
         if ($filterStatus !== '' && in_array($filterStatus, [self::STATUS_ATIVO, self::STATUS_INATIVO], true)) {
             $where[] = 'r.status = :status';
             $params[':status'] = $filterStatus;
+        }
+        if ($filterDept === 0) {
+            $where[] = '(r.adms_user_id IS NULL OR u.user_department_id IS NULL OR u.user_department_id = 0)';
+        } elseif ($filterDept !== null && $filterDept > 0) {
+            $where[] = 'u.user_department_id = :dept';
+            $params[':dept'] = (string) $filterDept;
         }
 
         return [implode(' AND ', $where), $params];

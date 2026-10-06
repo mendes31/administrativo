@@ -38,6 +38,7 @@ $hasSenha = !empty($form['has_senha']);
             </option>
         <?php endforeach; ?>
     </select>
+    <div class="form-text">Somente colaboradores ativos (sem data de desligamento).</div>
 </div>
 <div class="col-12 col-md-6">
     <label for="status" class="form-label mb-1">Status</label>

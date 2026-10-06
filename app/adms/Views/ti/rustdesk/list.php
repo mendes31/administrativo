@@ -12,17 +12,21 @@ $encryptionOk = !empty($this->data['encryption_ok']);
 ?>
 <style>
 .ti-rd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
-.ti-rd-card { border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
-.ti-rd-card-body { color: #fff; min-height: 132px; padding: 1rem .9rem .7rem; position: relative; }
-.ti-rd-card-body .ti-rd-win { font-size: 2.1rem; opacity: .92; display: block; text-align: center; margin-bottom: .45rem; }
-.ti-rd-alias { font-size: .78rem; text-align: center; word-break: break-all; line-height: 1.25; opacity: .95; }
-.ti-rd-colab { font-size: .7rem; text-align: center; line-height: 1.2; opacity: .82; margin-top: .28rem; word-break: break-word; }
+.ti-rd-card { border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; position: relative; }
+.ti-rd-card.has-ficha { cursor: pointer; }
+.ti-rd-card.has-ficha:hover { box-shadow: 0 4px 14px rgba(0,0,0,.14); }
+.ti-rd-card-body { color: #fff; min-height: 118px; padding: .85rem .8rem .55rem; position: relative; }
+.ti-rd-card-body .ti-rd-win { font-size: 2.1rem; opacity: .92; display: block; text-align: center; margin-bottom: .3rem; }
+.ti-rd-alias { font-size: .78rem; text-align: center; word-break: break-all; line-height: 1.2; opacity: .95; }
+.ti-rd-colab { font-size: .68rem; text-align: center; line-height: 1.15; opacity: .82; margin-top: .15rem; word-break: break-word; }
+.ti-rd-dept { font-size: .62rem; text-align: center; line-height: 1.15; opacity: .72; margin-top: .06rem; word-break: break-word; }
 .ti-rd-card-foot { display: flex; align-items: center; gap: .35rem; padding: .4rem .55rem; background: #f4f5f7; font-size: .8rem; }
 .ti-rd-dot { width: .55rem; height: .55rem; border-radius: 50%; flex-shrink: 0; }
 .ti-rd-dot.on { background: #22c55e; }
 .ti-rd-dot.off { background: #9ca3af; }
 .ti-rd-id { font-variant-numeric: tabular-nums; flex-grow: 1; color: #374151; }
-.ti-rd-card-foot .btn { padding: .1rem .35rem; }
+.ti-rd-card-foot .btn,
+.ti-rd-card-foot a { position: relative; z-index: 2; padding: .1rem .35rem; }
 </style>
 <div class="container-fluid px-2 px-md-4">
     <div class="mb-1 d-flex flex-column flex-sm-row gap-1 gap-sm-2">
@@ -61,11 +65,29 @@ $encryptionOk = !empty($this->data['encryption_ok']);
                 A conexão remota de dentro deste portal fica para uma próxima versão.
             </p>
             <form method="get" class="row g-2 mb-3 align-items-end">
-                <div class="col-12 col-md-4">
+                <div class="col-12 col-md-3">
                     <label for="q" class="form-label mb-1">Busca</label>
                     <input type="text" name="q" id="q" class="form-control form-control-sm"
                            value="<?= htmlspecialchars((string) ($this->data['filter_q'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"
-                           placeholder="Apelido, ID ou colaborador">
+                           placeholder="Apelido, ID, colaborador ou departamento">
+                </div>
+                <div class="col-6 col-md-3">
+                    <label for="departamento" class="form-label mb-1">Departamento</label>
+                    <select name="departamento" id="departamento" class="form-select form-select-sm">
+                        <?php $fd = (string) ($this->data['filter_departamento'] ?? ''); ?>
+                        <option value="" <?= $fd === '' ? 'selected' : '' ?>>Todos</option>
+                        <option value="0" <?= $fd === '0' ? 'selected' : '' ?>>Sem departamento</option>
+                        <?php foreach (($this->data['departamentos'] ?? []) as $dep):
+                            $depId = (string) (int) ($dep['id'] ?? 0);
+                            if ($depId === '0') {
+                                continue;
+                            }
+                            ?>
+                            <option value="<?= htmlspecialchars($depId, ENT_QUOTES, 'UTF-8') ?>" <?= $fd === $depId ? 'selected' : '' ?>>
+                                <?= htmlspecialchars((string) ($dep['name'] ?? ''), ENT_QUOTES, 'UTF-8') ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
                 </div>
                 <div class="col-6 col-md-2">
                     <label for="status" class="form-label mb-1">Status</label>
@@ -99,13 +121,22 @@ $encryptionOk = !empty($this->data['encryption_ok']);
                         $idFmt = (string) ($r['rustdesk_id_fmt'] ?? $r['rustdesk_id'] ?? '');
                         $ativo = ($r['status'] ?? '') === 'ativo';
                         $hasSenha = !empty($r['has_senha']);
+                        $fichaUrl = $canView
+                            ? $url . 'ti-rustdesk-view/' . $rid
+                            : ($canUpdate ? $url . 'ti-rustdesk-update/' . $rid : '');
                         ?>
-                        <article class="ti-rd-card">
+                        <article class="ti-rd-card<?= $fichaUrl !== '' ? ' has-ficha' : '' ?>">
+                            <?php if ($fichaUrl !== ''): ?>
+                                <a class="stretched-link" href="<?= htmlspecialchars($fichaUrl, ENT_QUOTES, 'UTF-8') ?>" aria-label="Abrir cadastro de <?= htmlspecialchars((string) ($r['alias'] ?? ''), ENT_QUOTES, 'UTF-8') ?>"></a>
+                            <?php endif; ?>
                             <div class="ti-rd-card-body" style="background: <?= htmlspecialchars((string) ($r['card_color'] ?? '#8fa8d4'), ENT_QUOTES, 'UTF-8') ?>;">
                                 <i class="fab fa-windows ti-rd-win" aria-hidden="true"></i>
                                 <div class="ti-rd-alias"><?= htmlspecialchars((string) ($r['alias'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
                                 <?php if (!empty($r['colaborador_nome'])): ?>
                                     <div class="ti-rd-colab"><?= htmlspecialchars((string) $r['colaborador_nome'], ENT_QUOTES, 'UTF-8') ?></div>
+                                <?php endif; ?>
+                                <?php if (!empty($r['departamento_nome'])): ?>
+                                    <div class="ti-rd-dept"><?= htmlspecialchars((string) $r['departamento_nome'], ENT_QUOTES, 'UTF-8') ?></div>
                                 <?php endif; ?>
                             </div>
                             <div class="ti-rd-card-foot">

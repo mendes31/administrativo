@@ -80,6 +80,14 @@ $log = $this->data['log_resumo'] ?? null;
                                 <span class="text-muted">—</span>
                             <?php endif; ?>
                         </dd>
+                        <dt class="col-sm-4">Departamento</dt>
+                        <dd class="col-sm-8">
+                            <?php if (!empty($r['departamento_nome'])): ?>
+                                <?= htmlspecialchars((string) $r['departamento_nome'], ENT_QUOTES, 'UTF-8') ?>
+                            <?php else: ?>
+                                <span class="text-muted">—</span>
+                            <?php endif; ?>
+                        </dd>
                         <dt class="col-sm-4">Status</dt>
                         <dd class="col-sm-8">
                             <span class="badge <?= $ativo ? 'bg-success' : 'bg-secondary' ?>"><?= $ativo ? 'Ativo' : 'Inativo' ?></span>
