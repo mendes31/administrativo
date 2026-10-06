@@ -13,9 +13,10 @@ $encryptionOk = !empty($this->data['encryption_ok']);
 <style>
 .ti-rd-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 1rem; }
 .ti-rd-card { border-radius: 14px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); background: #fff; }
-.ti-rd-card-body { color: #fff; min-height: 118px; padding: 1rem .9rem .7rem; position: relative; }
+.ti-rd-card-body { color: #fff; min-height: 132px; padding: 1rem .9rem .7rem; position: relative; }
 .ti-rd-card-body .ti-rd-win { font-size: 2.1rem; opacity: .92; display: block; text-align: center; margin-bottom: .45rem; }
 .ti-rd-alias { font-size: .78rem; text-align: center; word-break: break-all; line-height: 1.25; opacity: .95; }
+.ti-rd-colab { font-size: .7rem; text-align: center; line-height: 1.2; opacity: .82; margin-top: .28rem; word-break: break-word; }
 .ti-rd-card-foot { display: flex; align-items: center; gap: .35rem; padding: .4rem .55rem; background: #f4f5f7; font-size: .8rem; }
 .ti-rd-dot { width: .55rem; height: .55rem; border-radius: 50%; flex-shrink: 0; }
 .ti-rd-dot.on { background: #22c55e; }
@@ -103,6 +104,9 @@ $encryptionOk = !empty($this->data['encryption_ok']);
                             <div class="ti-rd-card-body" style="background: <?= htmlspecialchars((string) ($r['card_color'] ?? '#8fa8d4'), ENT_QUOTES, 'UTF-8') ?>;">
                                 <i class="fab fa-windows ti-rd-win" aria-hidden="true"></i>
                                 <div class="ti-rd-alias"><?= htmlspecialchars((string) ($r['alias'] ?? ''), ENT_QUOTES, 'UTF-8') ?></div>
+                                <?php if (!empty($r['colaborador_nome'])): ?>
+                                    <div class="ti-rd-colab"><?= htmlspecialchars((string) $r['colaborador_nome'], ENT_QUOTES, 'UTF-8') ?></div>
+                                <?php endif; ?>
                             </div>
                             <div class="ti-rd-card-foot">
                                 <span class="ti-rd-dot <?= $ativo ? 'on' : 'off' ?>" title="<?= $ativo ? 'Ativo' : 'Inativo' ?>"></span>
