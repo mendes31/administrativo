@@ -52,13 +52,12 @@ $encryptionOk = !empty($this->data['encryption_ok']);
             <?php include './app/adms/Views/partials/alerts.php'; ?>
             <?php if (!$encryptionOk): ?>
                 <div class="alert alert-warning">
-                    Defina <code>TI_RUSTDESK_ENCRYPTION_KEY</code> no <code>.env</code> (mín. 32 caracteres) para gravar e abrir senhas.
-                    Gere com: <code>php -r "echo bin2hex(random_bytes(32));"</code>
+                    Não foi possível preparar a criptografia das senhas (pasta <code>storage/private/secrets</code> sem permissão de escrita).
                 </div>
             <?php endif; ?>
             <p class="small text-muted">
-                A conexão remota de dentro deste portal fica para uma próxima versão. Por enquanto, copie o ID
-                (e a senha, após confirmar a sua senha) e use o cliente RustDesk no computador.
+                A senha do RustDesk fica só para consulta e cópia (criptografada). Para vê-la ou copiá-la, confirme a senha da sua conta neste sistema.
+                A conexão remota de dentro deste portal fica para uma próxima versão.
             </p>
             <form method="get" class="row g-2 mb-3 align-items-end">
                 <div class="col-12 col-md-4">

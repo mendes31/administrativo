@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', function () {
             return;
         }
         if (!encryptionOk) {
-            toast('Chave TI_RUSTDESK_ENCRYPTION_KEY não configurada.', false);
+            toast('Não foi possível abrir a senha (criptografia indisponível).', false);
             return;
         }
         pendingId = parseInt(id, 10) || 0;

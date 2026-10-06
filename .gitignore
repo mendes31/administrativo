@@ -41,6 +41,11 @@ storage/private/imports/*
 !storage/private/imports/.htaccess
 !storage/private/imports/.gitkeep
 
+# Chaves geradas em runtime (RustDesk etc.)
+storage/private/secrets/*
+!storage/private/secrets/.htaccess
+!storage/private/secrets/.gitkeep
+
 
 # Arquivos gerados em runtime (SST, LGPD) — não versionar
 storage/sst/epi_fichas/**

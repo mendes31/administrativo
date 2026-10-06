@@ -143,7 +143,7 @@ final class TiRustdeskImportProfile implements ImportProfileInterface
         }
         $senha = SstImportValues::v($mapped, 'senha');
         if ($senha !== '' && !TiRustdeskSecretService::isConfigured()) {
-            throw new \RuntimeException('Não é possível gravar a senha: defina TI_RUSTDESK_ENCRYPTION_KEY no .env.');
+            throw new \RuntimeException('Não foi possível preparar a criptografia da senha (storage/private/secrets).');
         }
 
         return [
@@ -179,7 +179,7 @@ final class TiRustdeskImportProfile implements ImportProfileInterface
             $limpar = true;
         }
         if ($senha !== '' && !TiRustdeskSecretService::isConfigured()) {
-            throw new \RuntimeException('Não é possível gravar a senha: defina TI_RUSTDESK_ENCRYPTION_KEY no .env.');
+            throw new \RuntimeException('Não foi possível preparar a criptografia da senha (storage/private/secrets).');
         }
 
         $obs = SstImportValues::v($mapped, 'observacoes');

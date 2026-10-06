@@ -60,15 +60,15 @@ $hasSenha = !empty($form['has_senha']);
         </button>
     </div>
     <?php if (!$encryptionOk): ?>
-        <div class="form-text text-danger">Defina <code>TI_RUSTDESK_ENCRYPTION_KEY</code> no .env para gravar senhas.</div>
+        <div class="form-text text-danger">Não foi possível preparar a criptografia (storage/private/secrets sem escrita).</div>
     <?php elseif ($isEdit && $hasSenha): ?>
-        <div class="form-text">Já existe senha criptografada. Preencha só se quiser substituí-la.</div>
+        <div class="form-text">Já existe senha criptografada para consulta. Preencha só se quiser substituí-la.</div>
         <div class="form-check mt-1">
             <input class="form-check-input" type="checkbox" name="limpar_senha" value="1" id="limpar_senha">
             <label class="form-check-label" for="limpar_senha">Remover a senha cadastrada</label>
         </div>
     <?php else: ?>
-        <div class="form-text">A senha é gravada criptografada (AES-256-GCM). Nunca aparece na listagem.</div>
+        <div class="form-text">A senha fica só para consulta e cópia, gravada criptografada. Nunca aparece na listagem.</div>
     <?php endif; ?>
 </div>
 <div class="col-12">

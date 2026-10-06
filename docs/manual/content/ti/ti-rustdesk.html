@@ -8,7 +8,7 @@
     <dt>ID RustDesk</dt>
     <dd>Número exibido no cliente RustDesk da máquina (somente dígitos; espaços na digitação são ignorados).</dd>
     <dt>Senha do RustDesk</dt>
-    <dd>Senha de acesso não assistido daquele ID. Fica gravada só em AES-256-GCM; a listagem nunca a mostra.</dd>
+    <dd>Cópia informativa da senha que a máquina já usa. Fica salva só para consulta e cópia no portal (AES-256-GCM); a listagem nunca a mostra. Não serve de login neste sistema.</dd>
     <dt>Senha do usuário</dt>
     <dd>Senha da conta de quem está logado neste Administrativo. É exigida de novo para <strong>ver</strong> ou <strong>copiar</strong> a senha da máquina.</dd>
     <dt>Apelido</dt>
@@ -31,7 +31,7 @@
 <h2>Campos e parâmetros</h2>
 <div class="help-field"><strong>Apelido</strong> Obrigatório. Identifica a máquina na grade colorida.</div>
 <div class="help-field"><strong>ID RustDesk</strong> Obrigatório, único, 6 a 16 dígitos.</div>
-<div class="help-field"><strong>Senha do RustDesk</strong> Opcional. Criptografada em repouso. Nunca entra no log de alterações em claro (o log registra só se está definida ou vazia).</div>
+<div class="help-field"><strong>Senha do RustDesk</strong> Opcional. Só para consulta e cópia no portal (não é login deste sistema). Criptografada em repouso. Nunca entra no log de alterações em claro.</div>
 <div class="help-field"><strong>Colaborador</strong> Usuário ativo do Administrativo, opcional.</div>
 <div class="help-field"><strong>Status</strong> Ativo (aparece no filtro padrão) ou inativo (máquina desligada/desativada).</div>
 <div class="help-field"><strong>Observações</strong> Texto livre (local, ramal, etc.).</div>
@@ -41,7 +41,7 @@
     <dt>Menu RustDesk não aparece</dt>
     <dd>Libere as páginas do grupo <em>TI - Sistemas e Acessos</em> no nível de acesso (em especial <em>TiRustdesk</em>). Execute a migration <code>20261005180000_create_ti_rustdesk</code> e recarregue a sessão.</dd>
     <dt>Não consigo gravar senha</dt>
-    <dd>Defina <code>TI_RUSTDESK_ENCRYPTION_KEY</code> no <code>.env</code> com no mínimo 32 caracteres. Gere com <code>php -r "echo bin2hex(random_bytes(32));"</code>. Guarde o backup desta chave fora do dump do banco — sem ela as senhas já gravadas não abrem.</dd>
+    <dd>A aplicação gera a chave em <code>storage/private/secrets/ti_rustdesk.key</code> na primeira gravação (a pasta precisa de escrita). Opcionalmente defina <code>TI_RUSTDESK_ENCRYPTION_KEY</code> no <code>.env</code>. Guarde backup desta chave fora do dump do banco — sem ela as senhas já gravadas não abrem.</dd>
     <dt>Olho pede senha e diz “Senha incorreta”</dt>
     <dd>Use a senha com a qual você entrou neste sistema, não a senha do RustDesk.</dd>
     <dt>Já existe um cadastro com esse ID</dt>

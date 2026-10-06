@@ -65,7 +65,7 @@ final class TiRustdeskReveal
         if (!TiRustdeskSecretService::isConfigured()) {
             echo json_encode([
                 'success' => false,
-                'message' => 'Chave TI_RUSTDESK_ENCRYPTION_KEY não configurada no .env.',
+                'message' => 'Não foi possível preparar a criptografia da senha.',
             ], JSON_UNESCAPED_UNICODE);
             exit;
         }

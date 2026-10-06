@@ -80,7 +80,7 @@ class TiRustdeskRepository extends DbConnection
         $senha = (string) ($form['senha'] ?? '');
         $limparSenha = !empty($form['limpar_senha']);
         if ($senha !== '' && !TiRustdeskSecretService::isConfigured()) {
-            $errors[] = 'Não é possível gravar a senha: defina TI_RUSTDESK_ENCRYPTION_KEY no .env (mín. 32 caracteres).';
+            $errors[] = 'Não foi possível preparar a criptografia da senha (storage/private/secrets).';
         }
 
         $data = [
