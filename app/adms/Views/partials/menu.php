@@ -530,6 +530,28 @@ $menus = [
         ]
     ],
     [
+        'id' => 'formacao_preco',
+        'icon' => 'fa-solid fa-tags',
+        'label' => 'Formação de Preço',
+        'submenu' => [
+            [
+                'label' => 'Precificações',
+                'url' => $_ENV['URL_ADM'] . 'formacao-preco',
+                'permission' => 'FormacaoPreco',
+                'any_of' => ['FormacaoPreco', 'FormacaoPrecoCreate', 'FormacaoPrecoView', 'FormacaoPrecoUpdate'],
+                'related_routes' => [
+                    'formacao-preco',
+                    'formacao-preco-create',
+                    'formacao-preco-update',
+                    'formacao-preco-view',
+                    'formacao-preco-delete',
+                    'formacao-preco-pdf',
+                ],
+                'icon' => 'fa-solid fa-calculator',
+            ],
+        ],
+    ],
+    [
         'id' => 'estoque',
         'icon' => 'fa-solid fa-boxes-stacked',
         'label' => 'Estoque',

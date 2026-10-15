@@ -301,7 +301,8 @@ class LoadPageAdm
         "companyEvents",
         "sac",
         "sst",
-        "imports"
+        "imports",
+        "pricing"
     ];
 
     /** @var array $listPackages Recebe a lista de pacotes com as controllers */

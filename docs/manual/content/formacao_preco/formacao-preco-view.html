@@ -1,0 +1,40 @@
+<h1>Consultar formação de preço</h1>
+
+<h2>Função no sistema</h2>
+<p>Mostra o cenário salvo, a grade calculada, o comparativo dos três métodos e as explicações de treinamento. Não altera dados até clicar em Editar.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Comparativo</dt>
+    <dd>Preço e as três % reais (RL, PB e markup) de cada método na mesma linha — leitura do lucro, não novas metas.</dd>
+    <dt>PDF da análise</dt>
+    <dd>Relatório com todas as colunas, inclusive as ocultas na tela.</dd>
+    <dt>Exemplo prático</dt>
+    <dd>Sandbox didático (custo R$ 28,69, imposto 20,14%) equivalente à aba EXEMPLO_PRATICO da planilha.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>FormacaoPrecoView</em>. Edição: <em>FormacaoPrecoUpdate</em>. PDF: <em>FormacaoPrecoPdf</em>. Exclusão: <em>FormacaoPrecoDelete</em> (com confirmação).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Na listagem, clique no nome ou em <strong>Abrir</strong>.</li>
+    <li>A aba <strong>Produtos</strong> mostra só os dados comuns. As metas e o preço informado estão nas abas de cada método, junto com as % reais.</li>
+    <li>Use <strong>PDF da análise</strong> para baixar todas as colunas, inclusive as ocultas na tela (fator por dentro, status, validação, lucro do projeto e receita bruta).</li>
+    <li>Use <strong>Editar</strong> para alterar produtos e metas.</li>
+    <li><strong>Excluir</strong> apaga o cenário e todos os produtos, após confirmação.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Cabeçalho</strong> Nome, observação e alíquotas padrão (somente leitura nesta tela).</div>
+<div class="help-field"><strong>Grade</strong> Aba Produtos: dados comuns. Abas de método: meta %, preço informado e resultado. Valores em R$ e % com símbolo pequeno. As % reais seguem a ordem das abas (azul PB, verde RL, âmbar markup). F5 mantém a aba aberta. No celular cada produto aparece em cartão. Sem gravação nesta tela.</div>
+<div class="help-field"><strong>Histórico</strong> Resumo de alterações do registro, quando houver log.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Não vejo Editar</dt>
+    <dd>Falta a permissão <em>FormacaoPrecoUpdate</em> no nível de acesso.</dd>
+    <dt>Não vejo PDF da análise</dt>
+    <dd>Libere <em>FormacaoPrecoPdf</em> (a migration copia de quem já tinha <em>FormacaoPrecoView</em>) e recarregue a sessão.</dd>
+    <dt>Excluir não faz nada</dt>
+    <dd>A exclusão exige <em>FormacaoPrecoDelete</em> e a confirmação no navegador. Não há lixeira: o cenário some de vez.</dd>
+</dl>

@@ -1,0 +1,33 @@
+<h1>PDF da análise de formação de preço</h1>
+
+<h2>Função no sistema</h2>
+<p>Gera um PDF em paisagem com a análise completa do cenário: entradas, os três métodos, as % reais nas cores da tela (azul PB, verde RL, âmbar markup) e as colunas que ficam ocultas na tela, iguais à planilha Excel.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Colunas ocultas</dt>
+    <dd>Na planilha e na tela: fator imposto por dentro, status da entrada, validação, lucro do projeto e receita bruta vendida. No PDF aparecem destacadas em amarelo.</dd>
+    <dt>% reais</dt>
+    <dd>Leitura do mesmo lucro nas três réguas, na ordem das abas: azul = preço bruto, verde = receita líquida, âmbar = markup. Negrito marca a % do próprio método.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>FormacaoPrecoPdf</em>. Quem tem <em>FormacaoPrecoView</em> recebeu a página na migration. O botão está na consulta e na edição.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra a precificação.</li>
+    <li>Clique em <strong>PDF da análise</strong> (abre em nova aba).</li>
+    <li>Salve ou imprima pelo navegador.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Cabeçalho</strong> Logotipo, nome do cenário, data/hora, alíquotas, observação e legenda de cores. Repete em todas as páginas.</div>
+<div class="help-field"><strong>Por produto</strong> Bloco de entradas, resultado dos três métodos (preços, composição e % reais nas cores da tela), impostos detalhados e tabela das colunas ocultas em amarelo. Com dois ou mais produtos, cada um começa em uma página nova, com o mesmo cabeçalho no topo.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>O botão não aparece</dt>
+    <dd>Libere <em>FormacaoPrecoPdf</em> no grupo <em>Comercial - Formação de Preço</em> e rode a migration <code>20261015160000_register_formacao_preco_pdf_page</code>.</dd>
+    <dt>PDF em branco ou erro</dt>
+    <dd>Salve o cenário antes. O relatório usa os produtos já gravados, não a grade ainda não salva.</dd>
+</dl>

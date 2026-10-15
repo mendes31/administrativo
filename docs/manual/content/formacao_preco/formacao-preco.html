@@ -1,0 +1,55 @@
+<h1>Formação de Preço</h1>
+
+<h2>Função no sistema</h2>
+<p>Guarda <strong>precificações nomeadas</strong> (cenários) e calcula o preço de venda pelos três métodos comerciais da planilha Tiaraju: markup sobre custo, margem sobre receita líquida e lucro sobre preço bruto. Não substitui o custeio fabril do Estoque (CVAR/CFIX de período) — aqui o custo unitário é informado (ou copiado) para formar preço de negociação.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Precificação</dt>
+    <dd>Cenário salvo com um nome (ex.: <em>Physician Choice 13.10</em>) e uma lista de produtos.</dd>
+    <dt>Imposto efetivo</dt>
+    <dd>ICMS sobre o preço + PIS/COFINS sobre o preço já sem ICMS. Com 12% + 1,65% + 7,60% resulta 20,14%.</dd>
+    <dt>CVAR / CFIX</dt>
+    <dd>Custo variável e custo fixo unitários usados na formação do preço. Soma = custo total.</dd>
+    <dt>Markup (MK)</dt>
+    <dd>Lucro dividido pelo custo. Pode passar de 100%.</dd>
+    <dt>Margem RL</dt>
+    <dd>Lucro dividido pela receita líquida (preço sem impostos).</dd>
+    <dt>Lucro PB</dt>
+    <dd>Lucro dividido pelo preço de venda (o que o cliente paga).</dd>
+    <dt>Preço informado</dt>
+    <dd>Quando o parceiro define o preço; o sistema calcula as margens reais em vez de partir da meta %.</dd>
+    <dt>% reais</dt>
+    <dd>Depois do preço do método, o mesmo lucro é lido nas três réguas (RL verde, PB azul e markup âmbar — as mesmas cores do comparativo). Igual à planilha: você digita um % e vê os outros como resultado, não como meta. Valores financeiros mostram R$ e percentuais mostram % em símbolo pequeno.</dd>
+    <dt>Colunas ocultas</dt>
+    <dd>Fator por dentro, status, validação, lucro do projeto e receita bruta. Na tela ficam ocultas; no PDF da análise aparecem em amarelo.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>FormacaoPreco</em> (lista), <em>FormacaoPrecoCreate</em>, <em>FormacaoPrecoUpdate</em>, <em>FormacaoPrecoView</em>, <em>FormacaoPrecoPdf</em> e <em>FormacaoPrecoDelete</em>, no grupo ACL <em>Comercial - Formação de Preço</em>. Quem já tinha <em>CrmDashboard</em> na data da migration recebe a cópia automática (o PDF copia de <em>FormacaoPrecoView</em>).</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra <em>Formação de Preço → Precificações</em>.</li>
+    <li>Clique em <strong>Nova precificação</strong>, dê um nome e, se quiser, ajuste ICMS/PIS/COFINS padrão.</li>
+    <li>Na aba <strong>Produtos</strong>, cadastre os dados comuns (custo, impostos, frete, comissão, desconto).</li>
+    <li>Nas abas Preço bruto, Receita líquida e Markup, informe o % daquele método <em>ou</em> o preço do parceiro — nunca os dois. À direita, as % reais seguem a ordem das abas (azul PB, verde RL, âmbar markup). Atualizar a página (F5) mantém a aba aberta.</li>
+    <li>Salve. O botão <strong>PDF da análise</strong> exporta também as colunas ocultas da planilha; com vários produtos, cada um sai em uma página.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Nome</strong> Obrigatório. Identifica o cenário na lista.</div>
+<div class="help-field"><strong>Observação</strong> Texto livre (cliente, vigência, etc.).</div>
+<div class="help-field"><strong>Alíquotas padrão</strong> ICMS, PIS e COFINS em % (12,00 = 12%). Preenchem linhas novas.</div>
+<div class="help-field"><strong>Busca</strong> Filtra por nome ou observação.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>O menu não aparece</dt>
+    <dd>Libere as páginas do grupo <em>Comercial - Formação de Preço</em> no nível de acesso. Rode a migration <code>20261015140000_create_formacao_preco</code> e recarregue a sessão.</dd>
+    <dt>Status INVÁLIDO</dt>
+    <dd>A meta de PB ou RL está acima do teto (imposto + frete + comissão). A mensagem indica o máximo utilizável nessa linha. Markup só falha se imposto + frete + comissão somarem 100% ou mais.</dd>
+    <dt>VERIFICAR: informe % OU preço</dt>
+    <dd>A linha tem meta e preço informado juntos. Deixe um dos dois em branco.</dd>
+    <dt>Isso é o mesmo que Simulação de Custos?</dt>
+    <dd>Não. Estoque calcula custo fabril. Esta tela forma preço de venda com imposto por dentro, frete, comissão e desconto.</dd>
+</dl>

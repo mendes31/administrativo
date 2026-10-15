@@ -541,7 +541,7 @@ class LoadPageAdmAccessLevel
             'performance', 'permission', 'pdi', 'policies', 'portal', 'portaria', 'positions', 'projects',
             'receive', 'reports', 'rh', 'rooms', 'serveFile', 'Services', 'session',
             'settings', 'strategicIndicators', 'strategicPlans', 'supplier', 'timeline', 'gamification',
-            'trainings', 'ti', 'users', 'workShifts', 'whistleblowing', 'imports',
+            'trainings', 'ti', 'users', 'workShifts', 'whistleblowing', 'imports', 'pricing',
         ];
 
         foreach ($knownOnDisk as $canonical) {

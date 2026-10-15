@@ -243,6 +243,9 @@ function buildManualAggregateTopicMap(): array
     $add([
         'ti-rustdesk', 'ti-rustdesk-create', 'ti-rustdesk-update', 'ti-rustdesk-view', 'ti-rustdesk-reveal',
     ], 'ti-rustdesk');
+    $add([
+        'formacao-preco', 'formacao-preco-create', 'formacao-preco-update', 'formacao-preco-view', 'formacao-preco-delete', 'formacao-preco-pdf',
+    ], 'formacao-preco');
 
     ksort($map);
 
@@ -286,6 +289,7 @@ function manualTopicToContentDir(): array
         'lgpd-inventario' => 'lgpd', 'lgpd-aipd' => 'lgpd',
         'pe-estrategico' => 'planejamento', 'rel-visao-geral' => 'relatorios', 'rel-dinamicos' => 'relatorios',
         'ti-rustdesk' => 'ti',
+        'formacao-preco' => 'formacao_preco',
     ];
 }
 
@@ -352,6 +356,7 @@ function manualAggregateTopicLabels(): array
         'pe-estrategico' => 'Planejamento estratégico',
         'rel-dinamicos' => 'Relatórios dinâmicos',
         'ti-rustdesk' => 'RustDesk (TI / Acessos)',
+        'formacao-preco' => 'Formação de Preço',
     ];
 }
 
@@ -377,5 +382,6 @@ function manualModuleTitlesByDir(): array
         'planejamento' => 'Planejamento Estratégico',
         'relatorios' => 'Relatórios',
         'ti' => 'TI / Acessos',
+        'formacao_preco' => 'Formação de Preço',
     ];
 }

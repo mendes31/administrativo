@@ -1,0 +1,50 @@
+<h1>Editar formação de preço</h1>
+
+<h2>Função no sistema</h2>
+<p>É a mesa de cálculo: cabeçalho do cenário, grade de produtos e abas dos três métodos, comparativo, exemplo prático e explicações. Ao salvar, os produtos da grade substituem a lista anterior.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Preço vendido (T)</dt>
+    <dd>Preço com desconto já aplicado (o valor da venda). Calculado pela meta ou igual ao preço informado.</dd>
+    <dt>Preço tabela</dt>
+    <dd>T / (1 − desconto%). O desconto não muda lucro nem margens.</dd>
+    <dt>Teto</dt>
+    <dd>Maior meta possível em PB ou RL antes do denominador zerar. Markup não tem teto de 100%.</dd>
+    <dt>% reais</dt>
+    <dd>Depois que o preço do método é calculado, o mesmo lucro é lido nas três réguas: lucro/receita líquida (verde), lucro/preço bruto (azul) e markup (âmbar) — as mesmas cores do comparativo. Não são outras metas — são o resultado daquela linha.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>FormacaoPrecoUpdate</em>. Consulta: <em>FormacaoPrecoView</em>. PDF: <em>FormacaoPrecoPdf</em>. Exclusão: <em>FormacaoPrecoDelete</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra a precificação e clique em <strong>Editar</strong> (ou caia nesta tela após cadastrar).</li>
+    <li>Ajuste nome e alíquotas padrão se necessário.</li>
+    <li>Na aba <strong>Produtos</strong>, preencha só os dados comuns: produto, custo, impostos, frete, comissão e desconto.</li>
+    <li>Abra a aba do método (Preço bruto, Receita líquida ou Markup): a meta % e o preço informado ficam só nessa aba. Informe um dos dois e veja as % reais à direita.</li>
+    <li>Opcional: aba <strong>Exemplo prático</strong> (sliders com o Probiótico de treinamento) e <strong>Explicações</strong>.</li>
+    <li>Opcional: <strong>PDF da análise</strong> (nova aba) para ver também as colunas ocultas. Salve antes se houver alterações.</li>
+    <li><strong>Salvar</strong> grava o cenário e abre a consulta.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Produto / código / forecast</strong> Identificação e volume para lucro do projeto (forecast × lucro unitário).</div>
+<div class="help-field"><strong>ICMS, PIS, COFINS %</strong> Por linha. Geram o imposto efetivo automaticamente. Símbolo % pequeno ao lado do valor.</div>
+<div class="help-field"><strong>CVAR / CFIX</strong> Custos unitários em R$; a soma é o custo total.</div>
+<div class="help-field"><strong>Meta PB / RL / MK %</strong> Só na aba do método correspondente (amarelo). Não aparece em Produtos.</div>
+<div class="help-field"><strong>Preço informado / vendido / tabela / rec. líq. / lucro</strong> Valores em R$ (símbolo pequeno). Só nas abas de cálculo, o preço informado é alternativa à meta. Esvazie as metas neste caso.</div>
+<div class="help-field"><strong>% reais</strong> Ordem das abas: azul PB, verde RL, âmbar markup (iguais ao comparativo). Símbolo % pequeno ao lado do número. F5 mantém a aba aberta.</div>
+<div class="help-field"><strong>Incluir exemplo</strong> Adiciona a linha Probiótico Saúde Vaginal (CVAR 19,42 + CFIX 9,27, metas 20,70 / 25,93 / 35).</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Os três preços saíram muito diferentes com a mesma meta</dt>
+    <dd>É o comportamento esperado com frete/comissão. Para o mesmo preço, use metas calibradas (como na planilha) ou informe um único preço.</dd>
+    <dt>Linha some ao salvar</dt>
+    <dd>Linhas sem produto e sem custo são ignoradas. Preencha ao menos o nome do produto.</dd>
+    <dt>Cálculo na tela e após salvar não batem</dt>
+    <dd>Use vírgula decimal (19,42). O servidor recalcula com as mesmas fórmulas da planilha.</dd>
+    <dt>No celular a grade ficou diferente</dt>
+    <dd>No telefone cada produto vira um cartão com o nome do campo acima do valor, como nas outras telas do sistema. As abas rolam na horizontal.</dd>
+</dl>

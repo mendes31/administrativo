@@ -1,0 +1,33 @@
+<h1>Cadastrar formação de preço</h1>
+
+<h2>Função no sistema</h2>
+<p>Cria um cenário nomeado vazio (ou só com o cabeçalho). Depois o sistema abre a edição para incluir produtos e metas.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Alíquotas padrão</dt>
+    <dd>ICMS, PIS e COFINS sugeridos em cada linha nova da grade. Podem ser alterados produto a produto.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> <em>FormacaoPrecoCreate</em>. A lista usa <em>FormacaoPreco</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Em Precificações, clique em <strong>Nova precificação</strong>.</li>
+    <li>Informe o nome (obrigatório) e, se quiser, observação e alíquotas.</li>
+    <li>Clique em <strong>Criar e incluir produtos</strong>.</li>
+    <li>O sistema grava o cenário e abre a tela de edição da grade.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Nome</strong> Até 180 caracteres. Ex.: proposta, linha, data da planilha.</div>
+<div class="help-field"><strong>Observação</strong> Contexto da negociação.</div>
+<div class="help-field"><strong>ICMS / PIS / COFINS padrão %</strong> Digite 12,00 para 12%. Padrão Tiaraju: 12,00 / 1,65 / 7,60.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Pede o nome</dt>
+    <dd>Sem nome o cenário não é gravado.</dd>
+    <dt>Alíquota inválida</dt>
+    <dd>Use percentual entre 0 e 99,99. Não digite 0,12 para 12% — digite 12 ou 12,00.</dd>
+</dl>

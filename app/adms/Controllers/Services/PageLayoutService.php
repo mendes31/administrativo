@@ -355,6 +355,12 @@ class PageLayoutService
             'TestWhatsAppConfig',
             'McpChat',
             // CRM - Gestão de Relacionamento com Clientes
+            'FormacaoPreco',
+            'FormacaoPrecoCreate',
+            'FormacaoPrecoUpdate',
+            'FormacaoPrecoView',
+            'FormacaoPrecoDelete',
+            'FormacaoPrecoPdf',
             'CrmDashboard',
             'CrmSalesDashboard',
             'CrmSalesDashboardData',

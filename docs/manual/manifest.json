@@ -768,6 +768,37 @@
             ]
         },
         {
+            "id": "formacao_preco",
+            "title": "Formação de Preço",
+            "topics": [
+                {
+                    "id": "formacao-preco",
+                    "title": "Formação de Preço",
+                    "file": "formacao_preco/formacao-preco.html"
+                },
+                {
+                    "id": "formacao-preco-create",
+                    "title": "Cadastrar formação de preço",
+                    "file": "formacao_preco/formacao-preco-create.html"
+                },
+                {
+                    "id": "formacao-preco-update",
+                    "title": "Editar formação de preço",
+                    "file": "formacao_preco/formacao-preco-update.html"
+                },
+                {
+                    "id": "formacao-preco-view",
+                    "title": "Consultar formação de preço",
+                    "file": "formacao_preco/formacao-preco-view.html"
+                },
+                {
+                    "id": "formacao-preco-pdf",
+                    "title": "PDF da análise de formação de preço",
+                    "file": "formacao_preco/formacao-preco-pdf.html"
+                }
+            ]
+        },
+        {
             "id": "estoque",
             "title": "Estoque",
             "topics": [
