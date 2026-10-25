@@ -62,7 +62,7 @@ if (!empty($_SESSION['user_id'])) {
         <?php $tjzAvatarUrl = rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'; ?>
         <li class="nav-item me-2 d-none d-md-block">
             <button class="btn tjz-nav-btn position-relative" type="button"
-                    data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
+                    data-bs-toggle="modal" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
                     title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
                 <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="32" height="32">
             </button>
@@ -258,8 +258,18 @@ if (!empty($_SESSION['user_id'])) {
 </nav>
 
 <?php if ($mcpChatAvailable): ?>
-<?php $tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png'); ?>
-<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=21">
+<?php
+$tjzAvatarUrl = $tjzAvatarUrl ?? (rtrim($_ENV['URL_ADM'] ?? '', '/') . '/public/adms/images/chat/tiarajuzinho.png');
+$tjzAiFlags = \App\adms\Models\Services\AiAnalyst\Feature\AiAnalystFeatureFlags::fromEnvironment();
+$tjzBusinessModeVisible = $tjzAiFlags->businessEnabled();
+$tjzTechnicalModeVisible = $tjzAiFlags->technicalEnabled()
+    && \App\adms\Helpers\UserAccessHelper::hasFullSystemAccess();
+// O usuário final não escolhe perfil: o servidor roteia. Seletor só com flag de diagnóstico.
+$tjzModeSelectorVisible = $tjzAiFlags->modeSelectorEnabled()
+    && ($tjzBusinessModeVisible || $tjzTechnicalModeVisible);
+$tjzDefaultChatMode = $tjzAiFlags->enabled() ? 'auto' : 'legacy';
+?>
+<link rel="stylesheet" href="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/css/tiarajuzinho-chat.css?v=22">
 <script src="<?= rtrim($_ENV['URL_ADM'], '/') ?>/public/adms/vendor/chartjs/chart.umd.min.js" defer></script>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/js/dynamic-report-format.js?v=3"></script>
 <script>
@@ -271,7 +281,7 @@ if (is_readable($tjzFormatJs)) {
 ?>
 </script>
 <button class="btn tjz-fab" type="button" id="tjzFabBtn"
-        data-bs-toggle="offcanvas" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
+        data-bs-toggle="modal" data-bs-target="#mcpChatOffcanvas" aria-controls="mcpChatOffcanvas"
         title="Tiarajuzinho" aria-label="Abrir Tiarajuzinho">
     <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="52" height="52">
 </button>
@@ -283,39 +293,63 @@ if (is_readable($tjzFormatJs)) {
     }
 })();
 </script>
-<div class="offcanvas offcanvas-end tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel">
-    <div class="offcanvas-header">
-        <h5 class="offcanvas-title" id="mcpChatOffcanvasLabel">
-            <button type="button" class="tjz-avatar-zoom-btn p-0 border-0 bg-transparent" data-tjz-zoom="<?= htmlspecialchars($tjzAvatarUrl) ?>" title="Ampliar Tiarajuzinho" aria-label="Ampliar imagem do Tiarajuzinho">
-                <img class="tjz-header-avatar" src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="42" height="42">
-            </button>
-            <span class="tjz-header-copy">
-                <span>Tiarajuzinho</span>
-                <small>Assistente do Portal Tiaraju</small>
-            </span>
-        </h5>
-        <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fechar"></button>
-    </div>
-    <div class="offcanvas-body d-flex flex-column">
-        <div id="mcpChatMessages" class="tjz-messages">
-            <div class="tjz-welcome">
-                <button type="button" class="tjz-avatar-zoom-btn p-0 border-0 bg-transparent" data-tjz-zoom="<?= htmlspecialchars($tjzAvatarUrl) ?>" title="Ampliar Tiarajuzinho" aria-label="Ampliar imagem do Tiarajuzinho">
-                    <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="48" height="48">
-                </button>
-                <div>
-                    <strong>Olá! Eu sou o Tiarajuzinho</strong>
-                    <p>Pergunte sobre colaboradores, salas («agendar» / «salas»), relatórios do chat ou headcount. Estou aqui para ajudar.</p>
+<div class="modal fade tiarajuzinho-chat" tabindex="-1" id="mcpChatOffcanvas" aria-labelledby="mcpChatOffcanvasLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl tjz-chat-dialog">
+        <div class="modal-content tjz-chat-shell">
+            <div class="modal-header tjz-chat-header">
+                <h5 class="modal-title" id="mcpChatOffcanvasLabel">
+                    <button type="button" class="tjz-avatar-zoom-btn p-0 border-0 bg-transparent" data-tjz-zoom="<?= htmlspecialchars($tjzAvatarUrl) ?>" title="Ampliar Tiarajuzinho" aria-label="Ampliar imagem do Tiarajuzinho">
+                        <img class="tjz-header-avatar" src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="42" height="42">
+                    </button>
+                    <span class="tjz-header-copy">
+                        <span>Tiarajuzinho</span>
+                        <small>Assistente do Portal Tiaraju</small>
+                    </span>
+                </h5>
+                <div class="tjz-header-actions">
+                    <button type="button" class="tjz-header-btn" id="tjzChatMinimizeBtn" title="Minimizar (mantém o histórico)" aria-label="Minimizar chat">
+                        <i class="fas fa-minus" aria-hidden="true"></i>
+                    </button>
+                    <button type="button" class="tjz-header-btn tjz-header-btn--end" id="tjzChatEndBtn" title="Encerrar conversa (apaga o histórico)" aria-label="Encerrar conversa">
+                        <i class="fas fa-times" aria-hidden="true"></i>
+                    </button>
                 </div>
             </div>
-        </div>
-        <form id="mcpChatForm" class="tjz-composer">
-            <div class="input-group">
-                <textarea class="form-control" id="mcpChatInput" rows="2" placeholder="Pergunte ao Tiarajuzinho..." aria-label="Mensagem para o Tiarajuzinho"></textarea>
-                <button class="btn" type="submit" id="mcpChatSendBtn" title="Enviar" aria-label="Enviar">
-                    <i class="fas fa-paper-plane"></i>
-                </button>
+            <div class="modal-body tjz-chat-body d-flex flex-column">
+                <div id="mcpChatMessages" class="tjz-messages">
+                    <div class="tjz-welcome">
+                        <button type="button" class="tjz-avatar-zoom-btn p-0 border-0 bg-transparent" data-tjz-zoom="<?= htmlspecialchars($tjzAvatarUrl) ?>" title="Ampliar Tiarajuzinho" aria-label="Ampliar imagem do Tiarajuzinho">
+                            <img src="<?= htmlspecialchars($tjzAvatarUrl) ?>" alt="Tiarajuzinho" width="48" height="48">
+                        </button>
+                        <div>
+                            <strong>Olá! Eu sou o Tiarajuzinho</strong>
+                            <p>Pergunte normalmente sobre colaboradores, salas, relatórios ou comparações. Eu escolho o caminho conforme a pergunta e as suas permissões.</p>
+                        </div>
+                    </div>
+                </div>
+                <form id="mcpChatForm" class="tjz-composer">
+                    <?php if ($tjzModeSelectorVisible): ?>
+                        <label for="mcpChatMode" class="visually-hidden">Modo do Tiarajuzinho</label>
+                        <select class="form-select form-select-sm mb-2" id="mcpChatMode" aria-label="Modo do Tiarajuzinho">
+                            <option value="auto" selected>Automático</option>
+                            <option value="legacy">Assistente atual</option>
+                            <?php if ($tjzBusinessModeVisible): ?>
+                                <option value="business">Analista de Negócios</option>
+                            <?php endif; ?>
+                            <?php if ($tjzTechnicalModeVisible): ?>
+                                <option value="technical">Especialista Técnico SAP</option>
+                            <?php endif; ?>
+                        </select>
+                    <?php endif; ?>
+                    <div class="input-group tjz-composer-group">
+                        <textarea class="form-control" id="mcpChatInput" rows="2" placeholder="Pergunte ao Tiarajuzinho..." aria-label="Mensagem para o Tiarajuzinho"></textarea>
+                        <button class="btn" type="submit" id="mcpChatSendBtn" title="Enviar" aria-label="Enviar">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </form>
             </div>
-        </form>
+        </div>
     </div>
 </div>
 
@@ -353,6 +387,7 @@ if (is_readable($tjzFormatJs)) {
     const input = document.getElementById('mcpChatInput');
     const messagesEl = document.getElementById('mcpChatMessages');
     const sendBtn = document.getElementById('mcpChatSendBtn');
+    const modeSelect = document.getElementById('mcpChatMode');
     if (!form || !input || !messagesEl || !sendBtn) return;
 
     <?php
@@ -383,9 +418,41 @@ if (is_readable($tjzFormatJs)) {
         initials: <?= json_encode(mb_strtoupper($chatInitials, 'UTF-8'), JSON_UNESCAPED_UNICODE) ?>
     };
     const tjzBotAvatarUrl = <?= json_encode($tjzAvatarUrl, JSON_UNESCAPED_UNICODE) ?>;
+    const tjzWelcomeHtml = (function () {
+        const welcome = messagesEl.querySelector('.tjz-welcome');
+        return welcome ? welcome.outerHTML : '';
+    })();
 
     let chartSeq = 0;
     const chartInstances = [];
+
+    window.tjzChatHasHistory = function () {
+        if (!messagesEl.querySelector('.tjz-welcome')) {
+            return true;
+        }
+        return messagesEl.querySelectorAll('.tjz-bubble-user, .tjz-bubble-bot').length > 0;
+    };
+
+    window.tjzChatResetConversation = function () {
+        chartInstances.forEach(function (instance) {
+            try {
+                if (instance && typeof instance.destroy === 'function') {
+                    instance.destroy();
+                }
+            } catch (e) { /* ignore */ }
+        });
+        chartInstances.length = 0;
+        chartSeq = 0;
+        messagesEl.innerHTML = tjzWelcomeHtml || '';
+        try {
+            fetch("<?= rtrim($_ENV['URL_ADM'], '/') ?>/mcp-chat-api.php", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ clear_context: true, message: '__tjz_clear__' }),
+                keepalive: true
+            }).catch(function () { /* ignore */ });
+        } catch (e) { /* ignore */ }
+    };
 
     function escapeHtml(str) {
         return String(str)
@@ -1274,7 +1341,10 @@ if (is_readable($tjzFormatJs)) {
             const response = await fetch("<?= rtrim($_ENV['URL_ADM'], '/') ?>/mcp-chat-api.php", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message })
+                body: JSON.stringify({
+                    message,
+                    mode: modeSelect ? modeSelect.value : <?= json_encode($tjzDefaultChatMode, JSON_UNESCAPED_UNICODE) ?>
+                })
             });
             const data = await response.json().catch(() => null);
             removeThinking();
@@ -1328,25 +1398,95 @@ if (is_readable($tjzFormatJs)) {
 </script>
 <script>
 (function () {
-    /* Voltar do celular: fecha só o chat (sem history.back extra, que saía do app). */
-    var offcanvasEl = document.getElementById('mcpChatOffcanvas');
-    if (!offcanvasEl) {
+    /* Modal central: minimizar preserva histórico; encerrar limpa. */
+    var chatEl = document.getElementById('mcpChatOffcanvas');
+    var fab = document.getElementById('tjzFabBtn');
+    var minimizeBtn = document.getElementById('tjzChatMinimizeBtn');
+    var endBtn = document.getElementById('tjzChatEndBtn');
+    if (!chatEl) {
         return;
     }
     var chatMarker = false;
     var closingFromPopstate = false;
+    var endRequested = false;
+
+    function chatInstance() {
+        if (typeof bootstrap === 'undefined' || !bootstrap.Modal) {
+            return null;
+        }
+        return bootstrap.Modal.getInstance(chatEl) || bootstrap.Modal.getOrCreateInstance(chatEl, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+    }
+
+    function markSessionActive(active) {
+        document.body.classList.toggle('tjz-chat-session', !!active);
+        if (fab) {
+            fab.classList.toggle('tjz-fab--session', !!active);
+            fab.setAttribute('title', active
+                ? 'Abrir Tiarajuzinho (conversa em andamento)'
+                : 'Abrir Tiarajuzinho');
+        }
+    }
+
+    function hideChat() {
+        var inst = chatInstance();
+        if (inst) {
+            inst.hide();
+            return;
+        }
+        chatEl.classList.remove('show');
+        document.body.classList.remove('modal-open');
+    }
+
+    function minimizeChat() {
+        endRequested = false;
+        if (window.tjzChatHasHistory && window.tjzChatHasHistory()) {
+            markSessionActive(true);
+        }
+        hideChat();
+    }
+
+    function endChat() {
+        var hasHistory = window.tjzChatHasHistory && window.tjzChatHasHistory();
+        if (hasHistory && !window.confirm('Encerrar a conversa? O histórico desta sessão será apagado.')) {
+            return;
+        }
+        endRequested = true;
+        if (window.tjzChatResetConversation) {
+            window.tjzChatResetConversation();
+        }
+        markSessionActive(false);
+        hideChat();
+    }
 
     window.tjzTryCloseChat = function () {
-        if (!offcanvasEl.classList.contains('show') || typeof bootstrap === 'undefined') {
+        if (!chatEl.classList.contains('show')) {
             return false;
         }
-        var inst = bootstrap.Offcanvas.getInstance(offcanvasEl)
-            || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
-        inst.hide();
+        minimizeChat();
         return true;
     };
 
-    offcanvasEl.addEventListener('show.bs.offcanvas', function () {
+    if (minimizeBtn) {
+        minimizeBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            minimizeChat();
+        });
+    }
+    if (endBtn) {
+        endBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            endChat();
+        });
+    }
+
+    chatEl.addEventListener('show.bs.modal', function () {
+        markSessionActive(false);
         if (!chatMarker) {
             try {
                 history.pushState({ tjzChat: 1 }, '', location.href);
@@ -1355,13 +1495,20 @@ if (is_readable($tjzFormatJs)) {
         }
     });
 
-    offcanvasEl.addEventListener('hidden.bs.offcanvas', function () {
+    chatEl.addEventListener('hidden.bs.modal', function () {
+        if (endRequested) {
+            endRequested = false;
+            markSessionActive(false);
+        } else if (window.tjzChatHasHistory && window.tjzChatHasHistory()) {
+            markSessionActive(true);
+        } else {
+            markSessionActive(false);
+        }
         if (closingFromPopstate) {
             closingFromPopstate = false;
             chatMarker = false;
             return;
         }
-        /* Fechou pelo X: limpa a marca sem navegar (evita fechar o Portal). */
         if (chatMarker && history.state && history.state.tjzChat) {
             try {
                 history.replaceState(null, '', location.href);
@@ -1371,14 +1518,12 @@ if (is_readable($tjzFormatJs)) {
     });
 
     window.addEventListener('popstate', function () {
-        if (!offcanvasEl.classList.contains('show') || typeof bootstrap === 'undefined') {
+        if (!chatEl.classList.contains('show')) {
             return;
         }
         closingFromPopstate = true;
         chatMarker = false;
-        var inst = bootstrap.Offcanvas.getInstance(offcanvasEl)
-            || bootstrap.Offcanvas.getOrCreateInstance(offcanvasEl);
-        inst.hide();
+        minimizeChat();
     });
 })();
 </script>

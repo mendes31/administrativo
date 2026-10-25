@@ -1516,15 +1516,106 @@ class LocalInternalChatAgent
     private function stripReportCodeFromMessage(string $message, string $code): string
     {
         $hint = trim($message);
-        $hint = preg_replace('/\b' . preg_quote($code, '/') . '\b/iu', ' ', $hint) ?? $hint;
+        if ($code !== '') {
+            $hint = preg_replace('/\b' . preg_quote($code, '/') . '\b/iu', ' ', $hint) ?? $hint;
+        }
         $hint = preg_replace(
             '/\b(?:cd\s*item|cditem|itemcode|c[oó]digos?|cod(?:igo)?|sku|card\s*code|cardcode)\b/iu',
+            ' ',
+            $hint
+        ) ?? $hint;
+        $hint = $this->stripCodeFilterNoise($hint);
+
+        return trim($hint, " \t:=-");
+    }
+
+    /** Remove «para o cliente», «do parceiro», etc., deixando o domínio do relatório (ex.: vendas). */
+    private function stripCodeFilterNoise(string $hint): string
+    {
+        $hint = preg_replace(
+            '/\b(?:para\s+(?:o|a|os|as)|do|da|de|dos|das|pelo|pela)\s+'
+            . '(?:cliente|clientes|parceiro|parceiros|fornecedor|fornecedores|item|itens)\b/iu',
+            ' ',
+            $hint
+        ) ?? $hint;
+        $hint = preg_replace(
+            '/\b(?:cliente|clientes|parceiro|parceiros|fornecedor|fornecedores)\b/iu',
             ' ',
             $hint
         ) ?? $hint;
         $hint = preg_replace('/\s+/u', ' ', $hint) ?? $hint;
 
         return trim($hint, " \t:=-");
+    }
+
+    /**
+     * Garante que o id veio de um relatório liberado no chat para o usuário.
+     */
+    private function trustedChatReportId(int $reportId): int
+    {
+        if ($reportId < 1) {
+            return 0;
+        }
+        $matched = $this->reports->resolveReport($this->userId, '#' . $reportId);
+
+        return $matched !== null ? (int) $matched['id'] : 0;
+    }
+
+    /**
+     * @return array<string, mixed>|null
+     */
+    private function resolveReportForCodeFilter(string $message, string $code, string $llmQuery): ?array
+    {
+        $hint = $this->stripReportCodeFromMessage($message, $code);
+        $candidates = [];
+        foreach ([$hint, $this->stripCodeFilterNoise($llmQuery), $llmQuery, $this->primaryReportKeyword($hint . ' ' . $message)] as $candidate) {
+            $candidate = trim((string) $candidate);
+            if ($candidate !== '' && !in_array($candidate, $candidates, true)) {
+                $candidates[] = $candidate;
+            }
+        }
+
+        foreach ($candidates as $query) {
+            $matched = $this->reports->resolveReport($this->userId, $query);
+            if ($matched !== null) {
+                return $matched;
+            }
+        }
+
+        return null;
+    }
+
+    private function primaryReportKeyword(string $text): string
+    {
+        if (preg_match('/\b(vendas?|faturamento|itens?|parceiros?|compras?)\b/iu', $text, $match) === 1) {
+            return (string) $match[1];
+        }
+
+        return '';
+    }
+
+    /** «12 meses de 2025», «ano 2025», «compare os meses de 2025». */
+    private function extractYearOnlyRequest(string $message): ?int
+    {
+        if (preg_match(
+            '/\b(?:12\s*meses|todos\s+os\s+meses|ano\s+(?:inteiro\s+)?(?:de\s+)?|durante\s+(?:todo\s+)?(?:o\s+)?ano\s+(?:de\s+)?)\s*(20\d{2}|\d{2})\b/iu',
+            $message,
+            $match
+        ) === 1) {
+            $year = (int) $match[1];
+
+            return $year < 100 ? ($year >= 70 ? 1900 + $year : 2000 + $year) : $year;
+        }
+
+        if (
+            preg_match('/\b(?:comparar|compare|analis[ae]r?|avali[ae]r?)\b/iu', $message) === 1
+            && preg_match('/\bmeses?\b/iu', $message) === 1
+            && preg_match('/\b(20\d{2})\b/u', $message, $match) === 1
+        ) {
+            return (int) $match[1];
+        }
+
+        return null;
     }
 
     /**
@@ -2657,7 +2748,8 @@ class LocalInternalChatAgent
 
         if ($intent['name'] === 'report_run') {
             $period = $this->extractPeriod($message);
-            $reportId = !empty($intent['report_id']) ? (int) $intent['report_id'] : 0;
+            // LLM pode inventar report_id: só aceita se estiver liberado no chat + ACL.
+            $reportId = $this->trustedChatReportId(!empty($intent['report_id']) ? (int) $intent['report_id'] : 0);
             if ($period !== null && $reportId > 0) {
                 $run = $this->reports->runByIdFilteredByMonth(
                     $this->userId,
@@ -2676,10 +2768,10 @@ class LocalInternalChatAgent
             $codeInMsg = $this->extractReportCodeFromMessage($message);
             if ($codeInMsg !== null) {
                 if ($reportId < 1) {
-                    $hint = $this->stripReportCodeFromMessage($message, $codeInMsg);
-                    $matched = $this->reports->resolveReport(
-                        $this->userId,
-                        $hint !== '' ? $hint : (string) ($intent['query'] ?? $message)
+                    $matched = $this->resolveReportForCodeFilter(
+                        $message,
+                        $codeInMsg,
+                        (string) ($intent['query'] ?? '')
                     );
                     $reportId = $matched !== null ? (int) $matched['id'] : 0;
                 }
@@ -2694,10 +2786,42 @@ class LocalInternalChatAgent
                     ];
                 }
             }
-            if ($reportId > 0) {
+            $yearOnly = $this->extractYearOnlyRequest($message);
+            if ($reportId > 0 && $yearOnly !== null && $period === null) {
+                $run = $this->reports->runByIdFilteredByYear($this->userId, $reportId, $yearOnly);
+            } elseif ($reportId > 0) {
                 $run = $this->reports->runById($this->userId, $reportId);
             } else {
-                $run = $this->reports->resolveAndRun($this->userId, (string) ($intent['query'] ?? $message));
+                $query = trim((string) ($intent['query'] ?? ''));
+                if ($query === '' || $this->extractReportCodeFromMessage($query) !== null) {
+                    $query = $this->stripCodeFilterNoise(
+                        $this->stripReportCodeFromMessage($message, (string) ($codeInMsg ?? ''))
+                    );
+                }
+                if ($yearOnly !== null && $period === null) {
+                    $matched = $this->reports->resolveReport(
+                        $this->userId,
+                        $query !== '' ? $query : $message,
+                        true
+                    );
+                    if ($matched !== null) {
+                        $run = $this->reports->runByIdFilteredByYear(
+                            $this->userId,
+                            (int) $matched['id'],
+                            $yearOnly
+                        );
+                    } else {
+                        $run = $this->reports->resolveAndRun(
+                            $this->userId,
+                            $query !== '' ? $query : $message
+                        );
+                    }
+                } else {
+                    $run = $this->reports->resolveAndRun(
+                        $this->userId,
+                        $query !== '' ? $query : $message
+                    );
+                }
             }
 
             return [
@@ -2780,7 +2904,7 @@ class LocalInternalChatAgent
         }
 
         if ($intent['name'] === 'report_month_filter') {
-            $reportId = (int) ($intent['report_id'] ?? 0);
+            $reportId = $this->trustedChatReportId((int) ($intent['report_id'] ?? 0));
             if ($reportId < 1) {
                 $hint = $this->stripPeriodFromMessage($message);
                 $matched = $this->reports->resolveReport(
@@ -2810,11 +2934,16 @@ class LocalInternalChatAgent
         }
 
         if ($intent['name'] === 'report_code_filter') {
-            $reportId = (int) ($intent['report_id'] ?? 0);
+            $reportId = $this->trustedChatReportId((int) ($intent['report_id'] ?? 0));
             $code = trim((string) ($intent['code'] ?? $message));
             if ($reportId < 1) {
                 $last = $_SESSION['internal_chat_last_report'] ?? null;
                 $reportId = is_array($last) ? (int) ($last['report_id'] ?? 0) : 0;
+                $reportId = $this->trustedChatReportId($reportId);
+            }
+            if ($reportId < 1 && $code !== '') {
+                $matched = $this->resolveReportForCodeFilter($message, $code, (string) ($intent['query'] ?? ''));
+                $reportId = $matched !== null ? (int) $matched['id'] : 0;
             }
             $run = $this->reports->runByIdFilteredByCode($this->userId, $reportId, $code);
 

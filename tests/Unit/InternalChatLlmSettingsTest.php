@@ -44,6 +44,22 @@ final class InternalChatLlmSettingsTest extends TestCase
         self::assertSame('gemini-2.5-flash', $plan[0]['model']);
     }
 
+    public function testGeminiStripsOpenRouterGooglePrefix(): void
+    {
+        $settings = new InternalChatLlmSettings(
+            [
+                'llm_provider' => 'gemini',
+                'llm_gemini_api_key' => 'AIza_test',
+                'llm_gemini_model' => 'google/gemini-3.5-flash-lite',
+            ],
+            []
+        );
+
+        $plan = $settings->resolveCallPlan();
+        self::assertCount(1, $plan);
+        self::assertSame('gemini-3.5-flash-lite', $plan[0]['model']);
+    }
+
     public function testFallsBackToEnvOpenAiWhenUiEmpty(): void
     {
         $settings = new InternalChatLlmSettings(

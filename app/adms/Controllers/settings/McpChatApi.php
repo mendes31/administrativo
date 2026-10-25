@@ -4,6 +4,32 @@ namespace App\adms\Controllers\settings;
 
 use App\adms\Models\Repository\AdmsMcpApiConfigRepository;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Helpers\UserAccessHelper;
+use App\adms\Models\Services\AiAnalyst\Adapters\AiReportRunnerSelector;
+use App\adms\Models\Services\AiAnalyst\AiAnalystOrchestrator;
+use App\adms\Models\Services\AiAnalyst\Auth\AiActorContext;
+use App\adms\Models\Services\AiAnalyst\Auth\AiConversationContext;
+use App\adms\Models\Services\AiAnalyst\Auth\AiDataScopeResolver;
+use App\adms\Models\Services\AiAnalyst\Catalog\AiColumnsResolverSelector;
+use App\adms\Models\Services\AiAnalyst\Catalog\AiTechnicalCatalogService;
+use App\adms\Models\Services\AiAnalyst\Feature\AiAnalystFeatureFlags;
+use App\adms\Models\Services\AiAnalyst\Planning\AiDeterministicBusinessPlanner;
+use App\adms\Models\Services\AiAnalyst\Planning\AiDeterministicTechnicalPlanner;
+use App\adms\Models\Services\AiAnalyst\Planning\AiLazyPlanner;
+use App\adms\Models\Services\AiAnalyst\Planning\AiLlmPlanner;
+use App\adms\Models\Services\AiAnalyst\Planning\AiPlannerInterface;
+use App\adms\Models\Services\AiAnalyst\Planning\AiPlanValidator;
+use App\adms\Models\Services\AiAnalyst\Planning\AiPreferLlmPlanner;
+use App\adms\Models\Services\AiAnalyst\Planning\AiResultNarrator;
+use App\adms\Models\Services\AiAnalyst\Routing\AiModeRouter;
+use App\adms\Models\Services\AiAnalyst\Tools\AiToolRegistry;
+use App\adms\Models\Services\AiAnalyst\Tools\CatalogDescribeTableTool;
+use App\adms\Models\Services\AiAnalyst\Tools\CatalogTechnicalSearchTool;
+use App\adms\Models\Services\AiAnalyst\Tools\ComparePeriodsTool;
+use App\adms\Models\Services\AiAnalyst\Tools\ListApprovedReportsTool;
+use App\adms\Models\Services\AiAnalyst\Tools\RunApprovedReportTool;
+use App\adms\Models\Services\InternalChat\ChatToolPermissionGate;
+use App\adms\Models\Services\InternalChat\InternalChatLlmClient;
 
 class McpChatApi
 {
@@ -34,7 +60,28 @@ class McpChatApi
 
         $raw = file_get_contents('php://input');
         $payload = json_decode($raw, true);
-        $message = trim($payload['message'] ?? '');
+        $message = trim((string) ($payload['message'] ?? ''));
+        $conversation = new AiConversationContext();
+        if (!empty($payload['clear_context'])) {
+            $conversation->clear();
+            if ($message === '' || $message === '__tjz_clear__') {
+                echo json_encode([
+                    'success' => true,
+                    'cleared' => true,
+                    'message' => 'Contexto analítico limpo.',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                exit;
+            }
+        }
+        $flags = AiAnalystFeatureFlags::fromEnvironment();
+        $requestedMode = strtolower(trim((string) ($payload['mode'] ?? '')));
+        // Com o AI Analyst ligado, o caminho padrão é automático: o servidor decide.
+        // O seletor de perfil só existe para diagnóstico e não eleva permissão.
+        if ($flags->enabled() && !$flags->modeSelectorEnabled()) {
+            $requestedMode = 'auto';
+        } elseif ($requestedMode === '') {
+            $requestedMode = $flags->enabled() ? 'auto' : 'legacy';
+        }
 
         if ($message === '') {
             echo json_encode([
@@ -56,6 +103,83 @@ class McpChatApi
         }
 
         $endpoint = rtrim((string) $config['base_url'], '/');
+
+        // Com mode=legacy (ou AI desligado), o fluxo abaixo permanece igual.
+        if ($requestedMode !== '' && $requestedMode !== 'legacy') {
+            $gate = new ChatToolPermissionGate();
+            $fullSystemAccess = UserAccessHelper::hasFullSystemAccess();
+            $actor = new AiActorContext(
+                (int) ($_SESSION['user_id'] ?? 0),
+                $fullSystemAccess,
+                $gate->allowedTools(),
+                (new AiDataScopeResolver())->resolve($fullSystemAccess)
+            );
+            $decision = (new AiModeRouter($flags))->decide($requestedMode, $actor, $message, $conversation);
+            if (!$decision->allowed) {
+                http_response_code(403);
+                echo json_encode([
+                    'success' => false,
+                    'message' => $decision->reason,
+                    'mode' => 'legacy',
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                exit;
+            }
+
+            if ($decision->effectiveMode !== 'legacy') {
+                $reportRunner = (new AiReportRunnerSelector())->select($flags);
+                $registry = new AiToolRegistry();
+                $registry->register(new ListApprovedReportsTool($reportRunner));
+                $registry->register(new RunApprovedReportTool($reportRunner));
+                $registry->register(new ComparePeriodsTool());
+                $technicalCatalog = new AiTechnicalCatalogService();
+                $columnsResolver = (new AiColumnsResolverSelector())->select($flags, $technicalCatalog);
+                $registry->register(new CatalogTechnicalSearchTool($technicalCatalog));
+                $registry->register(new CatalogDescribeTableTool($technicalCatalog, $columnsResolver));
+                $liveReports = $flags->realReportsEnabled();
+                $sessionDomain = $conversation->domain();
+                $sessionBinding = $conversation->binding();
+                $llmPlanner = new AiLazyPlanner(
+                    static fn (): AiPlannerInterface => new AiLlmPlanner(
+                        new InternalChatLlmClient(),
+                        $liveReports,
+                        $sessionDomain,
+                        $sessionBinding
+                    )
+                );
+                $planner = new AiPreferLlmPlanner(
+                    $llmPlanner,
+                    new AiDeterministicBusinessPlanner(
+                        new AiDeterministicTechnicalPlanner($llmPlanner),
+                        null,
+                        $technicalCatalog,
+                        $liveReports,
+                        $sessionDomain,
+                        $sessionBinding
+                    ),
+                    static fn (): bool => (new InternalChatLlmClient())->isAnyConfigured()
+                );
+                $llmClient = new InternalChatLlmClient();
+                $orchestrator = new AiAnalystOrchestrator(
+                    $flags,
+                    $planner,
+                    $registry,
+                    new AiPlanValidator($registry, 8),
+                    $llmClient->isAnyConfigured() ? new AiResultNarrator($llmClient) : null
+                );
+                $plannerMessage = $conversation->enrichMessageForPlanner($message);
+                $result = $orchestrator->handle($plannerMessage, $decision->effectiveMode, $actor);
+                $conversation->rememberFromResult($message, $decision->effectiveMode, $result);
+
+                echo json_encode([
+                    'success' => true,
+                    'reply' => json_encode($result, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+                    'payload' => $result,
+                    'http_code' => 200,
+                    'mode' => $decision->effectiveMode,
+                ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
+                exit;
+            }
+        }
 
         // Piloto local (homologação): consultas RH no MySQL do Portal, sem servidor MCP externo.
         if (strcasecmp($endpoint, 'local:internal') === 0 || strcasecmp($endpoint, 'local://internal') === 0) {

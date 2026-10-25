@@ -73,7 +73,12 @@ final class InternalChatLlmSettings
                 'key_url' => 'https://aistudio.google.com/apikey',
                 'base_url' => 'https://generativelanguage.googleapis.com/v1beta/openai',
                 'default_model' => 'gemini-2.0-flash',
-                'models' => ['gemini-2.0-flash', 'gemini-2.5-flash', 'gemini-1.5-flash'],
+                'models' => [
+                    'gemini-3.5-flash-lite',
+                    'gemini-2.0-flash',
+                    'gemini-2.5-flash',
+                    'gemini-1.5-flash',
+                ],
             ],
             'openai' => [
                 'label' => 'OpenAI (pago)',
@@ -321,6 +326,10 @@ final class InternalChatLlmSettings
             $slot === 'openai' ? $this->envVal('OPENAI_MODEL', '') : '',
             $meta['default_model'],
         ]);
+        if ($slot === 'gemini') {
+            // Catálogos tipo OpenRouter usam google/...; a API Gemini espera só o ID do modelo.
+            $model = preg_replace('#^google/#i', '', $model) ?? $model;
+        }
 
         return [
             'slot' => $slot,

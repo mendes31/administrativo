@@ -201,6 +201,127 @@ class ChatDynamicReportService
     }
 
     /**
+     * Filtra o relatório por ano civil (todos os meses daquele ano).
+     *
+     * @return array{ok:bool, resposta:string, tool:string, data?:mixed}
+     */
+    public function runByIdFilteredByYear(int $userId, int $reportId, int $year): array
+    {
+        if ($year < 100) {
+            $year = $year >= 70 ? 1900 + $year : 2000 + $year;
+        }
+        if ($year < 2000 || $year > 2100) {
+            return [
+                'ok' => false,
+                'resposta' => 'Ano inválido para filtrar o relatório.',
+                'tool' => 'report.run',
+            ];
+        }
+
+        $report = $this->repo->getById($reportId);
+        if (!$report || empty($report['chat_enabled'])) {
+            return [
+                'ok' => false,
+                'resposta' => 'Relatório não encontrado ou não está disponível no chat.',
+                'tool' => 'report.run',
+            ];
+        }
+        if ($userId > 0 && !$this->repo->userCanViewReport($report, $userId)) {
+            return [
+                'ok' => false,
+                'resposta' => 'Sem permissão para executar este relatório no chat.',
+                'tool' => 'report.run',
+            ];
+        }
+
+        $name = (string) ($report['name'] ?? 'Relatório');
+        $viz = (string) ($report['visualization_type'] ?? 'table');
+        $reportUrl = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/') . '/view-dynamic-report/' . $reportId;
+        $periodLabel = (string) $year;
+        $rowLimit = max(self::MAX_ROWS_IN_CHAT, 12);
+
+        $rows = [];
+        $usedSqlFilter = false;
+
+        if (($report['query_mode'] ?? '') === 'custom_sql' || !empty($report['custom_sql'])) {
+            $wrapped = $this->wrapSqlWithYearFilter((string) $report['custom_sql'], $year);
+            if ($wrapped !== null) {
+                $cfg = $report;
+                $cfg['custom_sql'] = $this->ensureChatSqlLimit($wrapped, $rowLimit);
+                $cfg['query_mode'] = 'custom_sql';
+                $cfg['cache_namespace'] = 'chat_report_year_' . $reportId . '_' . $year;
+                $cfg['force_refresh'] = true;
+                $cfg['page'] = 1;
+                $cfg['per_page'] = $rowLimit;
+                try {
+                    $result = $this->queryBuilder->executeReport($cfg);
+                    if (!empty($result['success'])) {
+                        $rows = is_array($result['data'] ?? null) ? $result['data'] : [];
+                        $usedSqlFilter = true;
+                    }
+                } catch (\Throwable) {
+                    $rows = [];
+                }
+            }
+        }
+
+        if (!$usedSqlFilter) {
+            $base = $this->runById($userId, $reportId, 500);
+            if (empty($base['ok'])) {
+                return $base;
+            }
+            $data = is_array($base['data'] ?? null) ? $base['data'] : [];
+            $rows = $this->filterRowsByYear(is_array($data['rows'] ?? null) ? $data['rows'] : [], $year);
+            $reportUrl = (string) ($data['report_url'] ?? $reportUrl);
+            $viz = (string) ($data['visualization_type'] ?? $viz);
+        }
+
+        if ($rows === []) {
+            return [
+                'ok' => false,
+                'resposta' => sprintf(
+                    'Não encontrei dados de %s no relatório «%s». Tente outro ano ou abra o relatório completo.',
+                    $periodLabel,
+                    $name
+                ),
+                'tool' => 'report.run',
+                'data' => [
+                    'report_id' => $reportId,
+                    'name' => $name,
+                    'filter_year' => $year,
+                    'rows_count' => 0,
+                    'rows' => [],
+                    'report_url' => $reportUrl,
+                ],
+            ];
+        }
+
+        $preview = array_slice($rows, 0, $rowLimit);
+        $total = count($rows);
+        $lines = [
+            sprintf('Filtro ano %s no relatório «%s»: %d linha(s).', $periodLabel, $name, $total),
+        ];
+
+        return [
+            'ok' => true,
+            'resposta' => implode("\n", $lines),
+            'tool' => 'report.run',
+            'data' => [
+                'report_id' => $reportId,
+                'name' => $name,
+                'filter_year' => $year,
+                'report_url' => $reportUrl,
+                'visualization_type' => $viz,
+                'chart_config' => $report['chart_config'] ?? [],
+                'rows_count' => $total,
+                'rows' => $preview,
+                'rows_display' => DynamicReportValueFormatter::formatRows($preview),
+                'chart' => self::chartWithFormattedLabels(self::buildChartFromRows($preview, $viz)),
+            ],
+        ];
+    }
+
+    /**
      * Reexecuta o relatório aplicando o código na consulta (não só nas 15 linhas do chat).
      *
      * @return array{ok:bool, resposta:string, tool:string, data?:mixed}
@@ -461,6 +582,25 @@ class ChatDynamicReportService
         return $this->injectWhereBeforeGroupOrder($sql, $condition);
     }
 
+    private function wrapSqlWithYearFilter(string $sql, int $year): ?string
+    {
+        $sql = trim($sql);
+        $sql = preg_replace('/^[\d\s]+/i', '', $sql) ?? $sql;
+        $sql = trim($sql);
+        if ($sql === '' || !preg_match('/^\s*SELECT\s+/i', $sql)) {
+            return null;
+        }
+        $sql = preg_replace('/;+\s*$/', '', $sql) ?? $sql;
+        $col = $this->guessDateColumnFromSql($sql);
+        if ($col === null) {
+            return null;
+        }
+        $quoted = '"' . preg_replace('/[^A-Za-z0-9_]/', '', $col) . '"';
+        $condition = 'YEAR(' . $quoted . ') = ' . $year;
+
+        return $this->injectWhereBeforeGroupOrder($sql, $condition);
+    }
+
     private function guessDateColumnFromSql(string $sql): ?string
     {
         if (preg_match('/"(DocDate|TaxDate|CreateDate|UpdateDate|DocDueDate|Data)"/i', $sql, $m)) {
@@ -517,6 +657,49 @@ class ChatDynamicReportService
                     if (str_contains($cell, $needle)) {
                         $out[] = $row;
                         continue 3;
+                    }
+                }
+            }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return list<array<string, mixed>>
+     */
+    private function filterRowsByYear(array $rows, int $year): array
+    {
+        $yy = sprintf('%02d', $year % 100);
+        $needles = [
+            (string) $year,
+            '/' . $year,
+            '-' . $year,
+            '/' . $yy,
+            '-' . $yy,
+        ];
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach ($row as $value) {
+                if (is_array($value) || is_object($value)) {
+                    continue;
+                }
+                $cell = (string) $value;
+                foreach ($needles as $needle) {
+                    if ($needle !== '' && str_contains($cell, $needle)) {
+                        // Evita casar 2025 dentro de 20250 etc. em células só numéricas longas.
+                        if (preg_match('/(?:^|[^\d])' . preg_quote((string) $year, '/') . '(?:[^\d]|$)/', $cell) === 1
+                            || preg_match('/(?:^|[^\d])' . preg_quote($yy, '/') . '(?:[^\d]|$)/', $cell) === 1
+                            || preg_match('/\b(?:0?[1-9]|1[0-2])[\/\-]' . preg_quote((string) $year, '/') . '\b/', $cell) === 1
+                            || preg_match('/\b(?:0?[1-9]|1[0-2])[\/\-]' . preg_quote($yy, '/') . '\b/', $cell) === 1
+                        ) {
+                            $out[] = $row;
+                            continue 3;
+                        }
                     }
                 }
             }
