@@ -1010,6 +1010,36 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     </script>
     <?php endif; ?>
 
+    <script>
+    document.addEventListener('click', function (event) {
+        var link = event.target && event.target.closest ? event.target.closest('a[data-notification-open]') : null;
+        if (!link) {
+            return;
+        }
+        var href = link.getAttribute('href') || '';
+        var target;
+        try {
+            target = new URL(href, window.location.href);
+        } catch (e) {
+            return;
+        }
+        if (target.origin === window.location.origin) {
+            return;
+        }
+        event.preventDefault();
+        var path = target.pathname + target.search + target.hash;
+        var marker = '/administrativo';
+        var at = path.toLowerCase().indexOf(marker);
+        if (at >= 0) {
+            path = path.slice(at + marker.length);
+        }
+        if (!path || path.charAt(0) !== '/') {
+            path = '/' + (path || 'notificacoes');
+        }
+        window.location.assign(window.location.origin + marker + path);
+    }, true);
+    </script>
+
 </body>
 
 </html>

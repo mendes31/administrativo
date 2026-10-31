@@ -1,11 +1,9 @@
-const CACHE_NAME = 'tiaraju-pwa-root-v6';
+const CACHE_NAME = 'tiaraju-pwa-root-v7';
 const URL_PREFIX = '/administrativo/';
 
-// Rotas e assets principais para cache inicial (escopo raiz /administrativo/)
+// Só assets estáticos. Páginas autenticadas não entram no cache:
+// o HTML de um usuário não pode ser reexibido para outro.
 const PRECACHE_URLS = [
-  URL_PREFIX,
-  URL_PREFIX + 'dashboard',
-  URL_PREFIX + 'timeline',
   URL_PREFIX + 'public/adms/css/bootstrap.min.css',
   URL_PREFIX + 'public/adms/css/styles_admin.css',
   URL_PREFIX + 'public/adms/css/custom_adms.css',
@@ -64,6 +62,8 @@ self.addEventListener('fetch', (event) => {
         }
         const contentType = (response.headers.get('content-type') || '').toLowerCase();
         if (
+          contentType.includes('text/html') ||
+          contentType.includes('application/json') ||
           contentType.includes('application/pdf') ||
           contentType.includes('spreadsheetml') ||
           contentType.includes('application/vnd.ms-excel') ||

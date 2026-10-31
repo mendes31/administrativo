@@ -19,7 +19,10 @@
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
 <div class="help-field"><strong>Campos do formulário</strong> Cada campo do formulário grava um atributo do registro; campos vazios podem impedir o salvamento.</div>
-<div class="help-field"><strong>Status / Ativo</strong> Quando existir, registro inativo costuma sumir de seleções e do menu.</div>
+<div class="help-field"><strong>Status / Ativo</strong> Só evento ativo entra no sino e dispara a notificação. Se a publicação for futura, o sistema grava como inativo até essa data, no mesmo modelo dos informativos.</div>
+<div class="help-field"><strong>Publicar a partir de</strong> Vazio publica e notifica na hora (se estiver ativo). Com data futura, sino e push saem somente nesse horário.</div>
+<div class="help-field"><strong>Exige confirmação de presença</strong> Desmarcado: o aviso fica no sino até o colaborador visualizar o evento. Marcado: fica até confirmar ou recusar. Em ambos, sai ao encerrar o prazo de confirmação (se preenchido) ou a data de fim do evento, mesmo sem visualizar ou responder.</div>
+<div class="help-field"><strong>Departamento</strong> Vazio divulga a todos. Com departamento, o push vai só para colaboradores daquele departamento. O sino segue a visibilidade do evento no portal.</div>
 
 <h2>Problemas comuns</h2>
 <dl>

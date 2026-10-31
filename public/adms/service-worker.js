@@ -1,11 +1,8 @@
-const CACHE_NAME = 'tiaraju-pwa-v6';
+const CACHE_NAME = 'tiaraju-pwa-v7';
 const URL_PREFIX = '/administrativo/';
 
-// Rotas e assets principais para cache inicial
+// Só assets estáticos. Páginas autenticadas não entram no cache.
 const PRECACHE_URLS = [
-  URL_PREFIX,
-  URL_PREFIX + 'dashboard',
-  URL_PREFIX + 'timeline',
   URL_PREFIX + 'public/adms/css/bootstrap.min.css',
   URL_PREFIX + 'public/adms/css/styles_admin.css',
   URL_PREFIX + 'public/adms/css/custom_adms.css',

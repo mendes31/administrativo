@@ -1,5 +1,6 @@
 <?php
 use App\adms\Helpers\CSRFHelper;
+use App\adms\Helpers\NotificationOpenHelper;
 $notifications = $this->data['notifications'] ?? [];
 $csrf_token = $this->data['csrf_token'] ?? '';
 $hasUnreadSocial = !empty($this->data['has_unread_social']);
@@ -10,12 +11,9 @@ $now = new DateTimeImmutable('now');
 $todayKey = $now->format('Y-m-d');
 
 $buildMarkedUrl = static function (?string $linkUrl, int $id, bool $unread): string {
+    $base = NotificationOpenHelper::urlOnCurrentHost($linkUrl);
     if (!$unread) {
-        return (string)($linkUrl ?? '#');
-    }
-    $base = (string)($linkUrl ?? '#');
-    if ($base === '#' || $base === '') {
-        return '#';
+        return $base;
     }
     $sep = (strpos($base, '?') !== false) ? '&' : '?';
     return $base . $sep . 'mark_notification=' . $id;
@@ -359,7 +357,7 @@ foreach ($notifications as $n) {
                                 </div>
                                 <div class="notif-item__actions">
                                     <?php if (!empty($n['link_url'])): ?>
-                                        <a href="<?= htmlspecialchars($openUrl); ?>" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        <a href="<?= htmlspecialchars($openUrl); ?>" data-notification-open="1" class="btn btn-sm btn-outline-primary">Abrir</a>
                                     <?php endif; ?>
                                     <?php if ($unread): ?>
                                         <a href="<?= $urlAdm; ?>notificacoes?mark=<?= (int)$n['id']; ?>" class="btn btn-sm btn-link text-decoration-none">Marcar como lida</a>
@@ -416,7 +414,7 @@ foreach ($notifications as $n) {
                                 </div>
                                 <div class="notif-item__actions">
                                     <?php if (!empty($n['link_url'])): ?>
-                                        <a href="<?= htmlspecialchars($openUrl); ?>" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        <a href="<?= htmlspecialchars($openUrl); ?>" data-notification-open="1" class="btn btn-sm btn-outline-primary">Abrir</a>
                                     <?php endif; ?>
                                     <?php if ($unread): ?>
                                         <a href="<?= $urlAdm; ?>notificacoes?mark=<?= (int)$n['id']; ?>" class="btn btn-sm btn-link text-decoration-none">Marcar como lida</a>

@@ -108,33 +108,7 @@ class NotificationsRepository extends DbConnection
 
     private function resolvePushUrl(?string $linkUrl): string
     {
-        $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
-        $fallback = $base !== '' ? $base . '/notificacoes' : '/notificacoes';
-
-        $link = trim((string) $linkUrl);
-        if ($link === '') {
-            return $fallback;
-        }
-
-        if (preg_match('#^https?://#i', $link)) {
-            return $link;
-        }
-
-        if (str_starts_with($link, '/')) {
-            $parsed = parse_url($base);
-            if (is_array($parsed) && !empty($parsed['scheme']) && !empty($parsed['host'])) {
-                $origin = $parsed['scheme'] . '://' . $parsed['host'];
-                if (!empty($parsed['port'])) {
-                    $origin .= ':' . $parsed['port'];
-                }
-
-                return $origin . $link;
-            }
-
-            return $fallback;
-        }
-
-        return $base . '/' . ltrim($link, '/');
+        return \App\adms\Helpers\NotificationOpenHelper::urlOnCurrentHost($linkUrl);
     }
 
     /**
@@ -343,6 +317,27 @@ class NotificationsRepository extends DbConnection
     /**
      * Marca uma notificação como lida.
      */
+    /**
+     * @return 'self'|'other'|'missing'
+     */
+    public function notificationOwnerState(int $id, int $userId): string
+    {
+        if ($id <= 0) {
+            return 'missing';
+        }
+
+        $sql = 'SELECT user_id FROM adms_notifications WHERE id = :id LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':id', $id, PDO::PARAM_INT);
+        $stmt->execute();
+        $owner = $stmt->fetchColumn();
+        if ($owner === false) {
+            return 'missing';
+        }
+
+        return (int) $owner === $userId ? 'self' : 'other';
+    }
+
     public function markAsRead(int $id, int $userId): bool
     {
         $sql = 'UPDATE adms_notifications SET read_at = NOW()

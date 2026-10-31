@@ -99,6 +99,11 @@ class UpdateCompanyEvent
             return;
         }
 
+        $deferNotify = CompanyEventPublishNotifier::publicationIsInTheFuture($data['publish_at'] ?? null);
+        if ($deferNotify) {
+            $data['ativo'] = 0;
+        }
+
         if (!$repo->updateEvent($eventId, $data)) {
             $_SESSION['msg'] = $this->mediaService->alertHtml('danger', 'Erro ao atualizar.');
             return;
@@ -108,11 +113,16 @@ class UpdateCompanyEvent
             return;
         }
 
-        if (!empty($data['ativo'])) {
+        if ($deferNotify) {
+            $repo->clearPublicationNotified($eventId);
+        } elseif (!empty($data['ativo'])) {
             CompanyEventPublishNotifier::notifyPublished($eventId);
         }
 
-        $_SESSION['msg'] = $this->mediaService->alertHtml('success', 'Evento atualizado.');
+        $success = $deferNotify
+            ? 'Evento atualizado. A notificação será enviada na data de publicação.'
+            : 'Evento atualizado.';
+        $_SESSION['msg'] = $this->mediaService->alertHtml('success', $success);
         header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
         exit;
     }

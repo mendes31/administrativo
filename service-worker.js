@@ -91,7 +91,9 @@ self.addEventListener('activate', function (event) {
       return Promise.all(
         keys
           .filter(function (key) {
-            return key.indexOf('tiaraju-push-icons-') === 0 && key !== PUSH_ICON_CACHE;
+            var oldPush = key.indexOf('tiaraju-push-icons-') === 0 && key !== PUSH_ICON_CACHE;
+            var oldPages = key.indexOf('tiaraju-pwa-root-') === 0 || key.indexOf('tiaraju-pwa-v') === 0;
+            return oldPush || oldPages;
           })
           .map(function (key) {
             return caches.delete(key);
@@ -184,14 +186,56 @@ self.addEventListener('push', function (event) {
   );
 });
 
+function urlOnServiceWorkerOrigin(rawUrl) {
+  var scopeUrl;
+  try {
+    scopeUrl = new URL(getScopeBase() + '/');
+  } catch (e) {
+    return self.location.origin + '/';
+  }
+
+  var target;
+  try {
+    target = new URL(rawUrl || '/', scopeUrl);
+  } catch (e) {
+    return scopeUrl.href;
+  }
+
+  if (target.origin === scopeUrl.origin) {
+    return target.href;
+  }
+
+  var basePath = scopeUrl.pathname.replace(/\/$/, '');
+  var path = target.pathname || '/';
+  if (basePath && path.toLowerCase().indexOf(basePath.toLowerCase()) === 0) {
+    path = path.slice(basePath.length) || '/';
+  }
+  if (path.charAt(0) !== '/') {
+    path = '/' + path;
+  }
+
+  return scopeUrl.origin + basePath + path + target.search + target.hash;
+}
+
 self.addEventListener('notificationclick', function (event) {
   event.notification.close();
-  var targetUrl = (event.notification.data && event.notification.data.url) || '/';
+  var rawUrl = (event.notification.data && event.notification.data.url) || '/';
+  var targetUrl = urlOnServiceWorkerOrigin(rawUrl);
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then(function (clientList) {
       for (var i = 0; i < clientList.length; i++) {
         var client = clientList[i];
-        if (client.url && client.url.indexOf(targetUrl) !== -1 && 'focus' in client) {
+        if (!client.url || !('focus' in client)) {
+          continue;
+        }
+        try {
+          if (new URL(client.url).origin !== new URL(targetUrl).origin) {
+            continue;
+          }
+        } catch (e) {
+          continue;
+        }
+        if (client.url.indexOf(targetUrl) !== -1) {
           return client.focus();
         }
       }

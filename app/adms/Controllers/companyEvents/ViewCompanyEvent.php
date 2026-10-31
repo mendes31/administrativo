@@ -4,6 +4,7 @@ namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CompanyEventRsvpAccessHelper;
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Helpers\UserAccessHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\NotificationsRepository;
@@ -69,6 +70,7 @@ class ViewCompanyEvent
         // Sem RSVP obrigatório: marcar como lido ao abrir (mesma ideia do dashboard)
         if (empty($event['requires_rsvp']) && $userId > 0) {
             $repo->upsertRead($eventId, $userId);
+            NavbarLayoutCacheHelper::clear();
         }
 
         if ($userId > 0) {

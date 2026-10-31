@@ -25,9 +25,9 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
     }
 
     /**
-     * Condição SQL: evento conta como "não lido" para o usuário.
-     * - Sem RSVP obrigatório: não lido até registro em adms_company_event_reads.
-     * - Com requires_rsvp: não lido até resposta confirm/decline (cancel só após confirmar).
+     * Condição SQL do sino e do contador de não lidos.
+     * - Sem confirmação obrigatória: permanece até a visualização (leitura), como informativos e políticas.
+     * - Com confirmação: permanece até confirmar ou recusar. Cancelar a presença devolve o aviso.
      */
     private function sqlConditionEventUnreadForUser(): string
     {
@@ -50,9 +50,21 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
                     FROM adms_company_event_rsvps rsvp
                     WHERE rsvp.event_id = e.id
                       AND rsvp.user_id = :u
-                      AND rsvp.status IN (\'confirmed\', \'declined\', \'cancelled\')
+                      AND rsvp.status IN (\'confirmed\', \'declined\')
                 )
             )
+        )';
+    }
+
+    /**
+     * O sino deixa de listar o evento quando o prazo de confirmação encerra (se houver)
+     * ou quando a data/hora de fim do evento passa, mesmo sem visualização ou resposta.
+     */
+    private function sqlConditionEventStillOnBell(): string
+    {
+        return '(
+            (e.rsvp_deadline IS NULL OR e.rsvp_deadline > NOW())
+            AND e.ends_at > NOW()
         )';
     }
 
@@ -88,7 +100,6 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
         $sql = "SELECT COUNT(*) AS total
                 FROM adms_company_events e
                 WHERE e.ativo = 1
-                  AND e.created_by <> :u
                   AND e.starts_at <= :end
                   AND e.ends_at >= :start
                   AND (e.publish_at IS NULL OR e.publish_at <= NOW())
@@ -115,7 +126,6 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
         $sql = "SELECT COUNT(*) AS total
                 FROM adms_company_events e
                 WHERE e.ativo = 1
-                  AND e.created_by <> :u
                   AND e.starts_at <= :end
                   AND e.ends_at >= :start
                   AND (e.publish_at IS NULL OR e.publish_at <= NOW())
@@ -125,6 +135,166 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
         $stmt->execute([':start' => $start, ':end' => $end, ':u' => $userId]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return (int)($row['total'] ?? 0);
+    }
+
+    /**
+     * Eventos ativos, já publicados e ainda não lidos — base do sino (sem recorte de ano).
+     */
+    public function countUnreadPublished(int $userId): int
+    {
+        if ($userId <= 0 || \App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return 0;
+        }
+
+        $unread = $this->sqlConditionEventUnreadForUser();
+        $onBell = $this->sqlConditionEventStillOnBell();
+        $sql = "SELECT COUNT(*) AS total
+                FROM adms_company_events e
+                WHERE e.ativo = 1
+                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
+                  AND (e.expire_at IS NULL OR e.expire_at > NOW())
+                  AND {$onBell}
+                  AND {$unread}";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':u' => $userId]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return (int) ($row['total'] ?? 0);
+    }
+
+    /**
+     * @return list<array<string, mixed>>
+     */
+    public function listUnreadPublished(int $userId, int $limit = 10): array
+    {
+        if ($userId <= 0 || \App\adms\Helpers\InstitutionalSystemUserHelper::isExemptFromAcknowledgment($userId)) {
+            return [];
+        }
+
+        $limit = max(1, min(20, $limit));
+        $unread = $this->sqlConditionEventUnreadForUser();
+        $onBell = $this->sqlConditionEventStillOnBell();
+        $sql = "SELECT e.id, e.title, e.location, e.starts_at, e.created_at
+                FROM adms_company_events e
+                WHERE e.ativo = 1
+                  AND (e.publish_at IS NULL OR e.publish_at <= NOW())
+                  AND (e.expire_at IS NULL OR e.expire_at > NOW())
+                  AND {$onBell}
+                  AND {$unread}
+                ORDER BY COALESCE(e.publish_at, e.created_at) DESC, e.id DESC
+                LIMIT {$limit}";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->execute([':u' => $userId]);
+
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
+     * Liga eventos agendados cuja data de publicação chegou e que ainda não foram notificados.
+     * Não reativa evento já notificado que o usuário tenha desligado depois.
+     *
+     * @return list<int>
+     */
+    public function activateScheduledPublications(): array
+    {
+        try {
+            $sqlIds = 'SELECT id
+                       FROM adms_company_events
+                       WHERE ativo = 0
+                         AND notified_at IS NULL
+                         AND publish_at IS NOT NULL
+                         AND publish_at <= NOW()
+                         AND (expire_at IS NULL OR expire_at > NOW())';
+            $rows = $this->getConnection()->query($sqlIds)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+        if ($ids === []) {
+            return [];
+        }
+
+        $placeholders = implode(',', array_fill(0, count($ids), '?'));
+        $stmt = $this->getConnection()->prepare(
+            "UPDATE adms_company_events
+             SET ativo = 1, updated_at = NOW()
+             WHERE id IN ({$placeholders}) AND notified_at IS NULL"
+        );
+        $stmt->execute($ids);
+
+        return $ids;
+    }
+
+    public function clearPublicationNotified(int $eventId): void
+    {
+        if ($eventId <= 0) {
+            return;
+        }
+
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'UPDATE adms_company_events SET notified_at = NULL WHERE id = :id'
+            );
+            $stmt->execute([':id' => $eventId]);
+        } catch (\Throwable $e) {
+            error_log('CompanyEventsRepository::clearPublicationNotified: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Eventos ativos que entraram na janela de publicação e ainda não dispararam push.
+     *
+     * @return list<int>
+     */
+    public function listIdsPendingPublicationNotification(int $limit = 20): array
+    {
+        $limit = max(1, min(100, $limit));
+        try {
+            $sql = "SELECT id
+                    FROM adms_company_events
+                    WHERE ativo = 1
+                      AND notified_at IS NULL
+                      AND (publish_at IS NULL OR publish_at <= NOW())
+                      AND (expire_at IS NULL OR expire_at > NOW())
+                    ORDER BY COALESCE(publish_at, created_at) ASC, id ASC
+                    LIMIT {$limit}";
+            $rows = $this->getConnection()->query($sql)->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        } catch (\Throwable) {
+            return [];
+        }
+
+        $ids = [];
+        foreach ($rows as $row) {
+            $id = (int) ($row['id'] ?? 0);
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    public function markPublicationNotified(int $eventId): void
+    {
+        if ($eventId <= 0) {
+            return;
+        }
+
+        try {
+            $stmt = $this->getConnection()->prepare(
+                'UPDATE adms_company_events SET notified_at = NOW() WHERE id = :id AND notified_at IS NULL'
+            );
+            $stmt->execute([':id' => $eventId]);
+        } catch (\Throwable $e) {
+            error_log('CompanyEventsRepository::markPublicationNotified: ' . $e->getMessage());
+        }
     }
 
     public function createEvent(array $data): int
@@ -1056,32 +1226,166 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
     }
 
     /**
+     * Público do relatório: ativos (com resposta ou pendência) e inativos que confirmaram, recusaram ou cancelaram.
+     *
+     * @return array{ativos: array<int, array<string, mixed>>, inativos: array<int, array<string, mixed>>}
+     */
+    public function getReportListsForEvent(int $eventId): array
+    {
+        $empty = ['ativos' => [], 'inativos' => []];
+        if ($eventId <= 0) {
+            return $empty;
+        }
+
+        $event = $this->getById($eventId);
+        if (!$event) {
+            return $empty;
+        }
+
+        $deptId = (int) ($event['department_id'] ?? 0);
+        $exclude = \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUsersAlias('u');
+        $deptSql = $deptId > 0 ? ' AND u.user_department_id = :dept' : '';
+        $select = 'SELECT u.id AS user_id, u.name AS user_name, u.email AS user_email, u.status AS user_status,
+                          d.name AS department_name,
+                          r.id AS rsvp_id, r.status, r.responded_at, r.cancelled_at';
+
+        $sqlAtivos = "{$select}
+                FROM adms_users u
+                LEFT JOIN adms_departments d ON d.id = u.user_department_id
+                LEFT JOIN adms_company_event_rsvps r ON r.user_id = u.id AND r.event_id = :e
+                WHERE u.status = 'Ativo'
+                  AND {$exclude}
+                  {$deptSql}
+                ORDER BY u.name ASC";
+
+        $sqlInativos = "{$select}
+                FROM adms_users u
+                INNER JOIN adms_company_event_rsvps r ON r.user_id = u.id AND r.event_id = :e
+                LEFT JOIN adms_departments d ON d.id = u.user_department_id
+                WHERE u.status <> 'Ativo'
+                  AND r.status IN ('confirmed', 'declined', 'cancelled')
+                  AND {$exclude}
+                  {$deptSql}
+                ORDER BY u.name ASC";
+
+        return [
+            'ativos' => $this->attachReportGuests($this->fetchReportRows($sqlAtivos, $eventId, $deptId)),
+            'inativos' => $this->attachReportGuests($this->fetchReportRows($sqlInativos, $eventId, $deptId)),
+        ];
+    }
+
+    /**
      * @return array<int, array<string, mixed>>
      */
     public function getReportRowsForEvent(int $eventId): array
     {
-        $sql = 'SELECT r.id AS rsvp_id, r.user_id, r.status, r.responded_at, r.cancelled_at,
-                       u.name AS user_name, u.email AS user_email,
-                       d.name AS department_name
-                FROM adms_company_event_rsvps r
-                INNER JOIN adms_users u ON u.id = r.user_id
-                LEFT JOIN adms_departments d ON d.id = u.user_department_id
-                WHERE r.event_id = :e
-                ORDER BY u.name ASC';
-        $stmt = $this->getConnection()->prepare($sql);
-        $stmt->execute([':e' => $eventId]);
-        $rows = $stmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+        return $this->getReportListsForEvent($eventId)['ativos'];
+    }
 
-        $guestStmt = $this->getConnection()->prepare(
-            'SELECT * FROM adms_company_event_guests WHERE rsvp_id = :r ORDER BY id ASC'
-        );
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    private function fetchReportRows(string $sql, int $eventId, int $deptId): array
+    {
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':e', $eventId, PDO::PARAM_INT);
+        if ($deptId > 0) {
+            $stmt->bindValue(':dept', $deptId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        return $this->normalizeRows($stmt->fetchAll(PDO::FETCH_ASSOC) ?: []);
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     * @return array<int, array<string, mixed>>
+     */
+    private function attachReportGuests(array $rows): array
+    {
+        $ids = [];
+        foreach ($rows as $row) {
+            $rsvpId = (int) ($row['rsvp_id'] ?? 0);
+            if ($rsvpId > 0) {
+                $ids[] = $rsvpId;
+            }
+        }
+
+        $byRsvp = [];
+        if ($ids !== []) {
+            $placeholders = implode(',', array_fill(0, count($ids), '?'));
+            $stmt = $this->getConnection()->prepare(
+                "SELECT * FROM adms_company_event_guests WHERE rsvp_id IN ($placeholders) ORDER BY id ASC"
+            );
+            $stmt->execute($ids);
+            foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) ?: [] as $guest) {
+                $byRsvp[(int) ($guest['rsvp_id'] ?? 0)][] = $guest;
+            }
+        }
+
         foreach ($rows as &$row) {
-            $guestStmt->execute([':r' => (int)$row['rsvp_id']]);
-            $row['guests'] = $guestStmt->fetchAll(PDO::FETCH_ASSOC) ?: [];
+            $row['guests'] = $byRsvp[(int) ($row['rsvp_id'] ?? 0)] ?? [];
         }
         unset($row);
 
         return $this->normalizeRows($rows);
+    }
+
+    /**
+     * Contadores do relatório de confirmação/recusa.
+     * Público: colaboradores ativos do departamento do evento, ou todos se não houver departamento.
+     * O usuário manager fica de fora.
+     *
+     * @return array{total:int, confirmados:int, recusados:int, pendentes:int, cancelados:int}
+     */
+    public function getReportKpisForEvent(int $eventId): array
+    {
+        $empty = [
+            'total' => 0,
+            'confirmados' => 0,
+            'recusados' => 0,
+            'pendentes' => 0,
+            'cancelados' => 0,
+        ];
+        if ($eventId <= 0) {
+            return $empty;
+        }
+
+        $event = $this->getById($eventId);
+        if (!$event) {
+            return $empty;
+        }
+
+        $deptId = (int) ($event['department_id'] ?? 0);
+        $exclude = \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUsersAlias('u');
+        $deptSql = $deptId > 0 ? ' AND u.user_department_id = :dept' : '';
+        $sql = "SELECT
+                    COUNT(*) AS total,
+                    SUM(CASE WHEN r.status = 'confirmed' THEN 1 ELSE 0 END) AS confirmados,
+                    SUM(CASE WHEN r.status = 'declined' THEN 1 ELSE 0 END) AS recusados,
+                    SUM(CASE WHEN r.status = 'cancelled' THEN 1 ELSE 0 END) AS cancelados,
+                    SUM(CASE WHEN r.id IS NULL OR r.status IS NULL OR r.status = '' OR r.status = 'pending' THEN 1 ELSE 0 END) AS pendentes
+                FROM adms_users u
+                LEFT JOIN adms_company_event_rsvps r
+                    ON r.user_id = u.id AND r.event_id = :eid
+                WHERE u.status = 'Ativo'
+                  AND {$exclude}
+                  {$deptSql}";
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':eid', $eventId, PDO::PARAM_INT);
+        if ($deptId > 0) {
+            $stmt->bindValue(':dept', $deptId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC) ?: [];
+
+        return [
+            'total' => (int) ($row['total'] ?? 0),
+            'confirmados' => (int) ($row['confirmados'] ?? 0),
+            'recusados' => (int) ($row['recusados'] ?? 0),
+            'pendentes' => (int) ($row['pendentes'] ?? 0),
+            'cancelados' => (int) ($row['cancelados'] ?? 0),
+        ];
     }
 
     private function normalizeRows(array $rows): array

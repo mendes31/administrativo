@@ -4,10 +4,12 @@ declare(strict_types=1);
 
 namespace App\adms\Models\Services;
 
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
 
 /**
- * Web Push PWA ao publicar evento corporativo ativo (sino de eventos inalterado).
+ * Web Push PWA ao publicar evento corporativo ativo.
+ * O sino lista eventos não lidos (leitura/RSVP), no mesmo modelo de comunicados.
  */
 final class CompanyEventPublishNotifier
 {
@@ -57,6 +59,17 @@ final class CompanyEventPublishNotifier
         }
     }
 
+    public static function publicationIsInTheFuture(?string $publishAt): bool
+    {
+        $publishAt = trim((string) $publishAt);
+        if ($publishAt === '') {
+            return false;
+        }
+        $ts = strtotime($publishAt);
+
+        return $ts !== false && $ts > time();
+    }
+
     public static function notifyPublished(int $eventId): void
     {
         if ($eventId <= 0) {
@@ -76,8 +89,25 @@ final class CompanyEventPublishNotifier
             }
 
             self::dispatchPush($eventId, $event, false);
+            $repo->markPublicationNotified($eventId);
         } catch (\Throwable $e) {
             error_log('CompanyEventPublishNotifier::notifyPublished error: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Dispara o push de eventos cuja data "Publicar a partir de" acabou de chegar.
+     * Eventos já publicados antes desta coluna não são reenviados (notified_at preenchido na migração).
+     */
+    public static function notifyDuePublished(int $limit = 20): void
+    {
+        try {
+            $ids = (new CompanyEventsRepository())->listIdsPendingPublicationNotification($limit);
+            foreach ($ids as $eventId) {
+                self::notifyPublished($eventId);
+            }
+        } catch (\Throwable $e) {
+            error_log('CompanyEventPublishNotifier::notifyDuePublished error: ' . $e->getMessage());
         }
     }
 
@@ -95,14 +125,22 @@ final class CompanyEventPublishNotifier
 
         $authorId = (int) ($event['created_by'] ?? 0);
         $exclude = [];
-        if ($authorId > 0) {
-            $exclude[] = $authorId;
-        }
         if ($senderUserId > 0 && $senderUserId !== $authorId) {
             $exclude[] = $senderUserId;
         }
 
         $userIds = ContentPublishRecipientsResolver::activeUserIds($departmentIds, $exclude);
+        if ($authorId > 0
+            && !InstitutionalSystemUserHelper::isInstitutionalUserId($authorId)
+            && !in_array($authorId, $userIds, true)
+            && !in_array($authorId, $exclude, true)
+        ) {
+            $userIds[] = $authorId;
+        }
+        $userIds = array_values(array_filter(
+            $userIds,
+            static fn (int $id): bool => !InstitutionalSystemUserHelper::isInstitutionalUserId($id)
+        ));
         if ($userIds === []) {
             return ['sent' => 0, 'skipped' => 0, 'failed' => 0];
         }

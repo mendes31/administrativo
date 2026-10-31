@@ -10,7 +10,9 @@
 <li>Crie evento com título, descrição, data/hora e local.</li>
 <li>Defina capacidade máxima e prazo de inscrição.</li>
 <li>Selecione público-alvo ou deixe aberto a todos.</li>
-<li>Publique; colaboradores confirmam presença pelo portal.</li>
+<li>Publique com o evento <strong>Ativo</strong>. Se <strong>Publicar a partir de</strong> estiver no futuro, o evento fica inativo até essa data e a notificação (sino e push) sai somente então, como nos informativos.</li>
+<li>Sem confirmação obrigatória, o aviso permanece no sino até a pessoa abrir o evento. Com confirmação obrigatória, permanece até confirmar ou recusar. Nos dois casos, sai do sino quando o prazo de confirmação encerra (se houver) ou quando a data de fim do evento passa, mesmo sem visualização ou resposta. Quem criou o evento também entra na contagem, exceto o usuário <em>manager</em>.</li>
+<li>Colaboradores confirmam presença pelo portal.</li>
 <li>Exporte lista de inscritos após encerramento das inscrições.</li>
 </ol>
 <h2>Campos e telas</h2>
@@ -18,11 +20,12 @@
 <div class="help-field"><strong>Data e hora</strong> Início e fim; integração com calendário quando configurada.</div>
 <div class="help-field"><strong>Local / Link</strong> Presencial ou URL para evento online.</div>
 <div class="help-field"><strong>Capacidade</strong> Limite de inscrições.</div>
-<div class="help-field"><strong>Inscritos</strong> Lista de confirmações.</div>
+<div class="help-field"><strong>Relatório de confirmações</strong> No topo, os contadores do público ativo (total, confirmados, recusados, pendentes e cancelados). A aba Ativos lista todos os colaboradores ativos do público, com a resposta ou a pendência. A aba Inativos com histórico lista quem está inativo e já tinha confirmado, recusado ou cancelado; esses não entram no percentual. Inativos sem resposta ficam de fora. O usuário manager não entra nos totais nem nas listas. O CSV traz as duas listas, com a coluna Situação. Na tela, dá para filtrar por nome ou e-mail e por status (pendente, confirmado, recusado ou cancelado); os dois filtros valem juntos nas duas abas.</div>
 <h2>Problemas comuns</h2>
 <dl>
 <dt>Inscrição encerrada</dt><dd>Prazo ou capacidade esgotada; aumente limite se necessário.</dd>
 <dt>Evento não aparece</dt><dd>Fora do período de divulgação ou audiência restrita.</dd>
+<dt>Publiquei e o sino não avisou</dt><dd>O aviso só entra depois da data em <strong>Publicar a partir de</strong>. Quem criou o evento entra na contagem, exceto o usuário <em>manager</em>. Sem confirmação obrigatória, abrir o evento tira o aviso do sino. Com confirmação, ele sai ao confirmar ou recusar. Também sai quando o prazo de confirmação encerra, se existir, ou quando a data de fim do evento passa, mesmo sem abrir ou responder. O push do celular segue a data de publicação e exige notificações ativas no perfil/PWA.</dd>
 <dt>Duplicidade de inscrição</dt><dd>Sistema impede segunda confirmação do mesmo usuário.</dd>
 <dt>Lista de inscritos incompleta</dt><dd>Exporte após sincronização; confira filtros de status.</dd>
 </dl>

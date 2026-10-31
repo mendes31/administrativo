@@ -82,6 +82,11 @@ class CreateCompanyEvent
             return;
         }
 
+        $deferNotify = CompanyEventPublishNotifier::publicationIsInTheFuture($data['publish_at'] ?? null);
+        if ($deferNotify) {
+            $data['ativo'] = 0;
+        }
+
         $repo = new CompanyEventsRepository();
         $id = $repo->createEvent($data);
         if ($id <= 0) {
@@ -93,11 +98,14 @@ class CreateCompanyEvent
             return;
         }
 
-        if (!empty($data['ativo'])) {
+        if (!$deferNotify && !empty($data['ativo'])) {
             CompanyEventPublishNotifier::notifyPublished($id);
         }
 
-        $_SESSION['msg'] = $this->mediaService->alertHtml('success', 'Evento criado.');
+        $success = $deferNotify
+            ? 'Evento criado. A notificação será enviada na data de publicação.'
+            : 'Evento criado.';
+        $_SESSION['msg'] = $this->mediaService->alertHtml('success', $success);
         header('Location: ' . $_ENV['URL_ADM'] . 'list-company-events');
         exit;
     }

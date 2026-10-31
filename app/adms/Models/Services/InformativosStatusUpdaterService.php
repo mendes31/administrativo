@@ -2,6 +2,7 @@
 
 namespace App\adms\Models\Services;
 
+use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\PoliciesRepository;
 
@@ -81,6 +82,12 @@ class InformativosStatusUpdaterService
                 foreach ($policyResult['ativados_ids'] ?? [] as $policyId) {
                     PolicyPublishNotifier::notifyPublished((int) $policyId);
                 }
+
+                $eventsRepo = new CompanyEventsRepository();
+                foreach ($eventsRepo->activateScheduledPublications() as $eventId) {
+                    CompanyEventPublishNotifier::notifyPublished((int) $eventId);
+                }
+                CompanyEventPublishNotifier::notifyDuePublished();
 
                 $payload = [
                     'last_run' => $now,

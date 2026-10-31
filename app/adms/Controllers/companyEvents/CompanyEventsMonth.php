@@ -54,7 +54,6 @@ class CompanyEventsMonth
                 }
                 $requiresRsvp = !empty($ev['requires_rsvp']);
                 if (!$requiresRsvp) {
-                    $eventIdsToMarkAsRead[] = $eid;
                     continue;
                 }
                 $rsvpRow = $ev['rsvp'] ?? null;

@@ -3,6 +3,7 @@
 namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Helpers\CompanyEventRsvpAccessHelper;
+use App\adms\Helpers\NavbarLayoutCacheHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -49,6 +50,9 @@ class EventRsvp
 
         if ($action === 'cancel') {
             $ok = $repo->cancelRsvp($eventId, $uid);
+            if ($ok) {
+                NavbarLayoutCacheHelper::clear();
+            }
             echo json_encode([
                 'success' => $ok,
                 'message' => $ok ? 'Participação cancelada.' : 'Não foi possível cancelar (prazo ou status).',
@@ -80,6 +84,7 @@ class EventRsvp
 
         if ($ok) {
             $repo->upsertRead($eventId, $uid);
+            NavbarLayoutCacheHelper::clear();
         }
 
         $unreadYear = $ok ? $repo->countUnreadIntersectingYear((int)date('Y'), $uid) : null;

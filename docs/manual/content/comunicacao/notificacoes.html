@@ -1,7 +1,7 @@
 <h1>Minhas Notificações</h1>
 
 <h2>Função no sistema</h2>
-<p>Central de avisos internos do colaborador: interações da Timeline (curtidas, comentários, menções e compartilhamentos) e demais alertas gravados no sino (atribuições, folha, SST, projetos, etc.). O botão <strong>Marcar todas como lidas</strong> zera só as notificações sociais da Timeline; comunicados, políticas e avisos que exigem ciência continuam pendentes até a ação correspondente.</p>
+<p>Central de avisos internos do colaborador: interações da Timeline (curtidas, comentários, menções e compartilhamentos) e demais alertas gravados no sino (atribuições, folha, SST, projetos, etc.). O sino também lista comunicados, políticas e eventos corporativos não lidos. O botão <strong>Marcar todas como lidas</strong> zera só as notificações sociais da Timeline; comunicados, políticas, eventos e avisos que exigem ciência continuam pendentes até a ação correspondente.</p>
 
 <p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Comunicação interna — visão geral</em> (<code>com-visao-geral</code>) e <em>Informativos</em> (<code>com-informativos</code>).</p>
 
@@ -15,6 +15,8 @@
     <dd>Confirmação obrigatória de leitura (informativo ou política com “exige ciência”, documento de folha, ficha de EPI, etc.). Não é dispensada pelo botão em lote.</dd>
     <dt>Comunicado / informativo</dt>
     <dd>Publicação oficial no módulo de Informativos. O sino de comunicados usa o status de leitura do informativo, independente das notificações sociais.</dd>
+    <dt>Evento no sino</dt>
+    <dd>Entra na data de publicação. Sem confirmação obrigatória, sai ao abrir o evento. Com confirmação, sai ao confirmar ou recusar. Também sai quando o prazo de confirmação encerra, se houver, ou quando a data de fim do evento passa, mesmo sem abrir ou responder.</dd>
 </dl>
 
 <h2>Fluxo principal</h2>
@@ -34,7 +36,7 @@
 <div class="help-field"><strong>Marcar como lida</strong> Marca somente o item clicado, de qualquer tipo.</div>
 <div class="help-field"><strong>Lida</strong> Indica que o item já foi lido; o ponto azul some.</div>
 <div class="help-field"><strong>Selo Menção</strong> Destaque visual para @menções na Timeline.</div>
-<div class="help-field"><strong>Sino do topo</strong> Soma comunicados não lidos + políticas não lidas + avisos internos. Após marcar as sociais como lidas, o número cai só na parcela social.</div>
+<div class="help-field"><strong>Sino do topo</strong> Soma comunicados não lidos + políticas não lidas + eventos não lidos + avisos internos. Após marcar as sociais como lidas, o número cai só na parcela social. Evento sem confirmação sai do sino ao abrir a página do evento, como comunicado e política. Evento com confirmação obrigatória sai ao confirmar ou recusar. O evento também sai do sino quando o prazo de confirmação encerra, se houver, ou quando a data de fim passa, mesmo sem visualização ou resposta.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
@@ -44,6 +46,8 @@
     <dd>Só é exibido quando há notificações sociais não lidas. Se restam só informativos ou ciência, use o sino (Comunicados) ou o link Abrir de cada aviso.</dd>
     <dt>Marquei um item como lido e ele ainda aparece</dt>
     <dd>Itens lidos continuam na lista recente, sem o ponto azul e com o texto «Lida». O contador do sino considera só os não lidos.</dd>
+    <dt>O aviso abriu outro endereço e apareceu outra conta</dt>
+    <dd>O sino e o botão Abrir ficam no endereço em que você já está. Se um link antigo ainda apontar para outro ambiente (outra base), a sessão daquele endereço não é reaproveitada: o sistema encerra essa sessão e pede o login de novo.</dd>
     <dt>Não vejo o menu desta tela</dt>
     <dd>Permissão <em>Notificacoes</em> ausente no nível de acesso. Solicite inclusão no pacote correto.</dd>
 </dl>

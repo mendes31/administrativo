@@ -7,6 +7,8 @@ $navbarNotifCount = 0;
 $navbarNotifList = [];
 $navbarInternalCount = 0;
 $navbarInternalList = [];
+$navbarNotifCountEvents = 0;
+$navbarNotifListEvents = [];
 $mcpChatAvailable = false;
 $navbarTotalCount = 0;
 
@@ -19,6 +21,8 @@ if (!empty($_SESSION['user_id'])) {
     $navbarNotifListInformativos = $nav['navbar_notif_list_informativos'] ?? [];
     $navbarNotifCountPolicies = (int) ($nav['navbar_notif_count_policies'] ?? 0);
     $navbarNotifListPolicies = $nav['navbar_notif_list_policies'] ?? [];
+    $navbarNotifCountEvents = (int) ($nav['navbar_notif_count_events'] ?? 0);
+    $navbarNotifListEvents = $nav['navbar_notif_list_events'] ?? [];
     $navbarInternalCount = (int) ($nav['navbar_internal_count'] ?? 0);
     $navbarInternalList = $nav['navbar_internal_list'] ?? [];
     $navbarTotalCount = (int) ($nav['navbar_total_count'] ?? 0);
@@ -114,6 +118,27 @@ if (!empty($_SESSION['user_id'])) {
                     <?php endforeach; ?>
                     <li><hr class="dropdown-divider my-0"></li>
                 <?php endif; ?>
+                <?php if (!empty($navbarNotifListEvents)): ?>
+                    <li class="dropdown-header small text-muted">Eventos</li>
+                    <?php foreach ($navbarNotifListEvents as $evNotif): ?>
+                    <li>
+                        <a class="dropdown-item py-2 d-block" href="<?php echo $_ENV['URL_ADM']; ?>view-company-event/<?php echo (int) $evNotif['id']; ?>">
+                            <span class="d-block fw-semibold small"><i class="fas fa-calendar-alt text-success me-1"></i><?php echo htmlspecialchars($evNotif['title'] ?? ''); ?></span>
+                            <span class="d-block text-muted" style="font-size: 0.8rem;">
+                                <?php
+                                $evWhen = $evNotif['starts_at'] ?? $evNotif['created_at'] ?? 'now';
+                                echo date('d/m/Y H:i', strtotime((string) $evWhen));
+                                $evLoc = trim((string) ($evNotif['location'] ?? ''));
+                                if ($evLoc !== '') {
+                                    echo ' · ' . htmlspecialchars($evLoc);
+                                }
+                                ?>
+                            </span>
+                        </a>
+                    </li>
+                    <?php endforeach; ?>
+                    <li><hr class="dropdown-divider my-0"></li>
+                <?php endif; ?>
                 <?php if (!empty($navbarInternalList)): ?>
                     <li class="dropdown-header small text-muted">Atribuições e avisos</li>
                     <?php
@@ -132,10 +157,7 @@ if (!empty($_SESSION['user_id'])) {
                     <?php foreach ($navbarInternalList as $intNotif): ?>
                     <li>
                         <?php
-                        $intLink = !empty($intNotif['link_url']) ? trim((string)$intNotif['link_url']) : '';
-                        if ($intLink === '') {
-                            $intLink = rtrim((string)($_ENV['URL_ADM'] ?? ''), '/') . '/notificacoes';
-                        }
+                        $intLink = \App\adms\Helpers\NotificationOpenHelper::urlOnCurrentHost($intNotif['link_url'] ?? null);
                         // Marca como lida ao abrir o destino (exceto quando o próprio destino já é a central).
                         if (strpos($intLink, 'notificacoes') === false && (int)($intNotif['id'] ?? 0) > 0) {
                             $intLink .= (strpos($intLink, '?') !== false ? '&' : '?') . 'mark_notification=' . (int)$intNotif['id'];
@@ -144,7 +166,7 @@ if (!empty($_SESSION['user_id'])) {
                         $isMentionNotif = $nType === 'timeline_mention' || $nType === 'comentario_mencao'
                             || (int)($intNotif['priority'] ?? 0) >= 100;
                         ?>
-                        <a class="dropdown-item py-2 d-block<?php echo $isMentionNotif ? ' border-start border-warning border-3' : ''; ?>" href="<?php echo htmlspecialchars($intLink); ?>">
+                        <a class="dropdown-item py-2 d-block<?php echo $isMentionNotif ? ' border-start border-warning border-3' : ''; ?>" data-notification-open="1" href="<?php echo htmlspecialchars($intLink); ?>">
                             <span class="d-block fw-semibold small"><i class="<?php echo htmlspecialchars($navbarNotifIcon($nType)); ?> me-1"></i><?php echo htmlspecialchars($intNotif['title'] ?? ''); ?></span>
                             <span class="d-block text-muted" style="font-size: 0.8rem;"><?php echo date('d/m/Y H:i', strtotime($intNotif['created_at'] ?? 'now')); ?></span>
                         </a>
@@ -152,7 +174,7 @@ if (!empty($_SESSION['user_id'])) {
                     <?php endforeach; ?>
                     <li><hr class="dropdown-divider my-0"></li>
                 <?php endif; ?>
-                <?php if (empty($navbarNotifListInformativos) && empty($navbarNotifListPolicies) && empty($navbarInternalList)): ?>
+                <?php if (empty($navbarNotifListInformativos) && empty($navbarNotifListPolicies) && empty($navbarNotifListEvents) && empty($navbarInternalList)): ?>
                 <li><div class="dropdown-item text-muted small py-3 text-center">Nenhuma notificação nova.</div></li>
                 <li><hr class="dropdown-divider my-0"></li>
                 <?php endif; ?>

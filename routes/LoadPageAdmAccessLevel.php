@@ -49,6 +49,8 @@ class LoadPageAdmAccessLevel
         $this->urlController = $urlController;
         $this->urlParameter = $urlParameter;
 
+        NotificationOpenHelper::discardForeignNotificationSession();
+
         // Tratamento especial: validação de senha na tela de bloqueio
         // Esta rota é usada apenas para o próprio usuário validar a senha
         // e não deve depender da permissão da página de Administração de Senhas.

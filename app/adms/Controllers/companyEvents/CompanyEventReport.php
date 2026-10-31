@@ -44,12 +44,24 @@ class CompanyEventReport
         $this->data['event'] = $event;
         // Após o prazo: garante linhas "declined" para quem não respondeu (incl. quem nunca acessou o sistema).
         $repo->syncAutoDeclineForAllEligibleUsersAfterDeadline($eventId);
-        $this->data['rows'] = $repo->getReportRowsForEvent($eventId);
+        $lists = $repo->getReportListsForEvent($eventId);
+        $this->data['rows'] = $lists['ativos'];
+        $this->data['rows_inativos'] = $lists['inativos'];
+        $this->data['kpis'] = $repo->getReportKpisForEvent($eventId);
         $this->data['can_edit_rsvp_responses'] = !empty($event['requires_rsvp'])
             && CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $uid, $btnPerms);
 
         if (isset($_GET['export']) && $_GET['export'] === 'csv') {
-            $this->exportCsv($event['title'] ?? 'evento', $this->data['rows']);
+            $exportRows = [];
+            foreach ($lists['ativos'] as $row) {
+                $row['lista'] = 'Ativo';
+                $exportRows[] = $row;
+            }
+            foreach ($lists['inativos'] as $row) {
+                $row['lista'] = 'Inativo';
+                $exportRows[] = $row;
+            }
+            $this->exportCsv($event['title'] ?? 'evento', $exportRows);
             return;
         }
 
@@ -75,14 +87,15 @@ class CompanyEventReport
         header('Content-Disposition: attachment; filename="relatorio_evento_' . $safe . '.csv"');
         $out = fopen('php://output', 'w');
         fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
-        fputcsv($out, ['Colaborador', 'E-mail', 'Departamento', 'Status', 'Respondido em', 'Cancelado em', 'Convidados'], ';');
+        fputcsv($out, ['Situação', 'Colaborador', 'E-mail', 'Departamento', 'Status', 'Respondido em', 'Cancelado em', 'Convidados'], ';');
         foreach ($rows as $r) {
             $guests = array_map(static fn ($g) => ($g['full_name'] ?? '') . ' (' . ($g['relationship'] ?? '') . ')', $r['guests'] ?? []);
             fputcsv($out, [
+                $r['lista'] ?? 'Ativo',
                 $r['user_name'] ?? '',
                 $r['user_email'] ?? '',
                 $r['department_name'] ?? '',
-                $r['status'] ?? '',
+                self::statusLabel(isset($r['status']) ? (string) $r['status'] : ''),
                 $r['responded_at'] ?? '',
                 $r['cancelled_at'] ?? '',
                 implode(' | ', $guests),
@@ -90,5 +103,15 @@ class CompanyEventReport
         }
         fclose($out);
         exit;
+    }
+
+    private static function statusLabel(string $status): string
+    {
+        return match ($status) {
+            'confirmed' => 'Confirmado',
+            'declined' => 'Recusado',
+            'cancelled' => 'Cancelado',
+            default => 'Pendente',
+        };
     }
 }

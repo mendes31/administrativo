@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Helpers;
 
 use App\adms\Models\Repository\AdmsMcpApiConfigRepository;
+use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\InformativosRepository;
 use App\adms\Models\Repository\NotificationsRepository;
 use App\adms\Models\Repository\PoliciesRepository;
@@ -15,7 +16,7 @@ use App\adms\Models\Repository\UsersRepository;
  */
 final class NavbarLayoutCacheHelper
 {
-    private const SESSION_KEY = 'adms_navbar_layout_cache';
+    private const SESSION_KEY = 'adms_navbar_layout_cache_v2';
     private const TTL_SECONDS = 90;
 
     public static function clear(): void
@@ -30,6 +31,8 @@ final class NavbarLayoutCacheHelper
      *   navbar_notif_list_informativos: list<array<string, mixed>>,
      *   navbar_notif_count_policies: int,
      *   navbar_notif_list_policies: list<array<string, mixed>>,
+     *   navbar_notif_count_events: int,
+     *   navbar_notif_list_events: list<array<string, mixed>>,
      *   navbar_internal_count: int,
      *   navbar_internal_list: list<array<string, mixed>>,
      *   navbar_total_count: int,
@@ -84,6 +87,12 @@ final class NavbarLayoutCacheHelper
                 ? $policiesRepo->getListNaoLidos($userId, 10)
                 : [];
 
+            $eventsRepo = new CompanyEventsRepository();
+            $navbarNotifCountEvents = $eventsRepo->countUnreadPublished($userId);
+            $navbarNotifListEvents = $navbarNotifCountEvents > 0
+                ? $eventsRepo->listUnreadPublished($userId, 10)
+                : [];
+
             $navbarInternalCount = $notifRepo->countUnread($userId);
             $navbarInternalList = $navbarInternalCount > 0
                 ? $notifRepo->listUnreadForUser($userId, 10)
@@ -100,9 +109,11 @@ final class NavbarLayoutCacheHelper
                 'navbar_notif_list_informativos' => $navbarNotifListInformativos,
                 'navbar_notif_count_policies' => $navbarNotifCountPolicies,
                 'navbar_notif_list_policies' => $navbarNotifListPolicies,
+                'navbar_notif_count_events' => $navbarNotifCountEvents,
+                'navbar_notif_list_events' => $navbarNotifListEvents,
                 'navbar_internal_count' => $navbarInternalCount,
                 'navbar_internal_list' => $navbarInternalList,
-                'navbar_total_count' => $navbarNotifCountInformativos + $navbarNotifCountPolicies + $navbarInternalCount,
+                'navbar_total_count' => $navbarNotifCountInformativos + $navbarNotifCountPolicies + $navbarNotifCountEvents + $navbarInternalCount,
                 'mcp_chat_available' => $mcpEnabled && $userCanMcpChat,
             ];
         } catch (\Throwable) {
@@ -118,6 +129,8 @@ final class NavbarLayoutCacheHelper
             'navbar_notif_list_informativos' => [],
             'navbar_notif_count_policies' => 0,
             'navbar_notif_list_policies' => [],
+            'navbar_notif_count_events' => 0,
+            'navbar_notif_list_events' => [],
             'navbar_internal_count' => 0,
             'navbar_internal_list' => [],
             'navbar_total_count' => 0,
