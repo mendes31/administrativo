@@ -511,6 +511,7 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                     </div>
                 </div>
             </div>
+            <?php include __DIR__ . '/partials/external_invites.php'; ?>
         </div>
     </div>
 </div>

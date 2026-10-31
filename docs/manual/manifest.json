@@ -565,6 +565,11 @@
                     "file": "comunicacao/view-company-event.html"
                 },
                 {
+                    "id": "convite-evento",
+                    "title": "Convite externo de evento",
+                    "file": "comunicacao/convite-evento.html"
+                },
+                {
                     "id": "view-informativo",
                     "title": "Visualizar Informativo",
                     "file": "comunicacao/view-informativo.html"

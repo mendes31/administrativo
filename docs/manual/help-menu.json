@@ -483,6 +483,11 @@
                             "type": "topic",
                             "topic_id": "view-company-event",
                             "title": "Visualizar Evento Corporativo"
+                        },
+                        {
+                            "type": "topic",
+                            "topic_id": "convite-evento",
+                            "title": "Convite externo de evento"
                         }
                     ]
                 },

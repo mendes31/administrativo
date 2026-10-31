@@ -117,6 +117,7 @@ $audience = !empty($ev['department_id']) ? 'do departamento do evento' : 'de tod
                 <i class="fas fa-arrow-left me-1"></i>Voltar à listagem
             </a>
             <a class="btn btn-sm btn-outline-success" href="<?php echo htmlspecialchars($urlAdm); ?>company-event-report/<?php echo $id; ?>?export=csv">Exportar CSV</a>
+            <a class="btn btn-sm btn-outline-success" href="<?php echo htmlspecialchars($urlAdm); ?>company-event-report/<?php echo $id; ?>?export=csv-externos">CSV convidados externos</a>
         </div>
     </div>
     <p class="text-muted small mb-3">Os percentuais usam colaboradores <strong>ativos</strong> <?php echo $audience; ?>. O usuário manager não entra na contagem.<?php if (!$requiresRsvp): ?> Este evento não exige confirmação de presença.<?php endif; ?></p>
@@ -246,6 +247,58 @@ $audience = !empty($ev['department_id']) ? 'do departamento do evento' : 'de tod
                     <div class="d-md-none"><?php $renderCards($rowsInativos); ?></div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <?php
+    $externalInvites = $this->data['external_invites'] ?? [];
+    $extConfirmed = 0;
+    $extDeclined = 0;
+    $extPending = 0;
+    foreach ($externalInvites as $extRow) {
+        $extStatus = (string) ($extRow['status'] ?? '');
+        if ($extStatus === 'confirmed') {
+            $extConfirmed++;
+        } elseif ($extStatus === 'declined') {
+            $extDeclined++;
+        } else {
+            $extPending++;
+        }
+    }
+    ?>
+    <div class="card mt-3">
+        <div class="card-body">
+            <h3 class="h5">Convidados de fora da empresa</h3>
+            <p class="text-muted small">Lista separada dos colaboradores. Não entra no percentual dos cartões acima. A presença é confirmada ou recusada pelo link enviado, em geral pelo WhatsApp.</p>
+            <p class="small mb-3">Total <?php echo count($externalInvites); ?> · Confirmados <?php echo $extConfirmed; ?> · Recusados <?php echo $extDeclined; ?> · Pendentes <?php echo $extPending; ?></p>
+            <?php if ($externalInvites === []): ?>
+                <p class="text-muted small mb-0">Nenhum convidado externo neste evento.</p>
+            <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped align-middle mb-0">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Nome</th>
+                                <th>Motivo do convite</th>
+                                <th>Celular</th>
+                                <th>Status</th>
+                                <th>Respondido</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($externalInvites as $extRow): ?>
+                            <tr>
+                                <td><?php echo htmlspecialchars((string) ($extRow['full_name'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars((string) ($extRow['invite_reason'] ?? ''), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><?php echo htmlspecialchars(\App\adms\Models\Services\CompanyEventExternalInviteMessage::formatPhone((string) ($extRow['phone'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></td>
+                                <td><span class="badge <?php echo $statusClass((string) ($extRow['status'] ?? '')); ?>"><?php echo htmlspecialchars($statusLabel((string) ($extRow['status'] ?? '')), ENT_QUOTES, 'UTF-8'); ?></span></td>
+                                <td><?php echo htmlspecialchars($fmtDt($extRow['responded_at'] ?? null), ENT_QUOTES, 'UTF-8'); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+            <?php endif; ?>
         </div>
     </div>
 </div>

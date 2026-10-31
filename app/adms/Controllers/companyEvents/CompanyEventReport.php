@@ -5,7 +5,9 @@ namespace App\adms\Controllers\companyEvents;
 use App\adms\Controllers\Services\PageLayoutService;
 use App\adms\Helpers\CompanyEventRsvpAccessHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
+use App\adms\Models\Repository\CompanyEventExternalInvitesRepository;
 use App\adms\Models\Repository\CompanyEventsRepository;
+use App\adms\Models\Services\CompanyEventExternalInviteMessage;
 use App\adms\Views\Services\LoadViewService;
 
 class CompanyEventReport
@@ -48,8 +50,15 @@ class CompanyEventReport
         $this->data['rows'] = $lists['ativos'];
         $this->data['rows_inativos'] = $lists['inativos'];
         $this->data['kpis'] = $repo->getReportKpisForEvent($eventId);
+        $externalInvites = (new CompanyEventExternalInvitesRepository())->listByEvent($eventId);
+        $this->data['external_invites'] = $externalInvites;
         $this->data['can_edit_rsvp_responses'] = !empty($event['requires_rsvp'])
             && CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $uid, $btnPerms);
+
+        if (isset($_GET['export']) && $_GET['export'] === 'csv-externos') {
+            $this->exportExternalCsv($event['title'] ?? 'evento', $externalInvites);
+            return;
+        }
 
         if (isset($_GET['export']) && $_GET['export'] === 'csv') {
             $exportRows = [];
@@ -99,6 +108,30 @@ class CompanyEventReport
                 $r['responded_at'] ?? '',
                 $r['cancelled_at'] ?? '',
                 implode(' | ', $guests),
+            ], ';');
+        }
+        fclose($out);
+        exit;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $rows
+     */
+    private function exportExternalCsv(string $title, array $rows): void
+    {
+        $safe = preg_replace('/[^a-zA-Z0-9_-]+/', '_', $title);
+        header('Content-Type: text/csv; charset=UTF-8');
+        header('Content-Disposition: attachment; filename="convidados_externos_' . $safe . '.csv"');
+        $out = fopen('php://output', 'w');
+        fprintf($out, chr(0xEF) . chr(0xBB) . chr(0xBF));
+        fputcsv($out, ['Nome', 'Motivo do convite', 'Celular', 'Status', 'Respondido em'], ';');
+        foreach ($rows as $r) {
+            fputcsv($out, [
+                $r['full_name'] ?? '',
+                $r['invite_reason'] ?? '',
+                CompanyEventExternalInviteMessage::formatPhone((string) ($r['phone'] ?? '')),
+                self::statusLabel(isset($r['status']) ? (string) $r['status'] : ''),
+                $r['responded_at'] ?? '',
             ], ';');
         }
         fclose($out);

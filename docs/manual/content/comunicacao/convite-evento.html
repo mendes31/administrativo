@@ -1,0 +1,37 @@
+<h1>Convite externo de evento</h1>
+
+<h2>Função no sistema</h2>
+<p>Página aberta, sem login, em que uma pessoa de fora da empresa confirma ou recusa a presença em um evento corporativo. O endereço é individual e só funciona com o código do convite.</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Link aberto</dt>
+    <dd>Endereço que não pede usuário nem senha do portal. Quem tem o link responde por ele.</dd>
+    <dt>Convidado de fora da empresa</dt>
+    <dd>Pessoa sem cadastro de colaborador. Não é o acompanhante informado pelo colaborador na opção Permite convidados.</dd>
+</dl>
+
+<p><strong>Quem acessa:</strong> qualquer pessoa com o link. A inclusão do convidado fica na visualização do evento, para o criador ou para quem tem <em>CreateCompanyEvent</em> e <em>UpdateCompanyEvent</em>.</p>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>A pessoa recebe a mensagem no celular. O envio sai pelo número cadastrado na API de WhatsApp do sistema, não pelo WhatsApp de quem clicou.</li>
+    <li>Ela abre o link da mensagem.</li>
+    <li>Vê a imagem do evento, o nome, a data, o local, o motivo do convite e um trecho da descrição.</li>
+    <li>Usa <strong>Confirmar presença</strong> ou <strong>Recusar</strong>.</li>
+    <li>Pode mudar a resposta até a data de fim do evento.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Imagem</strong> Primeira imagem cadastrada no evento. Também entra na prévia do link no WhatsApp.</div>
+<div class="help-field"><strong>Confirmar presença / Recusar</strong> Grava a resposta na lista separada de convidados externos. Depois do fim do evento os botões somem e a resposta fica como está.</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Convite não encontrado</dt>
+    <dd>O link foi alterado ou o convidado foi removido. Peça um novo envio na visualização do evento.</dd>
+    <dt>A imagem não aparece na conversa do WhatsApp</dt>
+    <dd>O texto do WhatsApp leva o link. A foto aparece na página do convite e, quando o aplicativo gera prévia, na própria conversa. Também dá para abrir a imagem no portal e anexá-la manualmente.</dd>
+    <dt>Não consigo mais responder</dt>
+    <dd>A data de fim do evento já passou.</dd>
+</dl>
