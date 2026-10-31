@@ -174,6 +174,8 @@ class FinCostCenterSapService
             $grain = array_merge($grain, $this->normalizeGrain($raw, $chunkFrom->format('Y-m')));
         }
         $grain = $this->mergeGrain($grain);
+        // Nota cancelada / estorno: saldo líquido 0 some da hierarquia, ranking e filtros.
+        $grain = $this->dropZeroBalances($grain);
         $unidades = $this->uniqueUnidades($grain);
         $unidade = trim($unidade);
         $centro = trim($centro);
@@ -355,6 +357,26 @@ class FinCostCenterSapService
         return array_values($merged);
     }
 
+    /** Saldo líquido relevante no período (após cancelamento/estorno o líquido 0 some). */
+    private function hasBalance(float $valor): bool
+    {
+        return abs(round($valor, 2)) >= 0.005;
+    }
+
+    /**
+     * Remove linhas de grain com saldo líquido zerado (ex.: NF cancelada no período).
+     *
+     * @param list<array<string, mixed>> $grain
+     * @return list<array<string, mixed>>
+     */
+    private function dropZeroBalances(array $grain): array
+    {
+        return array_values(array_filter(
+            $grain,
+            fn (array $row): bool => $this->hasBalance((float) ($row['valor'] ?? 0))
+        ));
+    }
+
     /**
      * @return list<array{0: DateTimeImmutable, 1: DateTimeImmutable}>
      */
@@ -428,6 +450,9 @@ class FinCostCenterSapService
 
         $tree = [];
         foreach ($unidades as $unid) {
+            if (!$this->hasBalance((float) $byUnit[$unid])) {
+                continue;
+            }
             $tree[] = [
                 'nivel' => 1,
                 'descricao' => $unid,
@@ -439,7 +464,7 @@ class FinCostCenterSapService
 
             $centrosUnid = [];
             foreach ($byCentro as $ckey => $centro) {
-                if ($centro['unidade'] === $unid) {
+                if ($centro['unidade'] === $unid && $this->hasBalance((float) $centro['valor'])) {
                     $centrosUnid[$ckey] = $centro;
                 }
             }
@@ -496,6 +521,7 @@ class FinCostCenterSapService
                         if ($acc['unidade'] === $unid
                             && $acc['centro'] === $centro['centro']
                             && $acc['regra_revisar'] === $centro['regra_revisar']
+                            && $this->hasBalance((float) $acc['valor'])
                         ) {
                             $contas[$akey] = $acc;
                         }
@@ -581,27 +607,39 @@ class FinCostCenterSapService
             $centrosOut = [];
             $ci = 0;
             foreach ($centros as $centro) {
-                $ci++;
-                $contas = array_values($centro['contas']);
-                usort($contas, static fn(array $a, array $b): int => strcmp($a['account'], $b['account']));
-                foreach ($contas as &$conta) {
-                    $conta['valor'] = round((float) $conta['valor'], 2);
+                $valorCentro = round((float) $centro['valor'], 2);
+                if (!$this->hasBalance($valorCentro)) {
+                    continue;
                 }
-                unset($conta);
+                $ci++;
+                $contas = [];
+                foreach (array_values($centro['contas']) as $conta) {
+                    $valorConta = round((float) $conta['valor'], 2);
+                    if (!$this->hasBalance($valorConta)) {
+                        continue;
+                    }
+                    $conta['valor'] = $valorConta;
+                    $contas[] = $conta;
+                }
+                usort($contas, static fn(array $a, array $b): int => strcmp($a['account'], $b['account']));
                 $centrosOut[] = [
                     'id' => 'u' . $ui . '-c' . $ci,
                     'centro' => $centro['centro'],
                     'nome' => $centro['nome'],
                     'status' => $centro['status'],
                     'regra_revisar' => $centro['regra_revisar'],
-                    'valor' => round((float) $centro['valor'], 2),
+                    'valor' => $valorCentro,
                     'contas' => $contas,
                 ];
+            }
+            $valorUnidade = round((float) $byUnit[$unid]['valor'], 2);
+            if ($centrosOut === [] || !$this->hasBalance($valorUnidade)) {
+                continue;
             }
             $out[] = [
                 'id' => 'u' . $ui,
                 'unidade' => $unid,
-                'valor' => round((float) $byUnit[$unid]['valor'], 2),
+                'valor' => $valorUnidade,
                 'qtd_centros' => count($centrosOut),
                 'centros' => $centrosOut,
             ];
@@ -915,8 +953,11 @@ class FinCostCenterSapService
         $out = [];
         $i = 0;
         foreach ($byCentro as $row) {
-            $i++;
             $valor = round((float) $row['valor'], 2);
+            if (!$this->hasBalance($valor)) {
+                continue;
+            }
+            $i++;
             $out[] = [
                 'pos' => $i,
                 'centro' => $row['centro'],
@@ -975,19 +1016,30 @@ class FinCostCenterSapService
         $out = [];
         $i = 0;
         foreach ($by as $row) {
-            $i++;
             $valor = round((float) $row['valor'], 2);
-            $centros = array_values($row['centros']);
-            usort($centros, static fn(array $a, array $b): int => $b['valor'] <=> $a['valor']);
-            foreach ($centros as &$c) {
-                $c['valor'] = round((float) $c['valor'], 2);
+            if (!$this->hasBalance($valor)) {
+                continue;
             }
-            unset($c);
+            $i++;
+            $centros = [];
+            foreach (array_values($row['centros']) as $c) {
+                $cVal = round((float) $c['valor'], 2);
+                if (!$this->hasBalance($cVal)) {
+                    continue;
+                }
+                $c['valor'] = $cVal;
+                $centros[] = $c;
+            }
+            usort($centros, static fn(array $a, array $b): int => $b['valor'] <=> $a['valor']);
             $unidades = $row['unidades'];
             arsort($unidades, SORT_NUMERIC);
             $unidOut = [];
             foreach ($unidades as $label => $uVal) {
-                $unidOut[] = ['unidade' => $label, 'valor' => round((float) $uVal, 2)];
+                $uRounded = round((float) $uVal, 2);
+                if (!$this->hasBalance($uRounded)) {
+                    continue;
+                }
+                $unidOut[] = ['unidade' => $label, 'valor' => $uRounded];
             }
             $out[] = [
                 'pos' => $i,
@@ -1046,30 +1098,48 @@ class FinCostCenterSapService
         uasort($byEq, static fn(array $a, array $b): int => $b['valor'] <=> $a['valor']);
         $out = [];
         foreach ($byEq as $eq) {
+            $valorEq = round((float) $eq['valor'], 2);
+            if (!$this->hasBalance($valorEq)) {
+                continue;
+            }
             $unids = $eq['unidades'];
             uasort($unids, static fn(array $a, array $b): int => $b['valor'] <=> $a['valor']);
             $unidOut = [];
             foreach ($unids as $unid) {
-                $centros = array_values($unid['centros']);
-                usort($centros, static fn(array $a, array $b): int => $b['valor'] <=> $a['valor']);
-                foreach ($centros as &$c) {
-                    $c['valor'] = round((float) $c['valor'], 2);
-                    $c['id'] = 'eqc-' . $eq['equipe'] . '-' . $c['centro'];
+                $valorUnid = round((float) $unid['valor'], 2);
+                if (!$this->hasBalance($valorUnid)) {
+                    continue;
                 }
-                unset($c);
+                $centros = [];
+                foreach (array_values($unid['centros']) as $c) {
+                    $cVal = round((float) $c['valor'], 2);
+                    if (!$this->hasBalance($cVal)) {
+                        continue;
+                    }
+                    $c['valor'] = $cVal;
+                    $c['id'] = 'eqc-' . $eq['equipe'] . '-' . $c['centro'];
+                    $centros[] = $c;
+                }
+                usort($centros, static fn(array $a, array $b): int => $b['valor'] <=> $a['valor']);
+                if ($centros === []) {
+                    continue;
+                }
                 $unidOut[] = [
                     'id' => 'equ-' . $eq['equipe'] . '-' . $unid['unidade'],
                     'unidade' => $unid['unidade'],
-                    'valor' => round((float) $unid['valor'], 2),
+                    'valor' => $valorUnid,
                     'qtd_centros' => count($centros),
                     'centros' => $centros,
                 ];
+            }
+            if ($unidOut === []) {
+                continue;
             }
             $out[] = [
                 'id' => 'eq-' . $eq['equipe'],
                 'equipe' => $eq['equipe'],
                 'nome' => $eq['nome'],
-                'valor' => round((float) $eq['valor'], 2),
+                'valor' => $valorEq,
                 'qtd_unidades' => count($unidOut),
                 'unidades' => $unidOut,
             ];
@@ -1140,6 +1210,10 @@ class FinCostCenterSapService
         uasort($linhasMap, static fn(array $a, array $b): int => $b['total'] <=> $a['total']);
         $linhas = [];
         foreach ($linhasMap as $linha) {
+            $totalLinha = round((float) $linha['total'], 2);
+            if (!$this->hasBalance($totalLinha)) {
+                continue;
+            }
             $vals = [];
             foreach ($meses as $chave) {
                 $vals[] = round((float) ($linha['meses'][$chave] ?? 0), 2);
@@ -1150,7 +1224,7 @@ class FinCostCenterSapService
                 'unidade' => $linha['unidade'],
                 'status' => $linha['status'],
                 'valores' => $vals,
-                'total' => round((float) $linha['total'], 2),
+                'total' => $totalLinha,
             ];
         }
         $mesesOut = [];

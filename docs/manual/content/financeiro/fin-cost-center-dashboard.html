@@ -46,7 +46,7 @@
     <li>Na aba <strong>Meses</strong>, use a matriz centro × mês (mapa de calor) para ver concentração e sazonalidade.</li>
     <li>Na aba <strong>Centros de custo</strong>, veja o ranking completo (valor e % do total).</li>
     <li>Na aba <strong>Equipes</strong>, veja o consolidado do sufixo entre unidades (TI, Compras, Diretoria…). Cada linha lista os centros somados (ex.: AFR_TI, BIO_TI, TIA_TI). As outras abas não mudam.</li>
-    <li>Na aba <strong>Hierarquia</strong>, navegue unidade → centro → conta. Clique em cada nó para expandir/recolher só aquele item; <strong>Expandir tudo</strong> / <strong>Recolher tudo</strong> altera todos. Contas ficam recolhidas por padrão. Níveis: <em>Unidade</em> (azul), <em>Centro</em> (roxo) e <em>Conta</em> (verde).</li>
+    <li>Na aba <strong>Hierarquia</strong>, navegue unidade → centro → conta. Só entram centros/contas com <strong>saldo líquido ≠ 0</strong> no período (NF cancelada some da árvore). O total de cada nível fica à direita mesmo recolhido. Contas e centros começam recolhidos.</li>
     <li>Na aba <strong>Lançamentos</strong>, confira data, <strong>transação</strong> (nº do lançamento no diário SAP), <strong>documento</strong> (referência de origem, ex. NF), conta, histórico e status de cada linha atribuída (consulta extra ao SAP).</li>
 </ol>
 
@@ -75,7 +75,7 @@
     <dt>Não vejo o menu</dt>
     <dd>Permissão <em>FinCostCenterDashboard</em> ausente. Rode a migration e saia/entre no sistema para atualizar o menu. Em <em>Rel Centro de Custo</em> há o botão <strong>Indicadores SAP</strong>.</dd>
     <dt>Erro de integração SAP</dt>
-    <dd>Abra Configuração SAP API: URL, token e flag ativa. SQL longo pode ir em POST.</dd>
+    <dd>Abra Configuração SAP API: URL, token e flag ativa. As consultas usam GET <code>/query?sql=</code> (padrão da API).</dd>
     <dt>A tela demora</dt>
     <dd>A página abre imediatamente; o overlay “Consultando SAP…” espera o JSON. Cada mês do recorte gera uma consulta ao HANA. Prefira 3 meses na primeira análise. A aba Lançamentos faz uma segunda passagem.</dd>
     <dt>Média mensal “baixa” no ano atual</dt>

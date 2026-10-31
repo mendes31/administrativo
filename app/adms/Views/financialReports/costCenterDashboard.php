@@ -152,7 +152,10 @@ $periodos = $this->data['periodos'] ?? [];
   background:var(--fcc-green); color:#fff; padding:11px 12px;
 }
 .fcc-dash .tree-unit > .tree-h .muted{color:#DCEEE2;}
-.fcc-dash .tree-unit > .tree-h .tree-val{color:#fff;}
+/* Total sempre visível no cabeçalho (expandido ou recolhido); não usar .pos/.neg no fundo verde. */
+.fcc-dash .tree-unit > .tree-h .tree-val,
+.fcc-dash .tree-unit > .tree-h .tree-val.pos,
+.fcc-dash .tree-unit > .tree-h .tree-val.neg{color:#fff !important;}
 .fcc-dash .tree-unit > .tree-h .chev{background:rgba(255,255,255,.18); color:#fff;}
 .fcc-dash .tree-b.lvl-centros{padding:8px 8px 8px 18px; background:var(--fcc-green-tint); border-left:4px solid var(--fcc-green);}
 .fcc-dash .tree-cc{
@@ -180,13 +183,19 @@ $periodos = $this->data['periodos'] ?? [];
 .fcc-dash .tree-cc.collapsed > .tree-h .chev{transform:rotate(-90deg);}
 .fcc-dash .tree-title{flex:1; min-width:0;}
 .fcc-dash .tree-title strong{display:block;}
-.fcc-dash .tree-val{font-weight:800; white-space:nowrap;}
+.fcc-dash .tree-val{
+  font-weight:800; white-space:nowrap; flex:0 0 auto; margin-left:auto;
+  font-variant-numeric:tabular-nums; min-width:7.5rem; text-align:right;
+}
+.fcc-dash .tree-cc .tree-h .tree-val.pos{color:var(--fcc-green)!important;}
+.fcc-dash .tree-cc .tree-h .tree-val.neg{color:var(--fcc-red)!important;}
 .fcc-dash .tree-b.lvl-contas{padding:0 0 4px 22px; background:#F3F8F4; border-left:3px solid var(--fcc-green);}
 .fcc-dash .tree-acc{
   display:flex; align-items:center; gap:10px; padding:7px 10px;
   margin:4px 6px 0; background:#fff; border:1px dashed #C6E0D0; border-radius:6px; font-size:12.5px;
 }
 .fcc-dash .tree-acc .muted{flex:1;}
+.fcc-dash .tree-acc .tree-val{flex:0 0 auto; margin-left:auto;}
 .fcc-dash .bar-meta{min-width:200px; max-width:240px;}
 .fcc-dash.is-detail .kh{display:none;}
 .fcc-dash.is-detail .fcc-kpi{padding:6px 8px;}
@@ -415,11 +424,17 @@ $periodos = $this->data['periodos'] ?? [];
           return '<div class="tree-acc"><span class="lvl-tag">Centro</span><span>' + esc(c.centro) + '</span><span class="muted">' + esc(c.nome) + '</span><span class="tree-val ' + cls(c.valor) + '">' + money(c.valor) + '</span></div>';
         }).join('');
         return '<div class="tree-cc collapsed" data-node="' + esc(u.id) + '">' +
-          '<button type="button" class="tree-h" data-toggle="cc"><span class="chev">▾</span><span class="lvl-tag">Unidade</span><span class="tree-title"><strong>' + esc(u.unidade) + '</strong><span class="muted">' + (u.qtd_centros || 0) + ' centro(s)</span></span><span class="tree-val ' + cls(u.valor) + '">' + money(u.valor) + '</span></button>' +
+          '<button type="button" class="tree-h" data-toggle="cc" title="Total da unidade na equipe">' +
+            '<span class="chev">▾</span><span class="lvl-tag">Unidade</span>' +
+            '<span class="tree-title"><strong>' + esc(u.unidade) + '</strong><span class="muted">' + (u.qtd_centros || 0) + ' centro(s)</span></span>' +
+            '<span class="tree-val ' + cls(u.valor) + '" data-total="1">' + money(u.valor) + '</span></button>' +
           '<div class="tree-b lvl-contas">' + (centrosHtml || '<div class="tree-acc muted">Sem centros.</div>') + '</div></div>';
       }).join('');
       return '<div class="tree-unit collapsed" data-node="' + esc(e.id) + '">' +
-        '<button type="button" class="tree-h" data-toggle="unit"><span class="chev">▾</span><span class="lvl-tag">Equipe</span><span class="tree-title"><strong>' + esc(e.equipe) + ' — ' + esc(e.nome) + '</strong><span class="muted">' + (e.qtd_unidades || 0) + ' unidade(s)</span></span><span class="tree-val ' + cls(e.valor) + '">' + money(e.valor) + '</span></button>' +
+        '<button type="button" class="tree-h" data-toggle="unit" title="Total da equipe (visível recolhido ou expandido)">' +
+          '<span class="chev">▾</span><span class="lvl-tag">Equipe</span>' +
+          '<span class="tree-title"><strong>' + esc(e.equipe) + ' — ' + esc(e.nome) + '</strong><span class="muted">' + (e.qtd_unidades || 0) + ' unidade(s)</span></span>' +
+          '<span class="tree-val" data-total="1">' + money(e.valor) + '</span></button>' +
         '<div class="tree-b lvl-centros">' + unidHtml + '</div></div>';
     }).join('') || '<p class="muted" style="padding:12px;">Nenhuma equipe no período.</p>';
     var topEq = eqRank[0] || {};
@@ -438,11 +453,17 @@ $periodos = $this->data['periodos'] ?? [];
         }).join('');
         var regra = c.regra_revisar ? ' · regra ' + c.regra_revisar : '';
         return '<div class="tree-cc collapsed" data-node="' + esc(c.id) + '">' +
-          '<button type="button" class="tree-h" data-toggle="cc"><span class="chev">▾</span><span class="lvl-tag">Centro</span><span class="tree-title"><strong>' + esc(c.centro) + badge + '</strong><span class="muted">' + esc(c.nome) + regra + (c.contas && c.contas.length ? ' · ' + c.contas.length + ' conta(s)' : '') + '</span></span><span class="tree-val ' + cls(c.valor) + '">' + money(c.valor) + '</span></button>' +
+          '<button type="button" class="tree-h" data-toggle="cc" title="Total do centro (visível recolhido ou expandido)">' +
+            '<span class="chev">▾</span><span class="lvl-tag">Centro</span>' +
+            '<span class="tree-title"><strong>' + esc(c.centro) + badge + '</strong><span class="muted">' + esc(c.nome) + regra + (c.contas && c.contas.length ? ' · ' + c.contas.length + ' conta(s)' : '') + '</span></span>' +
+            '<span class="tree-val ' + cls(c.valor) + '" data-total="1">' + money(c.valor) + '</span></button>' +
           '<div class="tree-b lvl-contas">' + (contasHtml || '<div class="tree-acc muted">Sem contas neste centro.</div>') + '</div></div>';
       }).join('');
-      return '<div class="tree-unit" data-node="' + esc(u.id) + '">' +
-        '<button type="button" class="tree-h" data-toggle="unit"><span class="chev">▾</span><span class="lvl-tag">Unidade</span><span class="tree-title"><strong>' + esc(u.unidade) + '</strong><span class="muted">' + (u.qtd_centros || 0) + ' centro(s)</span></span><span class="tree-val ' + cls(u.valor) + '">' + money(u.valor) + '</span></button>' +
+      return '<div class="tree-unit collapsed" data-node="' + esc(u.id) + '">' +
+        '<button type="button" class="tree-h" data-toggle="unit" title="Total da unidade (visível recolhido ou expandido)">' +
+          '<span class="chev">▾</span><span class="lvl-tag">Unidade</span>' +
+          '<span class="tree-title"><strong>' + esc(u.unidade) + '</strong><span class="muted">' + (u.qtd_centros || 0) + ' centro(s)</span></span>' +
+          '<span class="tree-val" data-total="1">' + money(u.valor) + '</span></button>' +
         '<div class="tree-b lvl-centros">' + centrosHtml + '</div></div>';
     }).join('') || '<p class="muted" style="padding:12px;">Nenhum lançamento no período.</p>';
 
