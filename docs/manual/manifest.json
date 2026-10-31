@@ -1399,6 +1399,11 @@
                     "file": "projetos/list-projects.html"
                 },
                 {
+                    "id": "sap-projects-dashboard",
+                    "title": "Projetos SAP B1 — Dashboard e ficha",
+                    "file": "projetos/sap-projects-dashboard.html"
+                },
+                {
                     "id": "view-project",
                     "title": "Visualizar — Project",
                     "file": "projetos/view-project.html"

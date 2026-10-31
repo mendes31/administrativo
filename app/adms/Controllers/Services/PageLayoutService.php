@@ -406,6 +406,9 @@ class PageLayoutService
             'CreateStageGroup',
             'UpdateStageGroup',
             'DeleteStageGroup',
+            'SapProjectsDashboard',
+            'SapProjectsReports',
+            'SapProjectsData',
             // Documentos
             'CrmUploadDocument',
             'CrmDownloadDocument',

@@ -96,58 +96,49 @@ class SapReportApiService
             throw new Exception('SQL deve começar com SELECT ou WITH. SQL recebido: ' . substr($sql, 0, 50));
         }
         
-        // Usar parâmetro 'sql' conforme documentação da API
-        // Usar rawurlencode para preservar caracteres especiais corretamente
+        // Padrão do Portal / API de relatórios: GET /query?sql=...
+        // (POST no mesmo endpoint devolve HTTP 405 nesta API — não usar.)
         $encodedSql = rawurlencode($sql);
         $url = $this->baseUrl . '?sql=' . $encodedSql;
-        // GET com SQL longo estoura limite de URL (~8 KB). POST no mesmo endpoint.
-        $usePost = strlen($url) > 7000;
+        $urlLen = strlen($url);
+        // Proxies/IIS costumam cortar ~8k–16k; 414 = URI Too Long.
+        if ($urlLen > 7800) {
+            throw new Exception(
+                'Consulta SAP grande demais para GET (URL ' . $urlLen . ' bytes). '
+                . 'Divida filtros ou reduza o SQL; a API não aceita POST neste endpoint.'
+            );
+        }
 
         error_log("🔷 SAP API - Base URL: " . $this->baseUrl);
         error_log("🔷 SAP API - SQL final (antes de encode): " . $sql);
         error_log("🔷 SAP API - SQL encoded: " . substr($encodedSql, 0, 200) . '...');
-        error_log("🔷 SAP API - Método: " . ($usePost ? 'POST' : 'GET') . " | URL length: " . strlen($url));
-        if (!$usePost) {
-            error_log("🔷 SAP API - URL completa: " . $url);
-        }
+        error_log("🔷 SAP API - Método: GET | URL length: " . $urlLen);
+        error_log("🔷 SAP API - URL completa: " . ($urlLen <= 2000 ? $url : substr($url, 0, 2000) . '...'));
 
         $headers = [
             'Accept: application/json',
-            'Accept-Encoding: gzip, deflate', // Solicitar compressão
-            'ngrok-skip-browser-warning: true', // Header para ngrok-free
-            'User-Agent: PHP-SAP-Report-Client/1.0'
+            'Accept-Encoding: gzip, deflate',
+            'ngrok-skip-browser-warning: true',
+            'User-Agent: PHP-SAP-Report-Client/1.0',
         ];
-        if ($usePost) {
-            $headers[] = 'Content-Type: application/x-www-form-urlencoded';
-            $ch = curl_init($this->baseUrl);
-        } else {
-            $ch = curl_init($url);
-        }
-
-        // Se houver token configurado na tela, envia Authorization: Bearer <token>
         if (!empty($this->apiToken)) {
             $headers[] = 'Authorization: Bearer ' . $this->apiToken;
         }
 
-        $curlOpts = [
+        $ch = curl_init($url);
+        curl_setopt_array($ch, [
             CURLOPT_RETURNTRANSFER => true,
-            // Timeout geral para a requisição (em segundos)
-            CURLOPT_TIMEOUT => max(60, $this->timeout), // mínimo 60s para queries grandes
+            CURLOPT_HTTPGET => true,
+            CURLOPT_TIMEOUT => max(60, $this->timeout),
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_HTTPHEADER => $headers,
-            CURLOPT_ENCODING => '', // Aceitar qualquer encoding (gzip, deflate)
+            CURLOPT_ENCODING => '',
             CURLOPT_FOLLOWLOCATION => true,
             CURLOPT_MAXREDIRS => 3,
-            // Timeout de conexão em segundos (mais curto que o total da requisição)
             CURLOPT_CONNECTTIMEOUT => min(10, $this->timeout),
-            CURLOPT_BUFFERSIZE => 16384 // Buffer maior para melhor performance
-        ];
-        if ($usePost) {
-            $curlOpts[CURLOPT_POST] = true;
-            $curlOpts[CURLOPT_POSTFIELDS] = 'sql=' . $encodedSql;
-        }
-        curl_setopt_array($ch, $curlOpts);
+            CURLOPT_BUFFERSIZE => 16384,
+        ]);
 
         $response = curl_exec($ch);
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);

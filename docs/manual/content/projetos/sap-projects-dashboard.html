@@ -1,0 +1,66 @@
+<h1>Projetos SAP B1 — Dashboard e ficha</h1>
+
+<h2>Função no sistema</h2>
+<p>Consulta ao vivo o <strong>Gerenciamento de Projetos do SAP Business One</strong> (OPMG/PMG4): cartões, gráficos, relatórios e a <strong>ficha do projeto</strong> agrupada por fornecedor, com documentos, itens e PDF imprimível.</p>
+
+<p class="help-note">Esta tela não substitui o cadastro interno de projetos do Portal (<em>Listar Projetos</em>). Aqui os dados vêm da API SAP no momento da consulta.</p>
+
+<p><strong>Quem acessa:</strong> usuários com permissão <em>SapProjectsDashboard</em> (dashboard), <em>SapProjectsReports</em> (relatórios) e/ou <em>SapProjectsData</em> (API JSON/PDF/Excel).</p>
+
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>OPMG / PMG4</dt>
+    <dd>Tabelas do módulo de projetos no SAP B1: cabeçalho do projeto e vínculos de documentos (notas) ao projeto.</dd>
+    <dt>Status do projeto</dt>
+    <dd>Campo OPMG.<code>STATUS</code>: <em>Iniciado</em> (S), <em>Pausado</em> (P), <em>Parado</em> (T), <em>Finalizado</em> (F), <em>Cancelado</em> (N).</dd>
+    <dt>Valor no projeto / Valor vinculado</dt>
+    <dd>Soma das linhas de vínculo (PMG4.<code>Total</code>), sem impostos. Inclui <strong>todos</strong> os tipos (NF, pedido, solicitação etc.), exceto NF cancelada.</dd>
+    <dt>NF entrada (sem impostos)</dt>
+    <dd>Só vínculos TYP=18 (Nota Fiscal de Entrada) não cancelados — deve aproximar o <em>Faturado C/P</em> do Resumo SAP (PMG8).</dd>
+    <dt>Outros vínculos / Pedidos de compra</dt>
+    <dd>Valores PMG4 que <strong>não</strong> são NF de entrada (ex.: pedido TYP=22). Costumam alinhar com <em>Aberto C/P</em> do PMG8 quando o resumo está atualizado.</dd>
+    <dt>Total DocTotal das NFs</dt>
+    <dd>Soma do <code>DocTotal</code> de cada NF de entrada (uma vez por documento), podendo incluir impostos/despesas — não misturar com valor do pedido.</dd>
+    <dt>Desvio C/P</dt>
+    <dd>Calculado como <strong>orçamento − gasto (Total C/P)</strong>: valor positivo (verde) = gastou menos que o orçado; negativo (vermelho) = estourou o orçamento. Com orçamento zero, o desvio fica negativo no valor do gasto.</dd>
+    <dt>Tipo de documento (ObjType)</dt>
+    <dd>Código SAP do documento vinculado em PMG4 (ex.: 1470000113 solicitação de compra, 540000006 oferta, 22 pedido de compra, 18 NF de entrada; 23/17/15/13 no fluxo de vendas). O sistema escolhe a tabela de cabeçalho/linhas correspondente (OPRQ/PRQ1, OPOR/POR1, OPCH/PCH1, ORDR/RDR1, OINV/INV1 etc.).</dd>
+    <dt>Status do documento (Aberto/Fechado)</dt>
+    <dd>No SAP, ao avançar a cadeia (ex.: pedido → NF), o documento anterior tende a ficar <em>Fechado</em>; a ficha mostra o status atual de cada vínculo.</dd>
+    <dt>Nota cancelada</dt>
+    <dd>Continua listada (riscada), mas <strong>não entra</strong> nos totais.</dd>
+    <dt>Resumo desatualizado</dt>
+    <dd>Compara <em>Faturado C/P</em> gravado em PMG8 com a soma das NF de entrada vinculadas (PMG4). Se a tela Resumo no SAP já mostra o valor certo mas o Portal não, atualize a consulta — o Portal lê o banco (PMG8); a tela do SAP às vezes recalcula ao abrir. Salvar o projeto no B1 grava o resumo.</dd>
+</dl>
+
+<h2>Fluxo principal</h2>
+<ol>
+    <li>Abra o menu <strong>Gestão de Projetos</strong> → <strong>Projetos SAP B1</strong> (Dashboard).</li>
+    <li>Ajuste filtros (status, tipo, cliente, filial, ano de início, período do documento) e clique em <strong>Aplicar</strong>.</li>
+    <li>Analise os KPIs da carteira e gráficos; na tabela, <strong>clique em um projeto</strong> para abrir o resumo e a ficha <em>daquele</em> projeto.</li>
+    <li>Na ficha: o bloco <strong>Dados do projeto selecionado</strong> e a aba <strong>Resumo financeiro</strong> abrem rápido (só cabeçalho/PMG8). As abas <strong>Por parceiro</strong>, <strong>Documentos</strong> e <strong>Itens</strong> consultam o SAP sob demanda; o PDF gera a ficha completa.</li>
+    <li>Clique em <strong>PDF da ficha</strong> para imprimir resumo + documentos do projeto selecionado (não mistura outros).</li>
+    <li>Na aba Relatórios, escolha o relatório, filtre, <strong>Gerar</strong> e, se quiser, exporte Excel/CSV.</li>
+    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda.</li>
+</ol>
+
+<h2>Campos e parâmetros</h2>
+<div class="help-field"><strong>Filtros de projeto</strong> Status, tipo, cliente, filial e ano de início — afetam cards, gráficos de status/ano e a tabela de projetos.</div>
+<div class="help-field"><strong>Documento de / até</strong> Filtram principalmente o gráfico por período e os relatórios de documentos/itens.</div>
+<div class="help-field"><strong>Resumo do projeto</strong> Campos da aba Resumo no SAP (orçamento, aberto/faturado C/P e C/R, desvios, flag desatualizado) só do projeto aberto.</div>
+<div class="help-field"><strong>Por parceiro</strong> Agrupa notas desse projeto pelo fornecedor (CardCode/CardName).</div>
+<div class="help-field"><strong>PDF da ficha</strong> Um projeto por documento: identificação, resumo SAP e árvore parceiro → documento → itens.</div>
+<div class="help-field"><strong>Relatórios Documentos/Itens</strong> Na tela, as linhas são agrupadas visualmente por projeto.</div>
+<div class="help-field"><strong>Excel / CSV</strong> Exportam o último relatório gerado na aba Relatórios (não a ficha do drawer).</div>
+
+<h2>Problemas comuns</h2>
+<dl>
+    <dt>Lista vazia ou erro ao consultar</dt>
+    <dd>Verifique a API de relatórios SAP (URL/credenciais) e se o usuário tem <em>SapProjectsData</em>. Mensagens de falha aparecem no topo da tela.</dd>
+    <dt>Itens sem linhas na nota</dt>
+    <dd>A consulta de itens depende do vínculo TYP=18 (NF de entrada). Documentos de outros tipos podem aparecer em Documentos sem itens detalhados.</dd>
+    <dt>Totais diferentes do Crystal/SAP</dt>
+    <dd>Separe NF (faturado) de pedido/outros (aberto): o card “valor vinculado” é a soma de todos. Desvio C/P com orçamento zerado iguala o Total C/P. Notas canceladas ficam fora dos totais.</dd>
+    <dt>Não vejo o menu</dt>
+    <dd>Inclua as páginas <em>SapProjectsDashboard</em> / <em>SapProjectsReports</em> / <em>SapProjectsData</em> no pacote de permissões.</dd>
+</dl>

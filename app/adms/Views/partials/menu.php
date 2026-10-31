@@ -938,6 +938,16 @@ $menus = [
                 'url' => $_ENV['URL_ADM'] . 'list-stage-groups',
                 'permission' => 'ListStageGroups'
             ],
+            [
+                'label' => 'Dashboard SAP',
+                'url' => $_ENV['URL_ADM'] . 'sap-projects-dashboard',
+                'permission' => 'SapProjectsDashboard'
+            ],
+            [
+                'label' => 'Relatórios SAP',
+                'url' => $_ENV['URL_ADM'] . 'sap-projects-reports',
+                'permission' => 'SapProjectsReports'
+            ],
         ]
     ],
     [

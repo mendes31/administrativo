@@ -1518,6 +1518,11 @@
                         },
                         {
                             "type": "topic",
+                            "topic_id": "sap-projects-dashboard",
+                            "title": "Projetos SAP B1 — Dashboard e ficha"
+                        },
+                        {
+                            "type": "topic",
                             "topic_id": "create-project",
                             "title": "Cadastrar Projeto"
                         },
