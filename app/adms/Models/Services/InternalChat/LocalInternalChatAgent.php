@@ -806,6 +806,15 @@ class LocalInternalChatAgent
         $matchQuery = $periodInQuery !== null
             ? ($this->stripPeriodFromMessage($message) ?: $message)
             : $message;
+        $codeInMsgEarly = $this->extractReportCodeFromMessage($message);
+        // «vendas para clientes C00001» → resolve por «vendas», não pela frase com CardCode
+        // (senão exemplos do cadastro de parceiros ganham o match).
+        if ($codeInMsgEarly !== null) {
+            $strippedForResolve = $this->stripReportCodeFromMessage($message, $codeInMsgEarly);
+            if ($strippedForResolve !== '') {
+                $matchQuery = $strippedForResolve;
+            }
+        }
         $matchedReport = $this->reports->resolveReport($this->userId, $matchQuery, $periodInQuery !== null);
         if ($matchedReport !== null) {
             $matchNorm = $this->normalizeChatPrompt($matchQuery);
@@ -821,12 +830,13 @@ class LocalInternalChatAgent
                 ];
             }
             if (!$singleWord) {
-                $codeInMsg = $this->extractReportCodeFromMessage($message);
+                $codeInMsg = $codeInMsgEarly ?? $this->extractReportCodeFromMessage($message);
                 if ($codeInMsg !== null && !$this->messageMatchesReportPrompt($message, $matchedReport)) {
+                    $better = $this->resolveReportForCodeFilter($message, $codeInMsg, '');
                     return [
                         'name' => 'report_code_filter',
                         'code' => $codeInMsg,
-                        'report_id' => (int) $matchedReport['id'],
+                        'report_id' => $better !== null ? (int) $better['id'] : (int) $matchedReport['id'],
                     ];
                 }
 
@@ -1575,14 +1585,48 @@ class LocalInternalChatAgent
             }
         }
 
+        $preferMonth = $this->messageWantsSales($message) && $this->looksLikePartnerFilterCode($code);
         foreach ($candidates as $query) {
-            $matched = $this->reports->resolveReport($this->userId, $query);
+            $matched = $this->reports->resolveReport($this->userId, $query, $preferMonth);
             if ($matched !== null) {
                 return $matched;
             }
         }
 
         return null;
+    }
+
+    private function messageWantsSales(string $message): bool
+    {
+        return preg_match('/\bvendas?\b|\bfaturamento\b/iu', $message) === 1;
+    }
+
+    private function looksLikePartnerFilterCode(string $code): bool
+    {
+        return preg_match('/^[CF]\d{3,}$/iu', trim($code)) === 1;
+    }
+
+    /** Troca cadastro OCRD/[FILTRO] Parceiros por relatório de vendas quando a pergunta pede vendas. */
+    private function shouldPreferSalesReportForCodeFilter(string $message, int $reportId): bool
+    {
+        if (!$this->messageWantsSales($message) || $reportId < 1) {
+            return false;
+        }
+        $current = $this->reports->resolveReport($this->userId, '#' . $reportId);
+        if ($current === null) {
+            return true;
+        }
+        $name = mb_strtolower((string) ($current['name'] ?? ''));
+        $tool = mb_strtolower((string) ($current['chat_tool_name'] ?? ''));
+        $sql = (string) ($current['custom_sql'] ?? '');
+        if (preg_match('/vw_crm_vendas|\bOINV\b|\bORDR\b|\bORIN\b/i', $sql) === 1
+            || preg_match('/venda|faturamento/u', $name . ' ' . $tool) === 1
+        ) {
+            return false;
+        }
+
+        return preg_match('/\bOCRD\b/i', $sql) === 1
+            || preg_match('/parceiro/u', $name . ' ' . $tool) === 1;
     }
 
     private function primaryReportKeyword(string $text): string
@@ -2767,13 +2811,19 @@ class LocalInternalChatAgent
             }
             $codeInMsg = $this->extractReportCodeFromMessage($message);
             if ($codeInMsg !== null) {
-                if ($reportId < 1) {
+                // LLM pode apontar para [FILTRO] Parceiros; com «vendas»+CardCode força relatório de vendas.
+                if (
+                    $reportId < 1
+                    || $this->shouldPreferSalesReportForCodeFilter($message, $reportId)
+                ) {
                     $matched = $this->resolveReportForCodeFilter(
                         $message,
                         $codeInMsg,
                         (string) ($intent['query'] ?? '')
                     );
-                    $reportId = $matched !== null ? (int) $matched['id'] : 0;
+                    if ($matched !== null) {
+                        $reportId = (int) $matched['id'];
+                    }
                 }
                 if ($reportId > 0) {
                     $run = $this->reports->runByIdFilteredByCode($this->userId, $reportId, $codeInMsg);
@@ -2941,9 +2991,14 @@ class LocalInternalChatAgent
                 $reportId = is_array($last) ? (int) ($last['report_id'] ?? 0) : 0;
                 $reportId = $this->trustedChatReportId($reportId);
             }
-            if ($reportId < 1 && $code !== '') {
+            if (
+                $code !== ''
+                && ($reportId < 1 || $this->shouldPreferSalesReportForCodeFilter($message, $reportId))
+            ) {
                 $matched = $this->resolveReportForCodeFilter($message, $code, (string) ($intent['query'] ?? ''));
-                $reportId = $matched !== null ? (int) $matched['id'] : 0;
+                if ($matched !== null) {
+                    $reportId = (int) $matched['id'];
+                }
             }
             $run = $this->reports->runByIdFilteredByCode($this->userId, $reportId, $code);
 
@@ -3975,6 +4030,8 @@ class LocalInternalChatAgent
             'rows_sample' => isset($data['rows']) && is_array($data['rows']) ? array_slice($data['rows'], 0, 8) : null,
             'rows_count' => $data['rows_count'] ?? $data['total'] ?? null,
             'name' => $data['name'] ?? null,
+            'filter_code' => $data['filter_code'] ?? null,
+            'filter_partner_name' => $data['filter_partner_name'] ?? null,
         ];
 
         $system = "Você é analista de RH/dados do Portal.\n"
@@ -3982,6 +4039,8 @@ class LocalInternalChatAgent
             . "Responda em no máximo 3 frases objetivas (destaque, concentração, alerta se fizer sentido).\n"
             . "Baseie-se APENAS nos números presentes no JSON fornecido — nunca invente, estime ou arredonde "
             . "para um valor não presente nos dados.\n"
+            . "Se filter_partner_name estiver preenchido, cite o nome do cliente/parceiro na análise "
+            . "(não fale só do código).\n"
             . "Não exponha IDs internos, chaves técnicas ou nomes de campos do JSON — traduza para linguagem natural.\n"
             . "Se o JSON estiver vazio ou não tiver dados suficientes para uma conclusão, diga isso em vez de forçar uma análise.\n"
             . "Sem markdown.";

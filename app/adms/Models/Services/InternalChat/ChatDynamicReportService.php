@@ -417,12 +417,17 @@ class ChatDynamicReportService
             $viz = (string) ($data['visualization_type'] ?? $viz);
         }
 
+        $partnerName = $this->looksLikePartnerCode($code)
+            ? ($this->extractPartnerNameFromRows($rows) ?? $this->lookupPartnerName($code, $report))
+            : null;
+        $codeLabel = $this->formatFilterCodeLabel($code, $partnerName);
+
         if ($rows === []) {
             return [
                 'ok' => false,
                 'resposta' => sprintf(
-                    'Não encontrei «%s» no relatório «%s». Confira o código (item, parceiro, documento) ou abra o relatório completo.',
-                    $code,
+                    'Não encontrei %s no relatório «%s». Confira o código (item, parceiro, documento) ou abra o relatório completo.',
+                    $codeLabel,
                     $name
                 ),
                 'tool' => 'report.run',
@@ -430,6 +435,7 @@ class ChatDynamicReportService
                     'report_id' => $reportId,
                     'name' => $name,
                     'filter_code' => $code,
+                    'filter_partner_name' => $partnerName,
                     'rows_count' => 0,
                     'rows' => [],
                     'report_url' => $reportUrl,
@@ -440,8 +446,11 @@ class ChatDynamicReportService
         $preview = array_slice($rows, 0, self::MAX_ROWS_IN_CHAT);
         $total = count($rows);
         $lines = [
-            sprintf('Filtro «%s» no relatório «%s»: %d ocorrência(s).', $code, $name, $total),
+            sprintf('Filtro %s no relatório «%s»: %d ocorrência(s).', $codeLabel, $name, $total),
         ];
+        if ($partnerName !== null && $partnerName !== '') {
+            $lines[] = 'Cliente/parceiro: ' . $partnerName . '.';
+        }
         if ($total > self::MAX_ROWS_IN_CHAT) {
             $lines[] = 'Mostrando as primeiras ' . self::MAX_ROWS_IN_CHAT . ' no chat.';
         }
@@ -454,6 +463,7 @@ class ChatDynamicReportService
                 'report_id' => $reportId,
                 'name' => $name,
                 'filter_code' => $code,
+                'filter_partner_name' => $partnerName,
                 'report_url' => $reportUrl,
                 'visualization_type' => $viz,
                 'chart_config' => $report['chart_config'] ?? [],
@@ -463,6 +473,90 @@ class ChatDynamicReportService
                 'chart' => self::chartWithFormattedLabels(self::buildChartFromRows($preview, $viz)),
             ],
         ];
+    }
+
+    private function formatFilterCodeLabel(string $code, ?string $partnerName): string
+    {
+        if ($partnerName !== null && trim($partnerName) !== '') {
+            return sprintf('«%s» (%s)', $code, trim($partnerName));
+        }
+
+        return sprintf('«%s»', $code);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     */
+    private function extractPartnerNameFromRows(array $rows): ?string
+    {
+        $keys = [
+            'CardName', 'cardname', 'RazãoSocial', 'RazaoSocial', 'razaosocial',
+            'Cliente', 'cliente', 'nomePN', 'NomePN', 'Parceiro', 'parceiro', 'CardNamePN',
+        ];
+        foreach (array_slice($rows, 0, 5) as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            foreach ($keys as $key) {
+                if (!array_key_exists($key, $row)) {
+                    continue;
+                }
+                $value = $row[$key];
+                if (is_scalar($value) && trim((string) $value) !== '') {
+                    return trim((string) $value);
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /** Resolve CardName em OCRD (SAP) para enriquecer a resposta do chat. */
+    private function lookupPartnerName(string $code, array $contextReport): ?string
+    {
+        if (!$this->looksLikePartnerCode($code)) {
+            return null;
+        }
+        $escaped = str_replace("'", "''", $code);
+        $sql = 'SELECT TOP 1 T0."CardName" AS "CardName"'
+            . ' FROM OCRD T0'
+            . " WHERE T0.\"CardCode\" = '{$escaped}'";
+
+        $cfg = [
+            'name' => 'chat_partner_name_lookup',
+            'custom_sql' => $sql,
+            'query_mode' => 'custom_sql',
+            'force_refresh' => true,
+            'page' => 1,
+            'per_page' => 1,
+            'cache_namespace' => 'chat_partner_name_' . md5(mb_strtoupper($code)),
+            'data_source' => $contextReport['data_source'] ?? 'OCRD',
+        ];
+        foreach (['connection', 'db_connection', 'sap_company', 'company_db'] as $key) {
+            if (isset($contextReport[$key])) {
+                $cfg[$key] = $contextReport[$key];
+            }
+        }
+
+        try {
+            $result = $this->queryBuilder->executeReport($cfg);
+            if (empty($result['success'])) {
+                return null;
+            }
+            $row = is_array($result['data'][0] ?? null) ? $result['data'][0] : null;
+            if ($row === null) {
+                return null;
+            }
+            foreach (['CardName', 'cardname', 'RazãoSocial', 'RazaoSocial', 'Cliente'] as $key) {
+                if (!empty($row[$key]) && is_scalar($row[$key])) {
+                    return trim((string) $row[$key]);
+                }
+            }
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return null;
     }
 
     /**
@@ -505,6 +599,9 @@ class ChatDynamicReportService
     }
 
     /**
+     * Monta o SQL do relatório homologado com filtro de código (parceiro/item),
+     * injetando WHERE antes do GROUP BY — igual ao filtro por mês/ano.
+     *
      * @param list<string> $columns
      */
     private function wrapSqlWithCodeFilter(string $sql, array $columns, string $code): ?string
@@ -518,12 +615,32 @@ class ChatDynamicReportService
         $sql = preg_replace('/;+\s*$/', '', $sql) ?? $sql;
         $escaped = str_replace("'", "''", $code);
 
+        // Cliente/fornecedor (C00001, F00012): filtrar na origem antes do GROUP BY
+        // (ex.: «Vendas por mês» para um CardCode — a série mensal fica só daquele PN).
+        if ($this->looksLikePartnerCode($code)) {
+            $partnerExpr = $this->guessPartnerColumnExprFromSql($sql);
+            if ($partnerExpr !== null) {
+                return $this->injectWhereBeforeGroupOrder($sql, $partnerExpr . " = '" . $escaped . "'");
+            }
+        }
+
         // Preferir WHERE na tabela base (API SAP/HANA rejeita alguns subselects com alias).
         if (preg_match('/\bFROM\s+OITM\b/i', $sql)) {
             return $this->injectWhereBeforeOrderBy($sql, "T0.\"ItemCode\" = '{$escaped}'");
         }
         if (preg_match('/\bFROM\s+OCRD\b/i', $sql)) {
             return $this->injectWhereBeforeOrderBy($sql, "T0.\"CardCode\" = '{$escaped}'");
+        }
+
+        // Item numérico em relatório de vendas: ItemCode na origem (não no MesAno agregado).
+        if (
+            preg_match('/^\d{4,}$/u', $code) === 1
+            && preg_match('/VW_CRM_VENDAS|\bOINV\b|\bINV1\b|\bORDR\b|\bORIN\b/i', $sql) === 1
+        ) {
+            $itemExpr = $this->guessItemColumnExprFromSql($sql);
+            if ($itemExpr !== null) {
+                return $this->injectWhereBeforeGroupOrder($sql, $itemExpr . " = '" . $escaped . "'");
+            }
         }
 
         // Fallback: subselect só com aliases de saída (AS "cdItem"), não colunas da origem.
@@ -561,6 +678,48 @@ class ChatDynamicReportService
         }
 
         return "SELECT * FROM (\n{$sql}\n) AS _chat_f WHERE (" . implode(' OR ', $parts) . ')';
+    }
+
+    /** CardCode SAP típico: C00001 (cliente) / F00012 (fornecedor). */
+    private function looksLikePartnerCode(string $code): bool
+    {
+        return preg_match('/^[CF]\d{3,}$/iu', trim($code)) === 1;
+    }
+
+    private function guessPartnerColumnExprFromSql(string $sql): ?string
+    {
+        if (preg_match('/\b(T\d+)\.\"CardCode\"/i', $sql, $m) === 1) {
+            return $m[1] . '."CardCode"';
+        }
+        if (preg_match('/\"(CardCode|ParceiroID|cdPN)\"/i', $sql, $m) === 1) {
+            return '"' . preg_replace('/[^A-Za-z0-9_]/', '', (string) $m[1]) . '"';
+        }
+        if (preg_match('/VW_CRM_VENDAS|\bOINV\b|\bORIN\b|\bORDR\b|\bOCRD\b/i', $sql) !== 1) {
+            return null;
+        }
+        if (preg_match('/\bFROM\s+[\"\w\.]+(?:\s+AS)?\s+(T\d+)\b/i', $sql, $m) === 1) {
+            return $m[1] . '."CardCode"';
+        }
+
+        return '"CardCode"';
+    }
+
+    private function guessItemColumnExprFromSql(string $sql): ?string
+    {
+        if (preg_match('/\b(T\d+)\.\"ItemCode\"/i', $sql, $m) === 1) {
+            return $m[1] . '."ItemCode"';
+        }
+        if (preg_match('/\"(ItemCode|cdItem|CdItem)\"/i', $sql, $m) === 1) {
+            return '"' . preg_replace('/[^A-Za-z0-9_]/', '', (string) $m[1]) . '"';
+        }
+        if (preg_match('/VW_CRM_VENDAS|\bINV1\b|\bRDR1\b|\bOITM\b/i', $sql) !== 1) {
+            return null;
+        }
+        if (preg_match('/\bFROM\s+[\"\w\.]+(?:\s+AS)?\s+(T\d+)\b/i', $sql, $m) === 1) {
+            return $m[1] . '."ItemCode"';
+        }
+
+        return '"ItemCode"';
     }
 
     private function wrapSqlWithMonthFilter(string $sql, int $month, int $year): ?string
@@ -1147,12 +1306,20 @@ class ChatDynamicReportService
         $sql = (string) ($report['custom_sql'] ?? '');
 
         $qWantsSales = (bool) preg_match('/\bvendas?\b|\bfaturamento\b/u', $q);
-        $reportIsSales = (bool) preg_match('/venda|faturamento|vw_crm_vendas|\bOINV\b/iu', $name . ' ' . $tool . ' ' . $sql);
+        $reportIsSales = (bool) preg_match('/venda|faturamento|vw_crm_vendas|\bOINV\b|\bORDR\b/iu', $name . ' ' . $tool . ' ' . $sql);
         $reportIsItemCatalog = (bool) preg_match('/\bOITM\b/i', $sql)
             && !preg_match('/vw_crm_vendas|\bOINV\b/i', $sql);
+        $reportIsPartnerCatalog = (
+            (bool) preg_match('/\bOCRD\b/i', $sql)
+            || (bool) preg_match('/\[filtro\]\s*parceiro|\bparceiros?\b/u', $name . ' ' . $tool)
+        ) && !preg_match('/vw_crm_vendas|\bOINV\b|\bORDR\b|\bORIN\b/i', $sql);
 
         // «venda por item» não deve cair no cadastro [FILTRO] Itens (OITM).
         if ($qWantsSales && $reportIsItemCatalog) {
+            return 0;
+        }
+        // «vendas para cliente C00001» não deve cair no cadastro [FILTRO] Parceiros (OCRD).
+        if ($qWantsSales && $reportIsPartnerCatalog) {
             return 0;
         }
 
