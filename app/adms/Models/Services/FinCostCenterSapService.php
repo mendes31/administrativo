@@ -7,6 +7,7 @@ namespace App\adms\Models\Services;
 use DateInterval;
 use DateTimeImmutable;
 use InvalidArgumentException;
+use Throwable;
 
 /**
  * Indicadores de centros de custo SAP B1 (Dimensão 1).
@@ -153,11 +154,12 @@ class FinCostCenterSapService
      *   lancamentos: list<array<string, mixed>>,
      *   unidade: string,
      *   centro: string,
+     *   hierarquia: array<string, mixed>,
      *   execution_time: float,
      *   rows_count: int
      * }
      */
-    public function getDashboardData(string $from, string $to, string $unidade, string $centro, bool $includeDetails): array
+    public function getDashboardData(string $from, string $to, string $unidade, string $centro, bool $includeDetails, string $modelo = ''): array
     {
         $fromDt = $this->parseDate($from);
         $toDt = $this->parseDate($to);
@@ -211,6 +213,7 @@ class FinCostCenterSapService
         $rankingEquipes = $this->buildRankingEquipes($grain);
         $arvoreEquipes = $this->buildArvoreEquipes($grain);
         $matrix = $this->buildMatrix($grain, $meses);
+        $hierarquia = $this->resolveHierarchy($grain, $modelo);
 
         $lancamentos = [];
         if ($includeDetails) {
@@ -225,6 +228,13 @@ class FinCostCenterSapService
                         $centro
                     )
                 );
+            }
+        }
+
+        if ($includeDetails) {
+            $this->attachDocumentos($arvore, $lancamentos);
+            if (is_array($hierarquia['arvore'] ?? null)) {
+                $this->attachDocumentos($hierarquia['arvore'], $lancamentos);
             }
         }
 
@@ -244,6 +254,7 @@ class FinCostCenterSapService
             'lancamentos' => $lancamentos,
             'unidade' => $unidade,
             'centro' => $centro,
+            'hierarquia' => $hierarquia,
             'execution_time' => $execTime,
             'rows_count' => count($grain),
         ];
@@ -318,6 +329,8 @@ class FinCostCenterSapService
                 'base_ref' => $this->docNum($this->col($row, 'Referencia origem', 'BaseRef')),
                 'historico' => (string) $this->col($row, 'Historico', 'LineMemo'),
                 'regra' => (string) $this->col($row, 'Regra informada', 'Regra'),
+                'projeto' => trim((string) $this->col($row, 'Projeto', 'Project')),
+                'nome_projeto' => trim((string) $this->col($row, 'NomeProjeto', 'PrjName')),
                 'debito' => $debito,
                 'credito' => $credito,
                 'valor' => round($debito - $credito, 2),
@@ -645,6 +658,675 @@ class FinCostCenterSapService
             ];
         }
         return $out;
+    }
+
+    /**
+     * Modelos de hierarquia de centros de custo (OFRT DocType A, dimensão 1), lidos na hora.
+     * A seleção só habilita com mais de um modelo. Sem modelo, a árvore continua por prefixo.
+     *
+     * @param list<array<string, mixed>> $grain
+     * @return array{
+     *   modelos: list<array{id:string,nome:string}>,
+     *   modelo: string,
+     *   modelo_nome: string,
+     *   habilitado: bool,
+     *   arvore: list<array<string, mixed>>|null
+     * }
+     */
+    private function resolveHierarchy(array $grain, string $modelo): array
+    {
+        $vazio = [
+            'modelos' => [],
+            'modelo' => '',
+            'modelo_nome' => '',
+            'habilitado' => false,
+            'arvore' => null,
+        ];
+        try {
+            $modelos = $this->fetchHierarchyModels();
+            $ids = array_map(static fn (array $m): int => (int) $m['id'], $modelos);
+            $nodes = $ids === [] ? [] : $this->fetchHierarchyNodes($ids);
+            $links = $ids === [] ? [] : $this->fetchHierarchyLinks($ids);
+        } catch (Throwable $e) {
+            error_log('FinCostCenter hierarquia: ' . $e->getMessage());
+            return $vazio;
+        }
+
+        return $this->assembleHierarchy($grain, $modelos, $nodes, $links, $modelo);
+    }
+
+    /**
+     * @return list<array{id:int,nome:string}>
+     */
+    private function fetchHierarchyModels(): array
+    {
+        $sql = 'SELECT "AbsId" AS "id", "Name" AS "nome" FROM "OFRT" WHERE "DocType" = \'A\' AND "DimCode" = 1 ORDER BY "Name"';
+        $result = $this->sap->execute($sql);
+        $rows = is_array($result['data'] ?? null) ? $result['data'] : [];
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $id = (int) $this->col($row, 'id', 'AbsId');
+            $nome = trim((string) $this->col($row, 'nome', 'Name'));
+            if ($id === 0 || $nome === '') {
+                continue;
+            }
+            $out[] = ['id' => $id, 'nome' => $nome];
+        }
+        return $out;
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<array{template_id:int,cat_id:int,nome:string,father:int,vis_order:int}>
+     */
+    private function fetchHierarchyNodes(array $ids): array
+    {
+        $in = implode(',', array_map(static fn (int $id): string => (string) $id, $ids));
+        $sql = 'SELECT "TemplateId" AS "template_id", "CatId" AS "cat_id", "Name" AS "nome", "FatherNum" AS "father", "VisOrder" AS "vis_order" FROM "OFRC" WHERE "TemplateId" IN (' . $in . ') ORDER BY "TemplateId", "VisOrder"';
+        $result = $this->sap->execute($sql);
+        $rows = is_array($result['data'] ?? null) ? $result['data'] : [];
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $out[] = [
+                'template_id' => (int) $this->col($row, 'template_id', 'TemplateId'),
+                'cat_id' => (int) $this->col($row, 'cat_id', 'CatId'),
+                'nome' => trim((string) $this->col($row, 'nome', 'Name')),
+                'father' => (int) $this->col($row, 'father', 'FatherNum'),
+                'vis_order' => (int) $this->col($row, 'vis_order', 'VisOrder'),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * @param list<int> $ids
+     * @return list<array{template_id:int,cat_id:int,prc_code:string,vis_order:int}>
+     */
+    private function fetchHierarchyLinks(array $ids): array
+    {
+        $in = implode(',', array_map(static fn (int $id): string => (string) $id, $ids));
+        $sql = 'SELECT "TemplateId" AS "template_id", "CatId" AS "cat_id", "PrcCode" AS "prc_code", "VisOrder" AS "vis_order" FROM "FRC1" WHERE "TemplateId" IN (' . $in . ') AND "PrcCode" IS NOT NULL AND "PrcCode" <> \'\' ORDER BY "TemplateId", "VisOrder"';
+        $result = $this->sap->execute($sql);
+        $rows = is_array($result['data'] ?? null) ? $result['data'] : [];
+        $out = [];
+        foreach ($rows as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $code = trim((string) $this->col($row, 'prc_code', 'PrcCode'));
+            if ($code === '') {
+                continue;
+            }
+            $out[] = [
+                'template_id' => (int) $this->col($row, 'template_id', 'TemplateId'),
+                'cat_id' => (int) $this->col($row, 'cat_id', 'CatId'),
+                'prc_code' => $code,
+                'vis_order' => (int) $this->col($row, 'vis_order', 'VisOrder'),
+            ];
+        }
+        return $out;
+    }
+
+    /**
+     * Monta a árvore do modelo SAP. Sem modelos, arvore fica null e a tela usa o agrupamento por prefixo.
+     *
+     * @param list<array<string, mixed>> $grain
+     * @param list<array<string, mixed>> $modelos
+     * @param list<array<string, mixed>> $nodes
+     * @param list<array<string, mixed>> $links
+     * @return array{
+     *   modelos: list<array{id:string,nome:string}>,
+     *   modelo: string,
+     *   modelo_nome: string,
+     *   habilitado: bool,
+     *   arvore: list<array<string, mixed>>|null
+     * }
+     */
+    public function assembleHierarchy(array $grain, array $modelos, array $nodes, array $links, string $modelo): array
+    {
+        $catalog = [];
+        foreach ($modelos as $item) {
+            if (!is_array($item)) {
+                continue;
+            }
+            $id = (int) ($item['id'] ?? 0);
+            $nome = trim((string) ($item['nome'] ?? ''));
+            if ($id === 0 || $nome === '') {
+                continue;
+            }
+            $catalog[$id] = ['id' => (string) $id, 'nome' => $nome];
+        }
+        $catalogList = array_values($catalog);
+        usort($catalogList, static fn (array $a, array $b): int => strcmp($a['nome'], $b['nome']));
+
+        if ($catalogList === []) {
+            return [
+                'modelos' => [],
+                'modelo' => '',
+                'modelo_nome' => '',
+                'habilitado' => false,
+                'arvore' => null,
+            ];
+        }
+
+        $habilitado = count($catalogList) > 1;
+        $wanted = trim($modelo);
+        if (strcasecmp($wanted, 'todas') === 0) {
+            $wanted = '';
+        }
+        $ids = array_map(static fn (array $m): int => (int) $m['id'], $catalogList);
+        if (!$habilitado) {
+            $activeIds = [(int) $catalogList[0]['id']];
+            $selected = (string) $catalogList[0]['id'];
+            $selectedNome = $catalogList[0]['nome'];
+        } elseif ($wanted !== '' && in_array((int) $wanted, $ids, true)) {
+            $activeIds = [(int) $wanted];
+            $selected = (string) (int) $wanted;
+            $selectedNome = $catalog[(int) $wanted]['nome'];
+        } else {
+            $activeIds = $ids;
+            $selected = '';
+            $selectedNome = 'Todas';
+        }
+
+        $byCentro = [];
+        foreach ($grain as $row) {
+            if (!is_array($row)) {
+                continue;
+            }
+            $code = trim((string) ($row['centro'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $byCentro[$code][] = $row;
+        }
+
+        $nodesByTpl = [];
+        foreach ($nodes as $node) {
+            if (!is_array($node)) {
+                continue;
+            }
+            $tid = (int) ($node['template_id'] ?? 0);
+            $cid = (int) ($node['cat_id'] ?? 0);
+            if ($tid === 0 || $cid === 0 || !in_array($tid, $activeIds, true)) {
+                continue;
+            }
+            $nodesByTpl[$tid][$cid] = [
+                'cat_id' => $cid,
+                'nome' => trim((string) ($node['nome'] ?? '')),
+                'father' => (int) ($node['father'] ?? 0),
+                'vis_order' => (int) ($node['vis_order'] ?? 0),
+            ];
+        }
+
+        $linksByTpl = [];
+        foreach ($links as $link) {
+            if (!is_array($link)) {
+                continue;
+            }
+            $tid = (int) ($link['template_id'] ?? 0);
+            $cid = (int) ($link['cat_id'] ?? 0);
+            $code = trim((string) ($link['prc_code'] ?? ''));
+            if ($tid === 0 || $cid === 0 || $code === '' || !in_array($tid, $activeIds, true)) {
+                continue;
+            }
+            $vis = (int) ($link['vis_order'] ?? 0);
+            if (!isset($linksByTpl[$tid][$cid][$code]) || $vis < $linksByTpl[$tid][$cid][$code]) {
+                $linksByTpl[$tid][$cid][$code] = $vis;
+            }
+        }
+
+        $assigned = [];
+        foreach ($activeIds as $tid) {
+            foreach ($linksByTpl[$tid] ?? [] as $cid => $codes) {
+                if (!isset($nodesByTpl[$tid][$cid])) {
+                    continue;
+                }
+                foreach (array_keys($codes) as $code) {
+                    $assigned[$code] = true;
+                }
+            }
+        }
+
+        $arvore = [];
+        foreach ($catalogList as $mod) {
+            $tid = (int) $mod['id'];
+            if (!in_array($tid, $activeIds, true)) {
+                continue;
+            }
+            $branch = $this->buildTemplateBranch(
+                'm' . $tid,
+                $mod['nome'],
+                $nodesByTpl[$tid] ?? [],
+                $linksByTpl[$tid] ?? [],
+                $byCentro
+            );
+            if ($branch !== null) {
+                $arvore[] = $branch;
+            }
+        }
+
+        $foraRows = [];
+        foreach ($byCentro as $code => $rows) {
+            if (isset($assigned[$code])) {
+                continue;
+            }
+            foreach ($rows as $row) {
+                $foraRows[] = $row;
+            }
+        }
+        $fora = $this->buildForaDoModelo($foraRows);
+        if ($fora !== null) {
+            $arvore[] = $fora;
+        }
+
+        return [
+            'modelos' => $catalogList,
+            'modelo' => $selected,
+            'modelo_nome' => $selectedNome,
+            'habilitado' => $habilitado,
+            'arvore' => $arvore,
+        ];
+    }
+
+    /**
+     * @param array<int, array{cat_id:int,nome:string,father:int,vis_order:int}> $nodes
+     * @param array<int, array<string, int>> $linksByCat
+     * @param array<string, list<array<string, mixed>>> $byCentro
+     * @return array<string, mixed>|null
+     */
+    private function buildTemplateBranch(string $idPrefix, string $modelName, array $nodes, array $linksByCat, array $byCentro): ?array
+    {
+        $childIds = [];
+        foreach ($nodes as $cid => $node) {
+            $father = $node['father'];
+            if ($father !== 0 && isset($nodes[$father])) {
+                $childIds[$father][] = $cid;
+            }
+        }
+        $roots = [];
+        foreach ($nodes as $cid => $node) {
+            $father = $node['father'];
+            if ($father === 0 || !isset($nodes[$father])) {
+                $roots[] = $cid;
+            }
+        }
+        usort($roots, fn (int $a, int $b): int => $this->cmpHierarchyNode($nodes[$a], $nodes[$b]));
+
+        $usedLocal = [];
+        $builtRoots = [];
+        foreach ($roots as $cid) {
+            $built = $this->buildCategoryNode($idPrefix . '-c' . $cid, $nodes, $childIds, $linksByCat, $byCentro, $cid, $usedLocal);
+            if ($built !== null) {
+                $builtRoots[] = $built;
+            }
+        }
+        if ($builtRoots === []) {
+            return null;
+        }
+        if (count($builtRoots) === 1) {
+            $only = $builtRoots[0];
+            $sameName = strcasecmp((string) $only['label'], $modelName) === 0 || $only['label'] === 'Grupo';
+            if ($sameName) {
+                $only['id'] = $idPrefix;
+                $only['label'] = $modelName;
+                $only['tag'] = 'Modelo';
+                return $only;
+            }
+        }
+
+        $valor = 0.0;
+        $qtd = 0;
+        foreach ($builtRoots as $root) {
+            $valor += (float) $root['valor'];
+            $qtd += (int) $root['qtd'];
+        }
+        $valor = round($valor, 2);
+        if (!$this->hasBalance($valor)) {
+            return null;
+        }
+
+        return [
+            'id' => $idPrefix,
+            'label' => $modelName,
+            'tag' => 'Modelo',
+            'valor' => $valor,
+            'qtd' => $qtd,
+            'filhos' => $builtRoots,
+            'centros' => [],
+        ];
+    }
+
+    /**
+     * @param array<int, array{cat_id:int,nome:string,father:int,vis_order:int}> $nodes
+     * @param array<int, list<int>> $childIds
+     * @param array<int, array<string, int>> $linksByCat
+     * @param array<string, list<array<string, mixed>>> $byCentro
+     * @param array<string, bool> $usedLocal
+     * @return array<string, mixed>|null
+     */
+    private function buildCategoryNode(
+        string $id,
+        array $nodes,
+        array $childIds,
+        array $linksByCat,
+        array $byCentro,
+        int $cid,
+        array &$usedLocal
+    ): ?array {
+        $node = $nodes[$cid];
+        $kids = $childIds[$cid] ?? [];
+        usort($kids, fn (int $a, int $b): int => $this->cmpHierarchyNode($nodes[$a], $nodes[$b]));
+        $filhos = [];
+        foreach ($kids as $kid) {
+            $built = $this->buildCategoryNode($id . '-c' . $kid, $nodes, $childIds, $linksByCat, $byCentro, $kid, $usedLocal);
+            if ($built !== null) {
+                $filhos[] = $built;
+            }
+        }
+
+        $codes = $linksByCat[$cid] ?? [];
+        uksort($codes, static function (string $a, string $b) use ($codes): int {
+            return [$codes[$a], $a] <=> [$codes[$b], $b];
+        });
+        $centros = [];
+        $i = 0;
+        foreach (array_keys($codes) as $code) {
+            if (isset($usedLocal[$code])) {
+                continue;
+            }
+            $usedLocal[$code] = true;
+            $center = $this->aggregateCentro($id . '-k' . (++$i), $code, $byCentro[$code] ?? []);
+            if ($center === null) {
+                continue;
+            }
+            $centros[] = $center;
+        }
+        usort($centros, static fn (array $a, array $b): int => $b['valor'] <=> $a['valor']);
+
+        $valor = 0.0;
+        $qtd = 0;
+        foreach ($centros as $centro) {
+            $valor += (float) $centro['valor'];
+            $qtd++;
+        }
+        foreach ($filhos as $filho) {
+            $valor += (float) $filho['valor'];
+            $qtd += (int) $filho['qtd'];
+        }
+        $valor = round($valor, 2);
+        if ($filhos === [] && $centros === []) {
+            return null;
+        }
+        if (!$this->hasBalance($valor)) {
+            return null;
+        }
+
+        $label = $node['nome'] !== '' ? $node['nome'] : 'Grupo';
+        $tag = ($centros !== [] && $filhos === []) ? 'Grupo centro' : 'Hierarquia';
+
+        return [
+            'id' => $id,
+            'label' => $label,
+            'tag' => $tag,
+            'valor' => $valor,
+            'qtd' => $qtd,
+            'filhos' => $filhos,
+            'centros' => $centros,
+        ];
+    }
+
+    /**
+     * @param array{vis_order:int,nome:string} $a
+     * @param array{vis_order:int,nome:string} $b
+     */
+    private function cmpHierarchyNode(array $a, array $b): int
+    {
+        return [$a['vis_order'], $a['nome']] <=> [$b['vis_order'], $b['nome']];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, mixed>|null
+     */
+    private function buildForaDoModelo(array $rows): ?array
+    {
+        $byCentro = [];
+        foreach ($rows as $row) {
+            $code = trim((string) ($row['centro'] ?? ''));
+            if ($code === '') {
+                continue;
+            }
+            $byCentro[$code][] = $row;
+        }
+        $centros = [];
+        $i = 0;
+        foreach ($byCentro as $code => $group) {
+            $center = $this->aggregateCentro('fora-k' . (++$i), $code, $group);
+            if ($center !== null) {
+                $centros[] = $center;
+            }
+        }
+        if ($centros === []) {
+            return null;
+        }
+        usort($centros, static fn (array $a, array $b): int => $b['valor'] <=> $a['valor']);
+        $valor = 0.0;
+        foreach ($centros as $centro) {
+            $valor += (float) $centro['valor'];
+        }
+
+        return [
+            'id' => 'fora',
+            'label' => 'Fora do modelo',
+            'tag' => 'Fora',
+            'valor' => round($valor, 2),
+            'qtd' => count($centros),
+            'filhos' => [],
+            'centros' => $centros,
+        ];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $rows
+     * @return array<string, mixed>|null
+     */
+    private function aggregateCentro(string $id, string $code, array $rows): ?array
+    {
+        if ($rows === []) {
+            return null;
+        }
+        $valor = 0.0;
+        $contas = [];
+        $nome = '';
+        $status = 'Alocado';
+        $regra = '';
+        foreach ($rows as $row) {
+            $linha = (float) ($row['valor'] ?? 0);
+            $valor += $linha;
+            $account = (string) ($row['account'] ?? '');
+            if (!isset($contas[$account])) {
+                $contas[$account] = [
+                    'account' => $account,
+                    'acct_name' => (string) ($row['acct_name'] ?? ''),
+                    'valor' => 0.0,
+                ];
+            }
+            $contas[$account]['valor'] += $linha;
+            if ($nome === '' && trim((string) ($row['nome_centro'] ?? '')) !== '') {
+                $nome = trim((string) $row['nome_centro']);
+            }
+            if (($row['status'] ?? '') === 'Pendente') {
+                $status = 'Pendente';
+                if ($regra === '' && trim((string) ($row['regra_revisar'] ?? '')) !== '') {
+                    $regra = trim((string) $row['regra_revisar']);
+                }
+            }
+        }
+        $valor = round($valor, 2);
+        if (!$this->hasBalance($valor)) {
+            return null;
+        }
+        $contasOut = [];
+        foreach ($contas as $conta) {
+            $conta['valor'] = round((float) $conta['valor'], 2);
+            if (!$this->hasBalance($conta['valor'])) {
+                continue;
+            }
+            $contasOut[] = $conta;
+        }
+        usort($contasOut, static fn (array $a, array $b): int => strcmp($a['account'], $b['account']));
+
+        return [
+            'id' => $id,
+            'centro' => $code,
+            'nome' => $nome,
+            'status' => $status,
+            'regra_revisar' => $regra,
+            'valor' => $valor,
+            'contas' => $contasOut,
+        ];
+    }
+
+    /**
+     * Encaixa os lançamentos embaixo da conta. Conta com saldo líquido zero
+     * (NF e cancelamento) permanece visível quando o centro já está na árvore.
+     *
+     * @param list<array<string, mixed>> $nodes
+     * @param list<array<string, mixed>> $lancamentos
+     */
+    private function attachDocumentos(array &$nodes, array $lancamentos): void
+    {
+        $byKey = [];
+        foreach ($lancamentos as $doc) {
+            if (!is_array($doc) || !$this->hasBalance((float) ($doc['valor'] ?? 0))) {
+                continue;
+            }
+            $centro = trim((string) ($doc['centro'] ?? ''));
+            $account = trim((string) ($doc['account'] ?? ''));
+            if ($centro === '' || $account === '') {
+                continue;
+            }
+            $byKey[$centro . "\0" . $account][] = $doc;
+        }
+        $this->walkAttachDocumentos($nodes, $byKey);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $nodes
+     * @param array<string, list<array<string, mixed>>> $byKey
+     */
+    private function walkAttachDocumentos(array &$nodes, array &$byKey): void
+    {
+        foreach ($nodes as &$node) {
+            if (!is_array($node)) {
+                continue;
+            }
+            if (isset($node['filhos']) && is_array($node['filhos'])) {
+                $this->walkAttachDocumentos($node['filhos'], $byKey);
+            }
+            if (isset($node['centros']) && is_array($node['centros'])) {
+                foreach ($node['centros'] as &$centro) {
+                    if (is_array($centro)) {
+                        $this->attachCentroDocumentos($centro, $byKey);
+                    }
+                }
+                unset($centro);
+            }
+        }
+        unset($node);
+    }
+
+    /**
+     * @param array<string, mixed> $centro
+     * @param array<string, list<array<string, mixed>>> $byKey
+     */
+    private function attachCentroDocumentos(array &$centro, array &$byKey): void
+    {
+        $code = trim((string) ($centro['centro'] ?? ''));
+        if (!isset($centro['contas']) || !is_array($centro['contas'])) {
+            $centro['contas'] = [];
+        }
+        foreach ($centro['contas'] as &$conta) {
+            if (!is_array($conta)) {
+                continue;
+            }
+            $key = $code . "\0" . trim((string) ($conta['account'] ?? ''));
+            $conta['documentos'] = $this->mapDocumentos($byKey[$key] ?? []);
+            unset($byKey[$key]);
+        }
+        unset($conta);
+
+        foreach (array_keys($byKey) as $key) {
+            [$centroDoc, $account] = explode("\0", $key, 2);
+            if ($centroDoc !== $code) {
+                continue;
+            }
+            $docs = $byKey[$key];
+            $valor = 0.0;
+            foreach ($docs as $doc) {
+                $valor += (float) ($doc['valor'] ?? 0);
+            }
+            $centro['contas'][] = [
+                'account' => $account,
+                'acct_name' => trim((string) ($docs[0]['natureza'] ?? '')),
+                'valor' => round($valor, 2),
+                'documentos' => $this->mapDocumentos($docs),
+            ];
+            unset($byKey[$key]);
+        }
+
+        usort($centro['contas'], static function (array $a, array $b): int {
+            return strcmp((string) ($a['account'] ?? ''), (string) ($b['account'] ?? ''));
+        });
+    }
+
+    /**
+     * @param list<array<string, mixed>> $docs
+     * @return list<array<string, mixed>>
+     */
+    private function mapDocumentos(array $docs): array
+    {
+        usort($docs, function (array $a, array $b): int {
+            return [
+                $this->dateSortKey((string) ($a['ref_date'] ?? '')),
+                (int) ($a['trans_id'] ?? 0),
+                (int) ($a['line_id'] ?? 0),
+            ] <=> [
+                $this->dateSortKey((string) ($b['ref_date'] ?? '')),
+                (int) ($b['trans_id'] ?? 0),
+                (int) ($b['line_id'] ?? 0),
+            ];
+        });
+        $out = [];
+        foreach ($docs as $doc) {
+            $out[] = [
+                'trans_id' => (string) ($doc['trans_id'] ?? ''),
+                'line_id' => (string) ($doc['line_id'] ?? ''),
+                'ref_date' => (string) ($doc['ref_date'] ?? ''),
+                'base_ref' => (string) ($doc['base_ref'] ?? ''),
+                'historico' => (string) ($doc['historico'] ?? ''),
+                'regra' => trim((string) ($doc['regra'] ?? '')),
+                'projeto' => trim((string) ($doc['projeto'] ?? '')),
+                'nome_projeto' => trim((string) ($doc['nome_projeto'] ?? '')),
+                'valor' => round((float) ($doc['valor'] ?? 0), 2),
+            ];
+        }
+        return $out;
+    }
+
+    private function dateSortKey(string $value): string
+    {
+        if (preg_match('/^(\d{2})\/(\d{2})\/(\d{4})$/', $value, $m)) {
+            return $m[3] . $m[2] . $m[1];
+        }
+        return $value;
     }
 
     private function cmpUnidade(string $a, string $b): int
@@ -1258,6 +1940,7 @@ class FinCostCenterSapService
             . ' "TransId" AS "Numero da transacao", "Line_ID" AS "Linha contabil",'
             . ' "TransType" AS "Tipo origem", "BaseRef" AS "Referencia origem",'
             . ' "LineMemo" AS "Historico", "Regra" AS "Regra informada",'
+            . ' "Projeto", "NomeProjeto",'
             . ' "Debito" AS "Debito atribuido", "Credito" AS "Credito atribuido",'
             . ' "Debito"-"Credito" AS "Valor liquido atribuido", "Status"'
             . ' FROM (' . $inner . ') M'
@@ -1281,7 +1964,7 @@ SELECT AL.*,
  CASE WHEN LEFT("Centro",4) IN ('TIA_','BIO_','AFR_','GER_')
       THEN SUBSTRING("Centro",5) ELSE "Centro" END AS "Departamento"
 FROM (
-    SELECT "TransId", "Line_ID", "TransType", "BaseRef", "LineMemo", "RefDate", "Account", "AcctName", "Inicio", "Regra",
+    SELECT "TransId", "Line_ID", "TransType", "BaseRef", "LineMemo", "RefDate", "Account", "AcctName", "Inicio", "Regra", "Projeto", "NomeProjeto",
            CASE WHEN "Resolvido" = 1 THEN "CentroCandidato"
                 WHEN "Regra" = '' THEN '[SEM CENTRO]' ELSE '[PENDENTE]' END AS "Centro",
            CASE WHEN "Resolvido" = 1 THEN "PrcName"
@@ -1317,9 +2000,12 @@ FROM (
     SELECT L."TransId", L."Line_ID", L."TransType", L."BaseRef", L."LineMemo", L."RefDate", L."Account",
            A."AcctName", L."Debit", L."Credit",
            COALESCE(TRIM(L."ProfitCode"), '') AS "Regra",
+           COALESCE(TRIM(L."Project"), '') AS "Projeto",
+           COALESCE(J."PrjName", '') AS "NomeProjeto",
            P."Inicio", P."Fim"
     FROM "JDT1" L
     INNER JOIN "OACT" A ON A."AcctCode" = L."Account"
+    LEFT JOIN "OPRJ" J ON J."PrjCode" = L."Project"
     CROSS JOIN (
     SELECT {$inicio} AS "Inicio", {$fim} AS "Fim" FROM DUMMY
 ) P

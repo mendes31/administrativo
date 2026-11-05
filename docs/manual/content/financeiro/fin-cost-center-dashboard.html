@@ -1,7 +1,7 @@
 <h1>Indicadores de Centros de Custo SAP</h1>
 
 <h2>Função no sistema</h2>
-<p>Painel financeiro com <strong>indicadores</strong>, <strong>evolução mensal</strong> e <strong>ranking/matriz de centros de custo</strong> a partir do SAP Business One. Lê lançamentos das contas que começam com <strong>4.</strong> ou <strong>5.</strong>, aplica o rateio da <strong>Dimensão 1</strong> e agrupa por unidade (prefixo do centro) e centro. O recorte padrão é os <strong>últimos 3 meses</strong>. A coluna de <strong>orçamento</strong> ainda não tem cadastro: aparece em branco para comparação futura, sem omitir os saldos realizados.</p>
+<p>Painel financeiro com <strong>indicadores</strong>, <strong>evolução mensal</strong> e <strong>ranking/matriz de centros de custo</strong> a partir do SAP Business One. Lê lançamentos das contas que começam com <strong>4.</strong> ou <strong>5.</strong>, aplica o rateio da <strong>Dimensão 1</strong> e agrupa por unidade (prefixo do centro) e centro. A aba <strong>Hierarquia</strong> usa o modelo cadastrado no SAP (relatório de centros de custo). O recorte padrão é os <strong>últimos 3 meses</strong>. A coluna de <strong>orçamento</strong> ainda não tem cadastro: aparece em branco para comparação futura, sem omitir os saldos realizados.</p>
 
 <p class="help-note">Esta tela consulta o SAP pela API já configurada em <em>Configuração SAP API</em>. Não usa o relatório local <em>Rel Centro de Custo</em> (movimentos do Portal).</p>
 
@@ -24,7 +24,9 @@
     <dt>Equipe</dt>
     <dd>Sufixo do código do centro, somado entre unidades. <code>AFR_TI</code> + <code>BIO_TI</code> + <code>TIA_TI</code> formam a equipe <strong>TI</strong>. Não substitui o ranking por centro.</dd>
     <dt>Unidade</dt>
-    <dd>Derivada do prefixo do código do centro (<code>AFR_</code> = AFRA, <code>BIO_</code> = BIOTICS, <code>TIA_</code> = TIARAJU, <code>GER_</code> = GERAL), não da hierarquia de departamentos do SAP.</dd>
+    <dd>Derivada do prefixo do código do centro (<code>AFR_</code> = AFRA, <code>BIO_</code> = BIOTICS, <code>TIA_</code> = TIARAJU, <code>GER_</code> = GERAL). Vale para indicadores, meses, ranking e lançamentos. A aba Hierarquia segue o modelo do SAP.</dd>
+    <dt>Modelo de hierarquia</dt>
+    <dd>Cadastro do SAP em <em>Relatório de resumo da contabilidade de custos</em> (tipo de documento A, dimensão 1). A lista é lida em cada consulta: um modelo novo no SAP entra na próxima atualização da tela, sem alteração de código. A seleção fica desabilitada enquanto existir zero ou um modelo e habilita a partir do segundo, com a opção <strong>Todas</strong>.</dd>
     <dt>Transação</dt>
     <dd>Número do lançamento no diário contábil do SAP (<code>OJDT.TransId</code>). A linha da partição aparece depois da barra.</dd>
     <dt>Documento</dt>
@@ -41,12 +43,12 @@
     <li>Confirme a <strong>Configuração SAP API</strong> (URL, token, integração ativa).</li>
     <li>Acesse <strong>Financeiro → Indicadores Centros de Custo SAP</strong>.</li>
     <li>O período padrão é os <strong>últimos 3 meses</strong> (carga mais rápida). Troque para 6 meses, ano atual, mês atual/anterior ou datas livres (até 366 dias).</li>
-    <li>Filtre por unidade e, se quiser, por um centro específico. A troca na lista recarrega os números; o recorte aplicado aparece nos chips abaixo dos filtros (período, unidade, centro).</li>
+    <li>Filtre por unidade e, se quiser, por um centro específico. A troca na lista recarrega os números; o recorte aplicado aparece nos chips abaixo dos filtros (período, unidade, centro e modelo de hierarquia).</li>
     <li>Na aba <strong>Indicadores</strong>, leia os KPIs, o gráfico mensal (alocado × pendente × total), o empilhado por unidade e o top 12 de centros.</li>
     <li>Na aba <strong>Meses</strong>, use a matriz centro × mês (mapa de calor) para ver concentração e sazonalidade.</li>
     <li>Na aba <strong>Centros de custo</strong>, veja o ranking completo (valor e % do total).</li>
     <li>Na aba <strong>Equipes</strong>, veja o consolidado do sufixo entre unidades (TI, Compras, Diretoria…). Cada linha lista os centros somados (ex.: AFR_TI, BIO_TI, TIA_TI). As outras abas não mudam.</li>
-    <li>Na aba <strong>Hierarquia</strong>, navegue unidade → centro → conta. Só entram centros/contas com <strong>saldo líquido ≠ 0</strong> no período (NF cancelada some da árvore). O total de cada nível fica à direita mesmo recolhido. Contas e centros começam recolhidos.</li>
+    <li>Na aba <strong>Hierarquia</strong>, escolha o modelo quando a lista estiver habilitada. Os botões abrem a árvore até o nível pedido: <strong>Modelo</strong>, <strong>Hierarquia</strong>, <strong>Grupo centro</strong>, <strong>Centro</strong> (código e descrição na mesma linha), <strong>Conta</strong> ou <strong>Documento</strong>. Na tela, o documento aparece só abaixo da conta, sem cabeçalho de colunas. <strong>Gerar PDF</strong> baixa o arquivo com o cabeçalho institucional (logo, título e subtítulo em todas as páginas) e a numeração de página. O miolo repete os blocos coloridos da tela. O valor fica na mesma linha do nome, à direita, como na visualização web. O documento também fica em uma linha (transação, data, documento, histórico, regra, projeto e valor), abaixo da conta. Centro com saldo e sem vínculo aparece em <strong>Fora do modelo</strong>.</li>
     <li>Na aba <strong>Lançamentos</strong>, confira data, <strong>transação</strong> (nº do lançamento no diário SAP), <strong>documento</strong> (referência de origem, ex. NF), conta, histórico e status de cada linha atribuída (consulta extra ao SAP).</li>
 </ol>
 
@@ -55,6 +57,7 @@
 <div class="help-field"><strong>Início / Fim</strong> Só editáveis no período personalizado.</div>
 <div class="help-field"><strong>Unidade</strong> Recorta KPIs, gráficos, ranking, hierarquia e lançamentos depois da consulta SAP. Ao mudar a lista, o centro volta para “Todos” e os números recarregam. “Todas” mantém o consolidado.</div>
 <div class="help-field"><strong>Centro de custo</strong> Restringe o mesmo recorte a um código (ex.: <code>AFR_CMP</code>). Só lista centros da unidade escolhida. Se o código não existir no período, o filtro é ignorado e volta para “Todos”.</div>
+<div class="help-field"><strong>Modelo de hierarquia</strong> Lista lida do SAP a cada consulta (<code>OFRT</code> tipo A, dimensão 1). Com um único modelo, o campo fica desabilitado e a árvore usa esse modelo. Com dois ou mais, a lista habilita: <em>Todas</em> ou um modelo. Cadastrar um modelo novo no SAP atualiza as opções na próxima consulta. Não altera KPIs, meses, ranking nem equipes.</div>
 <div class="help-field"><strong>Recorte aplicado</strong> Chips abaixo da barra mostram o período, a unidade e o centro realmente usados nos totais (não o que ficou só selecionado na tela).</div>
 <div class="help-field"><strong>Total no período</strong> Soma líquida, incluindo pendências. O subtítulo mostra centros alocados e o total de centros no recorte.</div>
 <div class="help-field"><strong>Alocado / pendente</strong> Rateio resolvido versus linhas para revisar, com % do total.</div>
@@ -64,7 +67,7 @@
 <div class="help-field"><strong>Aba Indicadores</strong> Com 2+ meses, gráfico de evolução; com 1 mês, composição alocado × pendente.</div>
 <div class="help-field"><strong>Aba Centros de custo</strong> Ranking de todos os centros do recorte, com unidade, % e valor líquido.</div>
 <div class="help-field"><strong>Aba Equipes</strong> Nova visão: soma o sufixo do centro entre AFRA, BIOTICS e TIARAJU (e demais unidades). Ex.: TI = AFR_TI + BIO_TI + TIA_TI. Ranking, participação e árvore equipe → unidade → centro. Não altera indicadores, meses, centros nem hierarquia.</div>
-<div class="help-field"><strong>Aba Hierarquia</strong> Árvore colapsável. Níveis com cores distintas: <em>Unidade</em> (azul), <em>Centro</em> (roxo, recuado) e <em>Conta</em> (verde, mais recuado). Cada nó expande/recolhe sozinho.</div>
+<div class="help-field"><strong>Aba Hierarquia</strong> A abertura segue o nível: <em>Modelo</em>, <em>Hierarquia</em> (ramos que ainda agrupam outros grupos), <em>Grupo centro</em> (ramo que reúne os centros, como Comercial ou Compras), <em>Centro</em> (código e descrição na mesma linha), <em>Conta</em> e <em>Documento</em>. Na tela, cada documento fica abaixo da conta (transação, data, documento, histórico, regra e projeto), sem cabeçalho de colunas. <em>Gerar PDF</em> usa o nível selecionado e o cabeçalho institucional (logo Tiaraju nas laterais, título ao centro, rodapé com página). Em cada faixa, o valor fica na mesma linha do nome, à direita. O documento segue a mesma linha da tela.</div>
 <div class="help-field"><strong>Aba Lançamentos</strong> Detalhe na data, com fator de rateio já aplicado. <em>Transação</em> é o <code>TransId</code> do diário (OJDT); a linha do lançamento aparece após a barra. <em>Documento</em> é o <code>BaseRef</code> (número do documento de origem, ex. nota fiscal).</div>
 <div class="help-field"><strong>Orçamento / Δ</strong> Reservados. Sem cadastro, permanecem em branco.</div>
 
@@ -86,6 +89,10 @@
     <dd>O recorte usa contas <code>4.%</code> e <code>5.%</code>, não o tipo <code>ActType = E</code>. Encerramentos e transferências entram como lançados.</dd>
     <dt>Não bate com Rel Centro de Custo</dt>
     <dd>Esse relatório local usa movimentos do Portal (<code>adms_movements</code>), outra origem.</dd>
+    <dt>A lista de modelo está desabilitada</dt>
+    <dd>O SAP tem zero ou um modelo de hierarquia de centros de custo (tipo A, dimensão 1). Com um modelo, a árvore já usa esse cadastro. A lista habilita sozinha quando existir o segundo modelo.</dd>
+    <dt>Cadastrei um modelo novo e ele não aparece</dt>
+    <dd>A lista não é fixa no código: ela é lida na consulta. Atualize o painel (troque o período ou clique em Aplicar) depois de gravar o modelo no SAP. Confira se o modelo é de contabilidade de custos, dimensão 1.</dd>
     <dt>Orçamento sempre em branco</dt>
     <dd>Comportamento esperado nesta versão. A matriz de meses já está pronta para receber a meta.</dd>
 </dl>

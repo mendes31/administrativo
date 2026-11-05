@@ -34,15 +34,17 @@ class FinCostCenterDashboardData
             $periodo = $service->resolvePeriod($input);
             $unidade = trim((string) ($input['unidade'] ?? ''));
             $centro = trim((string) ($input['centro'] ?? ''));
+            $modelo = trim((string) ($input['modelo'] ?? ''));
             $visao = (string) ($input['visao'] ?? 'dashboard');
-            $includeDetails = $visao === 'lancamentos';
+            $includeDetails = $visao === 'lancamentos' || $visao === 'hierarquia';
 
             $dash = $service->getDashboardData(
                 $periodo['from'],
                 $periodo['to'],
                 $unidade,
                 $centro,
-                $includeDetails
+                $includeDetails,
+                $modelo
             );
 
             $unidade = (string) ($dash['unidade'] ?? $unidade);
@@ -53,6 +55,13 @@ class FinCostCenterDashboardData
                 'periodo' => $periodo,
                 'unidade' => $unidade,
                 'centro' => $centro,
+                'hierarquia' => $dash['hierarquia'] ?? [
+                    'modelos' => [],
+                    'modelo' => '',
+                    'modelo_nome' => '',
+                    'habilitado' => false,
+                    'arvore' => null,
+                ],
                 'visao' => $visao,
                 'kpis' => $dash['kpis'],
                 'unidades' => $dash['unidades'],
@@ -67,6 +76,7 @@ class FinCostCenterDashboardData
                 'arvore_equipes' => $dash['arvore_equipes'] ?? [],
                 'matrix' => $dash['matrix'],
                 'lancamentos' => $dash['lancamentos'],
+                'detalhe' => $includeDetails,
                 'execution_time' => $dash['execution_time'],
                 'rows_count' => $dash['rows_count'],
             ], JSON_UNESCAPED_UNICODE);

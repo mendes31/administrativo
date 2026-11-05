@@ -7,6 +7,7 @@ $from = (string) ($this->data['data_inicio'] ?? '');
 $to = (string) ($this->data['data_fim'] ?? '');
 $unidade = (string) ($this->data['unidade'] ?? '');
 $centroSel = (string) ($this->data['centro'] ?? '');
+$modeloSel = (string) ($this->data['modelo'] ?? '');
 $visao = (string) ($this->data['visao'] ?? 'dashboard');
 $periodos = $this->data['periodos'] ?? [];
 ?>
@@ -38,7 +39,7 @@ $periodos = $this->data['periodos'] ?? [];
 .fcc-dash .fcc-toolbar{
   background:var(--fcc-surface); border:1px solid var(--fcc-line); border-radius:10px;
   box-shadow:var(--fcc-shadow); padding:8px 10px; display:grid;
-  grid-template-columns:1.1fr .9fr .9fr 1fr 1.2fr auto; gap:8px; align-items:end; margin-bottom:8px;
+  grid-template-columns:1.05fr .75fr .75fr .9fr 1.05fr 1.2fr auto; gap:8px; align-items:end; margin-bottom:8px;
 }
 .fcc-dash .fcc-toolbar label{
   display:flex; flex-direction:column; gap:2px; font-size:10px; font-weight:600;
@@ -48,6 +49,7 @@ $periodos = $this->data['periodos'] ?? [];
   font-family:inherit; font-size:12px; color:var(--fcc-ink); border:1px solid var(--fcc-line);
   background:var(--fcc-bg); border-radius:6px; padding:5px 7px; outline:none; min-width:0; height:30px;
 }
+.fcc-dash .fcc-toolbar select:disabled{opacity:.72; cursor:not-allowed; background:#f4f5f4;}
 .fcc-dash .fcc-toolbar select:focus,.fcc-dash .fcc-toolbar input:focus{
   border-color:var(--fcc-green); box-shadow:0 0 0 2px var(--fcc-green-tint);
 }
@@ -138,10 +140,18 @@ $periodos = $this->data['periodos'] ?? [];
   animation:fcc-spin .7s linear infinite;
 }
 @keyframes fcc-spin{to{transform:rotate(360deg);}}
-.fcc-dash .tree-tools{display:flex; gap:8px;}
+.fcc-dash .tree-tools{display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:flex-end;}
 .fcc-dash .tree-tools button{
   border:1px solid var(--fcc-line); background:#fff; color:var(--fcc-ink-soft);
   font-size:12px; font-weight:600; padding:5px 10px; border-radius:8px; cursor:pointer;
+}
+.fcc-dash .depth-seg{display:inline-flex; border:1px solid var(--fcc-line); border-radius:8px; overflow:hidden; background:#fff;}
+.fcc-dash .depth-seg button{border:0; border-radius:0; border-right:1px solid var(--fcc-line); padding:5px 8px;}
+.fcc-dash .depth-seg button:last-child{border-right:0;}
+.fcc-dash .depth-seg button.on{background:var(--fcc-green); color:#fff;}
+.fcc-dash .pane[data-pane="hierarquia"] .cardh{flex-wrap:wrap;}
+.fcc-dash .pane[data-pane="hierarquia"] .hier-scroll{
+  overflow:auto; height:calc(100vh - 248px); min-height:320px; max-height:none;
 }
 .fcc-dash .tree-unit{border:1px solid #CDE9D6; border-radius:10px; margin-bottom:10px; overflow:hidden; background:#fff;}
 .fcc-dash .tree-h{
@@ -165,6 +175,13 @@ $periodos = $this->data['periodos'] ?? [];
 .fcc-dash .tree-cc .tree-h{background:#F8F5FC; padding:9px 10px;}
 .fcc-dash .tree-cc .tree-h:hover{background:#F1EAF8;}
 .fcc-dash .tree-unit > .tree-h:hover{background:var(--fcc-green-dark);}
+.fcc-dash .tree-unit.is-grupo{border-color:#C9D8F5;}
+.fcc-dash .tree-unit.is-grupo > .tree-h{background:#2F6FDE;}
+.fcc-dash .tree-unit.is-grupo > .tree-h:hover{background:#2458b0;}
+.fcc-dash .tree-unit.is-fora{border-color:#F3D2B8;}
+.fcc-dash .tree-unit.is-fora > .tree-h{background:#E67E2E;}
+.fcc-dash .tree-unit.is-fora > .tree-h:hover{background:#c46820;}
+.fcc-dash .tree-b .tree-unit{margin-bottom:8px;}
 .fcc-dash .lvl-tag{
   font-size:9px; font-weight:800; letter-spacing:.04em; text-transform:uppercase;
   padding:2px 6px; border-radius:4px; flex:0 0 auto;
@@ -183,6 +200,11 @@ $periodos = $this->data['periodos'] ?? [];
 .fcc-dash .tree-cc.collapsed > .tree-h .chev{transform:rotate(-90deg);}
 .fcc-dash .tree-title{flex:1; min-width:0;}
 .fcc-dash .tree-title strong{display:block;}
+.fcc-dash .tree-cc .tree-title{display:flex; align-items:baseline; gap:8px; flex-wrap:wrap;}
+.fcc-dash .tree-cc .tree-title strong{display:inline;}
+.fcc-dash .tree-unit.is-hier{border-color:#B7D4C4;}
+.fcc-dash .tree-unit.is-hier > .tree-h{background:#0E6B45;}
+.fcc-dash .tree-unit.is-hier > .tree-h:hover{background:#0A5536;}
 .fcc-dash .tree-val{
   font-weight:800; white-space:nowrap; flex:0 0 auto; margin-left:auto;
   font-variant-numeric:tabular-nums; min-width:7.5rem; text-align:right;
@@ -196,6 +218,45 @@ $periodos = $this->data['periodos'] ?? [];
 }
 .fcc-dash .tree-acc .muted{flex:1;}
 .fcc-dash .tree-acc .tree-val{flex:0 0 auto; margin-left:auto;}
+.fcc-dash .tree-acc-node{
+  margin:4px 6px 0; background:#fff; border:1px dashed #C6E0D0; border-radius:6px; overflow:hidden;
+}
+.fcc-dash .tree-acc-node > .tree-h{background:#fff; padding:7px 10px; font-size:12.5px;}
+.fcc-dash .tree-acc-node > .tree-h .chev{background:#E7F4EC; color:#1B7A49;}
+.fcc-dash .tree-acc-node > .tree-h .tree-val.pos{color:var(--fcc-green)!important;}
+.fcc-dash .tree-acc-node > .tree-h .tree-val.neg{color:var(--fcc-red)!important;}
+.fcc-dash .tree-acc-node.collapsed > .tree-b{display:none;}
+.fcc-dash .tree-acc-node > .tree-b{padding:0 0 6px 14px; background:#F7FBF8;}
+.fcc-dash .tree-doc{
+  display:grid;
+  grid-template-columns:6.6rem 5.2rem 6.4rem minmax(8rem,1.4fr) minmax(5.5rem,.7fr) minmax(7rem,1fr) 7.2rem;
+  gap:4px 8px; align-items:center; margin:3px 6px 0; padding:4px 8px;
+  background:#fff; border:1px solid #E4EFE7; border-radius:6px; font-size:12px;
+  box-sizing:border-box;
+}
+.fcc-dash .tree-doc .clip{min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.fcc-dash .tree-doc .doc-val{text-align:right; font-weight:800; font-variant-numeric:tabular-nums;}
+.fcc-dash .tree-doc .doc-val.pos{color:var(--fcc-green);}
+.fcc-dash .tree-doc .doc-val.neg{color:var(--fcc-red);}
+.fcc-dash .hier-depth-modelo .lvl-hierarquia,
+.fcc-dash .hier-depth-modelo .lvl-grupo,
+.fcc-dash .hier-depth-modelo .lvl-centro,
+.fcc-dash .hier-depth-modelo .lvl-conta,
+.fcc-dash .hier-depth-modelo .lvl-doc{display:none !important;}
+.fcc-dash .hier-depth-hierarquia .lvl-grupo,
+.fcc-dash .hier-depth-hierarquia .lvl-centro,
+.fcc-dash .hier-depth-hierarquia .lvl-conta,
+.fcc-dash .hier-depth-hierarquia .lvl-doc{display:none !important;}
+.fcc-dash .hier-depth-grupo .lvl-centro,
+.fcc-dash .hier-depth-grupo .lvl-conta,
+.fcc-dash .hier-depth-grupo .lvl-doc{display:none !important;}
+.fcc-dash .hier-depth-centro .lvl-conta,
+.fcc-dash .hier-depth-centro .lvl-doc{display:none !important;}
+.fcc-dash .hier-depth-conta .lvl-doc{display:none !important;}
+@media (max-width:1100px){
+  .fcc-dash .tree-doc{grid-template-columns:7rem 5.2rem minmax(0,1fr) 7rem;}
+  .fcc-dash .tree-doc .doc-extra{display:none;}
+}
 .fcc-dash .bar-meta{min-width:200px; max-width:240px;}
 .fcc-dash.is-detail .kh{display:none;}
 .fcc-dash.is-detail .fcc-kpi{padding:6px 8px;}
@@ -247,6 +308,11 @@ $periodos = $this->data['periodos'] ?? [];
         <option value="">Todos</option>
       </select>
     </label>
+    <label>Modelo de hierarquia
+      <select name="modelo" id="fcc-modelo" disabled title="A lista habilita quando existir mais de um modelo no SAP.">
+        <option value="<?= htmlspecialchars($modeloSel, ENT_QUOTES, 'UTF-8') ?>">Carregando…</option>
+      </select>
+    </label>
     <button type="submit">Aplicar</button>
   </form>
 
@@ -260,17 +326,19 @@ $periodos = $this->data['periodos'] ?? [];
     <button type="button" class="tab <?= $visao === 'lancamentos' ? 'active' : '' ?>" data-visao="lancamentos">Lançamentos</button>
   </div>
   <div id="fcc-panes"></div>
-  <p class="note">KPIs, gráficos, ranking e hierarquia usam unidade → centro. A aba Equipes soma o sufixo entre unidades (AFR_TI + BIO_TI + TIA_TI = TI) sem alterar as demais visões. Pendências de rateio não são omitidas.</p>
+  <p class="note">KPIs, gráficos e ranking usam a unidade (prefixo do centro). A aba Hierarquia segue o modelo cadastrado no SAP e a lista só habilita quando há mais de um modelo. A aba Equipes soma o sufixo entre unidades (AFR_TI + BIO_TI + TIA_TI = TI). Pendências de rateio não são omitidas.</p>
 </div>
 </div>
 <script src="<?php echo $_ENV['URL_ADM']; ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
 <script>
 (function () {
   var API = <?= json_encode((string) ($this->data['api_url'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
+  var PDFURL = <?= json_encode((string) ($this->data['pdf_url'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var SELF = <?= json_encode((string) ($this->data['self_url'] ?? ''), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) ?>;
   var visao = <?= json_encode($visao, JSON_UNESCAPED_UNICODE) ?>;
   var selUnidade = <?= json_encode($unidade, JSON_UNESCAPED_UNICODE) ?>;
   var selCentro = <?= json_encode($centroSel, JSON_UNESCAPED_UNICODE) ?>;
+  var selModelo = <?= json_encode($modeloSel, JSON_UNESCAPED_UNICODE) ?>;
   var payload = null;
   var charts = {};
   var loadSeq = 0;
@@ -283,6 +351,7 @@ $periodos = $this->data['periodos'] ?? [];
   var to = document.getElementById('fcc-to');
   var unidadeEl = document.getElementById('fcc-unidade');
   var centroEl = document.getElementById('fcc-centro');
+  var modeloEl = document.getElementById('fcc-modelo');
 
   function esc(v) {
     return String(v == null ? '' : v).replace(/[&<>"']/g, function (c) {
@@ -291,6 +360,11 @@ $periodos = $this->data['periodos'] ?? [];
   }
   function money(n) {
     return Number(n || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  }
+  function projetoLabel(d) {
+    var nome = String((d && d.nome_projeto) || '').trim();
+    if (nome) return nome;
+    return String((d && d.projeto) || '').trim();
   }
   function cls(n) {
     n = Number(n || 0);
@@ -341,6 +415,44 @@ $periodos = $this->data['periodos'] ?? [];
       extra.selected = true;
       sel.appendChild(extra);
     }
+  }
+  function fillModelo(info) {
+    info = info || {};
+    var modelos = info.modelos || [];
+    var habilitado = !!info.habilitado && modelos.length > 1;
+    var selected = info.modelo != null ? String(info.modelo) : '';
+    modeloEl.innerHTML = '';
+    if (!habilitado) {
+      var unico = document.createElement('option');
+      if (modelos.length === 1) {
+        unico.value = String(modelos[0].id);
+        unico.textContent = modelos[0].nome;
+      } else {
+        unico.value = '';
+        unico.textContent = 'Sem modelo no SAP';
+      }
+      unico.selected = true;
+      modeloEl.appendChild(unico);
+      modeloEl.disabled = true;
+      modeloEl.title = modelos.length === 1
+        ? 'Há um único modelo de hierarquia no SAP. A lista habilita quando existir mais de um.'
+        : 'Nenhum modelo de hierarquia de centros de custo (tipo A, dimensão 1) no SAP.';
+      return;
+    }
+    modeloEl.disabled = false;
+    modeloEl.title = 'Modelos lidos do SAP nesta consulta. Um cadastro novo entra na próxima atualização.';
+    var todas = document.createElement('option');
+    todas.value = '';
+    todas.textContent = 'Todas';
+    if (selected === '') todas.selected = true;
+    modeloEl.appendChild(todas);
+    modelos.forEach(function (m) {
+      var opt = document.createElement('option');
+      opt.value = String(m.id);
+      opt.textContent = m.nome;
+      if (String(m.id) === selected) opt.selected = true;
+      modeloEl.appendChild(opt);
+    });
   }
   function heat(n, maxAbs) {
     n = Number(n || 0);
@@ -444,28 +556,79 @@ $periodos = $this->data['periodos'] ?? [];
       kpi('Equipes no recorte', String(eqRank.length), '', 'Sufixo do centro entre unidades', 'c-green') +
       kpi('Centros na maior', String(topEq.qtd_centros || 0), '', eqCentrosTop, 'c-teal');
 
-    var arvore = data.arvore || [];
-    var treeHtml = arvore.map(function (u) {
-      var centrosHtml = (u.centros || []).map(function (c) {
-        var badge = (c.status === 'Pendente' || c.status === 'Sem classificacao') ? ' <span class="badge">' + esc(c.status) + '</span>' : '';
-        var contasHtml = (c.contas || []).map(function (a) {
-          return '<div class="tree-acc"><span class="lvl-tag">Conta</span><span>' + esc(a.account) + '</span><span class="muted">' + esc(a.acct_name) + '</span><span class="tree-val ' + cls(a.valor) + '">' + money(a.valor) + '</span></div>';
-        }).join('');
-        var regra = c.regra_revisar ? ' · regra ' + c.regra_revisar : '';
-        return '<div class="tree-cc collapsed" data-node="' + esc(c.id) + '">' +
-          '<button type="button" class="tree-h" data-toggle="cc" title="Total do centro (visível recolhido ou expandido)">' +
-            '<span class="chev">▾</span><span class="lvl-tag">Centro</span>' +
-            '<span class="tree-title"><strong>' + esc(c.centro) + badge + '</strong><span class="muted">' + esc(c.nome) + regra + (c.contas && c.contas.length ? ' · ' + c.contas.length + ' conta(s)' : '') + '</span></span>' +
-            '<span class="tree-val ' + cls(c.valor) + '" data-total="1">' + money(c.valor) + '</span></button>' +
-          '<div class="tree-b lvl-contas">' + (contasHtml || '<div class="tree-acc muted">Sem contas neste centro.</div>') + '</div></div>';
+    var comDocs = !!data.detalhe;
+    function renderContaNode(a, centroCode) {
+      if (!comDocs) {
+        return '<div class="tree-acc"><span class="lvl-tag">Conta</span><span>' + esc(a.account) + '</span><span class="muted">' + esc(a.acct_name) + '</span><span class="tree-val ' + cls(a.valor) + '">' + money(a.valor) + '</span></div>';
+      }
+      var docs = a.documentos || [];
+      var docsHtml = docs.map(function (d) {
+        var regra = String(d.regra || '').trim();
+        var mostrarRegra = regra && regra !== centroCode && regra !== '[SEM CENTRO]' && regra !== '[PENDENTE]';
+        var proj = projetoLabel(d);
+        return '<div class="tree-doc">' +
+          '<strong>' + esc(d.trans_id || '—') + '</strong>' +
+          '<span>' + esc(d.ref_date || '—') + '</span>' +
+          '<span>' + esc(d.base_ref || '—') + '</span>' +
+          '<span class="clip" title="' + esc(d.historico || '') + '">' + esc(d.historico || '—') + '</span>' +
+          '<span class="doc-extra clip">' + esc(mostrarRegra ? regra : '—') + '</span>' +
+          '<span class="doc-extra clip" title="' + esc(proj) + '">' + esc(proj || '—') + '</span>' +
+          '<span class="doc-val ' + cls(d.valor) + '">' + money(d.valor) + '</span></div>';
       }).join('');
-      return '<div class="tree-unit collapsed" data-node="' + esc(u.id) + '">' +
-        '<button type="button" class="tree-h" data-toggle="unit" title="Total da unidade (visível recolhido ou expandido)">' +
-          '<span class="chev">▾</span><span class="lvl-tag">Unidade</span>' +
-          '<span class="tree-title"><strong>' + esc(u.unidade) + '</strong><span class="muted">' + (u.qtd_centros || 0) + ' centro(s)</span></span>' +
-          '<span class="tree-val" data-total="1">' + money(u.valor) + '</span></button>' +
-        '<div class="tree-b lvl-centros">' + centrosHtml + '</div></div>';
-    }).join('') || '<p class="muted" style="padding:12px;">Nenhum lançamento no período.</p>';
+      docsHtml = docs.length ? docsHtml : '<div class="tree-acc muted">Sem documentos nesta conta.</div>';
+      return '<div class="tree-acc-node collapsed lvl-conta">' +
+        '<button type="button" class="tree-h" data-toggle="acc" title="Documentos da conta">' +
+          '<span class="chev">▾</span><span class="lvl-tag">Conta</span>' +
+          '<span>' + esc(a.account) + '</span>' +
+          '<span class="muted" style="flex:1">' + esc(a.acct_name) + (docs.length ? ' · ' + docs.length + ' doc(s)' : '') + '</span>' +
+          '<span class="tree-val ' + cls(a.valor) + '">' + money(a.valor) + '</span></button>' +
+        '<div class="tree-b lvl-doc">' + docsHtml + '</div></div>';
+    }
+    function renderCentroNode(c) {
+      var badge = (c.status === 'Pendente' || c.status === 'Sem classificacao') ? ' <span class="badge">' + esc(c.status) + '</span>' : '';
+      var contasHtml = (c.contas || []).map(function (a) { return renderContaNode(a, c.centro); }).join('');
+      var extra = (c.contas && c.contas.length ? ' · ' + c.contas.length + ' conta(s)' : '') + (c.regra_revisar ? ' · regra ' + c.regra_revisar : '');
+      return '<div class="tree-cc collapsed lvl-centro" data-node="' + esc(c.id) + '">' +
+        '<button type="button" class="tree-h" data-toggle="cc" title="Total do centro (visível recolhido ou expandido)">' +
+          '<span class="chev">▾</span><span class="lvl-tag">Centro</span>' +
+          '<span class="tree-title"><strong>' + esc(c.centro) + badge + '</strong><span class="muted">' + esc(c.nome) + esc(extra) + '</span></span>' +
+          '<span class="tree-val ' + cls(c.valor) + '" data-total="1">' + money(c.valor) + '</span></button>' +
+        '<div class="tree-b lvl-contas">' + (contasHtml || '<div class="tree-acc muted">Sem contas neste centro.</div>') + '</div></div>';
+    }
+    function renderGrupoNode(n) {
+      var tag = n.tag || 'Hierarquia';
+      var extra = ' is-hier';
+      var nivel = 'lvl-hierarquia';
+      if (tag === 'Modelo') { extra = ''; nivel = 'lvl-modelo'; }
+      else if (tag === 'Grupo centro') { extra = ' is-grupo'; nivel = 'lvl-grupo'; }
+      else if (tag === 'Fora') { extra = ' is-fora'; nivel = 'lvl-grupo'; }
+      var centrosHtml = (n.centros || []).map(renderCentroNode).join('');
+      var filhosHtml = (n.filhos || []).map(renderGrupoNode).join('');
+      var qtd = n.qtd != null ? n.qtd : (n.centros || []).length;
+      return '<div class="tree-unit collapsed' + extra + ' ' + nivel + '" data-node="' + esc(n.id) + '">' +
+        '<button type="button" class="tree-h" data-toggle="unit" title="Total do grupo (visível recolhido ou expandido)">' +
+          '<span class="chev">▾</span><span class="lvl-tag">' + esc(tag) + '</span>' +
+          '<span class="tree-title"><strong>' + esc(n.label) + '</strong><span class="muted">' + qtd + ' centro(s)</span></span>' +
+          '<span class="tree-val" data-total="1">' + money(n.valor) + '</span></button>' +
+        '<div class="tree-b lvl-centros">' + (filhosHtml + centrosHtml || '<div class="tree-acc muted">Sem centros neste grupo.</div>') + '</div></div>';
+    }
+    var hier = data.hierarquia || {};
+    var usaModelo = Array.isArray(hier.arvore) && (hier.modelos || []).length > 0;
+    var hierTitle = usaModelo ? ('Hierarquia · ' + (hier.modelo_nome || 'modelo SAP')) : 'Hierarquia · unidade → centro → conta';
+    var hierNote = usaModelo
+      ? '<p class="note" style="margin:0 0 8px;">Escolha até onde abrir: modelo, hierarquia, grupo de centro, centro, conta ou documento. Cada documento fica abaixo da conta. No PDF, o valor fica na mesma linha do nome, à direita, no nível escolhido. Saldo sem vínculo fica em “Fora do modelo”.</p>'
+      : '';
+    var treeHtml = usaModelo
+      ? ((hier.arvore || []).map(renderGrupoNode).join('') || '<p class="muted" style="padding:12px;">Nenhum saldo no modelo selecionado.</p>')
+      : (data.arvore || []).map(function (u) {
+          var centrosHtml = (u.centros || []).map(renderCentroNode).join('');
+          return '<div class="tree-unit collapsed lvl-modelo" data-node="' + esc(u.id) + '">' +
+            '<button type="button" class="tree-h" data-toggle="unit" title="Total da unidade (visível recolhido ou expandido)">' +
+              '<span class="chev">▾</span><span class="lvl-tag">Unidade</span>' +
+              '<span class="tree-title"><strong>' + esc(u.unidade) + '</strong><span class="muted">' + (u.qtd_centros || 0) + ' centro(s)</span></span>' +
+              '<span class="tree-val" data-total="1">' + money(u.valor) + '</span></button>' +
+            '<div class="tree-b lvl-centros">' + centrosHtml + '</div></div>';
+        }).join('') || '<p class="muted" style="padding:12px;">Nenhum lançamento no período.</p>';
 
     var mesesQtd = ((data.serie_mensal || {}).labels || []).length;
     var chartMesTitle = mesesQtd > 1 ? 'Evolução mensal' : 'Composição do período';
@@ -495,7 +658,7 @@ $periodos = $this->data['periodos'] ?? [];
         '<div class="card"><div class="cardh">Ranking de equipes</div><div class="cardb" style="padding:0;overflow:auto;max-height:50vh;"><table><thead><tr><th>#</th><th class="tl">Equipe</th><th class="tl">Unidades</th><th class="tl">Centros somados</th><th>%</th><th>Valor líquido</th></tr></thead><tbody>' + eqRows + '</tbody></table></div></div>' +
         '<div class="card"><div class="cardh"><span>Equipe → unidade → centro</span><span class="tree-tools"><button type="button" id="fcc-eq-exp">Expandir tudo</button><button type="button" id="fcc-eq-col">Recolher tudo</button></span></div><div class="cardb" style="overflow:auto;max-height:60vh;">' + eqTree + '</div></div>' +
       '</div>' +
-      '<div class="pane' + (visao === 'hierarquia' ? ' active' : '') + '" data-pane="hierarquia"><div class="card"><div class="cardh"><span>Hierarquia · unidade → centro → conta</span><span class="tree-tools"><button type="button" id="fcc-exp-all">Expandir tudo</button><button type="button" id="fcc-col-all">Recolher tudo</button></span></div><div class="cardb" style="overflow:auto;max-height:75vh;">' + treeHtml + '</div></div></div>' +
+      '<div class="pane' + (visao === 'hierarquia' ? ' active' : '') + '" data-pane="hierarquia">' + hierNote + '<div class="card"><div class="cardh"><span>' + esc(hierTitle) + '</span><span class="tree-tools"><span class="depth-seg" id="fcc-depth"><button type="button" data-depth="modelo">Modelo</button><button type="button" data-depth="hierarquia">Hierarquia</button><button type="button" data-depth="grupo">Grupo centro</button><button type="button" data-depth="centro" class="on">Centro</button><button type="button" data-depth="conta">Conta</button><button type="button" data-depth="documento">Documento</button></span><button type="button" id="fcc-pdf">Gerar PDF</button></span></div><div class="cardb hier-scroll hier-depth-centro" data-depth="centro">' + treeHtml + '</div></div></div>' +
       '<div class="pane' + (visao === 'lancamentos' ? ' active' : '') + '" data-pane="lancamentos"><div class="card"><div class="cardh"><span>Lançamentos atribuídos</span><span class="muted" style="font-weight:500;font-size:12px;">' + lanc.length + ' linhas</span></div><div class="cardb" style="padding:0;overflow:auto;max-height:70vh;"><table><thead><tr><th class="tl">Unidade</th><th class="tl">Centro</th><th class="tl">Data</th><th class="tl">Transação</th><th class="tl">Documento</th><th class="tl">Conta</th><th class="tl">Natureza</th><th class="tl">Histórico</th><th>Valor líquido</th><th class="tl">Status</th></tr></thead><tbody>' + lancRows + '</tbody></table></div></div></div>';
 
     destroyCharts();
@@ -573,6 +736,7 @@ $periodos = $this->data['periodos'] ?? [];
     showWarn(p.aviso || '');
     fillSelect(unidadeEl, data.unidades || [], selUnidade, 'Todas', function (x) { return x; }, function (x) { return x; });
     fillSelect(centroEl, data.centros || [], selCentro, 'Todos', function (x) { return x.codigo; }, function (x) { return x.codigo + ' — ' + x.nome; });
+    fillModelo(data.hierarquia || {});
     renderKpis(data.kpis);
     renderPanes(data);
     bindTree();
@@ -589,13 +753,17 @@ $periodos = $this->data['periodos'] ?? [];
     var html = '<span class="fcc-periodo-tag">' + esc(brDate(p.from) + ' a ' + brDate(p.to)) + '</span>';
     if (data.unidade) html += '<span class="fcc-periodo-tag">' + esc(data.unidade) + '</span>';
     if (data.centro) html += '<span class="fcc-periodo-tag">' + esc(data.centro) + '</span>';
+    var hinfo = data.hierarquia || {};
+    if ((hinfo.modelos || []).length && hinfo.modelo_nome) {
+      html += '<span class="fcc-periodo-tag">' + esc(hinfo.modelo_nome) + '</span>';
+    }
     wrap.innerHTML = html;
   }
   function syncUrl(data) {
     if (!SELF || !window.history || !window.history.replaceState) return;
     try {
       var url = new URL(SELF, window.location.href);
-      ['periodo', 'data_inicio', 'data_fim', 'unidade', 'centro', 'visao'].forEach(function (k) {
+      ['periodo', 'data_inicio', 'data_fim', 'unidade', 'centro', 'modelo', 'visao'].forEach(function (k) {
         url.searchParams.delete(k);
       });
       var p = data.periodo || {};
@@ -606,27 +774,129 @@ $periodos = $this->data['periodos'] ?? [];
       }
       if (data.unidade) url.searchParams.set('unidade', data.unidade);
       if (data.centro) url.searchParams.set('centro', data.centro);
+      var hurl = data.hierarquia || {};
+      if (hurl.habilitado && hurl.modelo) url.searchParams.set('modelo', hurl.modelo);
       if (visao && visao !== 'dashboard') url.searchParams.set('visao', visao);
       window.history.replaceState({}, '', url.pathname + url.search);
     } catch (e) {}
   }
 
+  function hierPane() {
+    return document.querySelector('#fcc-panes .pane[data-pane="hierarquia"] .hier-scroll');
+  }
+  function setHierDepth(depth) {
+    var pane = hierPane();
+    if (!pane) return;
+    ['modelo', 'hierarquia', 'grupo', 'centro', 'conta', 'documento'].forEach(function (k) {
+      pane.classList.remove('hier-depth-' + k);
+    });
+    pane.classList.add('hier-depth-' + depth);
+    pane.dataset.depth = depth;
+    document.querySelectorAll('#fcc-depth button').forEach(function (b) {
+      b.classList.toggle('on', b.getAttribute('data-depth') === depth);
+    });
+    var rank = { modelo: 1, hierarquia: 2, grupo: 3, centro: 4, conta: 5, documento: 6 };
+    var max = rank[depth] || 4;
+    pane.querySelectorAll('.tree-unit, .tree-cc, .tree-acc-node').forEach(function (n) {
+      var r = 1;
+      if (n.classList.contains('lvl-hierarquia')) r = 2;
+      else if (n.classList.contains('lvl-grupo')) r = 3;
+      else if (n.classList.contains('lvl-centro')) r = 4;
+      else if (n.classList.contains('lvl-conta')) r = 5;
+      n.classList.toggle('collapsed', r >= max);
+    });
+  }
+  function pdfHier() {
+    var pane = hierPane();
+    var depth = (pane && pane.dataset.depth) || 'centro';
+    var h = (payload && payload.hierarquia) || {};
+    var nodes = (h.arvore && (h.modelos || []).length) ? h.arvore : ((payload && payload.arvore) || []);
+    var p = (payload && payload.periodo) || {};
+    var titulos = { modelo: 'Modelo', hierarquia: 'Hierarquia', grupo: 'Grupo centro', centro: 'Centro', conta: 'Conta', documento: 'Documento' };
+    var titulo = titulos[depth] || 'Centro';
+    var corpo = pdfRows(nodes, depth);
+    var form = document.createElement('form');
+    form.method = 'POST';
+    form.action = PDFURL;
+    form.target = '_blank';
+    function campo(nome, valor) {
+      var input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = nome;
+      input.value = valor;
+      form.appendChild(input);
+    }
+    campo('titulo', 'Hierarquia de centros de custo');
+    campo('subtitulo', (h.modelo_nome || 'Unidade → centro') + ' · ' + titulo + ' · ' + brDate(p.from) + ' a ' + brDate(p.to));
+    campo('html', corpo);
+    document.body.appendChild(form);
+    form.submit();
+    form.remove();
+  }
+  function pdfRank(depth) {
+    return { modelo: 1, hierarquia: 2, grupo: 3, centro: 4, conta: 5, documento: 6 }[depth] || 4;
+  }
+  function pdfKind(tag) {
+    if (tag === 'Modelo') return 'm';
+    if (tag === 'Hierarquia') return 'h';
+    if (tag === 'Fora') return 'f';
+    return 'g';
+  }
+  function pdfBar(kind, tag, titleHtml, valor) {
+    var cor = (kind === 'c' || kind === 'a') ? (' ' + cls(valor)) : '';
+    return '<table class="line ' + kind + '"><tr><td class="main"><span class="tag">' + esc(tag) + '</span> ' + titleHtml + '</td><td class="n' + cor + '">' + money(valor) + '</td></tr></table>';
+  }
+  function pdfWrap(kind, inner) {
+    return inner ? '<div class="kids">' + inner + '</div>' : '';
+  }
+  function pdfDoc(d, centro) {
+    var regra = String(d.regra || '').trim();
+    var mostrar = regra && regra !== centro && regra !== '[SEM CENTRO]' && regra !== '[PENDENTE]';
+    var proj = projetoLabel(d);
+    return '<table class="line doc"><tr><td class="t">' + esc(d.trans_id || '—') + '</td><td class="dt">' + esc(d.ref_date || '—') + '</td><td class="rf">' + esc(d.base_ref || '—') + '</td><td>' + esc(d.historico || '—') + '</td><td class="ru">' + esc(mostrar ? regra : '—') + '</td><td class="pr">' + esc(proj || '—') + '</td><td class="n ' + cls(d.valor) + '">' + money(d.valor) + '</td></tr></table>';
+  }
+  function pdfConta(a, centro, max) {
+    var nome = a.acct_name ? ' <span class="sub">' + esc(a.acct_name) + '</span>' : '';
+    var docs = '';
+    if (max >= 6) (a.documentos || []).forEach(function (d) { docs += pdfDoc(d, centro); });
+    return '<div class="node a">' + pdfBar('a', 'Conta', esc(a.account || '') + nome, a.valor) + pdfWrap('a', docs) + '</div>';
+  }
+  function pdfCentro(c, max) {
+    var nome = c.nome ? ' <span class="sub">' + esc(c.nome) + '</span>' : '';
+    var contas = '';
+    if (max >= 5) (c.contas || []).forEach(function (a) { contas += pdfConta(a, c.centro || '', max); });
+    return '<div class="node c">' + pdfBar('c', 'Centro', esc(c.centro || '') + nome, c.valor) + pdfWrap('c', contas) + '</div>';
+  }
+  function pdfRows(nodes, depth) {
+    var max = pdfRank(depth);
+    var html = '';
+    (nodes || []).forEach(function (n) {
+      var tag = n.tag || (n.unidade ? 'Grupo centro' : 'Hierarquia');
+      var nodeRank = tag === 'Modelo' ? 1 : (tag === 'Hierarquia' ? 2 : 3);
+      if (nodeRank > max) return;
+      var kind = pdfKind(tag);
+      var inner = '';
+      if (max > nodeRank) inner += pdfRows(n.filhos || [], depth);
+      if (max >= 4) (n.centros || []).forEach(function (c) { inner += pdfCentro(c, max); });
+      html += '<div class="node ' + kind + '">' + pdfBar(kind, tag, esc(n.label || n.unidade || ''), n.valor) + pdfWrap(kind, inner) + '</div>';
+    });
+    return html;
+  }
   function bindTree() {
     document.querySelectorAll('#fcc-panes [data-toggle]').forEach(function (btn) {
       btn.addEventListener('click', function (e) {
         e.preventDefault();
-        var box = btn.closest('.tree-unit, .tree-cc');
+        var box = btn.closest('.tree-unit, .tree-cc, .tree-acc-node');
         if (box) box.classList.toggle('collapsed');
       });
     });
-    var exp = document.getElementById('fcc-exp-all');
-    var col = document.getElementById('fcc-col-all');
-    if (exp) exp.addEventListener('click', function () {
-      document.querySelectorAll('#fcc-panes .pane[data-pane="hierarquia"] .tree-unit, #fcc-panes .pane[data-pane="hierarquia"] .tree-cc').forEach(function (n) { n.classList.remove('collapsed'); });
+    document.querySelectorAll('#fcc-depth button').forEach(function (b) {
+      b.addEventListener('click', function () { setHierDepth(b.getAttribute('data-depth')); });
     });
-    if (col) col.addEventListener('click', function () {
-      document.querySelectorAll('#fcc-panes .pane[data-pane="hierarquia"] .tree-unit, #fcc-panes .pane[data-pane="hierarquia"] .tree-cc').forEach(function (n) { n.classList.add('collapsed'); });
-    });
+    var pdf = document.getElementById('fcc-pdf');
+    if (pdf) pdf.addEventListener('click', pdfHier);
+    var pane = hierPane();
+    if (pane) setHierDepth(pane.dataset.depth || 'centro');
     var eqExp = document.getElementById('fcc-eq-exp');
     var eqCol = document.getElementById('fcc-eq-col');
     if (eqExp) eqExp.addEventListener('click', function () {
@@ -644,6 +914,7 @@ $periodos = $this->data['periodos'] ?? [];
       data_fim: to.value,
       unidade: unidadeEl.value,
       centro: centroEl.value,
+      modelo: modeloEl ? modeloEl.value : selModelo,
       visao: visao
     };
   }
@@ -687,7 +958,7 @@ $periodos = $this->data['periodos'] ?? [];
       p.classList.toggle('active', p.getAttribute('data-pane') === visao);
     });
     if (payload) syncUrl(payload);
-    if (visao === 'lancamentos' && payload && !(payload.lancamentos || []).length) {
+    if ((visao === 'lancamentos' || visao === 'hierarquia') && payload && !payload.detalhe) {
       load();
     }
   }
@@ -702,6 +973,7 @@ $periodos = $this->data['periodos'] ?? [];
     load();
   });
   centroEl.addEventListener('change', load);
+  modeloEl.addEventListener('change', load);
   from.addEventListener('change', function () {
     if (periodo.value === 'personalizado') load();
   });
