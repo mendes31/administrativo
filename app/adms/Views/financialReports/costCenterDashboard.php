@@ -815,23 +815,44 @@ $periodos = $this->data['periodos'] ?? [];
     var titulos = { modelo: 'Modelo', hierarquia: 'Hierarquia', grupo: 'Grupo centro', centro: 'Centro', conta: 'Conta', documento: 'Documento' };
     var titulo = titulos[depth] || 'Centro';
     var corpo = pdfRows(nodes, depth);
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = PDFURL;
-    form.target = '_blank';
-    function campo(nome, valor) {
-      var input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = nome;
-      input.value = valor;
-      form.appendChild(input);
+    var btn = document.getElementById('fcc-pdf');
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Gerando…';
     }
-    campo('titulo', 'Hierarquia de centros de custo');
-    campo('subtitulo', (h.modelo_nome || 'Unidade → centro') + ' · ' + titulo + ' · ' + brDate(p.from) + ' a ' + brDate(p.to));
-    campo('html', corpo);
-    document.body.appendChild(form);
-    form.submit();
-    form.remove();
+    var fd = new FormData();
+    fd.append('titulo', 'Hierarquia de centros de custo');
+    fd.append('subtitulo', (h.modelo_nome || 'Unidade → centro') + ' · ' + titulo + ' · ' + brDate(p.from) + ' a ' + brDate(p.to));
+    fd.append('html', corpo);
+    fetch(PDFURL, { method: 'POST', credentials: 'same-origin', body: fd })
+      .then(function (res) {
+        var type = (res.headers.get('Content-Type') || '').toLowerCase();
+        if (!res.ok || type.indexOf('pdf') === -1) {
+          return res.text().then(function (t) {
+            throw new Error((t || '').replace(/<[^>]+>/g, ' ').trim() || 'Falha ao gerar o PDF.');
+          });
+        }
+        return res.blob();
+      })
+      .then(function (blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = 'Hierarquia_centros_de_custo.pdf';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+      })
+      .catch(function (err) {
+        window.alert(err && err.message ? err.message : 'Não foi possível gerar o PDF.');
+      })
+      .finally(function () {
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Gerar PDF';
+        }
+      });
   }
   function pdfRank(depth) {
     return { modelo: 1, hierarquia: 2, grupo: 3, centro: 4, conta: 5, documento: 6 }[depth] || 4;
@@ -853,13 +874,14 @@ $periodos = $this->data['periodos'] ?? [];
     var regra = String(d.regra || '').trim();
     var mostrar = regra && regra !== centro && regra !== '[SEM CENTRO]' && regra !== '[PENDENTE]';
     var proj = projetoLabel(d);
-    return '<table class="line doc"><tr><td class="t">' + esc(d.trans_id || '—') + '</td><td class="dt">' + esc(d.ref_date || '—') + '</td><td class="rf">' + esc(d.base_ref || '—') + '</td><td>' + esc(d.historico || '—') + '</td><td class="ru">' + esc(mostrar ? regra : '—') + '</td><td class="pr">' + esc(proj || '—') + '</td><td class="n ' + cls(d.valor) + '">' + money(d.valor) + '</td></tr></table>';
+    return '<tr><td class="t">' + esc(d.trans_id || '—') + '</td><td class="dt">' + esc(d.ref_date || '—') + '</td><td class="rf">' + esc(d.base_ref || '—') + '</td><td>' + esc(d.historico || '—') + '</td><td class="ru">' + esc(mostrar ? regra : '—') + '</td><td class="pr">' + esc(proj || '—') + '</td><td class="n ' + cls(d.valor) + '">' + money(d.valor) + '</td></tr>';
   }
   function pdfConta(a, centro, max) {
     var nome = a.acct_name ? ' <span class="sub">' + esc(a.acct_name) + '</span>' : '';
     var docs = '';
     if (max >= 6) (a.documentos || []).forEach(function (d) { docs += pdfDoc(d, centro); });
-    return '<div class="node a">' + pdfBar('a', 'Conta', esc(a.account || '') + nome, a.valor) + pdfWrap('a', docs) + '</div>';
+    var tabela = docs ? '<table class="line doc">' + docs + '</table>' : '';
+    return '<div class="node a">' + pdfBar('a', 'Conta', esc(a.account || '') + nome, a.valor) + pdfWrap('a', tabela) + '</div>';
   }
   function pdfCentro(c, max) {
     var nome = c.nome ? ' <span class="sub">' + esc(c.nome) + '</span>' : '';

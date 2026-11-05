@@ -68,6 +68,12 @@ class FinCostCenterDashboard
         $titulo = trim((string) ($_POST['titulo'] ?? 'Hierarquia de centros de custo'));
         $subtitulo = trim((string) ($_POST['subtitulo'] ?? ''));
         $html = (string) ($_POST['html'] ?? '');
+        if ($html === '' && (int) ($_SERVER['CONTENT_LENGTH'] ?? 0) > 0 && $_POST === []) {
+            http_response_code(413);
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'O relatório é grande demais para enviar de uma vez. Abra até Centro ou Conta e gere de novo.';
+            exit;
+        }
         if (strlen($html) > 8_000_000) {
             $html = '';
         }
@@ -93,6 +99,10 @@ class FinCostCenterDashboard
                 'margin_footer' => 8,
                 'tempDir' => is_dir($tempDir) ? $tempDir : sys_get_temp_dir(),
             ]);
+            $mpdf->simpleTables = true;
+            $mpdf->packTableData = true;
+            $mpdf->shrink_tables_to_fit = 1;
+            $mpdf->useSubstitutions = false;
             $mpdf->SetTitle($titulo);
             $mpdf->SetAuthor('Grupo Tiaraju');
             $mpdf->SetFooter('Hierarquia de centros de custo||{PAGENO}/{nbpg}');
@@ -135,11 +145,12 @@ class FinCostCenterDashboard
                 table.doc td.n{border-right:1px solid #E4EFE7;}
                 </style>' . $html
             );
-            $mpdf->Output('Hierarquia_centros_de_custo.pdf', 'I');
+            $mpdf->Output('Hierarquia_centros_de_custo.pdf', 'D');
         } catch (Throwable $e) {
+            error_log('FinCostCenterDashboard PDF: ' . $e->getMessage());
             http_response_code(500);
-            header('Content-Type: text/html; charset=utf-8');
-            echo '<p>Não foi possível gerar o PDF.</p>';
+            header('Content-Type: text/plain; charset=utf-8');
+            echo 'Não foi possível gerar o PDF.';
         }
         exit;
     }
