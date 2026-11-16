@@ -43,7 +43,7 @@ class NotificationsRepository extends DbConnection
             return false;
         }
         $newId = (int) $this->getConnection()->lastInsertId();
-        if ($newId > 0) {
+        if ($newId > 0 && empty($data['skip_log'])) {
             $row = $this->getRawNotificationRow($newId);
             if (is_array($row)) {
                 $usuarioId = (int) ($_SESSION['user_id'] ?? 0) > 0
@@ -58,7 +58,8 @@ class NotificationsRepository extends DbConnection
                     $row
                 );
             }
-
+        }
+        if ($newId > 0) {
             $this->dispatchWebPushForNotification((int) $data['user_id'], $data, $newId);
         }
 
@@ -150,6 +151,70 @@ class NotificationsRepository extends DbConnection
         $stmt->execute();
 
         return (int) $stmt->rowCount();
+    }
+
+    /**
+     * Apaga avisos não lidos de um tipo ligado à entidade, para o lembrete novo subir no sino.
+     */
+    public function deleteUnreadByEntityAndType(string $entityType, int $entityId, string $type): int
+    {
+        if ($entityId <= 0 || trim($entityType) === '' || trim($type) === '') {
+            return 0;
+        }
+
+        $sql = 'DELETE FROM adms_notifications
+                WHERE entity_type = :entity_type
+                  AND entity_id = :entity_id
+                  AND type = :type
+                  AND read_at IS NULL';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':entity_type', $entityType, PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+        $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+        $stmt->execute();
+
+        return (int) $stmt->rowCount();
+    }
+
+    /**
+     * Apaga o lembrete não lido só dos usuários que vão receber o envio atual.
+     *
+     * @param list<int> $userIds
+     */
+    public function deleteUnreadByEntityTypeForUsers(string $entityType, int $entityId, string $type, array $userIds): int
+    {
+        $userIds = array_values(array_unique(array_filter(
+            array_map('intval', $userIds),
+            static fn (int $id): bool => $id > 0
+        )));
+        if ($entityId <= 0 || trim($entityType) === '' || trim($type) === '' || $userIds === []) {
+            return 0;
+        }
+
+        $removed = 0;
+        foreach (array_chunk($userIds, 200) as $chunk) {
+            $placeholders = [];
+            foreach ($chunk as $idx => $id) {
+                $placeholders[] = ':u' . $idx;
+            }
+            $sql = 'DELETE FROM adms_notifications
+                    WHERE entity_type = :entity_type
+                      AND entity_id = :entity_id
+                      AND type = :type
+                      AND read_at IS NULL
+                      AND user_id IN (' . implode(',', $placeholders) . ')';
+            $stmt = $this->getConnection()->prepare($sql);
+            $stmt->bindValue(':entity_type', $entityType, PDO::PARAM_STR);
+            $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+            $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+            foreach ($chunk as $idx => $id) {
+                $stmt->bindValue(':u' . $idx, $id, PDO::PARAM_INT);
+            }
+            $stmt->execute();
+            $removed += (int) $stmt->rowCount();
+        }
+
+        return $removed;
     }
 
     public function existsForUserEntity(int $userId, string $entityType, int $entityId, ?string $type = null): bool

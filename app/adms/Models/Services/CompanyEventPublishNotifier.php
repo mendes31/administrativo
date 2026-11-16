@@ -6,6 +6,7 @@ namespace App\adms\Models\Services;
 
 use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\CompanyEventsRepository;
+use App\adms\Models\Repository\NotificationsRepository;
 
 /**
  * Web Push PWA ao publicar evento corporativo ativo.
@@ -56,6 +57,102 @@ final class CompanyEventPublishNotifier
             error_log('CompanyEventPublishNotifier::resendPushNotifications error: ' . $e->getMessage());
 
             return self::failResult('Erro ao reenviar push: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Aviso escrito na ficha do evento: entra no sino e dispara push.
+     * Público: quem ainda não respondeu, ou todos os colaboradores elegíveis.
+     *
+     * @param string $audience pending|all
+     * @return array{success:bool, sent:int, skipped:int, failed:int, message:string}
+     */
+    public static function sendAttendanceNotice(int $eventId, string $text, string $audience = 'pending'): array
+    {
+        $text = trim($text);
+        if ($eventId <= 0) {
+            return self::failResult('Evento inválido.');
+        }
+        if ($text === '') {
+            return self::failResult('Escreva o texto do aviso.');
+        }
+        if (mb_strlen($text) > 180) {
+            return self::failResult('O aviso pode ter no máximo 180 caracteres.');
+        }
+
+        try {
+            $repo = new CompanyEventsRepository();
+            $event = $repo->getById($eventId);
+            if (!$event || empty($event['ativo'])) {
+                return self::failResult('Somente eventos ativos podem receber um aviso.');
+            }
+            if (!self::isWithinPublicationWindow($event)) {
+                return self::failResult('Evento fora da janela de publicação.');
+            }
+
+            $toAll = $audience === 'all' || empty($event['requires_rsvp']);
+            $userIds = $toAll
+                ? $repo->listEligibleUserIds($eventId)
+                : $repo->listUserIdsAwaitingResponse($eventId);
+            if ($userIds === []) {
+                $emptyMessage = $toAll
+                    ? 'Nenhum aviso enviado. Não há colaborador elegível neste público.'
+                    : 'Nenhum aviso enviado. Todos os colaboradores elegíveis já confirmaram ou recusaram.';
+
+                return [
+                    'success' => true,
+                    'sent' => 0,
+                    'skipped' => 0,
+                    'failed' => 0,
+                    'message' => $emptyMessage,
+                ];
+            }
+
+            $title = trim((string) ($event['title'] ?? 'Evento'));
+            if ($title === '') {
+                $title = 'Evento';
+            }
+            $base = rtrim((string) ($_ENV['URL_ADM'] ?? ''), '/');
+            $link = $base . '/view-company-event/' . $eventId;
+            $notifRepo = new NotificationsRepository();
+            $notifRepo->deleteUnreadByEntityTypeForUsers('company_event', $eventId, 'company_event_reminder', $userIds);
+
+            $created = 0;
+            foreach ($userIds as $userId) {
+                $id = $notifRepo->create([
+                    'user_id' => $userId,
+                    'type' => 'company_event_reminder',
+                    'title' => 'Lembrete: ' . $title,
+                    'message' => $text,
+                    'link_url' => $link,
+                    'entity_type' => 'company_event',
+                    'entity_id' => $eventId,
+                    'priority' => 50,
+                    'skip_log' => true,
+                ]);
+                if ($id) {
+                    $created++;
+                }
+            }
+
+            $who = $toAll
+                ? 'colaborador(es) do público do evento, inclusive quem já respondeu'
+                : 'colaborador(es) que ainda não confirmaram nem recusaram';
+            $message = $created > 0
+                ? 'Aviso enviado para ' . $created . ' ' . $who . '. O texto entra no sino e, para quem ativou notificações, também no celular.'
+                : 'Não foi possível gravar o aviso.';
+
+            return [
+                'success' => $created > 0,
+                'sent' => $created,
+                'skipped' => 0,
+                'failed' => 0,
+                'message' => $message,
+            ];
+        } catch (\Throwable $e) {
+            error_log('CompanyEventPublishNotifier::sendAttendanceNotice error: ' . $e->getMessage());
+
+            return self::failResult('Erro ao enviar o aviso: ' . $e->getMessage());
         }
     }
 

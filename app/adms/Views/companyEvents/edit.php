@@ -28,8 +28,12 @@ $fmt = static function ($v): string {
     </div>
 
     <div class="card mb-4 border-light shadow">
-        <div class="card-header">
+        <div class="card-header hstack gap-2 flex-wrap">
             <h5 class="mb-0"><i class="fas fa-edit me-2"></i>Editar evento corporativo</h5>
+            <a href="<?php echo htmlspecialchars($urlAdm); ?>view-company-event/<?php echo $id; ?>"
+               class="btn btn-outline-primary btn-sm ms-auto">
+                <i class="fas fa-eye me-1"></i>Visualizar
+            </a>
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>

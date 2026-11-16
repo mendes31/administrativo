@@ -11,13 +11,16 @@
 <ol>
     <li>Na listagem, clique em <strong>Visualizar</strong> no registro desejado.</li>
     <li>Revise ID, datas de cadastro/edição e observações.</li>
-    <li>Use os botões do cabeçalho para ir à listagem, editar ou consultar log de alterações.</li>
+    <li>Use os botões do cabeçalho para ir à listagem, editar, abrir o <strong>Relatório</strong> ou consultar o log. O relatório aparece para o criador do evento e para quem tem <em>CompanyEventReport</em>, <em>CreateCompanyEvent</em>, <em>UpdateCompanyEvent</em> ou <em>DeleteCompanyEvent</em>.</li>
+    <li>Em evento com confirmação, <strong>Criar aviso neste evento</strong> (<em>ResendCompanyEventPush</em>) grava um texto no sino e dispara o push só para quem ainda não confirmou nem recusou. A tela mostra para quantos colaboradores o aviso foi enviado. <strong>Reenviar push</strong> só vibra o celular e não recoloca o evento no sino de quem já respondeu.</li>
 <li>Em <strong>Convidados de fora da empresa</strong>, o criador — ou quem pode criar e editar eventos — informa nome, motivo e celular, e envia o convite pelo número cadastrado na API de WhatsApp do sistema. A pessoa abre o link sem login e confirma ou recusa.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
 <p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Dados exibidos</strong> Espelham o estado atual do registro no banco; use Editar para modificar.</div>
+<div class="help-field"><strong>Relatório</strong> Abre as confirmações do evento (ativos, pendentes e convidados de fora).</div>
+<div class="help-field"><strong>Criar aviso neste evento</strong> Texto de até 180 caracteres. O público pode ser quem ainda não respondeu ou todos os colaboradores do evento. Nos dois casos o texto entra no sino e no push. A conta institucional não entra. Quem já respondeu só recebe na opção Todos. Reenviar substitui o lembrete anterior ainda não lido dessas mesmas pessoas.</div>
+<div class="help-field"><strong>Reenviar push</strong> Repete só a notificação do celular. Não cria um aviso novo no sino.</div>
 <div class="help-field"><strong>Convidados de fora da empresa</strong> Nome, motivo do convite e celular (WhatsApp). O link aberto mostra a imagem, os dados do evento e os botões de confirmar ou recusar. Não se confunde com <strong>Permite convidados</strong>.</div>
 
 <h2>Problemas comuns</h2>

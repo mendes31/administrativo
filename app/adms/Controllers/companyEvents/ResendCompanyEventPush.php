@@ -18,7 +18,7 @@ class ResendCompanyEventPush
 
         $perm = (new ButtonPermissionUserRepository())->buttonPermission(['ResendCompanyEventPush']);
         if (!is_array($perm) || !in_array('ResendCompanyEventPush', $perm, true)) {
-            $_SESSION['msg'] = '<div class="alert alert-warning" role="alert">Sem permissão para reenviar notificações push.</div>';
+            self::keepNotice('warning', 'Sem permissão para reenviar notificações push.');
             header('Location: ' . $redirect);
             exit;
         }
@@ -32,12 +32,12 @@ class ResendCompanyEventPush
         if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $csrf = $_POST['csrf_token'] ?? '';
             if ($csrf === '' || !CSRFHelper::validateCSRFToken('resend_company_event_push', $csrf)) {
-                $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Token CSRF inválido ou expirado.</div>';
+                self::keepNotice('danger', 'Token CSRF inválido ou expirado. Atualize a página e tente de novo.');
                 header('Location: ' . $redirect);
                 exit;
             }
         } else {
-            $_SESSION['msg'] = '<div class="alert alert-danger" role="alert">Use o botão na tela de visualização para reenviar o push.</div>';
+            self::keepNotice('danger', 'Use o botão na tela de visualização para reenviar o push.');
             header('Location: ' . $redirect);
             exit;
         }
@@ -50,19 +50,46 @@ class ResendCompanyEventPush
         }
 
         $mode = trim((string) ($_POST['mode'] ?? 'all'));
-        $forceAll = ($mode !== 'pending');
-        $senderUserId = (int) ($_SESSION['user_id'] ?? 0);
-
-        $result = CompanyEventPublishNotifier::resendPushNotifications($eventId, $forceAll, $senderUserId);
-        $class = !empty($result['success']) ? 'success' : 'warning';
-        if (empty($result['success']) && (int) ($result['failed'] ?? 0) === 0) {
-            $class = 'danger';
+        if ($mode === 'notice') {
+            $audience = trim((string) ($_POST['notice_audience'] ?? 'pending'));
+            if (!in_array($audience, ['pending', 'all'], true)) {
+                $audience = 'pending';
+            }
+            $result = CompanyEventPublishNotifier::sendAttendanceNotice(
+                $eventId,
+                (string) ($_POST['notice_text'] ?? ''),
+                $audience
+            );
+        } else {
+            $forceAll = ($mode !== 'pending');
+            $senderUserId = (int) ($_SESSION['user_id'] ?? 0);
+            $result = CompanyEventPublishNotifier::resendPushNotifications($eventId, $forceAll, $senderUserId);
         }
-        $_SESSION['msg'] = '<div class="alert alert-' . $class . '" role="alert">'
-            . htmlspecialchars((string) ($result['message'] ?? ''), ENT_QUOTES, 'UTF-8')
-            . '</div>';
+        $class = !empty($result['success']) ? 'success' : 'warning';
+        if (empty($result['success']) && (int) ($result['failed'] ?? 0) === 0 && (int) ($result['sent'] ?? 0) === 0) {
+            $class = ($mode === 'notice' && !empty($result['success'])) ? 'success' : 'danger';
+        }
+        if ($mode === 'notice' && !empty($result['success']) && (int) ($result['sent'] ?? 0) === 0) {
+            $class = 'warning';
+        }
+        self::keepNotice($class, (string) ($result['message'] ?? ''));
 
         header('Location: ' . $redirect);
         exit;
+    }
+
+    /**
+     * A chave padrão de sessão é apagada pelo layout antes da tela desenhar.
+     * Este aviso fica numa chave própria para o resultado aparecer na ficha.
+     */
+    private static function keepNotice(string $type, string $message): void
+    {
+        if (!in_array($type, ['success', 'warning', 'danger', 'info'], true)) {
+            $type = 'info';
+        }
+        $_SESSION['company_event_action_notice'] = [
+            'type' => $type,
+            'message' => $message,
+        ];
     }
 }

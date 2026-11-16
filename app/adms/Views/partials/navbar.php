@@ -150,6 +150,7 @@ if (!empty($_SESSION['user_id'])) {
                             'timeline_reaction' => 'fas fa-heart text-danger',
                             'timeline_share' => 'fas fa-retweet text-success',
                             'projeto_etapa' => 'fas fa-tasks text-primary',
+                            'company_event_reminder' => 'fas fa-calendar-check text-warning',
                             default => 'far fa-bell text-secondary',
                         };
                     };

@@ -190,6 +190,88 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
     }
 
     /**
+     * Colaboradores ativos do público do evento (departamento ou todos).
+     * A conta institucional não entra.
+     *
+     * @return list<int>
+     */
+    public function listEligibleUserIds(int $eventId): array
+    {
+        if ($eventId <= 0) {
+            return [];
+        }
+        $event = $this->getById($eventId);
+        if (!$event) {
+            return [];
+        }
+
+        return $this->fetchAudienceUserIds($eventId, $event, false);
+    }
+
+    /**
+     * Colaboradores ativos do público que ainda não confirmaram nem recusaram.
+     *
+     * @return list<int>
+     */
+    public function listUserIdsAwaitingResponse(int $eventId): array
+    {
+        if ($eventId <= 0) {
+            return [];
+        }
+        $event = $this->getById($eventId);
+        if (!$event || empty($event['requires_rsvp'])) {
+            return [];
+        }
+
+        return $this->fetchAudienceUserIds($eventId, $event, true);
+    }
+
+    /**
+     * @param array<string, mixed> $event
+     * @return list<int>
+     */
+    private function fetchAudienceUserIds(int $eventId, array $event, bool $onlyAwaitingResponse): array
+    {
+        $deptId = (int) ($event['department_id'] ?? 0);
+        $exclude = \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUsersAlias('u');
+        $deptSql = $deptId > 0 ? ' AND u.user_department_id = :dept' : '';
+        $pendingSql = '';
+        if ($onlyAwaitingResponse) {
+            $pendingSql = " AND NOT EXISTS (
+                      SELECT 1
+                      FROM adms_company_event_rsvps r
+                      WHERE r.event_id = :e_pending
+                        AND r.user_id = u.id
+                        AND r.status IN ('confirmed', 'declined')
+                  )";
+        }
+        $sql = "SELECT u.id
+                FROM adms_users u
+                WHERE u.status = 'Ativo'
+                  AND {$exclude}
+                  {$deptSql}
+                  {$pendingSql}";
+        $stmt = $this->getConnection()->prepare($sql);
+        if ($deptId > 0) {
+            $stmt->bindValue(':dept', $deptId, PDO::PARAM_INT);
+        }
+        if ($onlyAwaitingResponse) {
+            $stmt->bindValue(':e_pending', $eventId, PDO::PARAM_INT);
+        }
+        $stmt->execute();
+
+        $ids = [];
+        foreach ($stmt->fetchAll(PDO::FETCH_COLUMN) ?: [] as $id) {
+            $id = (int) $id;
+            if ($id > 0) {
+                $ids[] = $id;
+            }
+        }
+
+        return $ids;
+    }
+
+    /**
      * Liga eventos agendados cuja data de publicação chegou e que ainda não foram notificados.
      * Não reativa evento já notificado que o usuário tenha desligado depois.
      *

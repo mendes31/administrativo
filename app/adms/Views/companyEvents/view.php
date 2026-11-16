@@ -102,6 +102,12 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                         <i class="fas fa-edit me-1"></i>Editar
                     </a>
                 <?php endif; ?>
+                <?php if ($canAdminRsvpOthers): ?>
+                    <a href="<?php echo htmlspecialchars($urlAdm); ?>company-event-report/<?php echo $eventId; ?>"
+                       class="btn btn-outline-light btn-sm mb-1">
+                        <i class="fas fa-chart-column me-1"></i>Relatório
+                    </a>
+                <?php endif; ?>
                 <?php
                 $evBtnPerm = $this->data['buttonPermission'] ?? [];
                 $canResendEventPush = is_array($evBtnPerm)
@@ -162,6 +168,55 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
         </div>
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
+            <?php
+            $eventActionNotice = $_SESSION['company_event_action_notice'] ?? null;
+            unset($_SESSION['company_event_action_notice']);
+            if (is_array($eventActionNotice) && trim((string) ($eventActionNotice['message'] ?? '')) !== '') {
+                $noticeType = (string) ($eventActionNotice['type'] ?? 'info');
+                if (!in_array($noticeType, ['success', 'warning', 'danger', 'info'], true)) {
+                    $noticeType = 'info';
+                }
+                echo '<div class="alert alert-' . $noticeType . '" role="alert">'
+                    . htmlspecialchars((string) $eventActionNotice['message'], ENT_QUOTES, 'UTF-8')
+                    . '</div>';
+            }
+            ?>
+            <?php if ($canResendEventPush): ?>
+                <div class="card border-warning mb-4">
+                    <div class="card-header bg-warning-subtle">
+                        <i class="fas fa-bullhorn me-1"></i>Criar aviso neste evento
+                    </div>
+                    <div class="card-body">
+                        <p class="small text-muted mb-2">
+                            O aviso entra no sino e dispara o push. A conta institucional fica de fora.
+                            Quem já respondeu só recebe se o público for <strong>Todos os colaboradores</strong>.
+                        </p>
+                        <form method="post"
+                              action="<?php echo htmlspecialchars($urlAdm); ?>resend-company-event-push/<?php echo $eventId; ?>"
+                              onsubmit="var publico = this.notice_audience ? this.notice_audience.value : 'all'; return confirm(publico === 'all' ? 'Enviar este aviso para todos os colaboradores do evento?' : 'Enviar este aviso para quem ainda não confirmou nem recusou?');">
+                            <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfResendEvent ?? '', ENT_QUOTES, 'UTF-8'); ?>">
+                            <input type="hidden" name="id" value="<?php echo $eventId; ?>">
+                            <input type="hidden" name="mode" value="notice">
+                            <label for="notice_text" class="form-label">Texto do aviso</label>
+                            <textarea class="form-control mb-2" id="notice_text" name="notice_text" rows="2" maxlength="180" required
+                                      placeholder="Ex.: Falta confirmar presença na confraternização."></textarea>
+                            <label for="notice_audience" class="form-label">Público</label>
+                            <?php if ($requiresRsvp): ?>
+                                <select class="form-select mb-2" id="notice_audience" name="notice_audience">
+                                    <option value="pending">Quem ainda não respondeu</option>
+                                    <option value="all">Todos os colaboradores</option>
+                                </select>
+                            <?php else: ?>
+                                <input type="hidden" name="notice_audience" value="all">
+                                <p class="small mb-2">Todos os colaboradores do público do evento.</p>
+                            <?php endif; ?>
+                            <button type="submit" class="btn btn-warning btn-sm">
+                                <i class="fas fa-paper-plane me-1"></i>Enviar aviso
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            <?php endif; ?>
 
             <div class="row">
                 <div class="col-lg-8">
