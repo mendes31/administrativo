@@ -171,7 +171,7 @@ if (!empty($_SESSION['force_password_change'])): ?>
                         </option>
                     </select>
                     <div class="form-text">
-                        Define se o texto será de boas-vindas para primeiro acesso ou de desbloqueio com senha provisória.
+                        Em <strong>Senha provisória / desbloqueio</strong>, ao salvar a conta bloqueada é liberada (tentativas de login zeradas) para o usuário entrar com a senha nova. Boas-vindas não altera o bloqueio.
                     </div>
                 </div>
 

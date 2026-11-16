@@ -334,6 +334,16 @@
                     "file": "cadastro/update-user.html"
                 },
                 {
+                    "id": "update-password-user",
+                    "title": "Editar Senha do Usuário",
+                    "file": "cadastro/update-password-user.html"
+                },
+                {
+                    "id": "update-password",
+                    "title": "Alterar a própria senha",
+                    "file": "cadastro/update-password.html"
+                },
+                {
                     "id": "update-access-levels-permissions",
                     "title": "Editar — Access Levels Permissions",
                     "file": "cadastro/update-access-levels-permissions.html"

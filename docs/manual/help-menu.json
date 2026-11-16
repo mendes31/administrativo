@@ -411,6 +411,16 @@
                                 },
                                 {
                                     "type": "topic",
+                                    "topic_id": "update-password-user",
+                                    "title": "Editar Senha do Usuário"
+                                },
+                                {
+                                    "type": "topic",
+                                    "topic_id": "update-password",
+                                    "title": "Alterar a própria senha"
+                                },
+                                {
+                                    "type": "topic",
                                     "topic_id": "view-user",
                                     "title": "Visualizar Usuário"
                                 }

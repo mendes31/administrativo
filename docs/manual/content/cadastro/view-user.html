@@ -14,6 +14,7 @@
     <li>Navegue pelas abas <strong>Usuário</strong>, <strong>Dados Pessoais</strong>, <strong>Endereço</strong>, <strong>Dados Contratuais</strong>, <strong>Formações</strong>, <strong>Acessos</strong>, <strong>Histórico</strong> e <strong>Permissões</strong>. No celular as abas são as mesmas do desktop, em uma faixa que rola na horizontal quando não cabem na tela (arraste a faixa para o lado; a aba atual já entra visível); listas (formações, acessos TI, histórico) aparecem em cartões empilhados. Em Permissões só aparecem os níveis já atribuídos (somente leitura).</li>
     <li>Em Formações, baixe comprovantes quando houver anexo.</li>
     <li>Use <strong>Editar</strong> para abrir a mesma aba na edição; no celular, <strong>Mais</strong> abre um painel logo abaixo dos botões com senha, imagem, SST, log e apagar.</li>
+    <li><strong>Editar Senha</strong> (<em>UpdatePasswordUser</em>): ao salvar com o tipo <strong>Senha provisória / desbloqueio</strong>, a senha é gravada e, se a conta estiver bloqueada, ela é liberada na hora (flag Bloqueado = Não e tentativas de login zeradas). O tipo Boas-vindas só troca a senha e não desbloqueia.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
@@ -36,4 +37,6 @@
     <dd>A aba aparece na visualização para quem tem <em>ViewUser</em>. Para editar os níveis, é necessária <em>UpdateUserAccessLevels</em> na tela de edição.</dd>
     <dt>Comprovante não baixa</dt>
     <dd>Confirme se o arquivo foi anexado e se você está autenticado com acesso à visualização do cadastro.</dd>
+    <dt>Enviei a senha de desbloqueio e o usuário continua Bloqueado</dt>
+    <dd>O tipo da mensagem precisa ser <strong>Senha provisória / desbloqueio</strong>. Com esse tipo, o salvamento desbloqueia a conta. O tipo Boas-vindas não altera o bloqueio. Se a mensagem de sucesso avisar que a conta continuou bloqueada, use <strong>Editar</strong> e deixe o switch em <em>Não bloqueado</em>.</dd>
 </dl>

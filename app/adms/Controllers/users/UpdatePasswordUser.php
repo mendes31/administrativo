@@ -7,6 +7,7 @@ use App\adms\Controllers\Services\Validation\ValidationUserPasswordService;
 use App\adms\Controllers\Services\SecurityService;
 use App\adms\Helpers\CSRFHelper;
 use App\adms\Helpers\GenerateLog;
+use App\adms\Helpers\UserFormHelper;
 use App\adms\Models\Repository\UsersRepository;
 use App\adms\Views\Services\LoadViewService;
 
@@ -208,19 +209,38 @@ class UpdatePasswordUser
 
         // Acessa o IF se o repository retornou TRUE
         if($result){
-            // Criar a mensagem de sucesso
-            $_SESSION['success'] = "Senha alterada com sucesso! Agora você pode acessar o sistema normalmente.";
+            $context = 'unlock';
+            if (!empty($this->data['form']['tipo_mensagem']) && $this->data['form']['tipo_mensagem'] === 'welcome') {
+                $context = 'welcome';
+            }
+
+            $targetId = (int) ($this->data['form']['id'] ?? 0);
+            $success = 'Senha alterada com sucesso!';
+
+            // Senha provisória / desbloqueio: a conta bloqueada precisa ser liberada
+            // agora. O login recusa bloqueado = Sim mesmo com a senha nova, e a
+            // mensagem enviada ao usuário já afirma que a conta foi desbloqueada.
+            if ($context === 'unlock' && $targetId > 0) {
+                $current = $userUpdate->getUser($targetId);
+                if ($current && UserFormHelper::isUserBlocked($current['bloqueado'] ?? null)) {
+                    if ($userUpdate->desbloquearUsuario($targetId)) {
+                        $success = 'Senha alterada com sucesso! A conta foi desbloqueada e o usuário já pode acessar o sistema.';
+                        GenerateLog::generateLog('info', 'Usuário desbloqueado ao definir senha provisória de desbloqueio.', [
+                            'target_user_id' => $targetId,
+                            'actor_user_id' => (int) ($_SESSION['user_id'] ?? 0),
+                        ]);
+                    } else {
+                        $success = 'Senha alterada com sucesso, mas a conta continuou bloqueada. Desbloqueie pelo cadastro do usuário.';
+                    }
+                }
+            }
+
+            $_SESSION['success'] = $success;
 
             // Notificações opcionais (e-mail / WhatsApp) com contexto configurável
             if (!empty($this->data['form']['enviar_notificacao_email']) || !empty($this->data['form']['enviar_notificacao_whatsapp'])) {
                 try {
-                    // Descobrir o contexto desejado para a mensagem
-                    $context = 'unlock';
-                    if (!empty($this->data['form']['tipo_mensagem']) && $this->data['form']['tipo_mensagem'] === 'welcome') {
-                        $context = 'welcome';
-                    }
-
-                    $updatedUser = $userUpdate->getUser((int)$this->data['form']['id']);
+                    $updatedUser = $userUpdate->getUser($targetId);
                     if ($updatedUser) {
                         $updatedUser['enviar_boas_vindas_email'] = !empty($this->data['form']['enviar_notificacao_email']) ? 1 : 0;
                         $updatedUser['enviar_boas_vindas_whatsapp'] = !empty($this->data['form']['enviar_notificacao_whatsapp']) ? 1 : 0;
