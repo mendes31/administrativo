@@ -217,6 +217,36 @@ class NotificationsRepository extends DbConnection
         return $removed;
     }
 
+    /**
+     * Texto do aviso mais recente deste usuário para a entidade, lido ou não.
+     */
+    public function latestMessageForUserEntity(int $userId, string $entityType, int $entityId, string $type): string
+    {
+        if ($userId <= 0 || $entityId <= 0 || trim($entityType) === '' || trim($type) === '') {
+            return '';
+        }
+
+        $sql = 'SELECT message
+                FROM adms_notifications
+                WHERE user_id = :user_id
+                  AND entity_type = :entity_type
+                  AND entity_id = :entity_id
+                  AND type = :type
+                  AND message IS NOT NULL
+                  AND TRIM(message) <> \'\'
+                ORDER BY id DESC
+                LIMIT 1';
+        $stmt = $this->getConnection()->prepare($sql);
+        $stmt->bindValue(':user_id', $userId, PDO::PARAM_INT);
+        $stmt->bindValue(':entity_type', $entityType, PDO::PARAM_STR);
+        $stmt->bindValue(':entity_id', $entityId, PDO::PARAM_INT);
+        $stmt->bindValue(':type', $type, PDO::PARAM_STR);
+        $stmt->execute();
+        $message = $stmt->fetchColumn();
+
+        return is_string($message) ? $message : '';
+    }
+
     public function existsForUserEntity(int $userId, string $entityType, int $entityId, ?string $type = null): bool
     {
         if ($userId <= 0 || $entityId <= 0 || trim($entityType) === '') {

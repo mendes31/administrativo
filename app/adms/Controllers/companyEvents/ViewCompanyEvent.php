@@ -112,6 +112,9 @@ class ViewCompanyEvent
         $this->data['can_edit'] = in_array('UpdateCompanyEvent', $btnPerms, true);
         $this->data['can_admin_rsvp_others'] = CompanyEventRsvpAccessHelper::canAdminRsvpForOthers($event, $userId, $btnPerms);
         $this->data['event_id'] = $eventId;
+        $this->data['event_notice_text'] = $userId > 0
+            ? (new NotificationsRepository())->latestMessageForUserEntity($userId, 'company_event', $eventId, 'company_event_reminder')
+            : '';
         $returnUrl = $_ENV['URL_ADM'] . 'view-company-event/' . $eventId;
         $this->data['log_resumo'] = LogResumoService::getResumo('adms_company_events', $eventId, $returnUrl);
 

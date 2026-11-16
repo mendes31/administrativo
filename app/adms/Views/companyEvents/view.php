@@ -169,6 +169,15 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
         <div class="card-body">
             <?php include './app/adms/Views/partials/alerts.php'; ?>
             <?php
+            $eventNoticeText = trim((string) ($this->data['event_notice_text'] ?? ''));
+            if ($eventNoticeText !== ''):
+            ?>
+                <div class="alert alert-warning mb-4" role="status">
+                    <div class="fw-semibold mb-2"><i class="fas fa-bullhorn me-1"></i>Aviso deste evento</div>
+                    <div style="white-space: pre-line;"><?php echo htmlspecialchars($eventNoticeText, ENT_QUOTES, 'UTF-8'); ?></div>
+                </div>
+            <?php endif; ?>
+            <?php
             $eventActionNotice = $_SESSION['company_event_action_notice'] ?? null;
             unset($_SESSION['company_event_action_notice']);
             if (is_array($eventActionNotice) && trim((string) ($eventActionNotice['message'] ?? '')) !== '') {
