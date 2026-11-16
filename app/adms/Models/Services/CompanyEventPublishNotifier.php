@@ -76,8 +76,8 @@ final class CompanyEventPublishNotifier
         if ($text === '') {
             return self::failResult('Escreva o texto do aviso.');
         }
-        if (mb_strlen($text) > 180) {
-            return self::failResult('O aviso pode ter no máximo 180 caracteres.');
+        if (mb_strlen($text) > 2000) {
+            return self::failResult('O aviso pode ter no máximo 2000 caracteres.');
         }
 
         try {

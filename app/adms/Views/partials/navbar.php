@@ -169,6 +169,9 @@ if (!empty($_SESSION['user_id'])) {
                         ?>
                         <a class="dropdown-item py-2 d-block<?php echo $isMentionNotif ? ' border-start border-warning border-3' : ''; ?>" data-notification-open="1" href="<?php echo htmlspecialchars($intLink); ?>">
                             <span class="d-block fw-semibold small"><i class="<?php echo htmlspecialchars($navbarNotifIcon($nType)); ?> me-1"></i><?php echo htmlspecialchars($intNotif['title'] ?? ''); ?></span>
+                            <?php if ($nType === 'company_event_reminder' && trim((string) ($intNotif['message'] ?? '')) !== ''): ?>
+                                <span class="d-block text-body mt-1" style="font-size: 0.78rem; white-space: pre-line;"><?php echo htmlspecialchars((string) $intNotif['message']); ?></span>
+                            <?php endif; ?>
                             <span class="d-block text-muted" style="font-size: 0.8rem;"><?php echo date('d/m/Y H:i', strtotime($intNotif['created_at'] ?? 'now')); ?></span>
                         </a>
                     </li>

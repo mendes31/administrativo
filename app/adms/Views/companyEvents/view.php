@@ -197,9 +197,12 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                             <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($csrfResendEvent ?? '', ENT_QUOTES, 'UTF-8'); ?>">
                             <input type="hidden" name="id" value="<?php echo $eventId; ?>">
                             <input type="hidden" name="mode" value="notice">
-                            <label for="notice_text" class="form-label">Texto do aviso</label>
-                            <textarea class="form-control mb-2" id="notice_text" name="notice_text" rows="2" maxlength="180" required
-                                      placeholder="Ex.: Falta confirmar presença na confraternização."></textarea>
+                            <div class="d-flex justify-content-between align-items-baseline gap-2">
+                                <label for="notice_text" class="form-label mb-1">Texto do aviso — máximo 2000 caracteres</label>
+                                <span class="small fw-semibold text-nowrap" id="notice_text_count" aria-live="polite">0 / 2000</span>
+                            </div>
+                            <textarea class="form-control mb-2" id="notice_text" name="notice_text" rows="8" maxlength="2000" required
+                                      placeholder="Máximo de 2000 caracteres. Ex.: Falta confirmar presença na confraternização."></textarea>
                             <label for="notice_audience" class="form-label">Público</label>
                             <?php if ($requiresRsvp): ?>
                                 <select class="form-select mb-2" id="notice_audience" name="notice_audience">
@@ -214,6 +217,20 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                                 <i class="fas fa-paper-plane me-1"></i>Enviar aviso
                             </button>
                         </form>
+                        <script>
+                        (function () {
+                            var field = document.getElementById('notice_text');
+                            var count = document.getElementById('notice_text_count');
+                            if (!field || !count) return;
+                            var update = function () {
+                                var used = field.value.length;
+                                count.textContent = used + ' / 2000';
+                                count.classList.toggle('text-danger', used >= 2000);
+                            };
+                            field.addEventListener('input', update);
+                            update();
+                        })();
+                        </script>
                     </div>
                 </div>
             <?php endif; ?>

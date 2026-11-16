@@ -344,7 +344,7 @@ foreach ($notifications as $n) {
                                         <?= htmlspecialchars($displayTitle); ?>
                                     </a>
                                     <?php if ($displayMessage !== ''): ?>
-                                        <div class="notif-item__message"><?= htmlspecialchars($displayMessage); ?></div>
+                                        <div class="notif-item__message" style="white-space: pre-line;"><?= htmlspecialchars($displayMessage); ?></div>
                                     <?php endif; ?>
                                     <div class="notif-item__meta">
                                         <span><?= htmlspecialchars($relativeTime((string)($n['created_at'] ?? ''))); ?></span>
@@ -401,7 +401,7 @@ foreach ($notifications as $n) {
                                         <?= htmlspecialchars($displayTitle); ?>
                                     </a>
                                     <?php if ($displayMessage !== ''): ?>
-                                        <div class="notif-item__message"><?= htmlspecialchars($displayMessage); ?></div>
+                                        <div class="notif-item__message" style="white-space: pre-line;"><?= htmlspecialchars($displayMessage); ?></div>
                                     <?php endif; ?>
                                     <div class="notif-item__meta">
                                         <span><?= htmlspecialchars($relativeTime((string)($n['created_at'] ?? ''))); ?></span>
