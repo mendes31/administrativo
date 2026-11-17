@@ -1,15 +1,18 @@
 /**
  * Cadastros: o botão de gravar só habilita depois de uma alteração,
- * e sair da página com pendência pede confirmação.
+ * e sair da página com pendência pede confirmação no aviso do sistema.
  * Para ficar de fora: data-unsaved-guard="off" no form.
  */
 (function () {
-    var LEAVE_MSG = 'Há alterações que ainda não foram salvas. Se sair agora, elas serão descartadas.\n\nDeseja sair sem salvar?';
-    var OTHER_MSG = 'Há alterações em outra parte desta tela que não entram neste salvamento. Se continuar, elas serão descartadas.\n\nDeseja continuar?';
     var SAVE_LABEL = /^(salvar|atualizar|cadastrar|gravar|registrar)\b/i;
     var states = [];
     var leaving = false;
     var booted = false;
+    var dialog = null;
+    var dialogModal = null;
+    var pendingYes = null;
+    var accepted = false;
+    var sentinel = false;
 
     window.AdmsUnsavedFormGuard = {
         markDirty: function (form) {
@@ -204,6 +207,100 @@
                 ? btn.getAttribute('data-unsaved-title')
                 : 'Altere algum campo para habilitar.';
         });
+        if (state.dirty) {
+            armBack();
+        }
+    }
+
+    function ensureDialog() {
+        if (dialog) {
+            return dialog;
+        }
+        dialog = document.createElement('div');
+        dialog.className = 'modal fade';
+        dialog.id = 'adms-unsaved-dialog';
+        dialog.tabIndex = -1;
+        dialog.setAttribute('aria-hidden', 'true');
+        dialog.innerHTML =
+            '<div class="modal-dialog modal-dialog-centered">' +
+                '<div class="modal-content" style="border:0;border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.18);">' +
+                    '<div class="modal-header" style="border-bottom:0;padding-bottom:0;">' +
+                        '<h5 class="modal-title" id="adms-unsaved-title">' +
+                            '<i class="fas fa-exclamation-triangle text-warning me-2"></i>' +
+                            '<span></span>' +
+                        '</h5>' +
+                    '</div>' +
+                    '<div class="modal-body pt-2" id="adms-unsaved-text"></div>' +
+                    '<div class="modal-footer" style="border-top:0;">' +
+                        '<button type="button" class="btn btn-light" data-adms-unsaved="stay">Continuar editando</button>' +
+                        '<button type="button" class="btn btn-warning" data-adms-unsaved="leave">Sair sem salvar</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        document.body.appendChild(dialog);
+        dialog.querySelector('[data-adms-unsaved="stay"]').addEventListener('click', function () {
+            if (dialogModal) {
+                dialogModal.hide();
+            }
+        });
+        dialog.querySelector('[data-adms-unsaved="leave"]').addEventListener('click', function () {
+            accepted = true;
+            if (dialogModal) {
+                dialogModal.hide();
+            }
+        });
+        dialog.addEventListener('hidden.bs.modal', function () {
+            var yes = pendingYes;
+            pendingYes = null;
+            if (accepted && typeof yes === 'function') {
+                accepted = false;
+                yes();
+                return;
+            }
+            accepted = false;
+        });
+        if (window.bootstrap && window.bootstrap.Modal) {
+            dialogModal = window.bootstrap.Modal.getOrCreateInstance(dialog, {
+                backdrop: 'static',
+                keyboard: true
+            });
+        }
+        return dialog;
+    }
+
+    function ask(options, onYes) {
+        ensureDialog();
+        if (!dialogModal) {
+            if (window.confirm((options.title || '') + '\n\n' + (options.text || ''))) {
+                onYes();
+            }
+            return;
+        }
+        dialog.querySelector('#adms-unsaved-title span').textContent = options.title;
+        dialog.querySelector('#adms-unsaved-text').textContent = options.text;
+        var leaveBtn = dialog.querySelector('[data-adms-unsaved="leave"]');
+        leaveBtn.textContent = options.confirmLabel;
+        pendingYes = onYes;
+        accepted = false;
+        dialogModal.show();
+        window.setTimeout(function () {
+            var stay = dialog.querySelector('[data-adms-unsaved="stay"]');
+            if (stay) {
+                stay.focus();
+            }
+        }, 150);
+    }
+
+    function armBack() {
+        if (sentinel || leaving) {
+            return;
+        }
+        try {
+            history.pushState({ admsUnsaved: 1 }, '', window.location.href);
+            sentinel = true;
+        } catch (e) {
+            sentinel = false;
+        }
     }
 
     function bind(form) {
@@ -232,12 +329,21 @@
             if (event.defaultPrevented) {
                 return;
             }
-            if (anyDirty(form) && !window.confirm(OTHER_MSG)) {
-                event.preventDefault();
-                event.stopPropagation();
+            if (!anyDirty(form)) {
+                leaving = true;
                 return;
             }
-            leaving = true;
+            event.preventDefault();
+            event.stopPropagation();
+            ask({
+                title: 'Alterações em outra parte da tela',
+                text: 'Há alterações que não entram neste salvamento. Se continuar, elas serão descartadas.',
+                confirmLabel: 'Continuar'
+            }, function () {
+                leaving = true;
+                form.submit();
+            });
+            return;
         });
 
         if (window.MutationObserver) {
@@ -330,18 +436,38 @@
         }
         event.preventDefault();
         event.stopPropagation();
-        if (window.confirm(LEAVE_MSG)) {
+        if (event.stopImmediatePropagation) {
+            event.stopImmediatePropagation();
+        }
+        ask({
+            title: 'Alterações não salvas',
+            text: 'Há alterações nesta tela que ainda não foram gravadas. Se sair agora, elas serão descartadas.',
+            confirmLabel: 'Sair sem salvar'
+        }, function () {
             leaving = true;
             window.location.href = link.href;
-        }
+        });
     }, true);
 
-    window.addEventListener('beforeunload', function (event) {
-        if (leaving || !anyDirty(null)) {
+    window.addEventListener('popstate', function () {
+        if (!sentinel) {
             return;
         }
-        event.preventDefault();
-        event.returnValue = '';
+        sentinel = false;
+        if (leaving || !anyDirty(null)) {
+            history.back();
+            return;
+        }
+        armBack();
+        ask({
+            title: 'Alterações não salvas',
+            text: 'Há alterações nesta tela que ainda não foram gravadas. Se sair agora, elas serão descartadas.',
+            confirmLabel: 'Sair sem salvar'
+        }, function () {
+            leaving = true;
+            sentinel = false;
+            history.go(-2);
+        });
     });
 
     function boot() {
