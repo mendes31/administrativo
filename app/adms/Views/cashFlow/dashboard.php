@@ -124,6 +124,7 @@ $month = (int) date('n');
 .fcf-dash .tbl-sticky thead th{position:sticky; top:0; z-index:1; background:#FAFBFD;}
 .fcf-dash td.tl,.fcf-dash th.tl{text-align:left; font-weight:500; white-space:normal; max-width:280px;}
 .fcf-dash .badge.vencido{background:var(--fcf-red-tint); color:var(--fcf-red);}
+.fcf-dash .badge.credito{background:#e8f1fb; color:#1d4f91;}
 .fcf-dash .badge.hoje{background:var(--fcf-orange-tint); color:var(--fcf-orange);}
 .fcf-dash .badge.prazo{background:var(--fcf-green-tint); color:var(--fcf-green);}
 .fcf-dash .badge.liquidado{background:#EEF1F5; color:var(--fcf-ink-mute);}
@@ -324,7 +325,7 @@ $month = (int) date('n');
                 <th>Tipo</th>
                 <th title="Número interno da NFS (Nota Fiscal de Saída, a receber) ou da NFE (Nota Fiscal de Entrada, a pagar). Não é o título/boleto.">Nº Doc SAP</th>
                 <th>NF</th>
-                <th>Título</th>
+                <th title="Origem do lançamento no razão. Quando houver boleto, o número aparece depois.">Origem</th>
                 <th class="tl">Código</th>
                 <th class="tl">Parceiro</th>
                 <th>Parcela</th>
@@ -341,7 +342,7 @@ $month = (int) date('n');
       </div>
     </section>
 
-    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Transferências entre contas financeiras são neutralizadas no consolidado. Aplicações, resgates e rendimentos são lançados neste sistema — o SAP hoje registra principalmente os rendimentos mensais. A aba Detalhes lista os títulos em aberto que compõem os KPIs: Nº Doc SAP é o documento da NFS (saída) ou da NFE (entrada); NF é o Serial da nota; Título é o boleto quando existir. Pedidos de venda/compra não entram.</div>
+    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Transferências entre contas financeiras são neutralizadas no consolidado. Aplicações, resgates e rendimentos são lançados neste sistema — o SAP hoje registra principalmente os rendimentos mensais. A aba Detalhes lista o saldo em aberto do parceiro no razão: nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada não entra. O recorte Todos os abertos é o que fecha com o saldo do parceiro. O KPI usa só o horizonte, com os vencidos.</div>
   </div>
 </div>
 
@@ -355,4 +356,4 @@ $month = (int) date('n');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=7"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=8"></script>

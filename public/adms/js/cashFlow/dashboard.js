@@ -321,8 +321,9 @@
 
   function dueStatus(row, today) {
     const open = Number(row.open_amount || 0);
-    if (Math.abs(open) < 0.005) return { cls: 'liquidado', label: 'Liquidado' };
     const st = row.status || '';
+    if (Math.abs(open) < 0.005) return { cls: 'liquidado', label: 'Liquidado' };
+    if (open < 0 || st === 'credito') return { cls: 'credito', label: 'Crédito' };
     if (st === 'liquidado') return { cls: 'liquidado', label: 'Liquidado' };
     if (st === 'vencido') return { cls: 'vencido', label: 'Vencido' };
     if (st === 'hoje') return { cls: 'hoje', label: 'Hoje' };
@@ -403,7 +404,7 @@
         overdue: 'somente títulos vencidos',
         all: 'todos os títulos em aberto no cache',
       };
-      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. Nº Doc SAP é o documento da NFS (Nota Fiscal de Saída, a receber) ou da NFE (Nota Fiscal de Entrada, a pagar) — não procure esse número na tela de títulos/boletos. Filial aplicada; o filtro Banco/Conta não vale para títulos.';
+      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista é o saldo em aberto do parceiro no razão. Crédito e adiantamento não aplicado reduzem o total. Todos os abertos fecham com o saldo do parceiro; o KPI corta pelo horizonte. Filial aplicada; o filtro Banco/Conta não vale para estes itens.';
       if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
         txt += ' A soma de A receber / A pagar desta lista deve coincidir com os KPIs.';
       }
@@ -424,8 +425,7 @@
       const bpl = Number(r.sap_bpl_id || 0) > 0 ? r.sap_bpl_id : '—';
       const nf = r.nf_serial || '—';
       const titulo = r.title_num || '—';
-      const docObj = r.source_type === 'AR' ? 'NFS' : 'NFE';
-      const doc = r.doc_num ? (docObj + ' ' + r.doc_num) : '—';
+      const doc = r.doc_num ? r.doc_num : '—';
       return '<tr><td>' + due + '</td>'
         + '<td><span class="badge ' + st.cls + '">' + st.label + '</span></td>'
         + '<td>' + tipo + '</td>'
@@ -434,7 +434,7 @@
         + '<td>' + titulo + '</td>'
         + '<td class="tl">' + (r.card_code || '') + '</td>'
         + '<td class="tl">' + (r.card_name || '') + '</td>'
-        + '<td>' + (r.installment || '') + '</td>'
+        + '<td>' + (Number(r.installment) > 0 ? r.installment : '—') + '</td>'
         + '<td>' + fmt(r.original_amount) + '</td>'
         + '<td>' + fmt(r.paid_amount) + '</td>'
         + '<td class="' + cls(r.open_amount) + '">' + fmt(r.open_amount) + '</td>'

@@ -388,16 +388,22 @@ class FinCashFlowSapSyncService
         $out = [];
         foreach ($rows as $row) {
             $due = $this->normalizeDate($this->col($row, ['DataPrevista', 'DueDate']));
+            if ($due === null) {
+                $due = $this->normalizeDate($this->col($row, ['RefDate', 'DataLancamento']));
+            }
+            if ($due === null) {
+                $due = '1900-01-01';
+            }
             $open = $this->num($row, ['SaldoAberto', 'OpenAmount']);
-            if ($due === null || abs($open) < 0.005) {
+            if (abs($open) < 0.005) {
                 continue;
             }
             $orig = $this->num($row, ['InsTotal', 'ValorOriginal']);
             $paid = $this->num($row, ['PaidToDate', 'ValorPago']);
             $nf = $this->normalizeNf($this->col($row, ['NFe', 'Serial']));
-            if ($nf === '') {
-                $nf = $this->normalizeNf($this->col($row, ['FolioNum']));
-            }
+            $parcela = trim($this->col($row, ['Parcela', 'InstlmntID']));
+            $baseRef = $this->col($row, ['DocNum', 'BaseRef']);
+            $docNum = (int) preg_replace('/\D+/', '', $baseRef);
             $out[] = [
                 'source_type' => $sourceType,
                 'due_date' => $due,
@@ -405,16 +411,35 @@ class FinCashFlowSapSyncService
                 'card_code' => $this->col($row, ['CardCode']),
                 'card_name' => $this->col($row, ['CardName']),
                 'doc_entry' => (int) $this->num($row, ['DocEntry']),
-                'doc_num' => (int) $this->num($row, ['DocNum']),
+                'doc_num' => $docNum,
                 'nf_serial' => $nf,
-                'title_num' => $this->normalizeNf($this->col($row, ['Titulo', 'BoeNum'])),
-                'installment_id' => (int) ($this->num($row, ['Parcela', 'InstlmntID']) ?: 1),
+                'title_num' => '',
+                'origin' => $this->col($row, ['Origem']),
+                'installment_id' => $parcela === '' ? 0 : (int) $parcela,
                 'original_amount' => $orig,
                 'paid_amount' => $paid,
                 'open_amount' => $open,
             ];
         }
-        return $this->attachBoeNumbers($out, $sourceType);
+        $out = $this->attachBoeNumbers($out, $sourceType);
+        foreach ($out as &$row) {
+            $origin = trim((string) ($row['origin'] ?? ''));
+            $boe = trim((string) ($row['title_num'] ?? ''));
+            $label = $origin;
+            if ($origin !== '' && $boe !== '') {
+                $label = $origin . ' · ' . $boe;
+            } elseif ($boe !== '') {
+                $label = $boe;
+            }
+            if (mb_strlen($label) > 50) {
+                $label = mb_substr($label, 0, 50);
+            }
+            $row['title_num'] = $label;
+            unset($row['origin']);
+        }
+        unset($row);
+
+        return $out;
     }
 
     /**
@@ -526,99 +551,67 @@ class FinCashFlowSapSyncService
     }
 
     /**
-     * Só parcela de nota aberta. Conciliação que fecha a nota (DocStatus = Fechado)
-     * tira todas as parcelas dessa nota, mesmo as que ainda pareçam em aberto.
+     * Itens em aberto do parceiro no razão. Reconciliação zera BalDue e a linha sai.
+     *
+     * @param 'C'|'S' $cardType
      */
-    private function sqlAccountsReceivable(): string
+    private function sqlOpenPartnerItems(string $cardType): string
     {
+        $cardType = $cardType === 'S' ? 'S' : 'C';
+        $saldo = $cardType === 'C'
+            ? 'J."BalDueDeb" - J."BalDueCred"'
+            : 'J."BalDueCred" - J."BalDueDeb"';
+        $original = $cardType === 'C'
+            ? 'J."Debit" - J."Credit"'
+            : 'J."Credit" - J."Debit"';
+
         return 'SELECT
-            T1."DueDate" AS "DataPrevista",
-            IFNULL(T0."BPLId", 0) AS "Filial",
-            T0."CardCode" AS "CardCode",
-            T0."CardName" AS "CardName",
-            T0."DocEntry" AS "DocEntry",
-            T0."DocNum" AS "DocNum",
-            T0."Serial" AS "NFe",
-            T0."FolioNum" AS "FolioNum",
-            T1."InstlmntID" AS "Parcela",
-            T1."InsTotal" AS "InsTotal",
-            CASE
-                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
-                ELSE T1."PaidToDate"
-            END AS "PaidToDate",
-            (T1."InsTotal" - CASE
-                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
-                ELSE T1."PaidToDate"
-            END) AS "SaldoAberto"
-        FROM OINV T0
-        INNER JOIN INV6 T1 ON T1."DocEntry" = T0."DocEntry"
-        LEFT JOIN (
-            SELECT R2."DocEntry" AS "DocEntry",
-                   IFNULL(R2."InstId", 0) AS "Parcela",
-                   SUM(R2."SumApplied") AS "Aplicado"
-            FROM RCT2 R2
-            INNER JOIN ORCT R0 ON R0."DocEntry" = R2."DocNum"
-            WHERE IFNULL(R0."Canceled", \'N\') = \'N\'
-              AND R2."InvType" = 13
-              AND IFNULL(R2."InstId", 0) > 0
-            GROUP BY R2."DocEntry", IFNULL(R2."InstId", 0)
-        ) PG ON PG."DocEntry" = T0."DocEntry" AND PG."Parcela" = T1."InstlmntID"
-        WHERE T0."CANCELED" = \'N\'
-          AND T0."DocStatus" = \'O\'
-          AND (T0."DocTotal" - T0."PaidToDate") > 0.009
-          AND IFNULL(T1."Status", \'O\') = \'O\'
-          AND (T1."InsTotal" - CASE
-                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
-                ELSE T1."PaidToDate"
-              END) > 0.009';
+            J."DueDate" AS "DataPrevista",
+            J."RefDate" AS "RefDate",
+            IFNULL(J."BPLId", 0) AS "Filial",
+            J."ShortName" AS "CardCode",
+            C."CardName" AS "CardName",
+            J."CreatedBy" AS "DocEntry",
+            J."BaseRef" AS "DocNum",
+            COALESCE(NFS."Serial", DVS."Serial", NFE."Serial", DVE."Serial", ADC."Serial", ADF."Serial") AS "NFe",
+            CASE WHEN J."TransType" IN (\'13\', \'14\', \'18\', \'19\', \'203\', \'204\')
+                 THEN J."SourceLine" END AS "Parcela",
+            ' . $original . ' AS "ValorOriginal",
+            (' . $original . ') - (' . $saldo . ') AS "ValorPago",
+            ' . $saldo . ' AS "SaldoAberto",
+            CASE J."TransType"
+                WHEN \'13\' THEN \'NF Saída\'
+                WHEN \'14\' THEN \'Devolução NF Saída\'
+                WHEN \'18\' THEN \'NF Entrada\'
+                WHEN \'19\' THEN \'Devolução NF Entrada\'
+                WHEN \'203\' THEN \'Adiantamento de Cliente\'
+                WHEN \'204\' THEN \'Adiantamento a Fornecedor\'
+                WHEN \'24\' THEN \'Contas a Receber\'
+                WHEN \'46\' THEN \'Contas a Pagar\'
+                WHEN \'30\' THEN \'LCM\'
+                WHEN \'-2\' THEN \'Saldo de Abertura\'
+                ELSE \'Outro (\' || J."TransType" || \')\'
+            END AS "Origem"
+        FROM JDT1 J
+        INNER JOIN OCRD C ON C."CardCode" = J."ShortName"
+        LEFT JOIN OINV NFS ON J."TransType" = \'13\' AND NFS."DocEntry" = J."CreatedBy"
+        LEFT JOIN ORIN DVS ON J."TransType" = \'14\' AND DVS."DocEntry" = J."CreatedBy"
+        LEFT JOIN OPCH NFE ON J."TransType" = \'18\' AND NFE."DocEntry" = J."CreatedBy"
+        LEFT JOIN ORPC DVE ON J."TransType" = \'19\' AND DVE."DocEntry" = J."CreatedBy"
+        LEFT JOIN ODPI ADC ON J."TransType" = \'203\' AND ADC."DocEntry" = J."CreatedBy"
+        LEFT JOIN ODPO ADF ON J."TransType" = \'204\' AND ADF."DocEntry" = J."CreatedBy"
+        WHERE C."CardType" = \'' . $cardType . '\'
+          AND (J."BalDueDeb" <> 0 OR J."BalDueCred" <> 0)';
     }
 
-    /**
-     * Só parcela de nota aberta. Conciliação que fecha a nota (DocStatus = Fechado)
-     * tira todas as parcelas dessa nota, mesmo as que ainda pareçam em aberto.
-     */
+    private function sqlAccountsReceivable(): string
+    {
+        return $this->sqlOpenPartnerItems('C');
+    }
+
     private function sqlAccountsPayable(): string
     {
-        return 'SELECT
-            T1."DueDate" AS "DataPrevista",
-            IFNULL(T0."BPLId", 0) AS "Filial",
-            T0."CardCode" AS "CardCode",
-            T0."CardName" AS "CardName",
-            T0."DocEntry" AS "DocEntry",
-            T0."DocNum" AS "DocNum",
-            T0."Serial" AS "NFe",
-            T0."FolioNum" AS "FolioNum",
-            T1."InstlmntID" AS "Parcela",
-            T1."InsTotal" AS "InsTotal",
-            CASE
-                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
-                ELSE T1."PaidToDate"
-            END AS "PaidToDate",
-            (T1."InsTotal" - CASE
-                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
-                ELSE T1."PaidToDate"
-            END) AS "SaldoAberto"
-        FROM OPCH T0
-        INNER JOIN PCH6 T1 ON T1."DocEntry" = T0."DocEntry"
-        LEFT JOIN (
-            SELECT V2."DocEntry" AS "DocEntry",
-                   IFNULL(V2."InstId", 0) AS "Parcela",
-                   SUM(V2."SumApplied") AS "Aplicado"
-            FROM VPM2 V2
-            INNER JOIN OVPM V0 ON V0."DocEntry" = V2."DocNum"
-            WHERE IFNULL(V0."Canceled", \'N\') = \'N\'
-              AND V2."InvType" = 18
-              AND IFNULL(V2."InstId", 0) > 0
-            GROUP BY V2."DocEntry", IFNULL(V2."InstId", 0)
-        ) PG ON PG."DocEntry" = T0."DocEntry" AND PG."Parcela" = T1."InstlmntID"
-        WHERE T0."CANCELED" = \'N\'
-          AND T0."DocStatus" = \'O\'
-          AND (T0."DocTotal" - T0."PaidToDate") > 0.009
-          AND IFNULL(T1."Status", \'O\') = \'O\'
-          AND (T1."InsTotal" - CASE
-                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
-                ELSE T1."PaidToDate"
-              END) > 0.009';
+        return $this->sqlOpenPartnerItems('S');
     }
 
     /**

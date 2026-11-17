@@ -8,7 +8,7 @@
     <dt>Efetivo / realizado</dt>
     <dd>Movimentações que já alteraram caixa/bancos no SAP (lançamentos em <code>JDT1</code>), na data contábil (<code>RefDate</code>).</dd>
     <dt>Previsto</dt>
-    <dd>Parcelas ainda em aberto de contas a receber (<strong>NFS</strong> — Nota Fiscal de Saída) e a pagar (<strong>NFE</strong> — Nota Fiscal de Entrada), agrupadas pela data de vencimento. Usa o <strong>saldo aberto</strong> (parcela menos o que já foi pago na parcela ou no pagamento vinculado). Se a conciliação fechar a nota, o status passa a Fechado e <strong>todas</strong> as parcelas dessa nota saem, mesmo que alguma ainda apareça com pago zero. Nota cancelada também não entra.</dd>
+    <dd>Saldo em aberto do parceiro no razão (<code>JDT1</code>, <code>BalDueDeb</code> / <code>BalDueCred</code>), por vencimento. Entram nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada sai. Crédito e adiantamento não aplicado reduzem o total. O recorte <strong>Todos os abertos</strong> é o que fecha com o saldo do parceiro. O KPI continua limitado ao horizonte, já incluindo vencidos.</dd>
     <dt>Nº Doc SAP × NF × Título</dt>
     <dd><strong>Nº Doc SAP</strong> é o número interno da <strong>NFS</strong> (Nota Fiscal de Saída, a receber) ou da <strong>NFE</strong> (Nota Fiscal de Entrada, a pagar). <strong>NF</strong> é o Serial da nota fiscal. <strong>Título</strong> é o boleto quando existir. Não use o Nº Doc SAP na tela de títulos.</dd>
     <dt>Vencido</dt>
@@ -78,7 +78,7 @@
     <dt>Totais da aba Detalhes diferentes dos KPIs</dt>
     <dd>No recorte <strong>Horizonte dos KPIs</strong>, sem filtro de tipo nem busca, A receber e A pagar da lista devem coincidir com os KPIs. Outros recortes (mês, vencidos, todos) usam outro conjunto de títulos. O filtro Banco/Conta não se aplica a títulos — eles não têm conta financeira até o pagamento. Filial sim.</dd>
     <dt>Não acho um documento na lista</dt>
-    <dd>A lista só tem saldo aberto. Título liquidado, nota fechada ou nota com total já pago some após a sincronização. Pedido não entra. Confira vencimento × recorte e se a filial do filtro é a do documento. <strong>Nº Doc SAP</strong> é o documento da <strong>NFS</strong> (saída) ou da <strong>NFE</strong> (entrada) — não da tela de títulos. A coluna NF é o Serial da nota. Título (boleto) só aparece quando existir.</dd>
+    <dd>A lista só tem saldo em aberto no razão. Linha já conciliada some depois da sincronização. O recorte <strong>Todos os abertos</strong> é a comparação com o relatório de vencimentos do SAP. O KPI não inclui vencimentos depois do horizonte. Filial restringe a lista e por isso pode divergir do saldo geral do parceiro.</dd>
     <dt>Sync automático falhou</dt>
     <dd>O painel continua com o cache anterior e exibe o aviso. Use Sincronizar SAP ou o CLI; verifique timeout e logs da API.</dd>
 </dl>

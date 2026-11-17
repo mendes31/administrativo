@@ -230,7 +230,7 @@ class FinCashFlowDashboardService
                     'paid' => (float) ($row['paid_amount'] ?? 0),
                     'amount' => $open,
                     'status' => $this->forecastStatus((string) ($row['due_date'] ?? ''), $open, $today),
-                    'origin' => $source === 'AR' ? 'OINV/INV6' : 'OPCH/PCH6',
+                    'origin' => (string) ($row['title_num'] ?? ($source === 'AR' ? 'A receber' : 'A pagar')),
                 ];
             }
             return ['success' => true, 'kind' => $kind, 'date' => $date, 'rows' => $out];
@@ -282,7 +282,7 @@ class FinCashFlowDashboardService
         foreach ($forecasts as $fc) {
             $open = (float) ($fc['open_amount'] ?? 0);
             $due = $this->normalizeForecastDueDate((string) ($fc['due_date'] ?? ''));
-            $status = $this->forecastStatus($due, $open, $today);
+            $status = $open < -0.005 ? 'credito' : $this->forecastStatus($due, $open, $today);
             if ($status === 'liquidado') {
                 continue;
             }
