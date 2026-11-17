@@ -281,7 +281,7 @@ class FinCashFlowDashboardService
         $out = [];
         foreach ($forecasts as $fc) {
             $open = (float) ($fc['open_amount'] ?? 0);
-            $due = (string) ($fc['due_date'] ?? '');
+            $due = $this->normalizeForecastDueDate((string) ($fc['due_date'] ?? ''));
             $status = $this->forecastStatus($due, $open, $today);
             if ($status === 'liquidado') {
                 continue;
@@ -319,6 +319,17 @@ class FinCashFlowDashboardService
             return ((int) $a['installment']) <=> ((int) $b['installment']);
         });
         return $out;
+    }
+
+    /**
+     * Ano 00–99 gravado como 0022 vira 2022. O restante da data permanece.
+     */
+    private function normalizeForecastDueDate(string $due): string
+    {
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $due, $match) && (int) $match[1] < 100) {
+            return sprintf('%04d-%s-%s', (int) $match[1] + 2000, $match[2], $match[3]);
+        }
+        return $due;
     }
 
     /**

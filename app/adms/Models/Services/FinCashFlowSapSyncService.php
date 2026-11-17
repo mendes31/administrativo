@@ -525,6 +525,10 @@ class FinCashFlowSapSyncService
         GROUP BY T1."RefDate", T1."Account"';
     }
 
+    /**
+     * Só parcela de nota aberta. Conciliação que fecha a nota (DocStatus = Fechado)
+     * tira todas as parcelas dessa nota, mesmo as que ainda pareçam em aberto.
+     */
     private function sqlAccountsReceivable(): string
     {
         return 'SELECT
@@ -538,15 +542,41 @@ class FinCashFlowSapSyncService
             T0."FolioNum" AS "FolioNum",
             T1."InstlmntID" AS "Parcela",
             T1."InsTotal" AS "InsTotal",
-            T1."PaidToDate" AS "PaidToDate",
-            (T1."InsTotal" - T1."PaidToDate") AS "SaldoAberto"
+            CASE
+                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
+                ELSE T1."PaidToDate"
+            END AS "PaidToDate",
+            (T1."InsTotal" - CASE
+                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
+                ELSE T1."PaidToDate"
+            END) AS "SaldoAberto"
         FROM OINV T0
         INNER JOIN INV6 T1 ON T1."DocEntry" = T0."DocEntry"
+        LEFT JOIN (
+            SELECT R2."DocEntry" AS "DocEntry",
+                   IFNULL(R2."InstId", 0) AS "Parcela",
+                   SUM(R2."SumApplied") AS "Aplicado"
+            FROM RCT2 R2
+            INNER JOIN ORCT R0 ON R0."DocEntry" = R2."DocNum"
+            WHERE IFNULL(R0."Canceled", \'N\') = \'N\'
+              AND R2."InvType" = 13
+              AND IFNULL(R2."InstId", 0) > 0
+            GROUP BY R2."DocEntry", IFNULL(R2."InstId", 0)
+        ) PG ON PG."DocEntry" = T0."DocEntry" AND PG."Parcela" = T1."InstlmntID"
         WHERE T0."CANCELED" = \'N\'
+          AND T0."DocStatus" = \'O\'
+          AND (T0."DocTotal" - T0."PaidToDate") > 0.009
           AND IFNULL(T1."Status", \'O\') = \'O\'
-          AND (T1."InsTotal" - T1."PaidToDate") <> 0';
+          AND (T1."InsTotal" - CASE
+                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
+                ELSE T1."PaidToDate"
+              END) > 0.009';
     }
 
+    /**
+     * Só parcela de nota aberta. Conciliação que fecha a nota (DocStatus = Fechado)
+     * tira todas as parcelas dessa nota, mesmo as que ainda pareçam em aberto.
+     */
     private function sqlAccountsPayable(): string
     {
         return 'SELECT
@@ -560,13 +590,35 @@ class FinCashFlowSapSyncService
             T0."FolioNum" AS "FolioNum",
             T1."InstlmntID" AS "Parcela",
             T1."InsTotal" AS "InsTotal",
-            T1."PaidToDate" AS "PaidToDate",
-            (T1."InsTotal" - T1."PaidToDate") AS "SaldoAberto"
+            CASE
+                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
+                ELSE T1."PaidToDate"
+            END AS "PaidToDate",
+            (T1."InsTotal" - CASE
+                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
+                ELSE T1."PaidToDate"
+            END) AS "SaldoAberto"
         FROM OPCH T0
         INNER JOIN PCH6 T1 ON T1."DocEntry" = T0."DocEntry"
+        LEFT JOIN (
+            SELECT V2."DocEntry" AS "DocEntry",
+                   IFNULL(V2."InstId", 0) AS "Parcela",
+                   SUM(V2."SumApplied") AS "Aplicado"
+            FROM VPM2 V2
+            INNER JOIN OVPM V0 ON V0."DocEntry" = V2."DocNum"
+            WHERE IFNULL(V0."Canceled", \'N\') = \'N\'
+              AND V2."InvType" = 18
+              AND IFNULL(V2."InstId", 0) > 0
+            GROUP BY V2."DocEntry", IFNULL(V2."InstId", 0)
+        ) PG ON PG."DocEntry" = T0."DocEntry" AND PG."Parcela" = T1."InstlmntID"
         WHERE T0."CANCELED" = \'N\'
+          AND T0."DocStatus" = \'O\'
+          AND (T0."DocTotal" - T0."PaidToDate") > 0.009
           AND IFNULL(T1."Status", \'O\') = \'O\'
-          AND (T1."InsTotal" - T1."PaidToDate") <> 0';
+          AND (T1."InsTotal" - CASE
+                WHEN IFNULL(PG."Aplicado", 0) > T1."PaidToDate" THEN IFNULL(PG."Aplicado", 0)
+                ELSE T1."PaidToDate"
+              END) > 0.009';
     }
 
     /**
@@ -721,8 +773,12 @@ class FinCashFlowSapSyncService
             return null;
         }
         $raw = substr(trim((string) $value), 0, 10);
-        if (preg_match('/^\d{4}-\d{2}-\d{2}$/', $raw)) {
-            return $raw;
+        if (preg_match('/^(\d{4})-(\d{2})-(\d{2})$/', $raw, $match)) {
+            $year = (int) $match[1];
+            if ($year < 100) {
+                $year += 2000;
+            }
+            return sprintf('%04d-%s-%s', $year, $match[2], $match[3]);
         }
         try {
             return (new DateTimeImmutable((string) $value))->format('Y-m-d');
