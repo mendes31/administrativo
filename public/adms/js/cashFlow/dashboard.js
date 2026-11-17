@@ -56,6 +56,7 @@
       account: $('fConta')?.value || '',
       scenario: $('fCenario')?.value || 'both',
       horizon: $('fHorizonte')?.value || 30,
+      include_orders: $('fPedidos')?.checked ? 1 : 0,
     };
   }
 
@@ -86,6 +87,8 @@
 
   function fillFilters(data) {
     const f = data.filters || {};
+    const ped = $('fPedidos');
+    if (ped) ped.checked = !!f.include_orders;
     if ($('fPeriodo') && f.year && f.month) {
       $('fPeriodo').value = String(f.year) + '-' + String(f.month).padStart(2, '0');
     }
@@ -145,13 +148,13 @@
     $('kpiRow1').innerHTML = [
       kpiCard('Saldo inicial', k.saldo_inicial, 'Posição no início do período', 'accent'),
       kpiCard('Acumulado efetivo', k.acumulado_efetivo, 'Até a data de corte', 'pos'),
-      kpiCard('Projeção no fim do mês', k.projecao_fim, 'Saldo efetivo + previstos até o fim do mês'),
+      kpiCard('Projeção no fim do mês', k.projecao_fim, 'Saldo efetivo + títulos que vencem de hoje até o fim do mês'),
       kpiCard('Aplicações', k.aplicacoes, 'Locais + contas classificadas'),
       kpiCard('Limites disponíveis', k.limites, 'Crédito bancário cadastrado'),
     ].join('');
     $('kpiRow2').innerHTML = [
-      kpiCard('A receber · horizonte', k.a_receber, 'Igual ao total de receita prevista da grade', 'pos', 'AR'),
-      kpiCard('A pagar · horizonte', k.a_pagar, 'Igual ao total de despesa prevista da grade', 'neg', 'AP'),
+      kpiCard('A receber · horizonte', k.a_receber, 'No prazo até o horizonte, mais os vencidos', 'pos', 'AR'),
+      kpiCard('A pagar · horizonte', k.a_pagar, 'No prazo até o horizonte, mais os vencidos', 'neg', 'AP'),
       kpiCard('Disponibilidade própria', k.disponibilidade_propria, 'Saldo financeiro + aplicações', 'pos'),
       kpiCard('Necessidade de caixa', k.necessidade_caixa, 'A receber − a pagar no mesmo horizonte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
       kpiCard('Menor saldo projetado', k.menor_saldo_projetado, k.menor_saldo_data ? ('Em ' + k.menor_saldo_data.split('-').reverse().join('/')) : '', 'warn'),
@@ -159,6 +162,8 @@
 
     renderDaily(data.daily || [], data.filters?.scenario || 'both');
     renderCharts(data.daily || [], data.filters?.scenario || 'both');
+    renderWeekly(data.weekly || [], data.orders || {});
+    renderAging(data.aging || {});
     renderMonthly(data.monthly || {});
     renderAccounts(data.accounts || []);
     renderInvestments(data.investments_monthly || {});
@@ -260,6 +265,49 @@
     const c2 = $('chartBars');
     if (c1) chartLine = new Chart(c1, lineCfg);
     if (c2) chartBars = new Chart(c2, barCfg);
+  }
+
+  function renderWeekly(rows, orders) {
+    const hint = $('weekHint');
+    if (hint) {
+      if (orders.included) {
+        hint.textContent = 'Pedidos em aberto somados na previsão: '
+          + fmt(orders.na_grade_receber) + ' a receber e ' + fmt(orders.na_grade_pagar) + ' a pagar neste período.'
+          + ((Number(orders.fora_receber) || Number(orders.fora_pagar))
+            ? ' Fora do período: ' + fmt(orders.fora_receber) + ' a receber e ' + fmt(orders.fora_pagar) + ' a pagar.'
+            : '')
+          + (orders.warning ? ' ' + orders.warning : '');
+      } else {
+        hint.textContent = 'Semana de segunda a domingo. A receber e A pagar continuam só com o razão. Marque “Somar pedidos em aberto” para incluir pedido digitado e ainda não faturado.';
+      }
+    }
+    const body = $('tblWeek');
+    if (!body) return;
+    body.innerHTML = rows.map(function (r) {
+      const ini = String(r.week_start || '').split('-').reverse().join('/');
+      const fim = String(r.week_end || '').split('-').reverse().join('/');
+      return '<tr><td>' + ini + ' a ' + fim + '</td>'
+        + '<td>' + fmt(r.receita_ef) + '</td><td>' + fmt(r.despesa_ef) + '</td>'
+        + '<td>' + fmt(r.receita_prev) + '</td><td>' + fmt(r.despesa_prev) + '</td>'
+        + '<td>' + fmt(r.pedido_receber) + '</td><td>' + fmt(r.pedido_pagar) + '</td>'
+        + '<td class="' + cls(r.acum_proj) + '">' + fmt(r.acum_proj) + '</td></tr>';
+    }).join('') || '<tr><td colspan="8">Sem semanas no período.</td></tr>';
+  }
+
+  function renderAging(aging) {
+    const body = $('tblAging');
+    const foot = $('footAging');
+    if (!body) return;
+    const bands = aging.bands || [];
+    body.innerHTML = bands.map(function (b) {
+      const net = Number(b.ar || 0) - Number(b.ap || 0);
+      return '<tr><td>' + (b.label || '') + '</td><td class="pos">' + fmt(b.ar) + '</td><td class="neg">' + fmt(b.ap) + '</td><td class="' + cls(net) + '">' + fmt(net) + '</td></tr>';
+    }).join('') || '<tr><td colspan="4">Sem títulos em aberto.</td></tr>';
+    const tot = aging.totals || {};
+    const net = Number(tot.ar || 0) - Number(tot.ap || 0);
+    if (foot) {
+      foot.innerHTML = '<tr><td>Total</td><td>' + fmt(tot.ar) + '</td><td>' + fmt(tot.ap) + '</td><td class="' + cls(net) + '">' + fmt(net) + '</td></tr>';
+    }
   }
 
   function renderMonthly(monthly) {
@@ -430,9 +478,9 @@
         overdue: 'somente títulos vencidos',
         all: 'todos os títulos em aberto no cache',
       };
-      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista usa a mesma filial e o mesmo horizonte dos KPIs e da grade diária. Vencidos entram no dia de corte, uma vez só. Crédito reduz o total. O filtro Banco/Conta vale para o saldo efetivo, não para estes títulos.';
+      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista usa a mesma filial e o mesmo horizonte dos KPIs. Cada título aparece na própria data de vencimento. O estoque vencido antes do mês fica nos KPIs e aqui, e não entra como movimento de um único dia. Crédito reduz o total. O filtro Banco/Conta vale para o saldo efetivo, não para estes títulos.';
       if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
-        txt += ' A soma de A receber / A pagar fecha com os KPIs e com o total previsto do fluxo diário.';
+        txt += ' A soma de A receber / A pagar fecha com os KPIs.';
       }
       hint.textContent = txt;
     }
@@ -535,7 +583,7 @@
     root.querySelectorAll('.tab').forEach(function (t) {
       t.classList.toggle('active', t.dataset.tab === id);
     });
-    ['daily', 'monthly', 'accounts', 'investments', 'detail'].forEach(function (tabId) {
+    ['daily', 'weekly', 'aging', 'monthly', 'accounts', 'investments', 'detail'].forEach(function (tabId) {
       const el = document.getElementById('tab-' + tabId);
       if (el) el.classList.toggle('hidden', tabId !== id);
     });

@@ -43,8 +43,13 @@ $month = (int) date('n');
 .fcf-dash .fcf-toolbar{
   background:var(--fcf-surface); border:1px solid var(--fcf-line); border-radius:var(--fcf-radius);
   box-shadow:var(--fcf-shadow); padding:14px 16px; display:grid;
-  grid-template-columns:1.1fr 1fr 1.3fr 1fr 1fr auto; gap:12px; align-items:end; margin-bottom:12px;
+  grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; align-items:end; margin-bottom:12px;
 }
+.fcf-dash .fcf-toolbar label.fcf-check{
+  flex-direction:row; align-items:center; text-transform:none; letter-spacing:0;
+  font-size:13px; font-weight:600; color:var(--fcf-ink); gap:8px; padding-bottom:8px;
+}
+.fcf-dash .fcf-toolbar label.fcf-check input{ width:16px; min-width:16px; padding:0; }
 .fcf-dash .fcf-toolbar label{
   display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:600;
   color:var(--fcf-ink-mute); text-transform:uppercase; letter-spacing:.03em; margin:0;
@@ -232,6 +237,10 @@ $month = (int) date('n');
           <option value="90">90 dias</option>
         </select>
       </label>
+      <label class="fcf-check">
+        <input type="checkbox" id="fPedidos">
+        Somar pedidos em aberto
+      </label>
       <button type="button" id="btnAplicar">Aplicar filtros</button>
     </div>
 
@@ -245,6 +254,8 @@ $month = (int) date('n');
 
     <div class="tabs">
       <div class="tab active" data-tab="daily">Fluxo Diário</div>
+      <div class="tab" data-tab="weekly">Fluxo Semanal</div>
+      <div class="tab" data-tab="aging">Vencimentos</div>
       <div class="tab" data-tab="monthly">Fluxo Mensal</div>
       <div class="tab" data-tab="accounts">Bancos / Contas</div>
       <div class="tab" data-tab="investments">Aplicações</div>
@@ -275,6 +286,32 @@ $month = (int) date('n');
       <div class="card">
         <div class="cardh">Visão combinada diária</div>
         <div style="overflow:auto;"><table id="tblCombo"><thead></thead><tbody></tbody><tfoot></tfoot></table></div>
+      </div>
+    </section>
+
+    <section id="tab-weekly" class="hidden">
+      <div class="card">
+        <div class="cardh">Fluxo semanal <span class="kh" id="weekHint">Semana de segunda a domingo, no mesmo período da grade diária.</span></div>
+        <div style="overflow:auto;"><table>
+          <thead><tr>
+            <th>Semana</th><th>Receita ef.</th><th>Despesa ef.</th>
+            <th>Receita prev.</th><th>Despesa prev.</th>
+            <th>Pedidos a receber</th><th>Pedidos a pagar</th>
+            <th>Acumulado projetado</th>
+          </tr></thead>
+          <tbody id="tblWeek"></tbody>
+        </table></div>
+      </div>
+    </section>
+
+    <section id="tab-aging" class="hidden">
+      <div class="card">
+        <div class="cardh">Faixas de vencimento <span class="kh">Todos os títulos em aberto no razão, não só o horizonte. Pedido não entra nesta tabela.</span></div>
+        <div style="overflow:auto;"><table>
+          <thead><tr><th>Faixa</th><th>A receber</th><th>A pagar</th><th>Líquido</th></tr></thead>
+          <tbody id="tblAging"></tbody>
+          <tfoot id="footAging"></tfoot>
+        </table></div>
       </div>
     </section>
 
@@ -354,7 +391,7 @@ $month = (int) date('n');
       </div>
     </section>
 
-    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Filial, período, horizonte e cenário valem juntos para os indicadores, o fluxo diário, o fluxo mensal e os detalhes. O previsto é o saldo em aberto com vencimento até o fim do horizonte, vencidos inclusos; cada título entra uma vez, no dia de corte se já venceu ou na própria data se ainda está no prazo. A soma da receita e da despesa previstas na grade diária fecha com A receber, A pagar e com o recorte horizonte da aba Detalhes. O saldo efetivo segue o movimento líquido das contas de caixa e banco (a mesma base da aba Bancos/Contas). Transferência entre essas contas não entra como receita nem despesa. Aplicações, resgates e rendimentos locais somam às contas classificadas como aplicação.</div>
+    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Filial, período, horizonte e cenário valem juntos para os indicadores, o diário, o semanal, o mensal e os detalhes. Cada título em aberto fica na própria data de vencimento. A faixa de vencimento organiza cobrança e pagamento. Pedido digitado e ainda não faturado só entra na previsão quando “Somar pedidos em aberto” está marcado; A receber e A pagar do razão não mudam. A projeção soma, sobre o saldo efetivo, só o que vence de hoje até o fim do mês. O saldo efetivo segue o movimento líquido das contas de caixa e banco.</div>
   </div>
 </div>
 
@@ -368,4 +405,4 @@ $month = (int) date('n');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=10"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=12"></script>

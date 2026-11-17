@@ -45,6 +45,7 @@ class FinCashFlowDashboardService
             $horizon = 30;
         }
         $scenario = (string) ($filters['scenario'] ?? 'both');
+        $includeOrders = !empty($filters['include_orders']) && (string) $filters['include_orders'] !== '0';
         $branchId = isset($filters['branch_id']) && $filters['branch_id'] !== '' && $filters['branch_id'] !== null
             ? (int) $filters['branch_id']
             : null;
@@ -85,9 +86,7 @@ class FinCashFlowDashboardService
             $cashGl = $glFilter;
         }
 
-        $openingDate = $this->cache->latestOpeningDate();
-        $openingMap = $openingDate ? $this->cache->getOpeningMap($openingDate) : [];
-        $historyFrom = $openingDate ?: $monthStart->format('Y-m-d');
+        $historyFrom = $this->cache->earliestOpeningDate() ?: $monthStart->format('Y-m-d');
         $yearEnd = new DateTimeImmutable(sprintf('%04d-12-31', $year));
         $historyTo = $yearEnd->format('Y-m-d');
 
@@ -102,12 +101,12 @@ class FinCashFlowDashboardService
         }
         $forecasts = $this->attachPosition(
             $this->prepareForecasts($this->cache->getForecasts(null, null, null, $branchId)),
-            $anchor->format('Y-m-d'),
+            $monthStart->format('Y-m-d'),
             $horizonEnd->format('Y-m-d')
         );
         $inHorizon = [];
         foreach ($forecasts as $fc) {
-            if (($fc['position_date'] ?? null) !== null) {
+            if (!empty($fc['in_horizon'])) {
                 $inHorizon[] = $fc;
             }
         }
@@ -117,11 +116,9 @@ class FinCashFlowDashboardService
         $forecastByDate = $this->aggregateForecastByDate($inHorizon);
         $investByMonth = $this->aggregateInvestmentsByMonth($investments, $year);
 
-        $openingMonth = $this->openingAt($monthStart, $openingDate, $openingMap, $dailyRows, $cashGl);
+        $openingMonth = $this->openingAt($monthStart, $dailyRows, $cashGl);
         $aplicacoes = $this->openingAt(
             $cutoff->add(new DateInterval('P1D')),
-            $openingDate,
-            $openingMap,
             $dailyRows,
             $investGl
         ) + $this->investmentBalanceUntil($investments, $cutoff->format('Y-m-d'));
@@ -134,6 +131,13 @@ class FinCashFlowDashboardService
             $limits += (float) ($acc['credit_limit'] ?? 0);
         }
 
+        $orderPack = $this->loadOpenOrders(
+            $includeOrders,
+            $branchId,
+            $monthStart->format('Y-m-d'),
+            $horizonEnd->format('Y-m-d')
+        );
+
         $daily = $this->buildDailyCalendar(
             $monthStart,
             $monthEnd,
@@ -144,7 +148,8 @@ class FinCashFlowDashboardService
             $dailyByDate,
             $forecastByDate,
             $cutoff,
-            $scenario
+            $scenario,
+            $orderPack['by_date']
         );
 
         $kpis = $this->buildKpis(
@@ -160,8 +165,6 @@ class FinCashFlowDashboardService
 
         $monthly = $this->buildMonthly(
             $year,
-            $openingDate,
-            $openingMap,
             $dailyRows,
             $forecastByDate,
             $investments,
@@ -176,8 +179,6 @@ class FinCashFlowDashboardService
 
         $accountsView = $this->buildAccountsView(
             $allAccounts,
-            $openingDate,
-            $openingMap,
             $dailyRows,
             $investments,
             $cutoff,
@@ -193,6 +194,7 @@ class FinCashFlowDashboardService
                 'scenario' => $scenario,
                 'branch_id' => $branchId,
                 'account' => $accountGl,
+                'include_orders' => $includeOrders,
                 'today' => $today->format('Y-m-d'),
                 'month_start' => $monthStart->format('Y-m-d'),
                 'month_end' => $monthEnd->format('Y-m-d'),
@@ -201,6 +203,9 @@ class FinCashFlowDashboardService
             'sync' => $this->cache->getSyncState(),
             'kpis' => $kpis,
             'daily' => $daily,
+            'weekly' => $this->buildWeekly($daily),
+            'aging' => $this->buildAging($forecasts, $today->format('Y-m-d')),
+            'orders' => $orderPack['summary'],
             'monthly' => $monthly,
             'accounts' => $accountsView,
             'forecast_documents' => $this->mapForecastDocuments($forecasts, $today->format('Y-m-d')),
@@ -254,7 +259,7 @@ class FinCashFlowDashboardService
             }
             $rows = $this->attachPosition(
                 $this->prepareForecasts($this->cache->getForecasts(null, null, $source, $branchId)),
-                $anchor->format('Y-m-d'),
+                $monthStart->format('Y-m-d'),
                 $horizonEnd->format('Y-m-d')
             );
             $today = $todayDt->format('Y-m-d');
@@ -338,22 +343,18 @@ class FinCashFlowDashboardService
     }
 
     /**
-     * Cada título do horizonte entra num único dia.
-     * Vencido antes do corte do período vai para esse corte; o restante fica no próprio vencimento.
-     * Fora do horizonte, position_date fica nulo e o título não entra em KPI nem na grade.
+     * O título fica no próprio vencimento. Estoque vencido antes do mês não entra na grade,
+     * para não parecer uma saída única no dia de corte. O KPI continua contando esse estoque.
      *
      * @param list<array<string, mixed>> $forecasts
      * @return list<array<string, mixed>>
      */
-    private function attachPosition(array $forecasts, string $anchor, string $horizonEnd): array
+    private function attachPosition(array $forecasts, string $monthStart, string $horizonEnd): array
     {
         foreach ($forecasts as &$row) {
             $due = (string) ($row['due_date'] ?? '');
-            if ($due === '' || $due > $horizonEnd) {
-                $row['position_date'] = null;
-                continue;
-            }
-            $row['position_date'] = $due < $anchor ? $anchor : $due;
+            $row['in_horizon'] = $due !== '' && $due <= $horizonEnd;
+            $row['position_date'] = ($due !== '' && $due >= $monthStart && $due <= $horizonEnd) ? $due : null;
         }
         unset($row);
         return $forecasts;
@@ -578,11 +579,12 @@ class FinCashFlowDashboardService
      */
     private function openingAt(
         DateTimeImmutable $asOf,
-        ?string $openingDate,
-        array $openingMap,
         array $dailyRows,
         array $glAccounts
     ): float {
+        $snap = $this->cache->openingOnOrBefore($asOf->format('Y-m-d'));
+        $openingDate = $snap['date'];
+        $openingMap = $snap['map'];
         $allow = array_flip($glAccounts);
         $sum = 0.0;
         foreach ($openingMap as $gl => $bal) {
@@ -623,7 +625,8 @@ class FinCashFlowDashboardService
         array $dailyByDate,
         array $forecastByDate,
         DateTimeImmutable $cutoff,
-        string $scenario
+        string $scenario,
+        array $orderByDate = []
     ): array {
         $rows = [];
         $acumEf = $opening;
@@ -641,6 +644,7 @@ class FinCashFlowDashboardService
             $d = $cursor->format('Y-m-d');
             $mov = $dailyByDate[$d] ?? ['inflow' => 0.0, 'outflow' => 0.0, 'internal_in' => 0.0, 'internal_out' => 0.0];
             $fc = $forecastByDate[$d] ?? ['ar' => 0.0, 'ap' => 0.0];
+            $ord = $orderByDate[$d] ?? ['ar' => 0.0, 'ap' => 0.0];
 
             $receitaEf = max(0, $mov['inflow'] - $mov['internal_in']);
             $despesaEf = max(0, $mov['outflow'] - $mov['internal_out']);
@@ -651,8 +655,8 @@ class FinCashFlowDashboardService
                 $lastBank = $acumEf;
             }
 
-            $receitaPrev = $fc['ar'];
-            $despesaPrev = $fc['ap'];
+            $receitaPrev = $fc['ar'] + $ord['ar'];
+            $despesaPrev = $fc['ap'] + $ord['ap'];
             $saldoPrev = $receitaPrev - $despesaPrev;
 
             if ($scenario === 'ef') {
@@ -680,6 +684,8 @@ class FinCashFlowDashboardService
                 'acum_ef' => $inRealized ? $acumEf : null,
                 'receita_prev' => $receitaPrev,
                 'despesa_prev' => $despesaPrev,
+                'pedido_receber' => $ord['ar'],
+                'pedido_pagar' => $ord['ap'],
                 'saldo_prev' => $saldoPrev,
                 'acum_proj' => $acumProj,
             ];
@@ -789,8 +795,6 @@ class FinCashFlowDashboardService
      */
     private function buildMonthly(
         int $year,
-        ?string $openingDate,
-        array $openingMap,
         array $dailyRows,
         array $forecastByDate,
         array $investments,
@@ -849,12 +853,12 @@ class FinCashFlowDashboardService
         for ($m = 1; $m <= 12; $m++) {
             $start = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $m));
             $end = $start->modify('last day of this month');
-            $rows['saldo_inicial'][$m] = $this->openingAt($start, $openingDate, $openingMap, $dailyRows, $cashGl);
+            $rows['saldo_inicial'][$m] = $this->openingAt($start, $dailyRows, $cashGl);
             $rows['necessidade'][$m] = $rows['receitas_previstas'][$m] - $rows['despesas_previstas'][$m];
-            $sapInv = $this->openingAt($end->add(new DateInterval('P1D')), $openingDate, $openingMap, $dailyRows, $investGl);
+            $sapInv = $this->openingAt($end->add(new DateInterval('P1D')), $dailyRows, $investGl);
             $localInv = $this->investmentBalanceUntil($investments, $end->format('Y-m-d'));
             $rows['aplicacoes'][$m] = $sapInv + $localInv;
-            $bankEnd = $this->openingAt($start->modify('first day of next month'), $openingDate, $openingMap, $dailyRows, $cashGl);
+            $bankEnd = $this->openingAt($start->modify('first day of next month'), $dailyRows, $cashGl);
             $netPrev = $scenario === 'ef' ? 0.0 : $rows['necessidade'][$m];
             $isPast = $year < $anchorYear || ($year === $anchorYear && $m < $anchorMonth);
             $isAnchor = $year === $anchorYear && $m === $anchorMonth;
@@ -865,8 +869,11 @@ class FinCashFlowDashboardService
                 $rows['saldo_acumulado'][$m] = $bankEnd;
                 $running = $bankEnd;
             } elseif ($isAnchor) {
-                $bankNow = $this->openingAt($cutoff->add(new DateInterval('P1D')), $openingDate, $openingMap, $dailyRows, $cashGl);
-                $rows['saldo_acumulado'][$m] = $bankNow + $netPrev;
+                $bankNow = $this->openingAt($cutoff->add(new DateInterval('P1D')), $dailyRows, $cashGl);
+                $forward = $scenario === 'pv'
+                    ? $netPrev
+                    : $this->forecastNetFrom($forecastByDate, $year, $m, $anchor->format('Y-m-d'));
+                $rows['saldo_acumulado'][$m] = $bankNow + ($scenario === 'ef' ? 0.0 : $forward);
                 $running = $rows['saldo_acumulado'][$m];
             } else {
                 $running += $rows['saldo_financeiro'][$m] + $netPrev;
@@ -889,8 +896,6 @@ class FinCashFlowDashboardService
      */
     private function buildAccountsView(
         array $allAccounts,
-        ?string $openingDate,
-        array $openingMap,
         array $dailyRows,
         array $investments,
         DateTimeImmutable $cutoff,
@@ -903,7 +908,7 @@ class FinCashFlowDashboardService
             if ($accountGl !== '' && $gl !== $accountGl) {
                 continue;
             }
-            $saldo = $this->openingAt($tomorrow, $openingDate, $openingMap, $dailyRows, [$gl]);
+            $saldo = $this->openingAt($tomorrow, $dailyRows, [$gl]);
             $aplic = 0.0;
             if (($acc['account_type'] ?? '') === 'INVESTMENT') {
                 $aplic = $saldo;
@@ -948,6 +953,166 @@ class FinCashFlowDashboardService
             ];
         }
         return ['year' => $year, 'tables' => $tables];
+    }
+
+    /**
+     * @param list<array<string, mixed>> $daily
+     * @return list<array<string, mixed>>
+     */
+    private function buildWeekly(array $daily): array
+    {
+        $weeks = [];
+        foreach ($daily as $row) {
+            $date = (string) ($row['date'] ?? '');
+            if ($date === '') {
+                continue;
+            }
+            $start = (new DateTimeImmutable($date))->modify('monday this week');
+            $key = $start->format('Y-m-d');
+            if (!isset($weeks[$key])) {
+                $weeks[$key] = [
+                    'week_start' => $key,
+                    'week_end' => $start->modify('+6 days')->format('Y-m-d'),
+                    'receita_ef' => 0.0,
+                    'despesa_ef' => 0.0,
+                    'receita_prev' => 0.0,
+                    'despesa_prev' => 0.0,
+                    'pedido_receber' => 0.0,
+                    'pedido_pagar' => 0.0,
+                    'acum_proj' => null,
+                ];
+            }
+            $weeks[$key]['receita_ef'] += (float) ($row['receita_ef'] ?? 0);
+            $weeks[$key]['despesa_ef'] += (float) ($row['despesa_ef'] ?? 0);
+            $weeks[$key]['receita_prev'] += (float) ($row['receita_prev'] ?? 0);
+            $weeks[$key]['despesa_prev'] += (float) ($row['despesa_prev'] ?? 0);
+            $weeks[$key]['pedido_receber'] += (float) ($row['pedido_receber'] ?? 0);
+            $weeks[$key]['pedido_pagar'] += (float) ($row['pedido_pagar'] ?? 0);
+            $weeks[$key]['acum_proj'] = $row['acum_proj'] ?? $weeks[$key]['acum_proj'];
+        }
+        $out = array_values($weeks);
+        usort($out, static fn (array $a, array $b): int => strcmp((string) $a['week_start'], (string) $b['week_start']));
+        return $out;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $forecasts
+     * @return array{bands:list<array<string,mixed>>,totals:array{ar:float,ap:float}}
+     */
+    private function buildAging(array $forecasts, string $today): array
+    {
+        $bands = [
+            'a_vencer' => ['label' => 'A vencer', 'ar' => 0.0, 'ap' => 0.0],
+            'd1_30' => ['label' => 'Vencido 1 a 30 dias', 'ar' => 0.0, 'ap' => 0.0],
+            'd31_60' => ['label' => 'Vencido 31 a 60 dias', 'ar' => 0.0, 'ap' => 0.0],
+            'd61_90' => ['label' => 'Vencido 61 a 90 dias', 'ar' => 0.0, 'ap' => 0.0],
+            'd90' => ['label' => 'Vencido acima de 90 dias', 'ar' => 0.0, 'ap' => 0.0],
+        ];
+        $todayDt = new DateTimeImmutable($today);
+        foreach ($forecasts as $fc) {
+            $due = (string) ($fc['due_date'] ?? '');
+            if ($due === '') {
+                continue;
+            }
+            $amt = (float) ($fc['open_amount'] ?? 0);
+            $side = (($fc['source_type'] ?? '') === 'AR') ? 'ar' : 'ap';
+            if ($due >= $today) {
+                $key = 'a_vencer';
+            } else {
+                $days = (int) $todayDt->diff(new DateTimeImmutable($due))->days;
+                if ($days <= 30) {
+                    $key = 'd1_30';
+                } elseif ($days <= 60) {
+                    $key = 'd31_60';
+                } elseif ($days <= 90) {
+                    $key = 'd61_90';
+                } else {
+                    $key = 'd90';
+                }
+            }
+            $bands[$key][$side] += $amt;
+        }
+        $totals = ['ar' => 0.0, 'ap' => 0.0];
+        foreach ($bands as $band) {
+            $totals['ar'] += $band['ar'];
+            $totals['ap'] += $band['ap'];
+        }
+        return ['bands' => array_values($bands), 'totals' => $totals];
+    }
+
+    /**
+     * Pedidos digitados e ainda abertos. Não alteram A receber / A pagar do razão.
+     * Na grade, só entra o vencimento dentro do período exibido.
+     *
+     * @return array{by_date:array<string,array{ar:float,ap:float}>,summary:array<string,mixed>}
+     */
+    private function loadOpenOrders(bool $include, ?int $branchId, string $windowStart, string $windowEnd): array
+    {
+        $empty = [
+            'by_date' => [],
+            'summary' => [
+                'included' => false,
+                'na_grade_receber' => 0.0,
+                'na_grade_pagar' => 0.0,
+                'fora_receber' => 0.0,
+                'fora_pagar' => 0.0,
+                'warning' => '',
+            ],
+        ];
+        if (!$include) {
+            return $empty;
+        }
+        try {
+            $rows = (new FinCashFlowSapSyncService())->fetchOpenOrders($branchId);
+        } catch (\Throwable $e) {
+            $empty['summary']['included'] = true;
+            $empty['summary']['warning'] = 'Não foi possível ler os pedidos em aberto no SAP.';
+            return $empty;
+        }
+        $byDate = [];
+        $summary = $empty['summary'];
+        $summary['included'] = true;
+        foreach ($rows as $row) {
+            $due = (string) ($row['due_date'] ?? '');
+            $amt = (float) ($row['open_amount'] ?? 0);
+            $isAr = (($row['source_type'] ?? '') === 'AR');
+            $inWindow = $due !== '' && $due >= $windowStart && $due <= $windowEnd;
+            if ($inWindow) {
+                if (!isset($byDate[$due])) {
+                    $byDate[$due] = ['ar' => 0.0, 'ap' => 0.0];
+                }
+                if ($isAr) {
+                    $byDate[$due]['ar'] += $amt;
+                    $summary['na_grade_receber'] += $amt;
+                } else {
+                    $byDate[$due]['ap'] += $amt;
+                    $summary['na_grade_pagar'] += $amt;
+                }
+            } elseif ($isAr) {
+                $summary['fora_receber'] += $amt;
+            } else {
+                $summary['fora_pagar'] += $amt;
+            }
+        }
+        return ['by_date' => $byDate, 'summary' => $summary];
+    }
+
+    /**
+     * Previsto do mês a partir do corte. Vencido em dias anteriores não entra na projeção.
+     *
+     * @param array<string, array{ar:float,ap:float}> $forecastByDate
+     */
+    private function forecastNetFrom(array $forecastByDate, int $year, int $month, string $fromDate): float
+    {
+        $prefix = sprintf('%04d-%02d', $year, $month);
+        $net = 0.0;
+        foreach ($forecastByDate as $date => $fc) {
+            if (substr((string) $date, 0, 7) !== $prefix || (string) $date < $fromDate) {
+                continue;
+            }
+            $net += (float) $fc['ar'] - (float) $fc['ap'];
+        }
+        return $net;
     }
 
     /**

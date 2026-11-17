@@ -195,6 +195,30 @@ class FinCashFlowCacheRepository extends DbConnection
         return $val ? (string) $val : null;
     }
 
+    public function earliestOpeningDate(): ?string
+    {
+        $val = $this->getConnection()->query('SELECT MIN(as_of_date) FROM adms_fin_cash_opening')->fetchColumn();
+        return $val ? (string) $val : null;
+    }
+
+    /**
+     * Saldo imediatamente anterior à data, usando o snapshot mais recente que não passa dela.
+     *
+     * @return array{date:?string,map:array<string,float>}
+     */
+    public function openingOnOrBefore(string $asOfDate): array
+    {
+        $stmt = $this->getConnection()->prepare(
+            'SELECT MAX(as_of_date) FROM adms_fin_cash_opening WHERE as_of_date <= :d'
+        );
+        $stmt->execute([':d' => $asOfDate]);
+        $date = $stmt->fetchColumn();
+        if (!$date) {
+            return ['date' => null, 'map' => []];
+        }
+        return ['date' => (string) $date, 'map' => $this->getOpeningMap((string) $date)];
+    }
+
     public function deleteDailyRange(DateTimeImmutable $from, DateTimeImmutable $to): int
     {
         $stmt = $this->getConnection()->prepare(

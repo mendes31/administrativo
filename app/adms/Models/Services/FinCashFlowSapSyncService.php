@@ -349,7 +349,7 @@ class FinCashFlowSapSyncService
             if ($date === null || $gl === '') {
                 continue;
             }
-            $key = $date . '|' . $gl;
+            $key = $date . '|' . $gl . '|' . (int) $this->num($row, ['Filial', 'BPLId']);
             if (!isset($map[$key])) {
                 $map[$key] = ['in' => 0.0, 'out' => 0.0];
             }
@@ -367,7 +367,7 @@ class FinCashFlowSapSyncService
     private function applyInternalTransfers(array $daily, array $internal): array
     {
         foreach ($daily as &$row) {
-            $key = $row['movement_date'] . '|' . $row['sap_gl_account'];
+            $key = $row['movement_date'] . '|' . $row['sap_gl_account'] . '|' . (int) ($row['sap_bpl_id'] ?? 0);
             if (!isset($internal[$key])) {
                 continue;
             }
@@ -534,6 +534,7 @@ class FinCashFlowSapSyncService
         return 'SELECT
             T1."RefDate" AS "Data",
             T1."Account" AS "ContaContabil",
+            IFNULL(T1."BPLId", 0) AS "Filial",
             SUM(T1."Debit") AS "EntradaInterna",
             SUM(T1."Credit") AS "SaidaInterna"
         FROM JDT1 T1
@@ -548,7 +549,7 @@ class FinCashFlowSapSyncService
                  AND ABS(SUM(X."Debit") - SUM(X."Credit")) < 0.05
           )
           AND ' . $this->financialAccountFilter('T1') . '
-        GROUP BY T1."RefDate", T1."Account"';
+        GROUP BY T1."RefDate", T1."Account", IFNULL(T1."BPLId", 0)';
     }
 
     /**
@@ -723,6 +724,72 @@ class FinCashFlowSapSyncService
             return '';
         }
         return $value;
+    }
+
+    /**
+     * Pedido de venda e de compra digitado, ainda aberto e não cancelado.
+     * O valor é o saldo das linhas em aberto, para não repetir o que já virou nota.
+     *
+     * @return list<array<string, mixed>>
+     */
+    public function fetchOpenOrders(?int $branchId): array
+    {
+        $out = [];
+        foreach ([
+            ['ORDR', 'RDR1', 'AR', 'Pedido de venda'],
+            ['OPOR', 'POR1', 'AP', 'Pedido de compra'],
+        ] as [$header, $lines, $source, $origin]) {
+            foreach ($this->querySql($this->sqlOpenOrders($header, $lines, $branchId)) as $row) {
+                $open = $this->num($row, ['Aberto', 'OpenAmount']);
+                if (abs($open) < 0.005) {
+                    continue;
+                }
+                $due = $this->normalizeDate($this->col($row, ['DataPrevista', 'DocDueDate']));
+                if ($due === null) {
+                    $due = $this->normalizeDate($this->col($row, ['DocDate']));
+                }
+                if ($due === null) {
+                    continue;
+                }
+                $out[] = [
+                    'source_type' => $source,
+                    'origin' => $origin,
+                    'due_date' => $due,
+                    'doc_num' => (int) $this->num($row, ['DocNum']),
+                    'card_code' => $this->col($row, ['CardCode']),
+                    'card_name' => $this->col($row, ['CardName']),
+                    'sap_bpl_id' => (int) $this->num($row, ['Filial', 'BPLId']),
+                    'open_amount' => $open,
+                ];
+            }
+        }
+        return $out;
+    }
+
+    private function sqlOpenOrders(string $header, string $lines, ?int $branchId): string
+    {
+        $bpl = '';
+        if ($branchId !== null && $branchId >= 0) {
+            $bpl = ' AND IFNULL(T0."BPLId", 0) = ' . (int) $branchId;
+        }
+        return 'SELECT
+            T0."DocDueDate" AS "DataPrevista",
+            T0."DocDate" AS "DocDate",
+            T0."DocNum" AS "DocNum",
+            T0."CardCode" AS "CardCode",
+            T0."CardName" AS "CardName",
+            IFNULL(T0."BPLId", 0) AS "Filial",
+            SUM(CASE
+                WHEN T1."LineStatus" <> \'O\' THEN 0
+                WHEN IFNULL(T1."Quantity", 0) > 0.0001 THEN T1."LineTotal" * (T1."OpenQty" / T1."Quantity")
+                ELSE T1."LineTotal"
+            END) AS "Aberto"
+        FROM ' . $header . ' T0
+        INNER JOIN ' . $lines . ' T1 ON T1."DocEntry" = T0."DocEntry"
+        WHERE T0."DocStatus" = \'O\'
+          AND IFNULL(T0."CANCELED", \'N\') = \'N\'
+          ' . $bpl . '
+        GROUP BY T0."DocDueDate", T0."DocDate", T0."DocNum", T0."CardCode", T0."CardName", IFNULL(T0."BPLId", 0)';
     }
 
     /**

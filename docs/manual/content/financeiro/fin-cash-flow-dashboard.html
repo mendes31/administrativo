@@ -1,20 +1,20 @@
 <h1>Dashboard Fluxo de Caixa SAP</h1>
 
 <h2>Função no sistema</h2>
-<p>Painel de tesouraria com fluxo de caixa <strong>diário</strong> e <strong>mensal</strong>, comparando valores <strong>efetivos</strong> (já lançados no SAP) e <strong>previstos</strong> (títulos em aberto por vencimento). Os dados vêm de um <strong>cache MySQL</strong> sincronizado pela API SAP B1 já parametrizada em Configuração SAP API — a tela não consulta o HANA a cada filtro.</p>
+<p>Painel de tesouraria com fluxo de caixa <strong>diário</strong>, <strong>semanal</strong> e <strong>mensal</strong>, mais as <strong>faixas de vencimento</strong>. Compara o <strong>efetivo</strong> (já lançado no SAP) e o <strong>previsto</strong> (título em aberto por vencimento). Os dados vêm de um <strong>cache MySQL</strong> sincronizado pela API SAP B1. O pedido em aberto só é lido no SAP quando a opção está marcada.</p>
 
 <h2>O que significam os termos</h2>
 <dl>
     <dt>Efetivo / realizado</dt>
     <dd>Movimentações que já alteraram caixa/bancos no SAP (lançamentos em <code>JDT1</code>), na data contábil (<code>RefDate</code>).</dd>
     <dt>Previsto</dt>
-    <dd>Saldo em aberto do parceiro no razão (<code>JDT1</code>, <code>BalDueDeb</code> / <code>BalDueCred</code>), com a mesma filial e o mesmo horizonte dos indicadores. Entram nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada sai. Vencido antes do corte do período entra nesse dia, uma vez; título dentro do horizonte fica no próprio vencimento. A soma da grade diária fecha com <strong>A receber</strong>, <strong>A pagar</strong> e com o recorte horizonte da aba Detalhes. A coluna <strong>Observação</strong> traz o texto da linha (<code>LineMemo</code>) ou, se estiver vazio, o do lançamento (<code>OJDT.Memo</code>). Crédito e adiantamento não aplicado reduzem o total. O recorte <strong>Todos os abertos</strong> é o que fecha com o saldo do parceiro e inclui vencimentos depois do horizonte.</dd>
+    <dd>Saldo em aberto do parceiro no razão (<code>JDT1</code>, <code>BalDueDeb</code> / <code>BalDueCred</code>), com a mesma filial e o mesmo horizonte dos indicadores. Entram nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada sai. Na grade, o título fica na própria data de vencimento. O estoque vencido antes do mês entra em <strong>A receber</strong> e <strong>A pagar</strong> e na aba Detalhes, e não vira um movimento único no dia de hoje. A projeção soma, sobre o saldo efetivo, só o que vence de hoje em diante. A coluna <strong>Observação</strong> traz o texto da linha (<code>LineMemo</code>) ou, se estiver vazio, o do lançamento (<code>OJDT.Memo</code>). Crédito e adiantamento não aplicado reduzem o total. O recorte <strong>Todos os abertos</strong> é o que fecha com o saldo do parceiro e inclui vencimentos depois do horizonte.</dd>
     <dt>Nº Doc SAP × NF × Título</dt>
     <dd><strong>Nº Doc SAP</strong> é o número interno da <strong>NFS</strong> (Nota Fiscal de Saída, a receber) ou da <strong>NFE</strong> (Nota Fiscal de Entrada, a pagar). <strong>NF</strong> é o Serial da nota fiscal. <strong>Título</strong> é o boleto quando existir. Não use o Nº Doc SAP na tela de títulos.</dd>
     <dt>Vencido</dt>
     <dd>Saldo ainda aberto e data de vencimento anterior a hoje. Título já liquidado não é classificado como vencido e não aparece na lista.</dd>
     <dt>Saldo inicial</dt>
-    <dd>Posição das contas financeiras imediatamente antes do primeiro dia do período.</dd>
+    <dd>Posição das contas de caixa e banco no primeiro dia do período. Usa o saldo gravado mais recente que não passa dessa data e soma os movimentos seguintes. Um sync incremental não substitui o saldo do início do mês pelo saldo de alguns dias atrás.</dd>
     <dt>Saldo financeiro</dt>
     <dd>Posição das contas de caixa e banco: saldo inicial mais o movimento líquido (entrada − saída), o mesmo critério da aba Bancos/Contas. Transferência entre essas contas não aparece como receita nem despesa.</dd>
     <dt>Aplicações</dt>
@@ -24,7 +24,13 @@
     <dt>Disponibilidade ampliada</dt>
     <dd>Disponibilidade própria + limites cadastrados nas contas financeiras.</dd>
     <dt>Necessidade de caixa</dt>
-    <dd>A receber menos a pagar no horizonte escolhido. Valor negativo indica pressão de caixa.</dd>
+    <dd>A receber menos a pagar no horizonte escolhido. Valor negativo indica pressão de caixa. Pedido não entra neste número.</dd>
+    <dt>Fluxo semanal</dt>
+    <dd>O mesmo diário, somado de segunda a domingo, até o fim do horizonte. É o intervalo usado no fluxo de caixa do SAP.</dd>
+    <dt>Faixa de vencimento</dt>
+    <dd>Títulos em aberto do razão agrupados em a vencer, vencido de 1 a 30 dias, 31 a 60, 61 a 90 e acima de 90. Serve para organizar cobrança e pagamento. Pedido não entra.</dd>
+    <dt>Somar pedidos em aberto</dt>
+    <dd>Opção desligada por padrão. Ligada, soma o pedido de venda e o de compra já digitados, ainda abertos e não cancelados, na previsão do diário e do semanal. O valor é o saldo das linhas ainda não faturadas, para não repetir a nota. Esboço não entra. <strong>A receber</strong> e <strong>A pagar</strong> continuam só com o razão.</dd>
     <dt>Transferência interna</dt>
     <dd>Movimento entre duas contas financeiras do mesmo lançamento. No consolidado o impacto é zero; na visão por conta continua visível.</dd>
     <dt>Cache / sincronização</dt>
@@ -40,7 +46,8 @@
     <li>Rode a carga completa no servidor: <code>php scripts/sync_fin_cash_flow_sap.php --full</code>.</li>
     <li>Acesse <strong>Financeiro → Dashboard Fluxo de Caixa SAP</strong>.</li>
     <li>Escolha mês/ano, filial, conta, cenário (efetivo + previsto, só efetivo ou só previsto) e horizonte (7 a 90 dias).</li>
-    <li>Analise os KPIs, o fluxo diário (painéis efetivo/previsto e tabela combinada), o mensal, bancos e aplicações. As abas não se perdem: o filtro vale para todas.</li>
+    <li>Analise os KPIs, o fluxo diário, o semanal, as faixas de vencimento, o mensal, bancos e aplicações. O filtro vale para todas.</li>
+    <li>Para incluir pedido digitado e ainda não faturado na previsão, marque <strong>Somar pedidos em aberto</strong> e aplique. A receber e A pagar não mudam.</li>
     <li>Use a aba <strong>Detalhes</strong> para conferir, documento a documento, o que compõe <strong>A receber</strong> e <strong>A pagar</strong>. O recorte padrão é o mesmo horizonte dos KPIs (incluindo vencidos). Dá para filtrar pelo mês, só vencidos ou todos os abertos, e buscar por NF/parceiro. Clique no KPI A receber ou A pagar para abrir essa lista já filtrada.</li>
     <li>Clique em um valor da tabela diária para abrir o detalhamento daquele dia (drawer), sem sair da visão diária.</li>
     <li>Lance aplicações, resgates e rendimentos em <strong>Aplicações Financeiras</strong> — esses valores entram no KPI de aplicações e na aba Aplicações.</li>
@@ -52,7 +59,8 @@
 <div class="help-field"><strong>Filial</strong> Filtra movimentos e títulos pelo <code>BPLId</code> do SAP, quando houver.</div>
 <div class="help-field"><strong>Banco / Conta</strong> Conta contábil parametrizada em Contas Financeiras SAP.</div>
 <div class="help-field"><strong>Cenário</strong> Mostra colunas efetivas, previstas ou ambas na visão combinada.</div>
-<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) usada junta pelos KPIs, pela grade diária, pelo mensal e pelo recorte horizonte dos detalhes. Entram títulos em aberto com vencimento até hoje + N dias, vencidos inclusos. Vencido antes do corte do mês vai para esse dia. Se o horizonte passar do mês, a grade diária continua até essa data.</div>
+<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) dos KPIs, da grade diária, do semanal, do mensal e do recorte horizonte dos detalhes. Entram títulos em aberto com vencimento até hoje + N dias, vencidos inclusos. Na grade cada um fica na própria data. Se o horizonte passar do mês, a grade continua até essa data.</div>
+<div class="help-field"><strong>Somar pedidos em aberto</strong> Desligado por padrão. Ligado, o pedido de venda e o de compra digitados e ainda abertos entram na receita e na despesa previstas. Não altera A receber, A pagar nem a faixa de vencimento.</div>
 <div class="help-field"><strong>Aba Detalhes</strong> Lista as parcelas em aberto de contas a receber (<strong>NFS</strong>) e a pagar (<strong>NFE</strong>). Uma nota pode ter vários títulos (parcelas). Pedidos de venda/compra não entram.</div>
 <div class="help-field"><strong>NF</strong> Número da nota fiscal (<code>Serial</code> do SAP; se vazio, tenta <code>FolioNum</code>). Não é o número interno do documento.</div>
 <div class="help-field"><strong>Título</strong> Número do boleto (<code>OBOE.BoeNum</code>) quando o SAP tiver título/boleto vinculado à parcela. Se não houver boleto, a coluna fica em branco.</div>
@@ -76,7 +84,7 @@
     <dt>Aplicações não batem com a planilha</dt>
     <dd>O SAP em geral só traz rendimentos. Lance aplicações e resgates em <em>ListFinCashInvestments</em> e classifique as contas SAP do tipo Aplicação.</dd>
     <dt>Totais da aba Detalhes diferentes dos KPIs</dt>
-    <dd>No recorte <strong>Horizonte dos KPIs</strong>, sem filtro de tipo nem busca, A receber e A pagar da lista fecham com os KPIs e com o total previsto da grade diária. Outros recortes (mês, vencidos, todos) usam outro conjunto. O filtro Banco/Conta vale para o saldo efetivo, não para os títulos. Filial vale para os dois.</dd>
+    <dd>No recorte <strong>Horizonte dos KPIs</strong>, sem filtro de tipo nem busca, A receber e A pagar da lista fecham com os KPIs. A grade diária não repete, num único dia, o que venceu antes do mês. Outros recortes (mês, vencidos, todos) usam outro conjunto. O filtro Banco/Conta vale para o saldo efetivo, não para os títulos. Filial vale para os dois.</dd>
     <dt>Não acho um documento na lista</dt>
     <dd>A lista só tem saldo em aberto no razão. Linha já conciliada some depois da sincronização. O recorte <strong>Todos os abertos</strong> é a comparação com o relatório de vencimentos do SAP. O KPI não inclui vencimentos depois do horizonte. Filial restringe a lista e por isso pode divergir do saldo geral do parceiro.</dd>
     <dt>Sync automático falhou</dt>
