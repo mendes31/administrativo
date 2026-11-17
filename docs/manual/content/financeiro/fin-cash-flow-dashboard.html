@@ -23,6 +23,10 @@
     <dd>Saldo financeiro + aplicações, sem incluir limite de crédito bancário.</dd>
     <dt>Disponibilidade ampliada</dt>
     <dd>Disponibilidade própria + limites cadastrados nas contas financeiras.</dd>
+    <dt>Como ler os indicadores</dt>
+    <dd><strong>Posição agora</strong> é o estoque: caixa até a data de corte, aplicações, e o que ainda está em aberto (vencidos mais o que vence até Até, se a opção estiver marcada). <strong>Neste intervalo</strong> é só o filtro: quanto o caixa mudou desde De, e os títulos que vencem entre De e Até. A projeção e a diferença em aberto ficam na linha abaixo, sem cartão próprio.</dd>
+    <dt>Aplicações</dt>
+    <dd>Saldo na data de corte, não é movimento do intervalo. A aba <strong>Aplicações</strong> lista as contas financeiras marcadas como aplicação no SAP: é essa soma que forma o cartão quando não há lançamento local. A grade mensal da mesma aba só mostra o que foi digitado em <strong>Lançar aplicações</strong>. Se o mesmo dinheiro estiver na conta SAP e também num lançamento local, o cartão soma os dois.</dd>
     <dt>Necessidade de caixa</dt>
     <dd>A receber menos a pagar no horizonte escolhido. Valor negativo indica pressão de caixa. Pedido não entra neste número.</dd>
     <dt>Fluxo semanal</dt>
@@ -67,7 +71,7 @@
 <div class="help-field"><strong>Título</strong> Número do boleto (<code>OBOE.BoeNum</code>) quando o SAP tiver título/boleto vinculado à parcela. Se não houver boleto, a coluna fica em branco.</div>
 <div class="help-field"><strong>Nº Doc SAP</strong> Número interno da nota no SAP, exibido antes da NF. <em>A receber</em> = <strong>NFS</strong> (Nota Fiscal de Saída). <em>A pagar</em> = <strong>NFE</strong> (Nota Fiscal de Entrada). Não use esse número na tela de títulos/boletos.</div>
 <div class="help-field"><strong>Status</strong> Calculado na tela: <em>Vencido</em> só se o saldo ainda está aberto e a data de vencimento já passou. Parcela liquidada (<code>INV6/PCH6.Status = C</code> ou saldo zero) não entra na lista. <em>Hoje</em> = vence hoje e ainda aberto. <em>No prazo</em> = vence no futuro e ainda aberto.</div>
-<div class="help-field"><strong>Recorte (Detalhes)</strong> Horizonte dos KPIs (padrão, para bater com A receber/A pagar), mês do filtro, somente vencidos ou todos os abertos no cache.</div>
+<div class="help-field"><strong>Recorte (Detalhes)</strong> Intervalo De–Até (padrão). Nesse recorte, sem tipo nem busca, a lista é a dos indicadores e os cartões de total não se repetem. Mês da data De, somente vencidos ou todos os abertos mostram os próprios totais.</div>
 <div class="help-field"><strong>Tipo / Buscar (Detalhes)</strong> Restringe a A receber, A pagar ou ambos; busca por número da NF, código ou nome do parceiro.</div>
 <div class="help-field"><strong>Sincronizar SAP</strong> Incremental na web (janela desde a última sync com overlap de 7 dias). Full somente via CLI <code>--full</code>.</div>
 <div class="help-field"><strong>CLI</strong> <code>php scripts/sync_fin_cash_flow_sap.php</code> (incremental), <code>--full</code>, <code>--today</code>, <code>--accounts</code>.</div>

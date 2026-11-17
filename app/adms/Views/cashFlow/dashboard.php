@@ -71,7 +71,9 @@ $year = (int) date('Y');
 .fcf-dash .fcf-legend{display:flex; gap:18px; flex-wrap:wrap; font-size:12px; color:var(--fcf-ink-mute); margin:0 0 12px;}
 .fcf-dash .fcf-sw{width:20px; height:0; border-top:3px solid var(--fcf-ink); display:inline-block; margin-right:6px; vertical-align:middle;}
 .fcf-dash .fcf-sw.dashed{border-top:3px dashed var(--fcf-blue);}
-.fcf-dash .fcf-kpis{display:grid; grid-template-columns:repeat(5,1fr); gap:11px; margin-bottom:12px;}
+.fcf-dash .fcf-kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:11px; margin-bottom:6px;}
+.fcf-dash .fcf-kpis-label{font-size:13px; font-weight:700; color:var(--fcf-ink); margin:8px 0 8px;}
+.fcf-dash .fcf-aside{margin:0 0 14px; font-size:12.5px; color:var(--fcf-ink-soft);}
 .fcf-dash .fcf-kpi{
   background:var(--fcf-surface); border:1px solid var(--fcf-line); border-radius:var(--fcf-radius);
   padding:14px 15px; box-shadow:var(--fcf-shadow); border-left:4px solid var(--fcf-blue);
@@ -85,7 +87,9 @@ $year = (int) date('Y');
 .fcf-dash .kv{font-size:20px; font-weight:800; margin-top:5px; letter-spacing:-.01em;}
 .fcf-dash .kh{font-size:11px; color:var(--fcf-ink-mute); margin-top:3px;}
 .fcf-dash .accent .kh{color:#DCEEE2;}
-.fcf-dash .pos{color:var(--fcf-green)!important;} .fcf-dash .neg{color:var(--fcf-red)!important;}
+.fcf-dash .pos,.fcf-dash .in{color:var(--fcf-green)!important;}
+.fcf-dash .neg,.fcf-dash .out,.fcf-dash .fcf-kpi.neg .kv{color:var(--fcf-red)!important;}
+.fcf-dash td.out,.fcf-dash tfoot td.out{background:var(--fcf-red-tint);}
 .fcf-dash .tabs{display:flex; gap:6px; margin:12px 0 10px; flex-wrap:wrap;}
 .fcf-dash .tab{padding:9px 14px; background:#E8EEF4; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; color:var(--fcf-ink-soft);}
 .fcf-dash .tab.active{background:var(--fcf-green); color:#fff;}
@@ -253,8 +257,11 @@ $year = (int) date('Y');
       <div><span class="fcf-sw dashed"></span>Previsto — títulos em aberto por vencimento</div>
     </div>
 
+    <div class="fcf-kpis-label">Posição agora</div>
     <div class="fcf-kpis" id="kpiRow1"></div>
+    <div class="fcf-kpis-label" id="kpiIntervalLabel">Neste intervalo</div>
     <div class="fcf-kpis" id="kpiRow2"></div>
+    <p class="fcf-aside" id="kpiAside"></p>
     <div id="fcfOrdersNote" class="fcf-orders-note" style="display:none"></div>
 
     <div class="tabs">
@@ -410,4 +417,4 @@ $year = (int) date('Y');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=14"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=19"></script>

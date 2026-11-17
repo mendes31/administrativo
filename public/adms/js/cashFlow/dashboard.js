@@ -143,8 +143,9 @@
 
   function kpiCard(label, value, hint, kind, jump) {
     const extra = jump ? ' data-jump="' + jump + '"' : '';
+    const valueCls = kind === 'neg' ? 'out' : cls(value);
     return '<div class="fcf-kpi ' + (kind || '') + '"' + extra + '><div class="kt">' + label + '</div>'
-      + '<div class="kv ' + cls(value) + '">' + fmt(value, true) + '</div>'
+      + '<div class="kv ' + valueCls + '">' + fmt(value, true) + '</div>'
       + '<div class="kh">' + (hint || '') + '</div></div>';
   }
 
@@ -158,23 +159,31 @@
     const f = data.filters || {};
     const de = brDate(f.date_from);
     const ate = brDate(f.date_to);
-    const recHint = f.include_overdue
-      ? ('Vencimento até ' + ate + ', mais os vencidos antes de ' + de)
-      : ('Somente vencimento de ' + de + ' a ' + ate);
+    const abertoHint = f.include_overdue
+      ? ('Vencidos e o que vence até ' + ate)
+      : ('Só o que vence de ' + de + ' a ' + ate);
+    const venceHint = 'Vencimento de ' + de + ' a ' + ate + (f.include_orders ? '. Inclui pedidos em aberto.' : '.');
+    const movimento = Number(k.acumulado_efetivo || 0) - Number(k.saldo_inicial || 0);
+    const previstoLiq = Number(k.a_receber_intervalo || 0) - Number(k.a_pagar_intervalo || 0);
     $('kpiRow1').innerHTML = [
-      kpiCard('Saldo inicial', k.saldo_inicial, 'Posição em ' + de, 'accent'),
-      kpiCard('Acumulado efetivo', k.acumulado_efetivo, 'Até a data de corte', 'pos'),
-      kpiCard('Projeção no fim do intervalo', k.projecao_fim, 'Saldo efetivo + títulos que vencem de hoje até ' + ate),
-      kpiCard('Aplicações', k.aplicacoes, 'Locais + contas classificadas'),
-      kpiCard('Limites disponíveis', k.limites, 'Crédito bancário cadastrado'),
+      kpiCard('Caixa', k.acumulado_efetivo, 'Saldo inicial em ' + de + ': ' + fmt(k.saldo_inicial, true), 'accent'),
+      kpiCard('Aplicações', k.aplicacoes, 'Contas de aplicação no SAP. A lista está na aba Aplicações.'),
+      kpiCard('A receber em aberto', k.a_receber, abertoHint, 'pos', 'AR'),
+      kpiCard('A pagar em aberto', k.a_pagar, abertoHint, 'neg', 'AP'),
     ].join('');
+    if ($('kpiIntervalLabel')) {
+      $('kpiIntervalLabel').textContent = 'Neste intervalo · ' + de + ' a ' + ate;
+    }
     $('kpiRow2').innerHTML = [
-      kpiCard('A receber · intervalo', k.a_receber, recHint, 'pos', 'AR'),
-      kpiCard('A pagar · intervalo', k.a_pagar, recHint, 'neg', 'AP'),
-      kpiCard('Disponibilidade própria', k.disponibilidade_propria, 'Saldo financeiro + aplicações', 'pos'),
-      kpiCard('Necessidade de caixa', k.necessidade_caixa, 'A receber − a pagar no mesmo recorte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
-      kpiCard('Menor saldo projetado', k.menor_saldo_projetado, k.menor_saldo_data ? ('Em ' + k.menor_saldo_data.split('-').reverse().join('/')) : '', 'warn'),
+      kpiCard('Movimento de caixa', movimento, 'Quanto o caixa mudou desde ' + de + '. Não inclui o saldo inicial.', Number(movimento) < 0 ? 'neg' : 'pos'),
+      kpiCard('A receber que vence', k.a_receber_intervalo, venceHint, 'pos'),
+      kpiCard('A pagar que vence', k.a_pagar_intervalo, venceHint, 'neg'),
+      kpiCard('Previsto líquido', previstoLiq, 'A receber que vence − a pagar que vence', Number(previstoLiq) < 0 ? 'neg' : 'pos'),
     ].join('');
+    if ($('kpiAside')) {
+      $('kpiAside').textContent = 'Projeção em ' + ate + ': ' + fmt(k.projecao_fim, true)
+        + '  ·  Em aberto, receber menos pagar: ' + fmt(k.necessidade_caixa, true);
+    }
 
     renderOrdersNote(data.orders || {}, data.filters || {});
     renderDaily(data.daily || [], data.filters?.scenario || 'both');
@@ -183,7 +192,7 @@
     renderAging(data.aging || {});
     renderMonthly(data.monthly || {});
     renderAccounts(data.accounts || []);
-    renderInvestments(data.investments_monthly || {});
+    renderInvestments(data.investments_monthly || {}, data.accounts || []);
     renderDetail(data);
   }
 
@@ -210,20 +219,20 @@
       const today = r.is_today ? ' class="today-row"' : '';
       const label = dayLabel(r);
       ef.push('<tr' + today + '><td>' + label + '</td>'
-        + '<td class="drill" data-kind="receita_ef" data-date="' + r.date + '">' + fmt(r.receita_ef) + '</td>'
-        + '<td class="drill" data-kind="despesa_ef" data-date="' + r.date + '">' + fmt(r.despesa_ef) + '</td>'
+        + '<td class="drill in" data-kind="receita_ef" data-date="' + r.date + '">' + fmt(r.receita_ef) + '</td>'
+        + '<td class="drill out" data-kind="despesa_ef" data-date="' + r.date + '">' + fmt(r.despesa_ef) + '</td>'
         + '<td class="' + cellCls(r.saldo_ef) + '">' + fmt(r.saldo_ef) + '</td>'
         + '<td>' + (r.acum_ef === null ? '—' : fmt(r.acum_ef)) + '</td></tr>');
       pv.push('<tr' + today + '><td>' + label + '</td>'
-        + '<td class="drill" data-kind="receita_prev" data-date="' + r.date + '">' + fmt(r.receita_prev) + '</td>'
-        + '<td class="drill" data-kind="despesa_prev" data-date="' + r.date + '">' + fmt(r.despesa_prev) + '</td>'
+        + '<td class="drill in" data-kind="receita_prev" data-date="' + r.date + '">' + fmt(r.receita_prev) + '</td>'
+        + '<td class="drill out" data-kind="despesa_prev" data-date="' + r.date + '">' + fmt(r.despesa_prev) + '</td>'
         + '<td class="' + cellCls(r.saldo_prev) + '">' + fmt(r.saldo_prev) + '</td>'
         + '<td>' + fmt(r.acum_proj) + '</td></tr>');
     });
     $('tblEf').innerHTML = ef.join('') || '<tr><td colspan="5">Sem movimentos efetivos no período.</td></tr>';
     $('tblPv').innerHTML = pv.join('') || '<tr><td colspan="5">Sem títulos previstos no período.</td></tr>';
-    $('footEf').innerHTML = '<tr><td>Total</td><td>' + fmt(tRecE) + '</td><td>' + fmt(tDesE) + '</td><td class="' + cellCls(tSaldoE) + '">' + fmt(tSaldoE) + '</td><td></td></tr>';
-    $('footPv').innerHTML = '<tr><td>Total</td><td>' + fmt(tRecP) + '</td><td>' + fmt(tDesP) + '</td><td class="' + cellCls(tSaldoP) + '">' + fmt(tSaldoP) + '</td><td></td></tr>';
+    $('footEf').innerHTML = '<tr><td>Total</td><td class="in">' + fmt(tRecE) + '</td><td class="out">' + fmt(tDesE) + '</td><td class="' + cellCls(tSaldoE) + '">' + fmt(tSaldoE) + '</td><td></td></tr>';
+    $('footPv').innerHTML = '<tr><td>Total</td><td class="in">' + fmt(tRecP) + '</td><td class="out">' + fmt(tDesP) + '</td><td class="' + cellCls(tSaldoP) + '">' + fmt(tSaldoP) + '</td><td></td></tr>';
 
     const combo = $('tblCombo');
     combo.querySelector('thead').innerHTML = '<tr><th>Dia</th>'
@@ -232,8 +241,8 @@
       + '<th>Acumulado projetado</th></tr>';
     combo.querySelector('tbody').innerHTML = rows.map(function (r) {
       return '<tr' + (r.is_today ? ' class="today-row"' : '') + '><td>' + dayLabel(r) + '</td>'
-        + (showEf ? '<td>' + fmt(r.receita_ef) + '</td><td>' + fmt(r.despesa_ef) + '</td><td class="' + cls(r.saldo_ef) + '">' + fmt(r.saldo_ef) + '</td>' : '')
-        + (showPv ? '<td class="prev-col">' + fmt(r.receita_prev) + '</td><td class="prev-col">' + fmt(r.despesa_prev) + '</td><td class="prev-col ' + cls(r.saldo_prev) + '">' + fmt(r.saldo_prev) + '</td>' : '')
+        + (showEf ? '<td class="in">' + fmt(r.receita_ef) + '</td><td class="out">' + fmt(r.despesa_ef) + '</td><td class="' + cls(r.saldo_ef) + '">' + fmt(r.saldo_ef) + '</td>' : '')
+        + (showPv ? '<td class="prev-col in">' + fmt(r.receita_prev) + '</td><td class="prev-col out">' + fmt(r.despesa_prev) + '</td><td class="prev-col ' + cls(r.saldo_prev) + '">' + fmt(r.saldo_prev) + '</td>' : '')
         + '<td class="' + cls(r.acum_proj) + '">' + fmt(r.acum_proj) + '</td></tr>';
     }).join('');
   }
@@ -304,9 +313,9 @@
       const ini = String(r.week_start || '').split('-').reverse().join('/');
       const fim = String(r.week_end || '').split('-').reverse().join('/');
       return '<tr><td>' + ini + ' a ' + fim + '</td>'
-        + '<td>' + fmt(r.receita_ef) + '</td><td>' + fmt(r.despesa_ef) + '</td>'
-        + '<td>' + fmt(r.receita_prev) + '</td><td>' + fmt(r.despesa_prev) + '</td>'
-        + '<td>' + fmt(r.pedido_receber) + '</td><td>' + fmt(r.pedido_pagar) + '</td>'
+        + '<td class="in">' + fmt(r.receita_ef) + '</td><td class="out">' + fmt(r.despesa_ef) + '</td>'
+        + '<td class="in">' + fmt(r.receita_prev) + '</td><td class="out">' + fmt(r.despesa_prev) + '</td>'
+        + '<td class="in">' + fmt(r.pedido_receber) + '</td><td class="out">' + fmt(r.pedido_pagar) + '</td>'
         + '<td class="' + cls(r.acum_proj) + '">' + fmt(r.acum_proj) + '</td></tr>';
     }).join('') || '<tr><td colspan="8">Sem semanas no período.</td></tr>';
   }
@@ -378,16 +387,30 @@
     }).join('') || '<tr><td colspan="7">Nenhuma conta parametrizada. Importe as contas do SAP.</td></tr>';
   }
 
-  function renderInvestments(inv) {
+  function renderInvestments(inv, accounts) {
     const wrap = $('invTables');
     if (!wrap) return;
-    const tables = inv.tables || [];
-    if (!tables.length) {
-      wrap.innerHTML = '<p class="kh">Nenhum lançamento de aplicação. Use “Lançar aplicações” para registrar aplicação, resgate ou rendimento.</p>';
-      return;
+    const sap = (accounts || []).filter(function (a) { return String(a.type || '') === 'INVESTMENT'; });
+    let sapTotal = 0;
+    let sapHtml = '<h3 style="font-size:15px;margin:4px 0 8px;">Contas de aplicação no SAP</h3>';
+    sapHtml += '<p class="kh" style="margin:0 0 8px;">É este saldo que aparece no cartão Aplicações. A grade de meses, mais abaixo, só recebe o que foi digitado em Lançar aplicações.</p>';
+    if (!sap.length) {
+      sapHtml += '<p class="kh">Nenhuma conta financeira está classificada como aplicação.</p>';
+    } else {
+      sapHtml += '<table><thead><tr><th>Conta</th><th>Nome</th><th>Saldo</th></tr></thead><tbody>';
+      sap.forEach(function (a) {
+        const valor = Number(a.aplicacao || 0);
+        sapTotal += valor;
+        sapHtml += '<tr><td>' + esc(a.gl || '') + '</td><td>' + esc(a.bank || '') + '</td><td class="' + cls(valor) + '">' + fmt(valor) + '</td></tr>';
+      });
+      sapHtml += '</tbody><tfoot><tr><td colspan="2">Total no cartão, parte SAP</td><td class="' + cls(sapTotal) + '">' + fmt(sapTotal) + '</td></tr></tfoot></table>';
     }
-    wrap.innerHTML = tables.map(function (t) {
-      let html = '<h3 style="font-size:15px;margin:12px 0 8px;">' + t.title + '</h3>';
+    const tables = inv.tables || [];
+    const localHtml = tables.map(function (t) {
+      if (!(t.banks || []).length) {
+        return '<h3 style="font-size:15px;margin:16px 0 8px;">' + t.title + ' — lançamentos locais</h3><p class="kh">Nenhum lançamento local nesta categoria.</p>';
+      }
+      let html = '<h3 style="font-size:15px;margin:16px 0 8px;">' + t.title + ' — lançamentos locais</h3>';
       html += '<div style="overflow:auto;"><table class="month"><thead><tr><th>Bancos</th>';
       monthNames.forEach(function (n) { html += '<th>' + n + '</th>'; });
       html += '<th>Total</th></tr></thead><tbody>';
@@ -401,6 +424,7 @@
       html += '<td>' + fmt(t.grand_total || 0, true) + '</td></tr></tbody></table></div>';
       return html;
     }).join('');
+    wrap.innerHTML = sapHtml + localHtml;
   }
 
   function addDaysYmd(ymd, days) {
@@ -555,25 +579,29 @@
         all: 'todos os títulos em aberto no cache',
       };
       let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista usa a mesma filial e o mesmo intervalo dos KPIs. Cada título aparece na própria data de vencimento. Com vencidos anteriores ligados, o estoque antes de De entra nos KPIs e aqui, e não vira movimento de um único dia. Crédito reduz o total. O filtro Banco/Conta vale para o saldo efetivo, não para estes títulos.';
-      if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
-        txt += ' A soma de A receber / A pagar fecha com os KPIs.';
+      const sameAsKpi = recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim();
+      if (sameAsKpi) {
+        txt += ' Os totais deste recorte são os indicadores A receber, A pagar e Necessidade de caixa, logo acima.';
       }
       if (f.include_orders) {
         txt += ' Pedido em aberto entra na lista e nos cartões de pedido, sem alterar esses dois totais do razão.';
       }
       hint.textContent = txt;
     }
+    const sameAsKpi = recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim();
     if (sums) {
-      const cards = [
-        kpiCard('A receber', totAr, nAr + ' título(s)', 'pos'),
-        kpiCard('A pagar', totAp, nAp + ' título(s)', 'neg'),
-        kpiCard('Líquido (receber − pagar)', totAr - totAp, rows.length + ' documento(s)', totAr - totAp < 0 ? 'neg' : 'pos'),
-      ];
+      const cards = [];
+      if (!sameAsKpi) {
+        cards.push(kpiCard('A receber', totAr, nAr + ' título(s)', 'pos'));
+        cards.push(kpiCard('A pagar', totAp, nAp + ' título(s)', 'neg'));
+        cards.push(kpiCard('Líquido (receber − pagar)', totAr - totAp, rows.length + ' documento(s)', totAr - totAp < 0 ? 'neg' : 'pos'));
+      }
       if (f.include_orders) {
         cards.push(kpiCard('Pedidos a receber', pedAr, nPedAr + ' pedido(s)', 'pos'));
         cards.push(kpiCard('Pedidos a pagar', pedAp, nPedAp + ' pedido(s)', 'neg'));
       }
       sums.innerHTML = cards.join('');
+      sums.style.display = cards.length ? '' : 'none';
     }
     if (countEl) countEl.textContent = shown.length + ' documento(s)';
     body.innerHTML = shown.map(function (r) {
@@ -598,7 +626,7 @@
         + '<td>' + (Number(r.installment) > 0 ? r.installment : '—') + '</td>'
         + '<td>' + fmt(r.original_amount) + '</td>'
         + '<td>' + fmt(r.paid_amount) + '</td>'
-        + '<td class="' + cls(r.open_amount) + '">' + fmt(r.open_amount) + '</td>'
+        + '<td class="' + (r.source_type === 'AP' ? 'out' : cls(r.open_amount)) + '">' + fmt(r.open_amount) + '</td>'
         + '<td>' + bpl + '</td></tr>';
     }).join('') || '<tr><td colspan="13">Nenhum título em aberto neste recorte. Ajuste o filtro ou sincronize o SAP.</td></tr>';
     if (foot) {

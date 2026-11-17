@@ -749,6 +749,8 @@ class FinCashFlowDashboardService
     ): array {
         $totRecEf = 0.0;
         $totDesEf = 0.0;
+        $totRecPrev = 0.0;
+        $totDesPrev = 0.0;
         $acumEf = $opening;
         $menor = $opening;
         $menorData = $daily[0]['date'] ?? $today->format('Y-m-d');
@@ -761,6 +763,8 @@ class FinCashFlowDashboardService
         foreach ($daily as $row) {
             $totRecEf += (float) $row['receita_ef'];
             $totDesEf += (float) $row['despesa_ef'];
+            $totRecPrev += (float) $row['receita_prev'];
+            $totDesPrev += (float) $row['despesa_prev'];
             if (!empty($row['is_effective'])) {
                 $acumEf = (float) $row['acum_ef'];
             }
@@ -819,6 +823,9 @@ class FinCashFlowDashboardService
             'vencidos_pagar' => $vencPag,
             'receitas_efetivas' => $totRecEf,
             'despesas_efetivas' => $totDesEf,
+            'saldo_efetivo_intervalo' => $totRecEf - $totDesEf,
+            'a_receber_intervalo' => $totRecPrev,
+            'a_pagar_intervalo' => $totDesPrev,
             'data_corte' => $cutoff->format('Y-m-d'),
         ];
     }
