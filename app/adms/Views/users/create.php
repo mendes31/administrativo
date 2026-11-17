@@ -42,7 +42,7 @@ use App\adms\Helpers\CSRFHelper;
                 ?>
 
                 <div class="col-12 mt-3">
-                    <button type="submit" class="btn btn-success">Cadastrar</button>
+                    <button type="submit" class="btn btn-success" disabled>Salvar</button>
                 </div>
             </form>
         </div>

@@ -453,6 +453,7 @@ if (isset($_SESSION['user_id'], $_SESSION['session_id'])) {
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/telefone-mascara.js"></script>
     <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/mascaras.js"></script>
     <?php endif; ?>
+    <script defer src="<?php echo $_ENV['URL_ADM'] ?>public/adms/js/unsaved-form-guard.js?v=20261117a"></script>
     
     <!-- Sistema Responsivo para Diferentes ResoluÃ§Ãµes (opcional) -->
     <?php if (($_ENV['USE_SCREEN_RESOLUTION'] ?? 'NÃ£o') === 'Sim'): ?>

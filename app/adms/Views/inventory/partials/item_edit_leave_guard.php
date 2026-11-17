@@ -15,10 +15,16 @@
 
     window.invItemMarkDirty = function () {
         formDirty = true;
+        if (window.AdmsUnsavedFormGuard && typeof window.AdmsUnsavedFormGuard.markDirty === 'function') {
+            window.AdmsUnsavedFormGuard.markDirty(form);
+        }
     };
 
     window.invItemClearDirty = function () {
         formDirty = false;
+        if (window.AdmsUnsavedFormGuard && typeof window.AdmsUnsavedFormGuard.markClean === 'function') {
+            window.AdmsUnsavedFormGuard.markClean(form);
+        }
     };
 
     form.addEventListener('input', function () {
@@ -31,7 +37,7 @@
 
     document.querySelectorAll('.js-inv-item-leave').forEach(function (link) {
         link.addEventListener('click', function (event) {
-            if (!formDirty) {
+            if (window.AdmsUnsavedFormGuard || !formDirty) {
                 return;
             }
             event.preventDefault();
@@ -43,7 +49,7 @@
     });
 
     window.addEventListener('beforeunload', function (event) {
-        if (!formDirty) {
+        if (window.AdmsUnsavedFormGuard || !formDirty) {
             return;
         }
         event.preventDefault();

@@ -47,7 +47,7 @@ use App\adms\Helpers\CSRFHelper;
                 ?>
 
                 <div class="col-12 mt-3" id="btnSaveUserFormWrap">
-                    <button type="submit" class="btn btn-warning btn-sm" id="btnSaveUserForm">Salvar</button>
+                    <button type="submit" class="btn btn-warning btn-sm" id="btnSaveUserForm" disabled>Atualizar</button>
                 </div>
             </form>
 
