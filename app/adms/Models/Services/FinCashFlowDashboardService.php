@@ -35,15 +35,10 @@ class FinCashFlowDashboardService
      */
     public function getDashboardData(array $filters): array
     {
-        $year = (int) ($filters['year'] ?? date('Y'));
-        $month = (int) ($filters['month'] ?? date('n'));
-        if ($month < 1 || $month > 12) {
-            $month = (int) date('n');
-        }
-        $horizon = (int) ($filters['horizon'] ?? 30);
-        if (!in_array($horizon, [7, 15, 30, 60, 90], true)) {
-            $horizon = 30;
-        }
+        [$rangeStart, $rangeEnd] = $this->resolveRange($filters);
+        $includeOverdue = $this->includeOverdue($filters);
+        $year = (int) $rangeStart->format('Y');
+        $month = (int) $rangeStart->format('n');
         $scenario = (string) ($filters['scenario'] ?? 'both');
         $includeOrders = !empty($filters['include_orders']) && (string) $filters['include_orders'] !== '0';
         $branchId = isset($filters['branch_id']) && $filters['branch_id'] !== '' && $filters['branch_id'] !== null
@@ -51,8 +46,8 @@ class FinCashFlowDashboardService
             : null;
         $accountGl = trim((string) ($filters['account'] ?? ''));
 
-        $monthStart = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
-        $monthEnd = $monthStart->modify('last day of this month');
+        $monthStart = $rangeStart;
+        $monthEnd = $rangeEnd;
         $today = new DateTimeImmutable('today');
         $cutoff = $today < $monthEnd ? $today : $monthEnd;
 
@@ -88,10 +83,10 @@ class FinCashFlowDashboardService
 
         $historyFrom = $this->cache->earliestOpeningDate() ?: $monthStart->format('Y-m-d');
         $yearEnd = new DateTimeImmutable(sprintf('%04d-12-31', $year));
-        $historyTo = $yearEnd->format('Y-m-d');
+        $historyTo = ($rangeEnd > $yearEnd ? $rangeEnd : $yearEnd)->format('Y-m-d');
 
         $dailyRows = $this->cache->getDaily($historyFrom, $historyTo, $glFilter, $branchId);
-        $horizonEnd = $today->add(new DateInterval('P' . $horizon . 'D'));
+        $horizonEnd = $rangeEnd;
         $anchor = $today;
         if ($anchor < $monthStart) {
             $anchor = $monthStart;
@@ -102,7 +97,8 @@ class FinCashFlowDashboardService
         $forecasts = $this->attachPosition(
             $this->prepareForecasts($this->cache->getForecasts(null, null, null, $branchId)),
             $monthStart->format('Y-m-d'),
-            $horizonEnd->format('Y-m-d')
+            $horizonEnd->format('Y-m-d'),
+            $includeOverdue
         );
         $inHorizon = [];
         foreach ($forecasts as $fc) {
@@ -110,7 +106,7 @@ class FinCashFlowDashboardService
                 $inHorizon[] = $fc;
             }
         }
-        $investments = $this->investments->getActiveUntil($yearEnd->format('Y-m-d'));
+        $investments = $this->investments->getActiveUntil($historyTo);
 
         $dailyByDate = $this->aggregateDailyByDate($dailyRows, $cashGl);
         $forecastByDate = $this->aggregateForecastByDate($inHorizon);
@@ -190,7 +186,9 @@ class FinCashFlowDashboardService
             'filters' => [
                 'year' => $year,
                 'month' => $month,
-                'horizon' => $horizon,
+                'date_from' => $rangeStart->format('Y-m-d'),
+                'date_to' => $rangeEnd->format('Y-m-d'),
+                'include_overdue' => $includeOverdue,
                 'scenario' => $scenario,
                 'branch_id' => $branchId,
                 'account' => $accountGl,
@@ -198,7 +196,7 @@ class FinCashFlowDashboardService
                 'today' => $today->format('Y-m-d'),
                 'month_start' => $monthStart->format('Y-m-d'),
                 'month_end' => $monthEnd->format('Y-m-d'),
-                'horizon_end' => $today->add(new DateInterval('P' . $horizon . 'D'))->format('Y-m-d'),
+                'horizon_end' => $rangeEnd->format('Y-m-d'),
             ],
             'sync' => $this->cache->getSyncState(),
             'kpis' => $kpis,
@@ -240,27 +238,13 @@ class FinCashFlowDashboardService
 
         if (in_array($kind, ['receita_prev', 'despesa_prev'], true)) {
             $source = $kind === 'receita_prev' ? 'AR' : 'AP';
-            $year = (int) ($filters['year'] ?? substr($date, 0, 4));
-            $month = (int) ($filters['month'] ?? substr($date, 5, 2));
-            $horizon = (int) ($filters['horizon'] ?? 30);
-            if (!in_array($horizon, [7, 15, 30, 60, 90], true)) {
-                $horizon = 30;
-            }
-            $monthStart = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
-            $monthEnd = $monthStart->modify('last day of this month');
+            [$rangeStart, $rangeEnd] = $this->resolveRange($filters);
             $todayDt = new DateTimeImmutable('today');
-            $horizonEnd = $todayDt->add(new DateInterval('P' . $horizon . 'D'));
-            $anchor = $todayDt;
-            if ($anchor < $monthStart) {
-                $anchor = $monthStart;
-            }
-            if ($anchor > $monthEnd) {
-                $anchor = $monthEnd;
-            }
             $rows = $this->attachPosition(
                 $this->prepareForecasts($this->cache->getForecasts(null, null, $source, $branchId)),
-                $monthStart->format('Y-m-d'),
-                $horizonEnd->format('Y-m-d')
+                $rangeStart->format('Y-m-d'),
+                $rangeEnd->format('Y-m-d'),
+                $this->includeOverdue($filters)
             );
             $today = $todayDt->format('Y-m-d');
             $out = [];
@@ -349,12 +333,66 @@ class FinCashFlowDashboardService
      * @param list<array<string, mixed>> $forecasts
      * @return list<array<string, mixed>>
      */
-    private function attachPosition(array $forecasts, string $monthStart, string $horizonEnd): array
+    /**
+     * @param array<string, mixed> $filters
+     * @return array{0:DateTimeImmutable,1:DateTimeImmutable}
+     */
+    private function resolveRange(array $filters): array
+    {
+        $today = new DateTimeImmutable('today');
+        $from = $this->parseIsoDate((string) ($filters['date_from'] ?? ''));
+        $to = $this->parseIsoDate((string) ($filters['date_to'] ?? ''));
+        if ($from === null || $to === null) {
+            $year = (int) ($filters['year'] ?? $today->format('Y'));
+            $month = (int) ($filters['month'] ?? $today->format('n'));
+            if ($month < 1 || $month > 12) {
+                $month = (int) $today->format('n');
+            }
+            $from = $from ?? new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
+            if ($to === null) {
+                $horizon = (int) ($filters['horizon'] ?? 30);
+                if (!in_array($horizon, [7, 15, 30, 60, 90], true)) {
+                    $horizon = 30;
+                }
+                $to = $today->add(new DateInterval('P' . $horizon . 'D'));
+            }
+        }
+        if ($to < $from) {
+            [$from, $to] = [$to, $from];
+        }
+        if ($from->diff($to)->days > 366) {
+            $to = $from->modify('+366 days');
+        }
+        return [$from, $to];
+    }
+
+    /**
+     * @param array<string, mixed> $filters
+     */
+    private function includeOverdue(array $filters): bool
+    {
+        if (!isset($filters['include_overdue'])) {
+            return true;
+        }
+        return !in_array((string) $filters['include_overdue'], ['0', 'false'], true);
+    }
+
+    private function parseIsoDate(string $value): ?DateTimeImmutable
+    {
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $value)) {
+            return null;
+        }
+        $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $value);
+        return $dt instanceof DateTimeImmutable ? $dt : null;
+    }
+
+    private function attachPosition(array $forecasts, string $rangeStart, string $rangeEnd, bool $includeOverdue): array
     {
         foreach ($forecasts as &$row) {
             $due = (string) ($row['due_date'] ?? '');
-            $row['in_horizon'] = $due !== '' && $due <= $horizonEnd;
-            $row['position_date'] = ($due !== '' && $due >= $monthStart && $due <= $horizonEnd) ? $due : null;
+            $inRange = $due !== '' && $due >= $rangeStart && $due <= $rangeEnd;
+            $row['in_horizon'] = $due !== '' && $due <= $rangeEnd && ($includeOverdue || $due >= $rangeStart);
+            $row['position_date'] = $inRange ? $due : null;
         }
         unset($row);
         return $forecasts;

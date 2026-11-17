@@ -45,7 +45,7 @@
     <li>Na primeira vez, sincronize as contas em <strong>Financeiro → Contas Financeiras SAP</strong> (Importar contas do SAP) e classifique aplicações, trânsito e limites.</li>
     <li>Rode a carga completa no servidor: <code>php scripts/sync_fin_cash_flow_sap.php --full</code>.</li>
     <li>Acesse <strong>Financeiro → Dashboard Fluxo de Caixa SAP</strong>.</li>
-    <li>Escolha mês/ano, filial, conta, cenário (efetivo + previsto, só efetivo ou só previsto) e horizonte (7 a 90 dias).</li>
+    <li>Escolha <strong>De</strong> e <strong>Até</strong>, filial, conta e cenário (efetivo + previsto, só efetivo ou só previsto). O intervalo pode ser um dia, uma semana ou até um ano. Deixe <strong>Incluir vencidos anteriores</strong> marcado para manter o estoque antigo em A receber e A pagar; desmarque para conferir só o que vence dentro das duas datas.</li>
     <li>Analise os KPIs, o fluxo diário, o semanal, as faixas de vencimento, o mensal, bancos e aplicações. O filtro vale para todas.</li>
     <li>Para incluir pedido digitado e ainda não faturado na previsão, marque <strong>Somar pedidos em aberto</strong> e aplique. A receber e A pagar não mudam.</li>
     <li>Use a aba <strong>Detalhes</strong> para conferir, documento a documento, o que compõe <strong>A receber</strong> e <strong>A pagar</strong>. O recorte padrão é o mesmo horizonte dos KPIs (incluindo vencidos). Dá para filtrar pelo mês, só vencidos ou todos os abertos, e buscar por NF/parceiro. Clique no KPI A receber ou A pagar para abrir essa lista já filtrada.</li>
@@ -55,11 +55,12 @@
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<div class="help-field"><strong>Período</strong> Mês/ano da visão diária e do destaque na tabela mensal.</div>
+<div class="help-field"><strong>De / Até</strong> Intervalo da conferência. A grade diária, o semanal, a projeção e o recorte padrão dos detalhes usam essas duas datas. O padrão abre no dia 1 do mês e vai até hoje + 30 dias. O intervalo máximo é 366 dias.</div>
+<div class="help-field"><strong>Incluir vencidos anteriores</strong> Marcado por padrão. A receber e A pagar incluem títulos vencidos antes de De. Desmarcado, esses indicadores e a lista ficam só com vencimento entre De e Até, para bater com a grade.</div>
 <div class="help-field"><strong>Filial</strong> Filtra movimentos e títulos pelo <code>BPLId</code> do SAP, quando houver.</div>
 <div class="help-field"><strong>Banco / Conta</strong> Conta contábil parametrizada em Contas Financeiras SAP.</div>
 <div class="help-field"><strong>Cenário</strong> Mostra colunas efetivas, previstas ou ambas na visão combinada.</div>
-<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) dos KPIs, da grade diária, do semanal, do mensal e do recorte horizonte dos detalhes. Entram títulos em aberto com vencimento até hoje + N dias, vencidos inclusos. Na grade cada um fica na própria data. Se o horizonte passar do mês, a grade continua até essa data.</div>
+<div class="help-field"><strong>Intervalo</strong> Substitui o antigo horizonte fixo de 7 a 90 dias. Entram títulos em aberto com vencimento até Até. Na grade cada um fica na própria data, entre De e Até.</div>
 <div class="help-field"><strong>Somar pedidos em aberto</strong> Desligado por padrão. Ligado, o pedido de venda e o de compra digitados e ainda abertos entram na receita e na despesa previstas. Não altera A receber, A pagar nem a faixa de vencimento.</div>
 <div class="help-field"><strong>Aba Detalhes</strong> Lista as parcelas em aberto de contas a receber (<strong>NFS</strong>) e a pagar (<strong>NFE</strong>). Uma nota pode ter vários títulos (parcelas). Pedidos de venda/compra não entram.</div>
 <div class="help-field"><strong>NF</strong> Número da nota fiscal (<code>Serial</code> do SAP; se vazio, tenta <code>FolioNum</code>). Não é o número interno do documento.</div>

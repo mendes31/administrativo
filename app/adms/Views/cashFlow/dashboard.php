@@ -7,8 +7,9 @@ $investmentsUrl = htmlspecialchars($this->data['investments_url'] ?? '', ENT_QUO
 $canSync = !empty($this->data['can_sync']);
 $canAccounts = !empty($this->data['can_accounts']);
 $canInvestments = !empty($this->data['can_investments']);
+$dateFrom = date('Y-m-01');
+$dateTo = date('Y-m-d', strtotime('+30 days'));
 $year = (int) date('Y');
-$month = (int) date('n');
 ?>
 <style>
 .fcf-dash{
@@ -217,8 +218,11 @@ $month = (int) date('n');
     <div class="fcf-warn" id="fcfWarn" role="status"></div>
 
     <div class="fcf-toolbar">
-      <label>Período
-        <input type="month" id="fPeriodo" value="<?= sprintf('%04d-%02d', $year, $month) ?>">
+      <label>De
+        <input type="date" id="fDe" value="<?= htmlspecialchars($dateFrom, ENT_QUOTES, 'UTF-8') ?>">
+      </label>
+      <label>Até
+        <input type="date" id="fAte" value="<?= htmlspecialchars($dateTo, ENT_QUOTES, 'UTF-8') ?>">
       </label>
       <label>Filial
         <select id="fFilial"><option value="">Todas</option></select>
@@ -233,14 +237,9 @@ $month = (int) date('n');
           <option value="pv">Somente Previsto</option>
         </select>
       </label>
-      <label>Horizonte
-        <select id="fHorizonte">
-          <option value="7">7 dias</option>
-          <option value="15">15 dias</option>
-          <option value="30" selected>30 dias</option>
-          <option value="60">60 dias</option>
-          <option value="90">90 dias</option>
-        </select>
+      <label class="fcf-check" title="Mantém nos indicadores os títulos vencidos antes da data De. Desmarque para conferir só o intervalo.">
+        <input type="checkbox" id="fVencidos" checked>
+        Incluir vencidos anteriores
       </label>
       <label class="fcf-check">
         <input type="checkbox" id="fPedidos">
@@ -348,8 +347,8 @@ $month = (int) date('n');
       <div class="fcf-detail-bar">
         <label>Recorte
           <select id="dRecorte">
-            <option value="horizon">Horizonte dos KPIs</option>
-            <option value="month">Mês do filtro</option>
+            <option value="horizon">Intervalo De–Até</option>
+            <option value="month">Mês da data De</option>
             <option value="overdue">Somente vencidos</option>
             <option value="all">Todos os abertos</option>
           </select>
@@ -397,7 +396,7 @@ $month = (int) date('n');
       </div>
     </section>
 
-    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Filial, período, horizonte e cenário valem juntos para os indicadores, o diário, o semanal, o mensal e os detalhes. Cada título em aberto fica na própria data de vencimento. A faixa de vencimento organiza cobrança e pagamento. Pedido digitado e ainda não faturado só entra na previsão quando “Somar pedidos em aberto” está marcado; A receber e A pagar do razão não mudam. A projeção soma, sobre o saldo efetivo, só o que vence de hoje até o fim do mês. O saldo efetivo segue o movimento líquido das contas de caixa e banco.</div>
+    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. De e Até valem juntos para os indicadores, o diário, o semanal e os detalhes. Com “Incluir vencidos anteriores” marcado, A receber e A pagar também trazem o que venceu antes de De. Desmarcado, a conferência fica só no intervalo. Cada título em aberto fica na própria data de vencimento. A faixa de vencimento continua com todos os abertos. Pedido digitado só entra na previsão quando “Somar pedidos em aberto” está marcado. A projeção soma, sobre o saldo efetivo, o que vence de hoje até Até. O saldo efetivo segue o movimento líquido das contas de caixa e banco.</div>
   </div>
 </div>
 
@@ -411,4 +410,4 @@ $month = (int) date('n');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=13"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=14"></script>

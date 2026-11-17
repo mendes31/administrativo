@@ -48,14 +48,18 @@
   }
 
   function filters() {
-    const periodo = ($('fPeriodo')?.value || '').split('-');
+    const de = $('fDe')?.value || '';
+    const ate = $('fAte')?.value || '';
+    const parts = (de || '').split('-');
     return {
-      year: periodo[0] || new Date().getFullYear(),
-      month: periodo[1] || (new Date().getMonth() + 1),
+      year: parts[0] || new Date().getFullYear(),
+      month: parts[1] || (new Date().getMonth() + 1),
+      date_from: de,
+      date_to: ate,
       branch_id: $('fFilial')?.value || '',
       account: $('fConta')?.value || '',
       scenario: $('fCenario')?.value || 'both',
-      horizon: $('fHorizonte')?.value || 30,
+      include_overdue: $('fVencidos')?.checked ? 1 : 0,
       include_orders: $('fPedidos')?.checked ? 1 : 0,
     };
   }
@@ -89,9 +93,10 @@
     const f = data.filters || {};
     const ped = $('fPedidos');
     if (ped) ped.checked = !!f.include_orders;
-    if ($('fPeriodo') && f.year && f.month) {
-      $('fPeriodo').value = String(f.year) + '-' + String(f.month).padStart(2, '0');
-    }
+    const venc = $('fVencidos');
+    if (venc) venc.checked = f.include_overdue !== false && f.include_overdue !== 0 && f.include_overdue !== '0';
+    if ($('fDe') && f.date_from) $('fDe').value = f.date_from;
+    if ($('fAte') && f.date_to) $('fAte').value = f.date_to;
     const fil = $('fFilial');
     if (fil && Array.isArray(data.branches)) {
       const cur = fil.value;
@@ -143,20 +148,31 @@
       + '<div class="kh">' + (hint || '') + '</div></div>';
   }
 
+  function brDate(iso) {
+    const p = String(iso || '').split('-');
+    return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : '';
+  }
+
   function render(data) {
     const k = data.kpis || {};
+    const f = data.filters || {};
+    const de = brDate(f.date_from);
+    const ate = brDate(f.date_to);
+    const recHint = f.include_overdue
+      ? ('Vencimento até ' + ate + ', mais os vencidos antes de ' + de)
+      : ('Somente vencimento de ' + de + ' a ' + ate);
     $('kpiRow1').innerHTML = [
-      kpiCard('Saldo inicial', k.saldo_inicial, 'Posição no início do período', 'accent'),
+      kpiCard('Saldo inicial', k.saldo_inicial, 'Posição em ' + de, 'accent'),
       kpiCard('Acumulado efetivo', k.acumulado_efetivo, 'Até a data de corte', 'pos'),
-      kpiCard('Projeção no fim do mês', k.projecao_fim, 'Saldo efetivo + títulos que vencem de hoje até o fim do mês'),
+      kpiCard('Projeção no fim do intervalo', k.projecao_fim, 'Saldo efetivo + títulos que vencem de hoje até ' + ate),
       kpiCard('Aplicações', k.aplicacoes, 'Locais + contas classificadas'),
       kpiCard('Limites disponíveis', k.limites, 'Crédito bancário cadastrado'),
     ].join('');
     $('kpiRow2').innerHTML = [
-      kpiCard('A receber · horizonte', k.a_receber, 'No prazo até o horizonte, mais os vencidos', 'pos', 'AR'),
-      kpiCard('A pagar · horizonte', k.a_pagar, 'No prazo até o horizonte, mais os vencidos', 'neg', 'AP'),
+      kpiCard('A receber · intervalo', k.a_receber, recHint, 'pos', 'AR'),
+      kpiCard('A pagar · intervalo', k.a_pagar, recHint, 'neg', 'AP'),
       kpiCard('Disponibilidade própria', k.disponibilidade_propria, 'Saldo financeiro + aplicações', 'pos'),
-      kpiCard('Necessidade de caixa', k.necessidade_caixa, 'A receber − a pagar no mesmo horizonte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
+      kpiCard('Necessidade de caixa', k.necessidade_caixa, 'A receber − a pagar no mesmo recorte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
       kpiCard('Menor saldo projetado', k.menor_saldo_projetado, k.menor_saldo_data ? ('Em ' + k.menor_saldo_data.split('-').reverse().join('/')) : '', 'warn'),
     ].join('');
 
@@ -445,20 +461,27 @@
   function filteredDocuments(data, source) {
     const f = data.filters || {};
     const today = f.today || new Date().toISOString().slice(0, 10);
-    const horizonEnd = f.horizon_end || addDaysYmd(today, Number(f.horizon || 30));
-    const monthStart = f.month_start || (String(f.year) + '-' + String(f.month).padStart(2, '0') + '-01');
-    const monthEnd = f.month_end || '';
+    const dateFrom = f.date_from || f.month_start || '';
+    const dateTo = f.date_to || f.horizon_end || '';
+    const calYear = Number(f.year || 0);
+    const calMonth = Number(f.month || 0);
+    const calStart = calYear && calMonth ? String(calYear) + '-' + String(calMonth).padStart(2, '0') + '-01' : '';
+    const calLast = calYear && calMonth ? new Date(calYear, calMonth, 0) : null;
+    const calEnd = calLast
+      ? calLast.getFullYear() + '-' + String(calLast.getMonth() + 1).padStart(2, '0') + '-' + String(calLast.getDate()).padStart(2, '0')
+      : '';
     const recorte = ($('dRecorte')?.value) || 'horizon';
     const tipo = ($('dTipo')?.value) || '';
     const q = String($('dBusca')?.value || '').trim().toLowerCase();
+    const overdueOn = f.include_overdue !== false && f.include_overdue !== 0 && f.include_overdue !== '0';
     return (source || data.forecast_documents || []).filter(function (r) {
       const open = Number(r.open_amount || 0);
       if (Math.abs(open) < 0.005 || r.status === 'liquidado') return false;
       if (tipo && r.source_type !== tipo) return false;
       const due = String(r.due_date || '');
       const vencido = due !== '' && due < today;
-      if (recorte === 'horizon' && due > horizonEnd) return false;
-      if (recorte === 'month' && (due < monthStart || (monthEnd && due > monthEnd))) return false;
+      if (recorte === 'horizon' && (due > dateTo || (!overdueOn && due < dateFrom))) return false;
+      if (recorte === 'month' && (due < calStart || (calEnd && due > calEnd))) return false;
       if (recorte === 'overdue' && !vencido) return false;
       if (q) {
         const hay = [r.nf_serial, r.title_num, r.line_memo, r.doc_num, r.card_code, r.card_name, r.doc_entry].join(' ').toLowerCase();
@@ -526,12 +549,12 @@
     });
     if (hint) {
       const recorteLabel = {
-        horizon: 'horizonte dos KPIs (hoje até ' + (f.horizon || 30) + ' dias, incluindo vencidos)',
-        month: 'mês filtrado',
+        horizon: (f.include_overdue ? 'vencimento até ' + brDate(f.date_to) + ', mais os vencidos antes de ' + brDate(f.date_from) : 'somente vencimento de ' + brDate(f.date_from) + ' a ' + brDate(f.date_to)),
+        month: 'mês da data De',
         overdue: 'somente títulos vencidos',
         all: 'todos os títulos em aberto no cache',
       };
-      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista usa a mesma filial e o mesmo horizonte dos KPIs. Cada título aparece na própria data de vencimento. O estoque vencido antes do mês fica nos KPIs e aqui, e não entra como movimento de um único dia. Crédito reduz o total. O filtro Banco/Conta vale para o saldo efetivo, não para estes títulos.';
+      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista usa a mesma filial e o mesmo intervalo dos KPIs. Cada título aparece na própria data de vencimento. Com vencidos anteriores ligados, o estoque antes de De entra nos KPIs e aqui, e não vira movimento de um único dia. Crédito reduz o total. O filtro Banco/Conta vale para o saldo efetivo, não para estes títulos.';
       if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
         txt += ' A soma de A receber / A pagar fecha com os KPIs.';
       }
