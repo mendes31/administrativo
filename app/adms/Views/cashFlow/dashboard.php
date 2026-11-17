@@ -50,6 +50,11 @@ $month = (int) date('n');
   font-size:13px; font-weight:600; color:var(--fcf-ink); gap:8px; padding-bottom:8px;
 }
 .fcf-dash .fcf-toolbar label.fcf-check input{ width:16px; min-width:16px; padding:0; }
+.fcf-dash .fcf-orders-note{
+  background:#fff8e8; border:1px solid #e6c36a; color:#6a4b00;
+  border-radius:10px; padding:10px 14px; margin:0 0 12px; font-size:13px; line-height:1.45;
+}
+.fcf-dash .fcf-orders-note.warn{ background:#fdecec; border-color:#e3a3a3; color:#8a1f1f; }
 .fcf-dash .fcf-toolbar label{
   display:flex; flex-direction:column; gap:4px; font-size:11px; font-weight:600;
   color:var(--fcf-ink-mute); text-transform:uppercase; letter-spacing:.03em; margin:0;
@@ -251,6 +256,7 @@ $month = (int) date('n');
 
     <div class="fcf-kpis" id="kpiRow1"></div>
     <div class="fcf-kpis" id="kpiRow2"></div>
+    <div id="fcfOrdersNote" class="fcf-orders-note" style="display:none"></div>
 
     <div class="tabs">
       <div class="tab active" data-tab="daily">Fluxo Diário</div>
@@ -405,4 +411,4 @@ $month = (int) date('n');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=12"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=13"></script>

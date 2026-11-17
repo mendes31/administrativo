@@ -160,6 +160,7 @@
       kpiCard('Menor saldo projetado', k.menor_saldo_projetado, k.menor_saldo_data ? ('Em ' + k.menor_saldo_data.split('-').reverse().join('/')) : '', 'warn'),
     ].join('');
 
+    renderOrdersNote(data.orders || {}, data.filters || {});
     renderDaily(data.daily || [], data.filters?.scenario || 'both');
     renderCharts(data.daily || [], data.filters?.scenario || 'both');
     renderWeekly(data.weekly || [], data.orders || {});
@@ -408,7 +409,40 @@
     return { cls: 'prazo', label: 'No prazo' };
   }
 
-  function filteredDocuments(data) {
+  function renderOrdersNote(orders, filters) {
+    const el = $('fcfOrdersNote');
+    if (!el) return;
+    if (!filters.include_orders) {
+      el.style.display = 'none';
+      el.textContent = '';
+      el.classList.remove('warn');
+      return;
+    }
+    el.style.display = 'block';
+    if (orders.warning) {
+      el.classList.add('warn');
+      el.textContent = orders.warning + ' Os números do razão ficam iguais.';
+      return;
+    }
+    el.classList.remove('warn');
+    const naR = Number(orders.na_grade_receber) || 0;
+    const naP = Number(orders.na_grade_pagar) || 0;
+    const foR = Number(orders.fora_receber) || 0;
+    const foP = Number(orders.fora_pagar) || 0;
+    if (naR + naP + foR + foP < 0.005) {
+      el.textContent = 'Nenhum pedido de venda ou de compra em aberto no SAP. Por isso os valores não mudam.';
+      return;
+    }
+    let txt = 'Pedidos com vencimento neste período, somados na previsão do diário e do semanal: '
+      + fmt(naR) + ' a receber e ' + fmt(naP) + ' a pagar.';
+    if (foR > 0.004 || foP > 0.004) {
+      txt += ' Fora desse período (não mexem no diário): ' + fmt(foR) + ' a receber e ' + fmt(foP) + ' a pagar. Esses aparecem em Detalhes.';
+    }
+    txt += ' A receber e A pagar do razão continuam iguais.';
+    el.textContent = txt;
+  }
+
+  function filteredDocuments(data, source) {
     const f = data.filters || {};
     const today = f.today || new Date().toISOString().slice(0, 10);
     const horizonEnd = f.horizon_end || addDaysYmd(today, Number(f.horizon || 30));
@@ -417,7 +451,7 @@
     const recorte = ($('dRecorte')?.value) || 'horizon';
     const tipo = ($('dTipo')?.value) || '';
     const q = String($('dBusca')?.value || '').trim().toLowerCase();
-    return (data.forecast_documents || []).filter(function (r) {
+    return (source || data.forecast_documents || []).filter(function (r) {
       const open = Number(r.open_amount || 0);
       if (Math.abs(open) < 0.005 || r.status === 'liquidado') return false;
       if (tipo && r.source_type !== tipo) return false;
@@ -456,6 +490,7 @@
     const today = f.today || new Date().toISOString().slice(0, 10);
     const recorte = ($('dRecorte')?.value) || 'horizon';
     const rows = filteredDocuments(data);
+    const orderRows = f.include_orders ? filteredDocuments(data, (data.orders && data.orders.documents) || []) : [];
     let totAr = 0;
     let totAp = 0;
     let orig = 0;
@@ -471,6 +506,24 @@
       if (r.source_type === 'AR') { totAr += amt; nAr += 1; }
       else { totAp += amt; nAp += 1; }
     });
+    let pedAr = 0;
+    let pedAp = 0;
+    let nPedAr = 0;
+    let nPedAp = 0;
+    orderRows.forEach(function (r) {
+      const amt = Number(r.open_amount || 0);
+      if (r.source_type === 'AR') { pedAr += amt; nPedAr += 1; }
+      else { pedAp += amt; nPedAp += 1; }
+    });
+    const shown = rows.concat(orderRows).sort(function (a, b) {
+      const da = String(a.due_date || '');
+      const db = String(b.due_date || '');
+      if (da !== db) return da < db ? -1 : 1;
+      const oa = a.is_order ? 1 : 0;
+      const ob = b.is_order ? 1 : 0;
+      if (oa !== ob) return oa - ob;
+      return Number(a.doc_num || 0) - Number(b.doc_num || 0);
+    });
     if (hint) {
       const recorteLabel = {
         horizon: 'horizonte dos KPIs (hoje até ' + (f.horizon || 30) + ' dias, incluindo vencidos)',
@@ -482,18 +535,28 @@
       if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
         txt += ' A soma de A receber / A pagar fecha com os KPIs.';
       }
+      if (f.include_orders) {
+        txt += ' Pedido em aberto entra na lista e nos cartões de pedido, sem alterar esses dois totais do razão.';
+      }
       hint.textContent = txt;
     }
     if (sums) {
-      sums.innerHTML = [
+      const cards = [
         kpiCard('A receber', totAr, nAr + ' título(s)', 'pos'),
         kpiCard('A pagar', totAp, nAp + ' título(s)', 'neg'),
         kpiCard('Líquido (receber − pagar)', totAr - totAp, rows.length + ' documento(s)', totAr - totAp < 0 ? 'neg' : 'pos'),
-      ].join('');
+      ];
+      if (f.include_orders) {
+        cards.push(kpiCard('Pedidos a receber', pedAr, nPedAr + ' pedido(s)', 'pos'));
+        cards.push(kpiCard('Pedidos a pagar', pedAp, nPedAp + ' pedido(s)', 'neg'));
+      }
+      sums.innerHTML = cards.join('');
     }
-    if (countEl) countEl.textContent = rows.length + ' documento(s)';
-    body.innerHTML = rows.map(function (r) {
-      const tipo = r.source_type === 'AR' ? 'A receber' : 'A pagar';
+    if (countEl) countEl.textContent = shown.length + ' documento(s)';
+    body.innerHTML = shown.map(function (r) {
+      const tipo = r.is_order
+        ? (r.source_type === 'AR' ? 'Pedido a receber' : 'Pedido a pagar')
+        : (r.source_type === 'AR' ? 'A receber' : 'A pagar');
       const due = String(r.due_date || '').split('-').reverse().join('/');
       const st = dueStatus(r, today);
       const bpl = Number(r.sap_bpl_id || 0) > 0 ? r.sap_bpl_id : '—';
@@ -516,8 +579,10 @@
         + '<td>' + bpl + '</td></tr>';
     }).join('') || '<tr><td colspan="13">Nenhum título em aberto neste recorte. Ajuste o filtro ou sincronize o SAP.</td></tr>';
     if (foot) {
-      foot.innerHTML = rows.length
-        ? '<tr><td colspan="9">Totais</td><td>' + fmt(orig) + '</td><td>' + fmt(paid) + '</td><td class="' + cls(open) + '">' + fmt(open) + '</td><td></td></tr>'
+      const footOpen = open + pedAr + pedAp;
+      const footOrig = orig + pedAr + pedAp;
+      foot.innerHTML = shown.length
+        ? '<tr><td colspan="9">Totais</td><td>' + fmt(footOrig) + '</td><td>' + fmt(paid) + '</td><td class="' + cls(footOpen) + '">' + fmt(footOpen) + '</td><td></td></tr>'
         : '';
     }
   }
@@ -617,6 +682,7 @@
   $('dBusca')?.addEventListener('input', refreshDetail);
 
   $('btnAplicar')?.addEventListener('click', function () { load(true); });
+  $('fPedidos')?.addEventListener('change', function () { load(true); });
   $('btnSync')?.addEventListener('click', syncNow);
   $('fcfCloseDrill')?.addEventListener('click', function () { $('fcfDrawer').style.display = 'none'; });
   $('fcfDrawer')?.addEventListener('click', function (ev) {

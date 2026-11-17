@@ -30,7 +30,7 @@
     <dt>Faixa de vencimento</dt>
     <dd>Títulos em aberto do razão agrupados em a vencer, vencido de 1 a 30 dias, 31 a 60, 61 a 90 e acima de 90. Serve para organizar cobrança e pagamento. Pedido não entra.</dd>
     <dt>Somar pedidos em aberto</dt>
-    <dd>Opção desligada por padrão. Ligada, soma o pedido de venda e o de compra já digitados, ainda abertos e não cancelados, na previsão do diário e do semanal. O valor é o saldo das linhas ainda não faturadas, para não repetir a nota. Esboço não entra. <strong>A receber</strong> e <strong>A pagar</strong> continuam só com o razão.</dd>
+    <dd>Opção desligada por padrão. Ligada, soma o pedido de venda e o de compra já digitados, ainda abertos e não cancelados, na previsão do diário e do semanal, quando o vencimento cai no período da grade. Uma faixa amarela mostra o que entrou na grade e o que ficou de fora. Em Detalhes os pedidos aparecem na lista e em cartões próprios. O valor é o saldo das linhas ainda não faturadas, para não repetir a nota. Esboço não entra. <strong>A receber</strong> e <strong>A pagar</strong> continuam só com o razão.</dd>
     <dt>Transferência interna</dt>
     <dd>Movimento entre duas contas financeiras do mesmo lançamento. No consolidado o impacto é zero; na visão por conta continua visível.</dd>
     <dt>Cache / sincronização</dt>
@@ -73,6 +73,8 @@
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>Marquei “Somar pedidos em aberto” e A receber / A pagar não mudaram</dt>
+    <dd>É o esperado: esses cartões fecham com o razão. A faixa amarela mostra o total dos pedidos. O diário só muda se o vencimento do pedido cair no período da grade. Pedido vencido antes do mês fica em Detalhes, nos cartões Pedidos a receber e Pedidos a pagar.</dd>
     <dt>Não vejo o menu</dt>
     <dd>Permissão <em>FinCashFlowDashboard</em> ausente. Após a migration, a ACL é copiada de <em>CashFlow</em>; confira o nível de acesso.</dd>
     <dt>Cache vazio / valores zerados</dt>

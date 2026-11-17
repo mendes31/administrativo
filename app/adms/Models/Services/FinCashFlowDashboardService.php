@@ -1057,6 +1057,7 @@ class FinCashFlowDashboardService
                 'fora_receber' => 0.0,
                 'fora_pagar' => 0.0,
                 'warning' => '',
+                'documents' => [],
             ],
         ];
         if (!$include) {
@@ -1070,12 +1071,31 @@ class FinCashFlowDashboardService
             return $empty;
         }
         $byDate = [];
+        $documents = [];
         $summary = $empty['summary'];
         $summary['included'] = true;
         foreach ($rows as $row) {
             $due = (string) ($row['due_date'] ?? '');
             $amt = (float) ($row['open_amount'] ?? 0);
             $isAr = (($row['source_type'] ?? '') === 'AR');
+            $documents[] = [
+                'due_date' => $due,
+                'source_type' => $isAr ? 'AR' : 'AP',
+                'doc_num' => (int) ($row['doc_num'] ?? 0),
+                'doc_entry' => 0,
+                'nf_serial' => '',
+                'title_num' => (string) ($row['origin'] ?? 'Pedido'),
+                'card_code' => (string) ($row['card_code'] ?? ''),
+                'card_name' => (string) ($row['card_name'] ?? ''),
+                'installment' => 0,
+                'original_amount' => $amt,
+                'paid_amount' => 0.0,
+                'open_amount' => $amt,
+                'line_memo' => 'Pedido em aberto, ainda não faturado',
+                'sap_bpl_id' => (int) ($row['sap_bpl_id'] ?? 0),
+                'status' => '',
+                'is_order' => true,
+            ];
             $inWindow = $due !== '' && $due >= $windowStart && $due <= $windowEnd;
             if ($inWindow) {
                 if (!isset($byDate[$due])) {
@@ -1094,6 +1114,7 @@ class FinCashFlowDashboardService
                 $summary['fora_pagar'] += $amt;
             }
         }
+        $summary['documents'] = $documents;
         return ['by_date' => $byDate, 'summary' => $summary];
     }
 
