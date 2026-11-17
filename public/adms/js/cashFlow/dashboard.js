@@ -14,6 +14,14 @@
   const monthNames = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
 
   function $(id) { return document.getElementById(id); }
+  function esc(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
   function fmt(v, short) {
     if (v === null || v === undefined || Number.isNaN(Number(v))) return '—';
     return (short ? moneyShort : money).format(Number(v));
@@ -137,20 +145,20 @@
     $('kpiRow1').innerHTML = [
       kpiCard('Saldo inicial', k.saldo_inicial, 'Posição no início do período', 'accent'),
       kpiCard('Acumulado efetivo', k.acumulado_efetivo, 'Até a data de corte', 'pos'),
-      kpiCard('Projeção no fim do mês', k.projecao_fim, 'Após previstos do período'),
+      kpiCard('Projeção no fim do mês', k.projecao_fim, 'Saldo efetivo + previstos até o fim do mês'),
       kpiCard('Aplicações', k.aplicacoes, 'Locais + contas classificadas'),
       kpiCard('Limites disponíveis', k.limites, 'Crédito bancário cadastrado'),
     ].join('');
     $('kpiRow2').innerHTML = [
-      kpiCard('A receber · horizonte', k.a_receber, 'Clique para ver os títulos', 'pos', 'AR'),
-      kpiCard('A pagar · horizonte', k.a_pagar, 'Clique para ver os títulos', 'neg', 'AP'),
+      kpiCard('A receber · horizonte', k.a_receber, 'Igual ao total de receita prevista da grade', 'pos', 'AR'),
+      kpiCard('A pagar · horizonte', k.a_pagar, 'Igual ao total de despesa prevista da grade', 'neg', 'AP'),
       kpiCard('Disponibilidade própria', k.disponibilidade_propria, 'Saldo financeiro + aplicações', 'pos'),
-      kpiCard('Necessidade de caixa', k.necessidade_caixa, 'Receber × pagar no horizonte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
+      kpiCard('Necessidade de caixa', k.necessidade_caixa, 'A receber − a pagar no mesmo horizonte', Number(k.necessidade_caixa) < 0 ? 'neg' : 'pos'),
       kpiCard('Menor saldo projetado', k.menor_saldo_projetado, k.menor_saldo_data ? ('Em ' + k.menor_saldo_data.split('-').reverse().join('/')) : '', 'warn'),
     ].join('');
 
     renderDaily(data.daily || [], data.filters?.scenario || 'both');
-    renderCharts(data.daily || []);
+    renderCharts(data.daily || [], data.filters?.scenario || 'both');
     renderMonthly(data.monthly || {});
     renderAccounts(data.accounts || []);
     renderInvestments(data.investments_monthly || {});
@@ -160,21 +168,31 @@
   function renderDaily(rows, scenario) {
     const showEf = scenario !== 'pv';
     const showPv = scenario !== 'ef';
-    let tRecE = 0, tDesE = 0, tRecP = 0, tDesP = 0;
+    let tRecE = 0, tDesE = 0, tSaldoE = 0, tRecP = 0, tDesP = 0, tSaldoP = 0;
+    function dayLabel(r) {
+      if (r.outside_month) {
+        const p = String(r.date || '').split('-');
+        return (p[2] || '') + '/' + (p[1] || '');
+      }
+      return String(r.day);
+    }
     const ef = [];
     const pv = [];
     rows.forEach(function (r) {
       tRecE += Number(r.receita_ef || 0);
       tDesE += Number(r.despesa_ef || 0);
+      tSaldoE += Number(r.saldo_ef || 0);
       tRecP += Number(r.receita_prev || 0);
       tDesP += Number(r.despesa_prev || 0);
+      tSaldoP += Number(r.saldo_prev || 0);
       const today = r.is_today ? ' class="today-row"' : '';
-      ef.push('<tr' + today + '><td>' + r.day + '</td>'
+      const label = dayLabel(r);
+      ef.push('<tr' + today + '><td>' + label + '</td>'
         + '<td class="drill" data-kind="receita_ef" data-date="' + r.date + '">' + fmt(r.receita_ef) + '</td>'
         + '<td class="drill" data-kind="despesa_ef" data-date="' + r.date + '">' + fmt(r.despesa_ef) + '</td>'
         + '<td class="' + cellCls(r.saldo_ef) + '">' + fmt(r.saldo_ef) + '</td>'
         + '<td>' + (r.acum_ef === null ? '—' : fmt(r.acum_ef)) + '</td></tr>');
-      pv.push('<tr' + today + '><td>' + r.day + '</td>'
+      pv.push('<tr' + today + '><td>' + label + '</td>'
         + '<td class="drill" data-kind="receita_prev" data-date="' + r.date + '">' + fmt(r.receita_prev) + '</td>'
         + '<td class="drill" data-kind="despesa_prev" data-date="' + r.date + '">' + fmt(r.despesa_prev) + '</td>'
         + '<td class="' + cellCls(r.saldo_prev) + '">' + fmt(r.saldo_prev) + '</td>'
@@ -182,8 +200,8 @@
     });
     $('tblEf').innerHTML = ef.join('') || '<tr><td colspan="5">Sem movimentos efetivos no período.</td></tr>';
     $('tblPv').innerHTML = pv.join('') || '<tr><td colspan="5">Sem títulos previstos no período.</td></tr>';
-    $('footEf').innerHTML = '<tr><td>Total</td><td>' + fmt(tRecE) + '</td><td>' + fmt(tDesE) + '</td><td class="' + cellCls(tRecE - tDesE) + '" colspan="2">' + fmt(tRecE - tDesE) + '</td></tr>';
-    $('footPv').innerHTML = '<tr><td>Total</td><td>' + fmt(tRecP) + '</td><td>' + fmt(tDesP) + '</td><td class="' + cellCls(tRecP - tDesP) + '" colspan="2">' + fmt(tRecP - tDesP) + '</td></tr>';
+    $('footEf').innerHTML = '<tr><td>Total</td><td>' + fmt(tRecE) + '</td><td>' + fmt(tDesE) + '</td><td class="' + cellCls(tSaldoE) + '">' + fmt(tSaldoE) + '</td><td></td></tr>';
+    $('footPv').innerHTML = '<tr><td>Total</td><td>' + fmt(tRecP) + '</td><td>' + fmt(tDesP) + '</td><td class="' + cellCls(tSaldoP) + '">' + fmt(tSaldoP) + '</td><td></td></tr>';
 
     const combo = $('tblCombo');
     combo.querySelector('thead').innerHTML = '<tr><th>Dia</th>'
@@ -191,16 +209,24 @@
       + (showPv ? '<th class="prev-col">Receita Prev.</th><th class="prev-col">Despesa Prev.</th><th class="prev-col">Saldo Prev.</th>' : '')
       + '<th>Acumulado projetado</th></tr>';
     combo.querySelector('tbody').innerHTML = rows.map(function (r) {
-      return '<tr' + (r.is_today ? ' class="today-row"' : '') + '><td>' + r.day + '</td>'
+      return '<tr' + (r.is_today ? ' class="today-row"' : '') + '><td>' + dayLabel(r) + '</td>'
         + (showEf ? '<td>' + fmt(r.receita_ef) + '</td><td>' + fmt(r.despesa_ef) + '</td><td class="' + cls(r.saldo_ef) + '">' + fmt(r.saldo_ef) + '</td>' : '')
         + (showPv ? '<td class="prev-col">' + fmt(r.receita_prev) + '</td><td class="prev-col">' + fmt(r.despesa_prev) + '</td><td class="prev-col ' + cls(r.saldo_prev) + '">' + fmt(r.saldo_prev) + '</td>' : '')
         + '<td class="' + cls(r.acum_proj) + '">' + fmt(r.acum_proj) + '</td></tr>';
     }).join('');
   }
 
-  function renderCharts(rows) {
+  function renderCharts(rows, scenario) {
     if (typeof Chart === 'undefined') return;
-    const labels = rows.map(function (r) { return String(r.day).padStart(2, '0'); });
+    const showEf = scenario !== 'pv';
+    const showPv = scenario !== 'ef';
+    const labels = rows.map(function (r) {
+      if (r.outside_month) {
+        const p = String(r.date || '').split('-');
+        return (p[2] || '') + '/' + (p[1] || '');
+      }
+      return String(r.day).padStart(2, '0');
+    });
     const efetivo = rows.map(function (r) { return r.is_effective ? r.acum_ef : null; });
     const proj = rows.map(function (r) { return r.acum_proj; });
     const rec = rows.map(function (r) { return r.receita_prev; });
@@ -211,9 +237,9 @@
       data: {
         labels: labels,
         datasets: [
-          { label: 'Efetivo', data: efetivo, borderColor: '#12532F', backgroundColor: 'transparent', borderWidth: 3, spanGaps: false, tension: .2 },
+          showEf ? { label: 'Efetivo', data: efetivo, borderColor: '#12532F', backgroundColor: 'transparent', borderWidth: 3, spanGaps: false, tension: .2 } : null,
           { label: 'Projetado', data: proj, borderColor: '#8A9189', backgroundColor: 'transparent', borderWidth: 3, borderDash: [7, 5], tension: .2 },
-        ],
+        ].filter(Boolean),
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } }, scales: { y: { ticks: { callback: function (v) { return moneyShort.format(v); } } } } },
     };
@@ -221,10 +247,10 @@
       type: 'bar',
       data: {
         labels: labels,
-        datasets: [
+        datasets: showPv ? [
           { label: 'Receita prev.', data: rec, backgroundColor: '#2F6FDE' },
           { label: 'Despesa prev.', data: des, backgroundColor: '#D14343' },
-        ],
+        ] : [],
       },
       options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true } }, scales: { y: { ticks: { callback: function (v) { return moneyShort.format(v); } } } } },
     };
@@ -353,7 +379,7 @@
       if (recorte === 'month' && (due < monthStart || (monthEnd && due > monthEnd))) return false;
       if (recorte === 'overdue' && !vencido) return false;
       if (q) {
-        const hay = [r.nf_serial, r.title_num, r.doc_num, r.card_code, r.card_name, r.doc_entry].join(' ').toLowerCase();
+        const hay = [r.nf_serial, r.title_num, r.line_memo, r.doc_num, r.card_code, r.card_name, r.doc_entry].join(' ').toLowerCase();
         if (hay.indexOf(q) < 0) return false;
       }
       return true;
@@ -404,9 +430,9 @@
         overdue: 'somente títulos vencidos',
         all: 'todos os títulos em aberto no cache',
       };
-      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista é o saldo em aberto do parceiro no razão. Crédito e adiantamento não aplicado reduzem o total. Todos os abertos fecham com o saldo do parceiro; o KPI corta pelo horizonte. Filial aplicada; o filtro Banco/Conta não vale para estes itens.';
+      let txt = 'Recorte: ' + (recorteLabel[recorte] || recorte) + '. A lista usa a mesma filial e o mesmo horizonte dos KPIs e da grade diária. Vencidos entram no dia de corte, uma vez só. Crédito reduz o total. O filtro Banco/Conta vale para o saldo efetivo, não para estes títulos.';
       if (recorte === 'horizon' && !($('dTipo')?.value) && !String($('dBusca')?.value || '').trim()) {
-        txt += ' A soma de A receber / A pagar desta lista deve coincidir com os KPIs.';
+        txt += ' A soma de A receber / A pagar fecha com os KPIs e com o total previsto do fluxo diário.';
       }
       hint.textContent = txt;
     }
@@ -426,14 +452,15 @@
       const nf = r.nf_serial || '—';
       const titulo = r.title_num || '—';
       const doc = r.doc_num ? r.doc_num : '—';
+      const memo = String(r.line_memo || '').trim();
       return '<tr><td>' + due + '</td>'
         + '<td><span class="badge ' + st.cls + '">' + st.label + '</span></td>'
         + '<td>' + tipo + '</td>'
-        + '<td>' + doc + '</td>'
-        + '<td>' + nf + '</td>'
-        + '<td>' + titulo + '</td>'
-        + '<td class="tl">' + (r.card_code || '') + '</td>'
-        + '<td class="tl">' + (r.card_name || '') + '</td>'
+        + '<td>' + esc(doc) + '</td>'
+        + '<td>' + esc(nf) + '</td>'
+        + '<td class="who"><span class="origin-tag">' + esc(titulo) + '</span></td>'
+        + '<td class="who"><span class="who-name">' + esc(r.card_name || '—') + '</span><span class="who-code">' + esc(r.card_code || '') + '</span></td>'
+        + '<td class="memo">' + (memo !== '' ? esc(memo) : '—') + '</td>'
         + '<td>' + (Number(r.installment) > 0 ? r.installment : '—') + '</td>'
         + '<td>' + fmt(r.original_amount) + '</td>'
         + '<td>' + fmt(r.paid_amount) + '</td>'

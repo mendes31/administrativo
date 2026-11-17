@@ -8,7 +8,7 @@
     <dt>Efetivo / realizado</dt>
     <dd>Movimentações que já alteraram caixa/bancos no SAP (lançamentos em <code>JDT1</code>), na data contábil (<code>RefDate</code>).</dd>
     <dt>Previsto</dt>
-    <dd>Saldo em aberto do parceiro no razão (<code>JDT1</code>, <code>BalDueDeb</code> / <code>BalDueCred</code>), por vencimento. Entram nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada sai. Crédito e adiantamento não aplicado reduzem o total. O recorte <strong>Todos os abertos</strong> é o que fecha com o saldo do parceiro. O KPI continua limitado ao horizonte, já incluindo vencidos.</dd>
+    <dd>Saldo em aberto do parceiro no razão (<code>JDT1</code>, <code>BalDueDeb</code> / <code>BalDueCred</code>), com a mesma filial e o mesmo horizonte dos indicadores. Entram nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada sai. Vencido antes do corte do período entra nesse dia, uma vez; título dentro do horizonte fica no próprio vencimento. A soma da grade diária fecha com <strong>A receber</strong>, <strong>A pagar</strong> e com o recorte horizonte da aba Detalhes. A coluna <strong>Observação</strong> traz o texto da linha (<code>LineMemo</code>) ou, se estiver vazio, o do lançamento (<code>OJDT.Memo</code>). Crédito e adiantamento não aplicado reduzem o total. O recorte <strong>Todos os abertos</strong> é o que fecha com o saldo do parceiro e inclui vencimentos depois do horizonte.</dd>
     <dt>Nº Doc SAP × NF × Título</dt>
     <dd><strong>Nº Doc SAP</strong> é o número interno da <strong>NFS</strong> (Nota Fiscal de Saída, a receber) ou da <strong>NFE</strong> (Nota Fiscal de Entrada, a pagar). <strong>NF</strong> é o Serial da nota fiscal. <strong>Título</strong> é o boleto quando existir. Não use o Nº Doc SAP na tela de títulos.</dd>
     <dt>Vencido</dt>
@@ -16,7 +16,7 @@
     <dt>Saldo inicial</dt>
     <dd>Posição das contas financeiras imediatamente antes do primeiro dia do período.</dd>
     <dt>Saldo financeiro</dt>
-    <dd>Saldo inicial + entradas efetivas − saídas efetivas, nas contas classificadas como caixa/banco.</dd>
+    <dd>Posição das contas de caixa e banco: saldo inicial mais o movimento líquido (entrada − saída), o mesmo critério da aba Bancos/Contas. Transferência entre essas contas não aparece como receita nem despesa.</dd>
     <dt>Aplicações</dt>
     <dd>Recursos aplicados, separados do saldo em conta corrente. Somam contas SAP do tipo Aplicação e os lançamentos locais (aplicação, resgate e rendimento).</dd>
     <dt>Disponibilidade própria</dt>
@@ -52,7 +52,7 @@
 <div class="help-field"><strong>Filial</strong> Filtra movimentos e títulos pelo <code>BPLId</code> do SAP, quando houver.</div>
 <div class="help-field"><strong>Banco / Conta</strong> Conta contábil parametrizada em Contas Financeiras SAP.</div>
 <div class="help-field"><strong>Cenário</strong> Mostra colunas efetivas, previstas ou ambas na visão combinada.</div>
-<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) dos KPIs a receber, a pagar e necessidade de caixa. Na aba Detalhes, o recorte “Horizonte dos KPIs” usa a mesma janela (vencimento até hoje + N dias, incluindo títulos já vencidos).</div>
+<div class="help-field"><strong>Horizonte</strong> Janela (7/15/30/60/90 dias) usada junta pelos KPIs, pela grade diária, pelo mensal e pelo recorte horizonte dos detalhes. Entram títulos em aberto com vencimento até hoje + N dias, vencidos inclusos. Vencido antes do corte do mês vai para esse dia. Se o horizonte passar do mês, a grade diária continua até essa data.</div>
 <div class="help-field"><strong>Aba Detalhes</strong> Lista as parcelas em aberto de contas a receber (<strong>NFS</strong>) e a pagar (<strong>NFE</strong>). Uma nota pode ter vários títulos (parcelas). Pedidos de venda/compra não entram.</div>
 <div class="help-field"><strong>NF</strong> Número da nota fiscal (<code>Serial</code> do SAP; se vazio, tenta <code>FolioNum</code>). Não é o número interno do documento.</div>
 <div class="help-field"><strong>Título</strong> Número do boleto (<code>OBOE.BoeNum</code>) quando o SAP tiver título/boleto vinculado à parcela. Se não houver boleto, a coluna fica em branco.</div>
@@ -76,7 +76,7 @@
     <dt>Aplicações não batem com a planilha</dt>
     <dd>O SAP em geral só traz rendimentos. Lance aplicações e resgates em <em>ListFinCashInvestments</em> e classifique as contas SAP do tipo Aplicação.</dd>
     <dt>Totais da aba Detalhes diferentes dos KPIs</dt>
-    <dd>No recorte <strong>Horizonte dos KPIs</strong>, sem filtro de tipo nem busca, A receber e A pagar da lista devem coincidir com os KPIs. Outros recortes (mês, vencidos, todos) usam outro conjunto de títulos. O filtro Banco/Conta não se aplica a títulos — eles não têm conta financeira até o pagamento. Filial sim.</dd>
+    <dd>No recorte <strong>Horizonte dos KPIs</strong>, sem filtro de tipo nem busca, A receber e A pagar da lista fecham com os KPIs e com o total previsto da grade diária. Outros recortes (mês, vencidos, todos) usam outro conjunto. O filtro Banco/Conta vale para o saldo efetivo, não para os títulos. Filial vale para os dois.</dd>
     <dt>Não acho um documento na lista</dt>
     <dd>A lista só tem saldo em aberto no razão. Linha já conciliada some depois da sincronização. O recorte <strong>Todos os abertos</strong> é a comparação com o relatório de vencimentos do SAP. O KPI não inclui vencimentos depois do horizonte. Filial restringe a lista e por isso pode divergir do saldo geral do parceiro.</dd>
     <dt>Sync automático falhou</dt>

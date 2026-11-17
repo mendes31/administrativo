@@ -92,11 +92,29 @@ class FinCashFlowDashboardService
         $historyTo = $yearEnd->format('Y-m-d');
 
         $dailyRows = $this->cache->getDaily($historyFrom, $historyTo, $glFilter, $branchId);
-        $forecasts = $this->cache->getForecasts(null, null, null, $branchId);
+        $horizonEnd = $today->add(new DateInterval('P' . $horizon . 'D'));
+        $anchor = $today;
+        if ($anchor < $monthStart) {
+            $anchor = $monthStart;
+        }
+        if ($anchor > $monthEnd) {
+            $anchor = $monthEnd;
+        }
+        $forecasts = $this->attachPosition(
+            $this->prepareForecasts($this->cache->getForecasts(null, null, null, $branchId)),
+            $anchor->format('Y-m-d'),
+            $horizonEnd->format('Y-m-d')
+        );
+        $inHorizon = [];
+        foreach ($forecasts as $fc) {
+            if (($fc['position_date'] ?? null) !== null) {
+                $inHorizon[] = $fc;
+            }
+        }
         $investments = $this->investments->getActiveUntil($yearEnd->format('Y-m-d'));
 
         $dailyByDate = $this->aggregateDailyByDate($dailyRows, $cashGl);
-        $forecastByDate = $this->aggregateForecastByDate($forecasts);
+        $forecastByDate = $this->aggregateForecastByDate($inHorizon);
         $investByMonth = $this->aggregateInvestmentsByMonth($investments, $year);
 
         $openingMonth = $this->openingAt($monthStart, $openingDate, $openingMap, $dailyRows, $cashGl);
@@ -119,21 +137,24 @@ class FinCashFlowDashboardService
         $daily = $this->buildDailyCalendar(
             $monthStart,
             $monthEnd,
+            $horizonEnd,
             $today,
+            $anchor,
             $openingMonth,
             $dailyByDate,
             $forecastByDate,
-            $cutoff
+            $cutoff,
+            $scenario
         );
 
         $kpis = $this->buildKpis(
             $daily,
+            $monthEnd,
             $openingMonth,
             $aplicacoes,
             $limits,
-            $forecasts,
+            $inHorizon,
             $today,
-            $horizon,
             $cutoff
         );
 
@@ -147,7 +168,10 @@ class FinCashFlowDashboardService
             $cashGl,
             $investGl,
             $limits,
-            $month
+            $month,
+            $anchor,
+            $cutoff,
+            $scenario
         );
 
         $accountsView = $this->buildAccountsView(
@@ -156,7 +180,7 @@ class FinCashFlowDashboardService
             $openingMap,
             $dailyRows,
             $investments,
-            $today,
+            $cutoff,
             $accountGl
         );
 
@@ -211,10 +235,34 @@ class FinCashFlowDashboardService
 
         if (in_array($kind, ['receita_prev', 'despesa_prev'], true)) {
             $source = $kind === 'receita_prev' ? 'AR' : 'AP';
-            $rows = $this->cache->getForecasts($date, $date, $source, $branchId);
-            $today = (new DateTimeImmutable('today'))->format('Y-m-d');
+            $year = (int) ($filters['year'] ?? substr($date, 0, 4));
+            $month = (int) ($filters['month'] ?? substr($date, 5, 2));
+            $horizon = (int) ($filters['horizon'] ?? 30);
+            if (!in_array($horizon, [7, 15, 30, 60, 90], true)) {
+                $horizon = 30;
+            }
+            $monthStart = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $month));
+            $monthEnd = $monthStart->modify('last day of this month');
+            $todayDt = new DateTimeImmutable('today');
+            $horizonEnd = $todayDt->add(new DateInterval('P' . $horizon . 'D'));
+            $anchor = $todayDt;
+            if ($anchor < $monthStart) {
+                $anchor = $monthStart;
+            }
+            if ($anchor > $monthEnd) {
+                $anchor = $monthEnd;
+            }
+            $rows = $this->attachPosition(
+                $this->prepareForecasts($this->cache->getForecasts(null, null, $source, $branchId)),
+                $anchor->format('Y-m-d'),
+                $horizonEnd->format('Y-m-d')
+            );
+            $today = $todayDt->format('Y-m-d');
             $out = [];
             foreach ($rows as $row) {
+                if ((string) ($row['position_date'] ?? '') !== $date) {
+                    continue;
+                }
                 $open = (float) ($row['open_amount'] ?? 0);
                 if (abs($open) < 0.005) {
                     continue;
@@ -239,9 +287,76 @@ class FinCashFlowDashboardService
         $direction = $kind === 'despesa_ef' ? 'out' : 'in';
         $sync = new FinCashFlowSapSyncService();
         $accountGl = trim((string) ($filters['account'] ?? ''));
-        $gl = $accountGl !== '' ? [$accountGl] : [];
-        $rows = $sync->fetchEffectiveDocuments($date, $direction, $gl);
+        $gl = $this->cashAccountsFor($accountGl);
+        $rows = $sync->fetchEffectiveDocuments($date, $direction, $gl, $branchId);
         return ['success' => true, 'kind' => $kind, 'date' => $date, 'rows' => $rows];
+    }
+
+    /**
+     * Contas de caixa/banco usadas no efetivo. O mesmo conjunto entra no saldo, no diário e no drill.
+     *
+     * @return list<string>
+     */
+    private function cashAccountsFor(string $accountGl): array
+    {
+        $cash = [];
+        $fallback = [];
+        foreach ($this->accounts->getIncludedInCashFlow() as $acc) {
+            $gl = (string) $acc['sap_gl_account'];
+            if ($accountGl !== '' && $gl !== $accountGl) {
+                continue;
+            }
+            $fallback[] = $gl;
+            $type = (string) ($acc['account_type'] ?? 'BANK');
+            if ($type === 'INVESTMENT' || $type === 'TRANSIT') {
+                continue;
+            }
+            $cash[] = $gl;
+        }
+        return $cash !== [] ? $cash : $fallback;
+    }
+
+    /**
+     * Normaliza o vencimento uma vez, para KPI, diário, mensal, detalhes e drill.
+     *
+     * @param list<array<string, mixed>> $forecasts
+     * @return list<array<string, mixed>>
+     */
+    private function prepareForecasts(array $forecasts): array
+    {
+        $out = [];
+        foreach ($forecasts as $row) {
+            $open = (float) ($row['open_amount'] ?? 0);
+            if (abs($open) < 0.005) {
+                continue;
+            }
+            $row['due_date'] = $this->normalizeForecastDueDate((string) ($row['due_date'] ?? ''));
+            $row['open_amount'] = $open;
+            $out[] = $row;
+        }
+        return $out;
+    }
+
+    /**
+     * Cada título do horizonte entra num único dia.
+     * Vencido antes do corte do período vai para esse corte; o restante fica no próprio vencimento.
+     * Fora do horizonte, position_date fica nulo e o título não entra em KPI nem na grade.
+     *
+     * @param list<array<string, mixed>> $forecasts
+     * @return list<array<string, mixed>>
+     */
+    private function attachPosition(array $forecasts, string $anchor, string $horizonEnd): array
+    {
+        foreach ($forecasts as &$row) {
+            $due = (string) ($row['due_date'] ?? '');
+            if ($due === '' || $due > $horizonEnd) {
+                $row['position_date'] = null;
+                continue;
+            }
+            $row['position_date'] = $due < $anchor ? $anchor : $due;
+        }
+        unset($row);
+        return $forecasts;
     }
 
     /**
@@ -299,6 +414,7 @@ class FinCashFlowDashboardService
                 'original_amount' => (float) ($fc['original_amount'] ?? 0),
                 'paid_amount' => (float) ($fc['paid_amount'] ?? 0),
                 'open_amount' => $open,
+                'line_memo' => (string) ($fc['line_memo'] ?? ''),
                 'sap_bpl_id' => (int) ($fc['sap_bpl_id'] ?? 0),
                 'status' => $status,
             ];
@@ -378,7 +494,10 @@ class FinCashFlowDashboardService
     {
         $out = [];
         foreach ($forecasts as $row) {
-            $d = (string) $row['due_date'];
+            $d = (string) ($row['position_date'] ?? '');
+            if ($d === '') {
+                continue;
+            }
             if (!isset($out[$d])) {
                 $out[$d] = ['ar' => 0.0, 'ap' => 0.0];
             }
@@ -497,38 +616,53 @@ class FinCashFlowDashboardService
     private function buildDailyCalendar(
         DateTimeImmutable $monthStart,
         DateTimeImmutable $monthEnd,
+        DateTimeImmutable $horizonEnd,
         DateTimeImmutable $today,
+        DateTimeImmutable $anchor,
         float $opening,
         array $dailyByDate,
         array $forecastByDate,
-        DateTimeImmutable $cutoff
+        DateTimeImmutable $cutoff,
+        string $scenario
     ): array {
         $rows = [];
         $acumEf = $opening;
         $acumProj = $opening;
+        $lastBank = $opening;
         $cursor = $monthStart;
+        $calendarEnd = $horizonEnd > $monthEnd ? $horizonEnd : $monthEnd;
         $todayStr = $today->format('Y-m-d');
         $cutoffStr = $cutoff->format('Y-m-d');
+        $anchorStr = $anchor->format('Y-m-d');
+        $monthStartStr = $monthStart->format('Y-m-d');
+        $monthEndStr = $monthEnd->format('Y-m-d');
 
-        while ($cursor <= $monthEnd) {
+        while ($cursor <= $calendarEnd) {
             $d = $cursor->format('Y-m-d');
             $mov = $dailyByDate[$d] ?? ['inflow' => 0.0, 'outflow' => 0.0, 'internal_in' => 0.0, 'internal_out' => 0.0];
             $fc = $forecastByDate[$d] ?? ['ar' => 0.0, 'ap' => 0.0];
 
             $receitaEf = max(0, $mov['inflow'] - $mov['internal_in']);
             $despesaEf = max(0, $mov['outflow'] - $mov['internal_out']);
-            $saldoEf = $receitaEf - $despesaEf;
-            $isPastOrToday = $d <= $cutoffStr;
-            if ($isPastOrToday) {
+            $saldoEf = $mov['inflow'] - $mov['outflow'];
+            $inRealized = $d >= $monthStartStr && $d <= $cutoffStr;
+            if ($inRealized) {
                 $acumEf += $saldoEf;
+                $lastBank = $acumEf;
             }
 
             $receitaPrev = $fc['ar'];
             $despesaPrev = $fc['ap'];
             $saldoPrev = $receitaPrev - $despesaPrev;
 
-            if ($isPastOrToday) {
-                $acumProj = $acumEf;
+            if ($scenario === 'ef') {
+                $acumProj = $lastBank;
+            } elseif ($scenario === 'pv') {
+                $acumProj += $saldoPrev;
+            } elseif ($d < $anchorStr) {
+                $acumProj = $lastBank;
+            } elseif ($d === $anchorStr) {
+                $acumProj = $lastBank + $saldoPrev;
             } else {
                 $acumProj += $saldoPrev;
             }
@@ -537,12 +671,13 @@ class FinCashFlowDashboardService
                 'date' => $d,
                 'day' => (int) $cursor->format('j'),
                 'weekday' => (int) $cursor->format('N'),
+                'outside_month' => $d < $monthStartStr || $d > $monthEndStr,
                 'is_today' => $d === $todayStr,
-                'is_effective' => $isPastOrToday,
+                'is_effective' => $inRealized,
                 'receita_ef' => $receitaEf,
                 'despesa_ef' => $despesaEf,
                 'saldo_ef' => $saldoEf,
-                'acum_ef' => $isPastOrToday ? $acumEf : null,
+                'acum_ef' => $inRealized ? $acumEf : null,
                 'receita_prev' => $receitaPrev,
                 'despesa_prev' => $despesaPrev,
                 'saldo_prev' => $saldoPrev,
@@ -560,12 +695,12 @@ class FinCashFlowDashboardService
      */
     private function buildKpis(
         array $daily,
+        DateTimeImmutable $monthEnd,
         float $opening,
         float $aplicacoes,
         float $limits,
         array $forecasts,
         DateTimeImmutable $today,
-        int $horizon,
         DateTimeImmutable $cutoff
     ): array {
         $totRecEf = 0.0;
@@ -577,6 +712,7 @@ class FinCashFlowDashboardService
         $recHoje = 0.0;
         $pagHoje = 0.0;
         $todayStr = $today->format('Y-m-d');
+        $monthEndStr = $monthEnd->format('Y-m-d');
 
         foreach ($daily as $row) {
             $totRecEf += (float) $row['receita_ef'];
@@ -584,7 +720,9 @@ class FinCashFlowDashboardService
             if (!empty($row['is_effective'])) {
                 $acumEf = (float) $row['acum_ef'];
             }
-            $projFim = (float) $row['acum_proj'];
+            if ($row['date'] === $monthEndStr) {
+                $projFim = (float) $row['acum_proj'];
+            }
             if ((float) $row['acum_proj'] < $menor) {
                 $menor = (float) $row['acum_proj'];
                 $menorData = $row['date'];
@@ -595,7 +733,6 @@ class FinCashFlowDashboardService
             }
         }
 
-        $horizonEnd = $today->add(new DateInterval('P' . $horizon . 'D'));
         $aReceber = 0.0;
         $aPagar = 0.0;
         $vencRec = 0.0;
@@ -611,12 +748,10 @@ class FinCashFlowDashboardService
                     $vencPag += $amt;
                 }
             }
-            if ($due <= $horizonEnd->format('Y-m-d')) {
-                if ($isAr) {
-                    $aReceber += $amt;
-                } else {
-                    $aPagar += $amt;
-                }
+            if ($isAr) {
+                $aReceber += $amt;
+            } else {
+                $aPagar += $amt;
             }
         }
 
@@ -662,7 +797,10 @@ class FinCashFlowDashboardService
         array $cashGl,
         array $investGl,
         float $limits,
-        int $currentMonth
+        int $currentMonth,
+        DateTimeImmutable $anchor,
+        DateTimeImmutable $cutoff,
+        string $scenario
     ): array {
         $rows = [
             'saldo_inicial' => array_fill(1, 12, 0.0),
@@ -692,6 +830,7 @@ class FinCashFlowDashboardService
             $out = max(0, (float) $row['outflow'] - (float) $row['internal_out']);
             $rows['receitas_efetivas'][$m] += $in;
             $rows['despesas_efetivas'][$m] += $out;
+            $rows['saldo_financeiro'][$m] += (float) $row['inflow'] - (float) $row['outflow'];
         }
 
         foreach ($forecastByDate as $date => $fc) {
@@ -704,16 +843,35 @@ class FinCashFlowDashboardService
             $rows['despesas_previstas'][$m] += $fc['ap'];
         }
 
+        $anchorMonth = (int) $anchor->format('n');
+        $anchorYear = (int) $anchor->format('Y');
+        $running = 0.0;
         for ($m = 1; $m <= 12; $m++) {
             $start = new DateTimeImmutable(sprintf('%04d-%02d-01', $year, $m));
             $end = $start->modify('last day of this month');
             $rows['saldo_inicial'][$m] = $this->openingAt($start, $openingDate, $openingMap, $dailyRows, $cashGl);
-            $rows['saldo_financeiro'][$m] = $rows['receitas_efetivas'][$m] - $rows['despesas_efetivas'][$m];
             $rows['necessidade'][$m] = $rows['receitas_previstas'][$m] - $rows['despesas_previstas'][$m];
             $sapInv = $this->openingAt($end->add(new DateInterval('P1D')), $openingDate, $openingMap, $dailyRows, $investGl);
             $localInv = $this->investmentBalanceUntil($investments, $end->format('Y-m-d'));
             $rows['aplicacoes'][$m] = $sapInv + $localInv;
-            $rows['saldo_acumulado'][$m] = $rows['saldo_inicial'][$m] + $rows['saldo_financeiro'][$m];
+            $bankEnd = $this->openingAt($start->modify('first day of next month'), $openingDate, $openingMap, $dailyRows, $cashGl);
+            $netPrev = $scenario === 'ef' ? 0.0 : $rows['necessidade'][$m];
+            $isPast = $year < $anchorYear || ($year === $anchorYear && $m < $anchorMonth);
+            $isAnchor = $year === $anchorYear && $m === $anchorMonth;
+            if ($scenario === 'pv') {
+                $rows['saldo_acumulado'][$m] = $rows['saldo_inicial'][$m] + $netPrev;
+                $running = $rows['saldo_acumulado'][$m];
+            } elseif ($isPast) {
+                $rows['saldo_acumulado'][$m] = $bankEnd;
+                $running = $bankEnd;
+            } elseif ($isAnchor) {
+                $bankNow = $this->openingAt($cutoff->add(new DateInterval('P1D')), $openingDate, $openingMap, $dailyRows, $cashGl);
+                $rows['saldo_acumulado'][$m] = $bankNow + $netPrev;
+                $running = $rows['saldo_acumulado'][$m];
+            } else {
+                $running += $rows['saldo_financeiro'][$m] + $netPrev;
+                $rows['saldo_acumulado'][$m] = $running;
+            }
         }
 
         return [
@@ -735,10 +893,10 @@ class FinCashFlowDashboardService
         array $openingMap,
         array $dailyRows,
         array $investments,
-        DateTimeImmutable $today,
+        DateTimeImmutable $cutoff,
         string $accountGl
     ): array {
-        $tomorrow = $today->add(new DateInterval('P1D'));
+        $tomorrow = $cutoff->add(new DateInterval('P1D'));
         $out = [];
         foreach ($allAccounts as $acc) {
             $gl = (string) $acc['sap_gl_account'];

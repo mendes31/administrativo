@@ -122,6 +122,18 @@ $month = (int) date('n');
 }
 .fcf-dash .fcf-detail-sum{grid-template-columns:repeat(3,1fr); margin-bottom:12px;}
 .fcf-dash .tbl-sticky thead th{position:sticky; top:0; z-index:1; background:#FAFBFD;}
+.fcf-dash .tbl-sticky td.who,.fcf-dash .tbl-sticky th.who,
+.fcf-dash .tbl-sticky td.memo,.fcf-dash .tbl-sticky th.memo{
+  text-align:left; white-space:normal; font-weight:500; vertical-align:top;
+}
+.fcf-dash .tbl-sticky td.who,.fcf-dash .tbl-sticky th.who{min-width:220px; max-width:320px;}
+.fcf-dash .tbl-sticky td.memo,.fcf-dash .tbl-sticky th.memo{min-width:240px; max-width:420px;}
+.fcf-dash .who-name{display:block; font-weight:700; line-height:1.3;}
+.fcf-dash .who-code{display:block; color:var(--fcf-ink-mute); font-size:11px; font-weight:600;}
+.fcf-dash .origin-tag{
+  display:inline-block; max-width:180px; white-space:normal; line-height:1.25;
+  background:#F4F7F5; color:var(--fcf-ink); border-radius:8px; padding:4px 8px; font-size:11px; font-weight:700;
+}
 .fcf-dash td.tl,.fcf-dash th.tl{text-align:left; font-weight:500; white-space:normal; max-width:280px;}
 .fcf-dash .badge.vencido{background:var(--fcf-red-tint); color:var(--fcf-red);}
 .fcf-dash .badge.credito{background:#e8f1fb; color:#1d4f91;}
@@ -307,7 +319,7 @@ $month = (int) date('n');
           </select>
         </label>
         <label>Buscar
-          <input type="search" id="dBusca" placeholder="NF, título, parceiro ou código" autocomplete="off">
+          <input type="search" id="dBusca" placeholder="NF, parceiro, código ou observação" autocomplete="off">
         </label>
       </div>
       <p class="kh" id="dHint" style="margin:0 0 10px;"></p>
@@ -325,9 +337,9 @@ $month = (int) date('n');
                 <th>Tipo</th>
                 <th title="Número interno da NFS (Nota Fiscal de Saída, a receber) ou da NFE (Nota Fiscal de Entrada, a pagar). Não é o título/boleto.">Nº Doc SAP</th>
                 <th>NF</th>
-                <th title="Origem do lançamento no razão. Quando houver boleto, o número aparece depois.">Origem</th>
-                <th class="tl">Código</th>
-                <th class="tl">Parceiro</th>
+                <th class="who" title="Origem do lançamento no razão. Quando houver boleto, o número aparece depois.">Origem</th>
+                <th class="who">Parceiro</th>
+                <th class="memo" title="Texto da linha no razão. Se a linha não tiver observação, usa a do lançamento.">Observação</th>
                 <th>Parcela</th>
                 <th>Original</th>
                 <th>Pago</th>
@@ -342,7 +354,7 @@ $month = (int) date('n');
       </div>
     </section>
 
-    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Transferências entre contas financeiras são neutralizadas no consolidado. Aplicações, resgates e rendimentos são lançados neste sistema — o SAP hoje registra principalmente os rendimentos mensais. A aba Detalhes lista o saldo em aberto do parceiro no razão: nota, devolução, adiantamento, recebimento, pagamento, lançamento manual e saldo de abertura. Linha conciliada não entra. O recorte Todos os abertos é o que fecha com o saldo do parceiro. O KPI usa só o horizonte, com os vencidos.</div>
+    <div class="note">Os números vêm do cache local sincronizado com o SAP. Não é consulta em tempo real. Filial, período, horizonte e cenário valem juntos para os indicadores, o fluxo diário, o fluxo mensal e os detalhes. O previsto é o saldo em aberto com vencimento até o fim do horizonte, vencidos inclusos; cada título entra uma vez, no dia de corte se já venceu ou na própria data se ainda está no prazo. A soma da receita e da despesa previstas na grade diária fecha com A receber, A pagar e com o recorte horizonte da aba Detalhes. O saldo efetivo segue o movimento líquido das contas de caixa e banco (a mesma base da aba Bancos/Contas). Transferência entre essas contas não entra como receita nem despesa. Aplicações, resgates e rendimentos locais somam às contas classificadas como aplicação.</div>
   </div>
 </div>
 
@@ -356,4 +368,4 @@ $month = (int) date('n');
 </div>
 
 <script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/vendor/chartjs/chart.umd.min.js"></script>
-<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=8"></script>
+<script src="<?= htmlspecialchars($_ENV['URL_ADM'] ?? '', ENT_QUOTES, 'UTF-8') ?>public/adms/js/cashFlow/dashboard.js?v=10"></script>

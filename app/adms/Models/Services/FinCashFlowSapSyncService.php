@@ -419,6 +419,7 @@ class FinCashFlowSapSyncService
                 'original_amount' => $orig,
                 'paid_amount' => $paid,
                 'open_amount' => $open,
+                'line_memo' => mb_substr(trim($this->col($row, ['Observacao', 'LineMemo', 'Memo'])), 0, 250),
             ];
         }
         $out = $this->attachBoeNumbers($out, $sourceType);
@@ -447,9 +448,9 @@ class FinCashFlowSapSyncService
      *
      * @return list<array<string, mixed>>
      */
-    public function fetchEffectiveDocuments(string $date, string $direction, array $glAccounts = []): array
+    public function fetchEffectiveDocuments(string $date, string $direction, array $glAccounts = [], ?int $branchId = null): array
     {
-        $sql = $this->sqlEffectiveDetail($date, $direction, $glAccounts);
+        $sql = $this->sqlEffectiveDetail($date, $direction, $glAccounts, $branchId);
         $rows = $this->querySql($sql);
         $out = [];
         foreach ($rows as $row) {
@@ -579,6 +580,7 @@ class FinCashFlowSapSyncService
             ' . $original . ' AS "ValorOriginal",
             (' . $original . ') - (' . $saldo . ') AS "ValorPago",
             ' . $saldo . ' AS "SaldoAberto",
+            COALESCE(NULLIF(J."LineMemo", \'\'), NULLIF(H."Memo", \'\')) AS "Observacao",
             CASE J."TransType"
                 WHEN \'13\' THEN \'NF Saída\'
                 WHEN \'14\' THEN \'Devolução NF Saída\'
@@ -594,6 +596,7 @@ class FinCashFlowSapSyncService
             END AS "Origem"
         FROM JDT1 J
         INNER JOIN OCRD C ON C."CardCode" = J."ShortName"
+        LEFT JOIN OJDT H ON H."TransId" = J."TransId"
         LEFT JOIN OINV NFS ON J."TransType" = \'13\' AND NFS."DocEntry" = J."CreatedBy"
         LEFT JOIN ORIN DVS ON J."TransType" = \'14\' AND DVS."DocEntry" = J."CreatedBy"
         LEFT JOIN OPCH NFE ON J."TransType" = \'18\' AND NFE."DocEntry" = J."CreatedBy"
@@ -617,13 +620,17 @@ class FinCashFlowSapSyncService
     /**
      * @param list<string> $glAccounts
      */
-    private function sqlEffectiveDetail(string $date, string $direction, array $glAccounts): string
+    private function sqlEffectiveDetail(string $date, string $direction, array $glAccounts, ?int $branchId = null): string
     {
         $amountCol = $direction === 'in' ? 'T1."Debit"' : 'T1."Credit"';
         $glFilter = '';
         if ($glAccounts !== []) {
             $quoted = array_map(static fn (string $g): string => "'" . str_replace("'", "''", $g) . "'", $glAccounts);
             $glFilter = ' AND T1."Account" IN (' . implode(',', $quoted) . ')';
+        }
+        $bplFilter = '';
+        if ($branchId !== null && $branchId >= 0) {
+            $bplFilter = ' AND IFNULL(T1."BPLId", 0) = ' . (int) $branchId;
         }
         return 'SELECT TOP 200
             T1."RefDate" AS "Data",
@@ -639,7 +646,7 @@ class FinCashFlowSapSyncService
         WHERE T1."RefDate" = \'' . $date . '\'
           AND ' . $amountCol . ' > 0
           AND ' . $this->financialAccountFilter('T1')
-          . $glFilter . '
+          . $glFilter . $bplFilter . '
         ORDER BY T1."TransId"';
     }
 
