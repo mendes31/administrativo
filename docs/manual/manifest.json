@@ -531,7 +531,7 @@
                 },
                 {
                     "id": "list-company-events",
-                    "title": "Listar Eventos Corporativos",
+                    "title": "Eventos corporativos",
                     "file": "comunicacao/list-company-events.html"
                 },
                 {

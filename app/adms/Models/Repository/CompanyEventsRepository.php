@@ -922,7 +922,7 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
      */
     public function applyAutoDeclineRsvpsAfterDeadlineForUser(array $events, int $userId, array $rsvpMap): array
     {
-        if ($userId <= 0 || $events === []) {
+        if ($userId <= 0 || $events === [] || \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUserId($userId)) {
             return $rsvpMap;
         }
 
@@ -1013,7 +1013,7 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
      */
     public function autoDeclineRsvpIfDeadlinePassed(int $eventId, int $userId): void
     {
-        if ($userId <= 0 || $eventId <= 0) {
+        if ($userId <= 0 || $eventId <= 0 || \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUserId($userId)) {
             return;
         }
         $event = $this->getById($eventId);
@@ -1080,9 +1080,11 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
 
         $creatorId = (int)($event['created_by'] ?? 0);
         $deptId = isset($event['department_id']) ? (int)$event['department_id'] : 0;
+        $exclude = \App\adms\Helpers\InstitutionalSystemUserHelper::sqlExcludeUsersAlias('u');
         $deptFilter = $deptId > 0
             ? ' AND u.user_department_id = :dept'
             : '';
+        $deptFilter .= ' AND ' . $exclude;
 
         $eidInt = (int)$eventId;
         $paramsIns = [':eid' => $eidInt, ':creator' => $creatorId];
@@ -1114,6 +1116,7 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
             WHERE r.event_id = :eid
               AND r.user_id <> :creator
               AND r.status = \'pending\'
+              AND ' . $exclude . '
               ' . ($deptId > 0 ? ' AND u.user_department_id = :dept' : '');
         $this->getConnection()->prepare($sqlUpdate)->execute($paramsUpd);
     }
@@ -1130,7 +1133,7 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
         int $maxGuests
     ): bool {
         $event = $this->getById($eventId);
-        if (!$event || empty($event['ativo'])) {
+        if (!$event || empty($event['ativo']) || \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUserId($userId)) {
             return false;
         }
         $now = date('Y-m-d H:i:s');
@@ -1192,7 +1195,8 @@ class CompanyEventsRepository extends DbConnection implements CompanyEventsDashb
         int $maxGuests
     ): bool {
         $event = $this->getById($eventId);
-        if (!$event || empty($event['ativo']) || empty($event['requires_rsvp'])) {
+        if (!$event || empty($event['ativo']) || empty($event['requires_rsvp'])
+            || \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalUserId($targetUserId)) {
             return false;
         }
         $newStatus = $status === 'declined' ? 'declined' : 'confirmed';

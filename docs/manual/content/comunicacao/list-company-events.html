@@ -1,33 +1,48 @@
-<h1>Listar Eventos Corporativos</h1>
+<h1>Eventos corporativos</h1>
 
 <h2>Função no sistema</h2>
-<p>Lista e filtra registros de <strong>Listar Eventos Corporativos</strong> no módulo Comunicação Interna. Use esta tela para localizar itens, acessar visualização/edição e iniciar novos cadastros.</p>
+<p>Lista os eventos cadastrados, com o horário, a situação (agendado, em andamento ou encerrado), os prazos de confirmação e de cancelamento e a resposta de quem está logado.</p>
+<p><strong>Quem acessa:</strong> usuários com permissão <em>ListCompanyEvents</em>. Visualizar, criar, editar, excluir e abrir o relatório dependem de <em>ViewCompanyEvent</em>, <em>CreateCompanyEvent</em>, <em>UpdateCompanyEvent</em>, <em>DeleteCompanyEvent</em> e <em>CompanyEventReport</em>.</p>
+<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Eventos corporativos</em> (<code>com-eventos</code>).</p>
 
-<p class="help-note"><strong>Visão geral do módulo:</strong> consulte também o tópico <em>Eventos corporativos</em> (<code>com-eventos</code>) para o fluxo completo da área.</p>
+<h2>O que significam os termos</h2>
+<dl>
+    <dt>Sua resposta</dt>
+    <dd>A confirmação de presença da pessoa logada. Não é o status do evento. A conta <em>manager</em> aparece como Não participa e não entra na contagem.</dd>
+    <dt>Sem resposta</dt>
+    <dd>O prazo de confirmação acabou e a pessoa não tinha respondido. O sistema grava isso como recusa para o relatório. Não significa que ela clicou em Recusar.</dd>
+    <dt>Recusado</dt>
+    <dd>A pessoa recusou a presença antes do prazo encerrar.</dd>
+    <dt>Ativo</dt>
+    <dd>O cadastro do evento está ligado. Um evento ativo pode já ter o prazo encerrado e ainda estar agendado.</dd>
+    <dt>Situação</dt>
+    <dd>Agendado, em andamento ou encerrado, conforme início e fim do evento.</dd>
+</dl>
 
-<p><strong>Quem acessa:</strong> usuários com permissão <em>ListCompanyEvents</em>.</p>
-
-<h2>Fluxo principal (passo a passo)</h2>
+<h2>Fluxo principal</h2>
 <ol>
-    <li>Acesse o menu <strong>Comunicação Interna</strong> e abra <strong>Listar Eventos Corporativos</strong>.</li>
-    <li>Use os filtros no topo para restringir por nome, status ou outros critérios.</li>
-    <li>Ajuste <em>Mostrar N registros</em> se precisar ver mais linhas por página.</li>
-    <li>Clique em <strong>Visualizar</strong>, <strong>Editar</strong> ou <strong>Cadastrar</strong> conforme sua permissão.</li>
-    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda contextual.</li>
+    <li>Acesse <strong>Comunicação Interna</strong> e abra <strong>Eventos corporativos</strong>.</li>
+    <li>Leia <strong>Situação</strong> para saber se o evento já aconteceu.</li>
+    <li>Leia <strong>Prazo confirmação</strong> e <strong>Prazo cancelamento</strong>. <em>Encerrado</em> significa que a data daquele prazo já passou.</li>
+    <li>Em <strong>Sua resposta</strong>, veja se você confirmou, recusou, ainda está pendente ou ficou sem resposta porque o prazo acabou.</li>
+    <li>Use Visualizar, Relatório, Editar ou Excluir conforme a sua permissão.</li>
+    <li>Pressione <kbd>F1</kbd> nesta tela para reabrir esta ajuda.</li>
 </ol>
 
 <h2>Campos e parâmetros</h2>
-<p class="text-muted small">O que cada campo afeta no sistema.</p>
-<div class="help-field"><strong>Filtros de busca</strong> Restringem os registros exibidos na grade; não alteram dados, apenas a consulta.</div>
-<div class="help-field"><strong>Mostrar N registros</strong> Controla paginação (10, 20, 50 ou 100 por página).</div>
-<div class="help-field"><strong>Ações (Visualizar / Editar / Apagar)</strong> Dependem das permissões do seu nível de acesso além da listagem.</div>
+<div class="help-field"><strong>Início e fim</strong> Horário do evento.</div>
+<div class="help-field"><strong>Situação</strong> Agendado antes do início, em andamento entre início e fim, encerrado depois do fim.</div>
+<div class="help-field"><strong>Prazo confirmação</strong> Até quando dá para confirmar ou recusar. Depois disso, quem não respondeu aparece como Sem resposta.</div>
+<div class="help-field"><strong>Prazo cancelamento</strong> Até quando uma confirmação pode ser cancelada. Sem data, a coluna mostra Sem prazo.</div>
+<div class="help-field"><strong>Sua resposta</strong> Confirmado, pendente, recusado, sem resposta, cancelado, não exige ou não participa. A conta manager não responde e fica de fora dos totais do relatório.</div>
+<div class="help-field"><strong>Ativo</strong> Sim ou não no cadastro. Não indica se o prazo ou o evento já encerrou.</div>
 
 <h2>Problemas comuns</h2>
 <dl>
+    <dt>O evento está Ativo e a resposta aparece como Recusado ou Sem resposta</dt>
+    <dd>Ativo só diz que o cadastro está ligado. Se o prazo de confirmação está Encerrado, quem não respondeu foi marcado pelo sistema. O evento pode continuar Agendado.</dd>
     <dt>Não vejo o menu desta tela</dt>
-    <dd>Permissão <em>ListCompanyEvents</em> ausente no seu nível de acesso. Solicite inclusão no pacote correto.</dd>
-    <dt>Erro 004 ao executar ação</dt>
-    <dd>Você tem a listagem, mas não a permissão da ação (criar, editar, excluir). Inclua a página filha no pacote.</dd>
-    <dt>Pressione F1 nesta tela para reabrir esta ajuda contextual</dt>
-    <dd>Consulte o fluxo abaixo e a visão geral do módulo quando precisar de contexto; consulte a visão geral do módulo para o fluxo completo.</dd>
+    <dd>Permissão <em>ListCompanyEvents</em> ausente no seu nível de acesso.</dd>
+    <dt>Não aparece Relatório, Editar ou Excluir</dt>
+    <dd>Falta a permissão correspondente, ou a exclusão só é oferecida a quem criou o evento.</dd>
 </dl>

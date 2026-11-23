@@ -427,7 +427,14 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                             </script>
                         <?php endif; ?>
 
-                        <?php if ($requiresRsvp): ?>
+                        <?php if ($requiresRsvp && \App\adms\Helpers\InstitutionalSystemUserHelper::isInstitutionalSession()): ?>
+                            <div class="mb-4 border rounded p-3 p-md-4 bg-white shadow-sm">
+                                <h5 class="mb-2">
+                                    <i class="fas fa-user-check text-success me-2"></i>Sua participação
+                                </h5>
+                                <p class="small text-muted mb-0">A conta manager não confirma presença e não entra na contagem do evento.</p>
+                            </div>
+                        <?php elseif ($requiresRsvp): ?>
                             <div class="mb-4 border rounded p-3 p-md-4 bg-white shadow-sm">
                                 <h5 class="mb-3">
                                     <i class="fas fa-user-check text-success me-2"></i>Sua participação
@@ -489,7 +496,9 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                                 <?php endif; ?>
                             </div>
 
-                            <?php if ($canAdminRsvpOthers): ?>
+                        <?php endif; ?>
+
+                        <?php if ($requiresRsvp && $canAdminRsvpOthers): ?>
                             <div class="mb-4 border border-warning rounded p-3 p-md-4 bg-white shadow-sm" id="adminRsvpPanel">
                                 <h5 class="mb-2">
                                     <i class="fas fa-user-shield text-warning me-2"></i>Outro colaborador (gestão)
@@ -523,8 +532,6 @@ $cancelDeadlinePassed = ($cancelDeadlineTs !== false && $cancelDeadlineTs < $now
                                 </div>
                                 <?php endif; ?>
                             </div>
-                            <?php endif; ?>
-
                         <?php endif; ?>
                     </div>
                 </div>

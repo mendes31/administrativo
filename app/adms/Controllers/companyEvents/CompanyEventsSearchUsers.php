@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\adms\Controllers\companyEvents;
 
 use App\adms\Helpers\CompanyEventRsvpAccessHelper;
+use App\adms\Helpers\InstitutionalSystemUserHelper;
 use App\adms\Models\Repository\ButtonPermissionUserRepository;
 use App\adms\Models\Repository\CompanyEventsRepository;
 use App\adms\Models\Repository\UsersRepository;
@@ -52,6 +53,10 @@ class CompanyEventsSearchUsers
         }
         $usersRepo = new UsersRepository();
         $users = $usersRepo->searchActiveUsersForAutocomplete($q, 15);
+        $users = array_values(array_filter(
+            $users,
+            static fn (array $user): bool => !InstitutionalSystemUserHelper::isInstitutionalUserId((int) ($user['id'] ?? 0))
+        ));
         echo json_encode(['success' => true, 'users' => $users], JSON_UNESCAPED_UNICODE);
     }
 }
