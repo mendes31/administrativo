@@ -169,7 +169,7 @@
                 },
                 {
                     "id": "list-users-last-access",
-                    "title": "Listar — Users Last Access",
+                    "title": "Último acesso por usuário",
                     "file": "administracao/list-users-last-access.html"
                 },
                 {

@@ -84,7 +84,8 @@ include './app/adms/Views/logs/partials/userAvatarHelper.php';
             <div class="alert alert-light border mb-3 small">
                 <i class="fas fa-info-circle text-primary me-1"></i>
                 Lista <strong>todos os usuários</strong> cadastrados com a data do último <strong>LOGIN</strong> registrado em
-                <code>adms_log_acessos</code>. Quem nunca entrou no sistema aparece como <strong>Nunca acessou</strong>.
+                <code>adms_log_acessos</code>. Esse registro é gravado em todo acesso autenticado, inclusive quando o
+                sistema pede a troca obrigatória de senha. Quem não tem nenhum LOGIN aparece como <strong>Nunca acessou</strong>.
                 <?php if ($consultedAt !== ''): ?>
                     <span class="d-block mt-2 text-muted"><i class="far fa-clock me-1"></i>Consulta: <?= htmlspecialchars($consultedAt, ENT_QUOTES, 'UTF-8'); ?></span>
                 <?php endif; ?>

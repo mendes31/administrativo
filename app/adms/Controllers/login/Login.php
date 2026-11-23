@@ -141,17 +141,19 @@ class Login
                 $_SESSION['session_id'] = session_id();
                 // Salvar a sessão no banco ANTES do redirecionamento
                 $sessionRepo = new \App\adms\Models\Repository\AdmsSessionsRepository();
+                $logRepo = new LogAcessosRepository();
+                $ipConc = RequestHelper::getClientIp();
+                $uaConc = RequestHelper::getUserAgent();
+                $hostnameConc = RequestHelper::getClientHostname();
                 // Registrar LOGOUT_CONCURRENT para sessões antigas antes de invalidar
                 $activeSessions = $sessionRepo->getActiveSessionsByUserId((int)$result['id']);
                 if (!empty($activeSessions)) {
-                    $logRepo = new LogAcessosRepository();
-                    $ipConc = RequestHelper::getClientIp();
-                    $uaConc = RequestHelper::getUserAgent();
-                    $hostnameConc = RequestHelper::getClientHostname();
                     foreach ($activeSessions as $old) {
-                        $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? ''), $hostnameConc); 
+                        $logRepo->registrarAcesso((int)$result['id'], 'LOGOUT_CONCURRENT', $ipConc, $uaConc, 'Sessão anterior: ' . ($old['session_id'] ?? ''), $hostnameConc);
                     }
                 }
+                // A autenticação já ocorreu. Sem este LOGIN o relatório marca "Nunca acessou".
+                $logRepo->registrarAcesso((int)$result['id'], 'LOGIN', $ipConc, $uaConc, 'Login com troca obrigatória de senha', $hostnameConc);
                 $sessionRepo->invalidateAllSessionsByUserId((int)$result['id']);
                 $sessionRepo->saveSession((int)$result['id'], session_id());
                 header("Location: {$_ENV['URL_ADM']}force-password-change");

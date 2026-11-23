@@ -24,6 +24,7 @@ class LogAcessosRepository extends DbConnection
             $stmt->execute();
             return $this->getConnection()->lastInsertId();
         } catch (Exception $e) {
+            error_log('Falha ao gravar adms_log_acessos: ' . $e->getMessage());
             return false;
         }
     }

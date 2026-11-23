@@ -131,7 +131,7 @@
                         {
                             "type": "topic",
                             "topic_id": "list-users-last-access",
-                            "title": "Listar — Users Last Access"
+                            "title": "Último acesso por usuário"
                         }
                     ]
                 },
